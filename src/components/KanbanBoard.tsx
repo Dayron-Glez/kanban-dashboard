@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import {IconPlus} from '@tabler/icons-react';
+import { Button } from "@/components/ui/button"
 import type { ColumnType } from '../types';
 import ColumnContainer from './ColumnContainer';
 
@@ -22,8 +23,6 @@ export default function KanbanBoard() {
     const generateId = (): number => {
         return Math.floor(Math.random() * 10001)
     }
-
-    console.log(columns);
     
 
   return (
@@ -36,14 +35,15 @@ export default function KanbanBoard() {
                 deleteColumn={deleteColumn} 
             />
         ))}</div>
-        <button
-        onClick={ () => {
-            createNewColumn();
-        }}
-        className=" flex items-center justify-center gap-2 h-16 w-80 min-w-80 rounded-lg cursor-pointer p-4 bg-mainBg border-2 border-columnBg ring-rose-500 hover:ring-2 hover:border-transparent">
-            <IconPlus/>
+       <Button
+        onClick={() => createNewColumn()}
+        className='group bg-mainBg border border-columnBg ring-2 hover:bg-mainBg hover:ring-rose-500 hover:text-white cursor-pointer'
+        variant="outline"
+        size="lg"
+        >
+            <IconPlus className="transition-transform duration-300 group-hover:rotate-45" />
             Add column
-        </button>
+        </Button>
 
     </div>
   </div>
