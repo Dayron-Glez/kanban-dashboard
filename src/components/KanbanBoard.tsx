@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import {IconPlus} from '@tabler/icons-react';
 import type { ColumnType } from '../types';
+import ColumnContainer from './ColumnContainer';
 
 export default function KanbanBoard() {
     const [columns, setColumns] = useState<ColumnType[]>([]);
@@ -14,6 +15,10 @@ export default function KanbanBoard() {
         setColumns([...columns,columnsToAdd]);
     };
 
+    const deleteColumn = (id: number | string) => {
+    setColumns(columns.filter(column => column.id !== id));
+};
+
     const generateId = (): number => {
         return Math.floor(Math.random() * 10001)
     }
@@ -23,7 +28,14 @@ export default function KanbanBoard() {
 
   return (
   <div className="m-auto flex min-h-screen w-full items-center overflow-x-auto overflow-y-hidden px-10">
-    <div className="m-auto">
+    <div className="m-auto flex gap-4">
+        <div className='flex gap-4'>{columns.map((column) => (
+            <ColumnContainer 
+                key={column.id} 
+                column={column} 
+                deleteColumn={deleteColumn} 
+            />
+        ))}</div>
         <button
         onClick={ () => {
             createNewColumn();
@@ -32,7 +44,6 @@ export default function KanbanBoard() {
             <IconPlus/>
             Add column
         </button>
-        <div>{columns.map((column) => <div key={column.id}>{column.title}</div>)}</div>
 
     </div>
   </div>
