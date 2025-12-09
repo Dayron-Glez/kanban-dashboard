@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@theme {
+  --color-mainBg: #0D1117;
+  --color-columnBg: #161C22;
+}
+
