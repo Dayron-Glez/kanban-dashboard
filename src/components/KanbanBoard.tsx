@@ -5,6 +5,9 @@ import type { ColumnType } from "../types";
 import {
   DndContext,
   DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -27,6 +30,14 @@ export default function KanbanBoard() {
     [columns],
   );
 
+  {/**Sensors */}
+
+  const sensors = useSensors(useSensor(PointerSensor, {
+    activationConstraint: {
+      distance: 3,
+    }
+  }))
+
   {
     /**Functions */
   }
@@ -38,7 +49,16 @@ export default function KanbanBoard() {
     setColumns([...columns, columnsToAdd]);
   };
 
-  const deleteColumn = (id: number | string) => {
+  const updateColumn = (id: string | number, title: string):void => {
+    const newColumns = columns.map((col) => {
+      if (col.id !==id) return col;
+      return {...col, title}
+    })
+
+    setColumns(newColumns)
+  }
+
+  const deleteColumn = (id: number | string): void => {
     setColumns(columns.filter((column) => column.id !== id));
   };
 
@@ -46,7 +66,7 @@ export default function KanbanBoard() {
     return Math.floor(Math.random() * 10001);
   };
 
-  const onDragStart = (event: DragStartEvent) => {
+  const onDragStart = (event: DragStartEvent): void => {
     console.log("Drag start", event);
     if (event.active.data.current?.type === "column") {
       setActiveColumn(event.active.data.current.column);
@@ -54,7 +74,7 @@ export default function KanbanBoard() {
     }
   };
 
-  const onDragEnd = (event: DragEndEvent) => {
+  const onDragEnd = (event: DragEndEvent): void => {
     const { active, over } = event;
     if (!over) return;
 
@@ -77,7 +97,7 @@ export default function KanbanBoard() {
 
   return (
     <div className="m-auto flex min-h-screen w-full items-center overflow-x-auto overflow-y-hidden px-10">
-      <DndContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="m-auto flex gap-4">
           <div className="flex gap-4">
             <SortableContext items={columnsId}>
@@ -85,6 +105,7 @@ export default function KanbanBoard() {
                 <ColumnContainer
                   key={column.id}
                   column={column}
+                  updateColumn={updateColumn}
                   deleteColumn={deleteColumn}
                 />
               ))}
@@ -106,6 +127,7 @@ export default function KanbanBoard() {
             {activeColumn && (
               <ColumnContainer
                 column={activeColumn}
+                updateColumn={updateColumn}
                 deleteColumn={deleteColumn}
               />
             )}
