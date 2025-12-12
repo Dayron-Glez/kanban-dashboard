@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { IconPlus } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import type { ColumnType } from "../types";
+import type { ColumnType, Task } from "../types";
 import {
   DndContext,
   DragOverlay,
@@ -20,6 +20,7 @@ export default function KanbanBoard() {
     /**States */
   }
   const [columns, setColumns] = useState<ColumnType[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null);
 
   {
@@ -61,6 +62,15 @@ export default function KanbanBoard() {
   const deleteColumn = (id: number | string): void => {
     setColumns(columns.filter((column) => column.id !== id));
   };
+
+  const createNewTask = (columnId: number | string ): void => {
+    const tasksToAdd: Task = {
+      id: generateId(),
+      columnId,
+      content: `Task ${tasks.length + 1}`,
+    };
+    setTasks([...tasks, tasksToAdd]);
+  }
 
   const generateId = (): number => {
     return Math.floor(Math.random() * 10001);
@@ -107,6 +117,8 @@ export default function KanbanBoard() {
                   column={column}
                   updateColumn={updateColumn}
                   deleteColumn={deleteColumn}
+                  createNewTask={createNewTask}
+                  tasks = {tasks.filter((task) => task.columnId === column.id)}
                 />
               ))}
             </SortableContext>
@@ -117,7 +129,7 @@ export default function KanbanBoard() {
             variant="outline"
             size="lg"
           >
-            <IconPlus className="transition-transform duration-300 group-hover:rotate-45" />
+            <IconPlus className="transition-transform duration-300 group-hover:rotate-90" />
             Add column
           </Button>
         </div>
@@ -129,6 +141,8 @@ export default function KanbanBoard() {
                 column={activeColumn}
                 updateColumn={updateColumn}
                 deleteColumn={deleteColumn}
+                createNewTask={createNewTask}
+                tasks = {tasks.filter((task) => task.columnId === activeColumn.id)}
               />
             )}
           </DragOverlay>,

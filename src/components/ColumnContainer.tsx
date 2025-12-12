@@ -1,15 +1,34 @@
 import { useSortable } from "@dnd-kit/sortable";
-import type { ColumnType } from "../types";
+import type { ColumnType, Task } from "../types";
 import { IconTrash } from "@tabler/icons-react";
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import { IconPlus } from "@tabler/icons-react";
+import { Card, CardHeader, CardTitle } from "./ui/card";
+import { ScrollArea } from "./ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
+
 interface Props {
   column: ColumnType;
-  updateColumn:(id: number | string, title:string) => void;
-  deleteColumn:(id: number | string) => void;
+  updateColumn: (id: number | string, title: string) => void;
+  deleteColumn: (id: number | string) => void;
+  createNewTask: (columnId: number | string) => void;
+  tasks: Task[];
 }
-export default function ColumnContainer({ column, updateColumn ,deleteColumn }: Props) {
+export default function ColumnContainer({
+  column,
+  updateColumn,
+  deleteColumn,
+  createNewTask,
+  tasks,
+}: Props) {
   const [editMode, setEditMode] = useState<boolean>(false);
   const {
     setNodeRef,
@@ -66,17 +85,52 @@ export default function ColumnContainer({ column, updateColumn ,deleteColumn }: 
             autoFocus
             onBlur={() => setEditMode(false)}
             onKeyDown={(e) => {
-              if(e.key !== "Enter") return;
-              setEditMode(false)
+              if (e.key !== "Enter") return;
+              setEditMode(false);
             }}
           />
         )}
-        <button onClick={() => deleteColumn(column.id)}>
-          <IconTrash className="hover:stroke-red-500 cursor-pointer" />
-        </button>
+        <Button
+          variant="ghost"
+          type="button"
+          className="group hover:bg-transparent"
+          onClick={() => deleteColumn(column.id)}
+        >
+          <IconTrash className="group-hover:stroke-rose-500" />
+        </Button>
       </div>
-      <div className="flex grow">Content</div>
-      <div>Footer</div>
+      <ScrollArea className="flex flex-col grow pt-2 pb-4 pr-2 h-80">
+        {tasks.map((task) => (
+          <Card
+            key={task.id}
+            className="bg-mainBg text-md text-white rounded-lg font-bold p-2 my-2 border-transparent"
+          >
+            <CardHeader className="p-0 pb-0! flex ">
+              <CardTitle>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="w-48 cursor-help truncate block">
+                        {task.content}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{task.content}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        ))}
+      </ScrollArea>
+      <Button
+        onClick={() => createNewTask(column.id)}
+        variant="ghost"
+        type="button"
+        className="group hover:text-white bg-mainBg hover:bg-mainBg"
+      >
+        <IconPlus className="group-hover:stroke-rose-500 transition-transform duration-300 group-hover:rotate-90" />
+        Add Task
+      </Button>
     </div>
   );
 }
