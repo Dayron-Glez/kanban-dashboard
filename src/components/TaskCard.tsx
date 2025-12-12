@@ -7,24 +7,33 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { Button } from "./ui/button";
-import { IconTrash } from "@tabler/icons-react";
+import { IconEdit, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
+
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+import { Textarea } from "./ui/textarea";
 
 interface Props {
   task: Task;
   deleteTask: (id: number | string) => void;
+  updateTask: (id: number | string, content: string) => void;
 }
 
-export default function TaskCard({ task, deleteTask }: Props) {
-  const [deleteButtonVisible, setDeleteButtonVisible] =
-    useState<boolean>(false);
+export default function TaskCard({ task, deleteTask, updateTask }: Props) {
+  const [editedContent, setEditedContent] = useState(task.content);
 
   return (
-    <Card
-      onMouseEnter={() => setDeleteButtonVisible(true)}
-      onMouseLeave={() => setDeleteButtonVisible(false)}
-      className="bg-mainBg h-24 min-h-24 justify-center hover:ring-2 hover:ring-inset hover:ring-rose-500 cursor-grab text-md text-white rounded-lg font-bold p-2 my-2 border-transparent"
-    >
+    <Card className="bg-mainBg h-24 min-h-24 justify-center hover:ring-2 hover:ring-inset hover:ring-rose-500 cursor-grab text-md text-white rounded-lg font-bold p-2 my-2 border-transparent">
       <CardHeader className="p-0 flex">
         <CardTitle className="flex items-center justify-between w-full">
           <TooltipProvider>
@@ -34,23 +43,75 @@ export default function TaskCard({ task, deleteTask }: Props) {
                   {task.content}
                 </span>
               </TooltipTrigger>
-
               <TooltipContent>{task.content}</TooltipContent>
             </Tooltip>
+          </TooltipProvider>
+
+          <div className="flex">
+            <Sheet
+              onOpenChange={(open) => {
+                if (open) {
+                  setEditedContent(task.content);
+                } else {
+                  setEditedContent(task.content);
+                }
+              }}
+            >
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="group hover:bg-transparent"
+                >
+                  <IconEdit className="group-hover:stroke-rose-500" />
+                </Button>
+              </SheetTrigger>
+
+              <SheetContent className="bg-mainBg border-transparent">
+                <SheetHeader>
+                  <SheetTitle className=" text-white">Edit Task</SheetTitle>
+                  <SheetDescription className=" text-white">
+                    Modify the content of this task and click save.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 px-2">
+                  <Textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="min-h-32"
+                  />
+                </div>
+
+                <SheetFooter className="mt-6">
+                  <SheetClose asChild>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        updateTask(task.id, editedContent);
+                      }}
+                    >
+                      Save changes
+                    </Button>
+                  </SheetClose>
+
+                  <SheetClose asChild>
+                    <Button variant="outline" type="button">
+                      Close
+                    </Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
 
             <Button
-			  onClick={() => deleteTask(task.id)}
+              onClick={() => deleteTask(task.id)}
               variant="ghost"
-              type="button"
-              className={`
-                group ml-2 hover:bg-transparent
-                transition-all duration-300 ease-out
-                ${deleteButtonVisible ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"}
-              `}
+              size="icon-sm"
+              className="group hover:bg-transparent"
             >
               <IconTrash className="group-hover:stroke-rose-500" />
             </Button>
-          </TooltipProvider>
+          </div>
         </CardTitle>
       </CardHeader>
     </Card>

@@ -16,6 +16,7 @@ interface Props {
   deleteColumn: (id: number | string) => void;
   createNewTask: (columnId: number | string) => void;
   deleteTask:(id: number | string) => void;
+  updateTask: (id: number | string, content: string) => void;
   tasks: Task[];
 }
 export default function ColumnContainer({
@@ -24,6 +25,7 @@ export default function ColumnContainer({
   deleteColumn,
   createNewTask,
   deleteTask,
+  updateTask,
   tasks,
 }: Props) {
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -97,7 +99,7 @@ export default function ColumnContainer({
         </Button>
       </div>
       <ScrollArea className="flex flex-col grow pt-2 pb-4 pr-2 h-80">
-        {tasks.map((task) => <TaskCard key={task.id} task={task} deleteTask={deleteTask}/>)}
+        {tasks.map((task) => <TaskCard key={task.id} task={task} updateTask={updateTask} deleteTask={deleteTask}/>)}
       </ScrollArea>
       <Button
         onClick={() => createNewTask(column.id)}
