@@ -6,14 +6,8 @@ import { useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { IconPlus } from "@tabler/icons-react";
-import { Card, CardHeader, CardTitle } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
+
 import TaskCard from "./TaskCard";
 
 interface Props {
@@ -21,6 +15,7 @@ interface Props {
   updateColumn: (id: number | string, title: string) => void;
   deleteColumn: (id: number | string) => void;
   createNewTask: (columnId: number | string) => void;
+  deleteTask:(id: number | string) => void;
   tasks: Task[];
 }
 export default function ColumnContainer({
@@ -28,6 +23,7 @@ export default function ColumnContainer({
   updateColumn,
   deleteColumn,
   createNewTask,
+  deleteTask,
   tasks,
 }: Props) {
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -101,13 +97,13 @@ export default function ColumnContainer({
         </Button>
       </div>
       <ScrollArea className="flex flex-col grow pt-2 pb-4 pr-2 h-80">
-        {tasks.map((task) => <TaskCard task={task}/>)}
+        {tasks.map((task) => <TaskCard key={task.id} task={task} deleteTask={deleteTask}/>)}
       </ScrollArea>
       <Button
         onClick={() => createNewTask(column.id)}
         variant="ghost"
         type="button"
-        className="group hover:text-white bg-mainBg hover:bg-mainBg"
+        className="group hover:text-white hover:ring-2 hover:ring-inset hover:ring-rose-500 bg-mainBg hover:bg-mainBg"
       >
         <IconPlus className="group-hover:stroke-rose-500 transition-transform duration-300 group-hover:rotate-90" />
         Add Task

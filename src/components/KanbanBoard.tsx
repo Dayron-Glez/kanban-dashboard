@@ -31,16 +31,20 @@ export default function KanbanBoard() {
     [columns],
   );
 
-  {/**Sensors */}
+  {
+    /**Sensors */
+  }
 
-  const sensors = useSensors(useSensor(PointerSensor, {
-    activationConstraint: {
-      distance: 3,
-    }
-  }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 3,
+      },
+    }),
+  );
 
   {
-    /**Functions */
+    /**Functions for columns */
   }
   const createNewColumn = (): void => {
     const columnsToAdd: ColumnType = {
@@ -50,27 +54,34 @@ export default function KanbanBoard() {
     setColumns([...columns, columnsToAdd]);
   };
 
-  const updateColumn = (id: string | number, title: string):void => {
+  const updateColumn = (id: string | number, title: string): void => {
     const newColumns = columns.map((col) => {
-      if (col.id !==id) return col;
-      return {...col, title}
-    })
+      if (col.id !== id) return col;
+      return { ...col, title };
+    });
 
-    setColumns(newColumns)
-  }
+    setColumns(newColumns);
+  };
 
   const deleteColumn = (id: number | string): void => {
     setColumns(columns.filter((column) => column.id !== id));
   };
 
-  const createNewTask = (columnId: number | string ): void => {
+  {
+    /**Functions for tasks */
+  }
+  const createNewTask = (columnId: number | string): void => {
     const tasksToAdd: Task = {
       id: generateId(),
       columnId,
       content: `Task ${tasks.length + 1}`,
     };
     setTasks([...tasks, tasksToAdd]);
-  }
+  };
+
+  const deleteTask = (id: number | string): void => {
+    setTasks(tasks.filter((task) => task.id !== id));
+  };
 
   const generateId = (): number => {
     return Math.floor(Math.random() * 10001);
@@ -107,7 +118,11 @@ export default function KanbanBoard() {
 
   return (
     <div className="m-auto flex min-h-screen w-full items-center overflow-x-auto overflow-y-hidden px-10">
-      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      <DndContext
+        sensors={sensors}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      >
         <div className="m-auto flex gap-4">
           <div className="flex gap-4">
             <SortableContext items={columnsId}>
@@ -118,7 +133,8 @@ export default function KanbanBoard() {
                   updateColumn={updateColumn}
                   deleteColumn={deleteColumn}
                   createNewTask={createNewTask}
-                  tasks = {tasks.filter((task) => task.columnId === column.id)}
+                  deleteTask={deleteTask}
+                  tasks={tasks.filter((task) => task.columnId === column.id)}
                 />
               ))}
             </SortableContext>
@@ -142,7 +158,10 @@ export default function KanbanBoard() {
                 updateColumn={updateColumn}
                 deleteColumn={deleteColumn}
                 createNewTask={createNewTask}
-                tasks = {tasks.filter((task) => task.columnId === activeColumn.id)}
+                deleteTask={deleteTask}
+                tasks={tasks.filter(
+                  (task) => task.columnId === activeColumn.id,
+                )}
               />
             )}
           </DragOverlay>,
