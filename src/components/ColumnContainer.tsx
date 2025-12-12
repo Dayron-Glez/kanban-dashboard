@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import TaskCard from "./TaskCard";
 
 interface Props {
   column: ColumnType;
@@ -100,27 +101,7 @@ export default function ColumnContainer({
         </Button>
       </div>
       <ScrollArea className="flex flex-col grow pt-2 pb-4 pr-2 h-80">
-        {tasks.map((task) => (
-          <Card
-            key={task.id}
-            className="bg-mainBg text-md text-white rounded-lg font-bold p-2 my-2 border-transparent"
-          >
-            <CardHeader className="p-0 pb-0! flex ">
-              <CardTitle>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="w-48 cursor-help truncate block">
-                        {task.content}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>{task.content}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
+        {tasks.map((task) => <TaskCard task={task}/>)}
       </ScrollArea>
       <Button
         onClick={() => createNewTask(column.id)}
