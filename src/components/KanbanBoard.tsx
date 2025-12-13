@@ -22,10 +22,8 @@ import { v4 as uuidv4 } from "uuid";
 
 const shortId = () => uuidv4().slice(0, 2);
 
-
-
 export default function KanbanBoard() {
- // State
+  // State
 
   const [columns, setColumns] = useState<ColumnType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -33,10 +31,9 @@ export default function KanbanBoard() {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const [columnCounter, setColumnCounter] = useState(0);
-const [taskCounter, setTaskCounter] = useState(0);
+  const [taskCounter, setTaskCounter] = useState(0);
 
-
- // Memo
+  // Memo
   const columnsId = useMemo(
     () => columns.map((column) => column.id),
     [columns],
@@ -51,13 +48,13 @@ const [taskCounter, setTaskCounter] = useState(0);
 
   // Columns CRUD
   const createNewColumn = (): void => {
-  const newColumn: ColumnType = {
-    id: shortId(),
-    title: `Column ${columnCounter + 1}`,
+    const newColumn: ColumnType = {
+      id: shortId(),
+      title: `Column ${columnCounter + 1}`,
+    };
+    setColumns((prev) => [...prev, newColumn]);
+    setColumnCounter((prev) => prev + 1);
   };
-  setColumns((prev) => [...prev, newColumn]);
-  setColumnCounter((prev) => prev + 1);
-};
 
   const updateColumn = (id: string | number, title: string): void => {
     setColumns((prev) =>
@@ -72,14 +69,14 @@ const [taskCounter, setTaskCounter] = useState(0);
 
   // Tasks CRUD
   const createNewTask = (columnId: string | number): void => {
-  const newTask: Task = {
-    id: shortId(),
-    columnId,
-    content: `Task ${taskCounter + 1}`,
+    const newTask: Task = {
+      id: shortId(),
+      columnId,
+      content: `Task ${taskCounter + 1}`,
+    };
+    setTasks((prev) => [...prev, newTask]);
+    setTaskCounter((prev) => prev + 1);
   };
-  setTasks((prev) => [...prev, newTask]);
-  setTaskCounter((prev) => prev + 1);
-};
 
   const updateTask = (id: string | number, content: string): void => {
     setTasks((prev) =>
@@ -168,12 +165,12 @@ const [taskCounter, setTaskCounter] = useState(0);
           </SortableContext>
 
           <Button
-            onClick={createNewColumn}
-            className="group bg-mainBg border border-columnBg ring-2 hover:bg-mainBg hover:ring-rose-500"
+            onClick={() => createNewColumn()}
+            className="group bg-mainBg border border-columnBg ring-2 hover:bg-mainBg hover:ring-rose-500 hover:text-white cursor-pointer"
             variant="outline"
             size="lg"
           >
-            <IconPlus className="transition-transform duration-300 group-hover:rotate-90" />
+            <IconPlus className="transition-transform duration-300 group-hover:rotate-90 group-hover:text-rose-500" />
             Add column
           </Button>
         </div>

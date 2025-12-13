@@ -24,7 +24,6 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
 
 interface Props {
   task: Task;
@@ -33,7 +32,6 @@ interface Props {
 }
 
 export default function TaskCard({ task, deleteTask, updateTask }: Props) {
-  const [editMode, setEditMode] = useState<boolean>(false);
 
   const {
     setNodeRef,
