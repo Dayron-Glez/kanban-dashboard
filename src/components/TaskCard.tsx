@@ -11,6 +11,18 @@ import { IconTrash } from "@tabler/icons-react";
 import { EditTaskSheet } from "./Sheet/EditTaskSheet";
 import { DetailsTaskSheet } from "./Sheet/DetailsTaskSheet";
 
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+
 interface Props {
   task: Task;
   deleteTask: (id: number | string) => void;
@@ -40,21 +52,48 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
               initialContent={task.content}
               onSave={updateTask}
             />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
+            <AlertDialog>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="group hover:bg-transparent"
+                      >
+                        <IconTrash className="group-hover:stroke-rose-500" />
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+
+                  <TooltipContent>Delete Task</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <AlertDialogContent className="bg-columnBg border-transparent">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-white">
+                    Delete task?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-white">
+                    This action cannot be undone. The task will be permanently
+                    removed.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-rose-500 border-none hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500 hover:text-white">Cancel</AlertDialogCancel>
+
+                  <AlertDialogAction
+                    className="bg-rose-500 hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500"
                     onClick={() => deleteTask(task.id)}
-                    variant="ghost"
-                    size="icon-sm"
-                    className="group hover:bg-transparent"
                   >
-                    <IconTrash className="group-hover:stroke-rose-500" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Delete Task</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardTitle>
       </CardHeader>
