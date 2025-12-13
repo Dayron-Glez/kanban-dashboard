@@ -55,7 +55,7 @@ export default function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className="flex flex-col bg-columnBg rounded-lg w-80 h-[500px] max-h-[500px] p-4 opacity-40 border-2 border-rose-500"
+        className="flex flex-col bg-columnBg rounded-lg w-[360px] h-[500px] max-h-[500px] p-4 opacity-40 border-2 border-rose-500"
       ></div>
     );
   }
@@ -64,7 +64,7 @@ export default function ColumnContainer({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-col bg-columnBg rounded-lg w-80 h-[500px] max-h-[500px] p-4"
+      className="flex flex-col bg-columnBg rounded-lg w-[360px] h-[500px] max-h-[500px] p-4"
     >
       <div
         onClick={() => setEditMode(true)}
@@ -72,7 +72,7 @@ export default function ColumnContainer({
         {...listeners}
         className="flex gap-2 items-center justify-between bg-mainBg text-md h-16 cursor-grab rounded-md rounded-b-none font-bold border-columnBg border-4 p-2"
       >
-        <div>0</div>
+        <div>{tasks.length}</div>
         {!editMode && column.title}
         {editMode && (
           <Input
