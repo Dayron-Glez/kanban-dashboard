@@ -9,117 +9,137 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext } from "@dnd-kit/sortable";
 import ColumnContainer from "./ColumnContainer";
+import TaskCard from "./TaskCard";
 import { createPortal } from "react-dom";
+import { v4 as uuidv4 } from "uuid";
+
+// Helpers
+
+const shortId = () => uuidv4().slice(0, 2);
+
+
 
 export default function KanbanBoard() {
-  {
-    /**States */
-  }
+ // State
+
   const [columns, setColumns] = useState<ColumnType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
-  {
-    /**Memories */
-  }
+  const [columnCounter, setColumnCounter] = useState(0);
+const [taskCounter, setTaskCounter] = useState(0);
+
+
+ // Memo
   const columnsId = useMemo(
     () => columns.map((column) => column.id),
     [columns],
   );
 
-  {
-    /**Sensors */
-  }
-
+  // Sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 3,
-      },
+      activationConstraint: { distance: 3 },
     }),
   );
 
-  {
-    /**Functions for columns */
-  }
+  // Columns CRUD
   const createNewColumn = (): void => {
-    const columnsToAdd: ColumnType = {
-      id: generateId(),
-      title: `Column ${columns.length + 1}`,
-    };
-    setColumns([...columns, columnsToAdd]);
+  const newColumn: ColumnType = {
+    id: shortId(),
+    title: `Column ${columnCounter + 1}`,
   };
-
-  const updateColumn = (id: string | number, title: string): void => {
-    const newColumns = columns.map((col) => {
-      if (col.id !== id) return col;
-      return { ...col, title };
-    });
-
-    setColumns(newColumns);
-  };
-
-  const deleteColumn = (id: number | string): void => {
-    setColumns(columns.filter((column) => column.id !== id));
-  };
-
-  {
-    /**Functions for tasks */
-  }
-  const createNewTask = (columnId: number | string): void => {
-    const tasksToAdd: Task = {
-      id: generateId(),
-      columnId,
-      content: `Task ${tasks.length + 1}`,
-    };
-    setTasks([...tasks, tasksToAdd]);
-  };
-
-  const updateTask = (id: number | string, content: string): void => {
-  setTasks(tasks.map(task =>
-    task.id === id ? { ...task, content } : task
-  ));
+  setColumns((prev) => [...prev, newColumn]);
+  setColumnCounter((prev) => prev + 1);
 };
 
-
-  const deleteTask = (id: number | string): void => {
-    setTasks(tasks.filter((task) => task.id !== id));
+  const updateColumn = (id: string | number, title: string): void => {
+    setColumns((prev) =>
+      prev.map((col) => (col.id === id ? { ...col, title } : col)),
+    );
   };
 
-  const generateId = (): number => {
-    return Math.floor(Math.random() * 10001);
+  const deleteColumn = (id: string | number): void => {
+    setColumns((prev) => prev.filter((column) => column.id !== id));
+    setTasks((prev) => prev.filter((task) => task.columnId !== id));
   };
 
+  // Tasks CRUD
+  const createNewTask = (columnId: string | number): void => {
+  const newTask: Task = {
+    id: shortId(),
+    columnId,
+    content: `Task ${taskCounter + 1}`,
+  };
+  setTasks((prev) => [...prev, newTask]);
+  setTaskCounter((prev) => prev + 1);
+};
+
+  const updateTask = (id: string | number, content: string): void => {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === id ? { ...task, content } : task)),
+    );
+  };
+
+  const deleteTask = (id: string | number): void => {
+    setTasks((prev) => prev.filter((task) => task.id !== id));
+  };
+
+  // Drag handlers
   const onDragStart = (event: DragStartEvent): void => {
-    console.log("Drag start", event);
     if (event.active.data.current?.type === "column") {
       setActiveColumn(event.active.data.current.column);
-      return;
+    }
+
+    if (event.active.data.current?.type === "task") {
+      setActiveTask(event.active.data.current.task);
     }
   };
 
   const onDragEnd = (event: DragEndEvent): void => {
+    setActiveColumn(null);
+    setActiveTask(null);
+
     const { active, over } = event;
     if (!over) return;
 
-    const activeColumnId = active.id;
-    const overColumnId = over.id;
+    if (active.id === over.id) return;
 
-    if (activeColumnId === overColumnId) return;
+    setColumns((prev) => {
+      const activeIndex = prev.findIndex((c) => c.id === active.id);
+      const overIndex = prev.findIndex((c) => c.id === over.id);
 
-    setColumns((columns) => {
-      const activeColumnIndex = columns.findIndex(
-        (column) => column.id === activeColumnId,
-      );
-      const overColumnIndex = columns.findIndex(
-        (column) => column.id === overColumnId,
-      );
+      if (activeIndex === -1 || overIndex === -1) return prev;
 
-      return arrayMove(columns, activeColumnIndex, overColumnIndex);
+      return arrayMove(prev, activeIndex, overIndex);
+    });
+  };
+
+  const onDragOver = (event: DragOverEvent): void => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const isActiveTask = active.data.current?.type === "task";
+    const isOverTask = over.data.current?.type === "task";
+
+    if (!isActiveTask) return;
+
+    setTasks((prev) => {
+      const activeIndex = prev.findIndex((t) => t.id === active.id);
+
+      if (isOverTask) {
+        const overIndex = prev.findIndex((t) => t.id === over.id);
+        prev[activeIndex].columnId = prev[overIndex].columnId;
+        return arrayMove(prev, activeIndex, overIndex);
+      }
+
+      return prev;
     });
   };
 
@@ -129,27 +149,27 @@ export default function KanbanBoard() {
         sensors={sensors}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
       >
         <div className="m-auto flex gap-4">
-          <div className="flex gap-4">
-            <SortableContext items={columnsId}>
-              {columns.map((column) => (
-                <ColumnContainer
-                  key={column.id}
-                  column={column}
-                  updateColumn={updateColumn}
-                  deleteColumn={deleteColumn}
-                  createNewTask={createNewTask}
-                  deleteTask={deleteTask}
-                  updateTask={updateTask}
-                  tasks={tasks.filter((task) => task.columnId === column.id)}
-                />
-              ))}
-            </SortableContext>
-          </div>
+          <SortableContext items={columnsId}>
+            {columns.map((column) => (
+              <ColumnContainer
+                key={column.id}
+                column={column}
+                updateColumn={updateColumn}
+                deleteColumn={deleteColumn}
+                createNewTask={createNewTask}
+                deleteTask={deleteTask}
+                updateTask={updateTask}
+                tasks={tasks.filter((task) => task.columnId === column.id)}
+              />
+            ))}
+          </SortableContext>
+
           <Button
-            onClick={() => createNewColumn()}
-            className="group bg-mainBg border border-columnBg ring-2 hover:bg-mainBg hover:ring-rose-500 hover:text-white cursor-pointer"
+            onClick={createNewColumn}
+            className="group bg-mainBg border border-columnBg ring-2 hover:bg-mainBg hover:ring-rose-500"
             variant="outline"
             size="lg"
           >
@@ -171,6 +191,14 @@ export default function KanbanBoard() {
                 tasks={tasks.filter(
                   (task) => task.columnId === activeColumn.id,
                 )}
+              />
+            )}
+
+            {activeTask && (
+              <TaskCard
+                task={activeTask}
+                deleteTask={deleteTask}
+                updateTask={updateTask}
               />
             )}
           </DragOverlay>,

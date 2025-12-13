@@ -10,6 +10,8 @@ import { Button } from "./ui/button";
 import { IconTrash } from "@tabler/icons-react";
 import { EditTaskSheet } from "./Sheet/EditTaskSheet";
 import { DetailsTaskSheet } from "./Sheet/DetailsTaskSheet";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 import {
   AlertDialog,
@@ -22,6 +24,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 interface Props {
   task: Task;
@@ -30,8 +33,48 @@ interface Props {
 }
 
 export default function TaskCard({ task, deleteTask, updateTask }: Props) {
+  const [editMode, setEditMode] = useState<boolean>(false);
+
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    data: {
+      type: "task",
+      task,
+    },
+  });
+
+  const style = {
+    transition,
+    transform: CSS.Transform.toString(transform),
+  };
+
+  if (isDragging) {
+    return (
+      <Card
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className="bg-mainBg h-24 min-h-24 justify-center border-2 border-rose-500 cursor-grab text-md text-white rounded-lg font-bold p-2 my-2 opacity-40"
+      />
+    );
+  }
+
   return (
-    <Card className="bg-mainBg h-24 min-h-24 justify-center hover:ring-2 hover:ring-inset hover:ring-rose-500 cursor-grab text-md text-white rounded-lg font-bold p-2 my-2 border-transparent">
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="bg-mainBg h-24 min-h-24 justify-center hover:ring-2 hover:ring-inset hover:ring-rose-500 cursor-grab text-md text-white rounded-lg font-bold p-2 my-2 border-transparent"
+    >
       <CardHeader className="p-0 flex">
         <CardTitle className="flex items-center justify-between w-full">
           <TooltipProvider>
@@ -83,7 +126,9 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                 </AlertDialogHeader>
 
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-rose-500 border-none hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500 hover:text-white">Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="bg-rose-500 border-none hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500 hover:text-white">
+                    Cancel
+                  </AlertDialogCancel>
 
                   <AlertDialogAction
                     className="bg-rose-500 hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500"

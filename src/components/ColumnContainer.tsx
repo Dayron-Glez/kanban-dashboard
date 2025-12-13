@@ -1,8 +1,8 @@
-import { useSortable } from "@dnd-kit/sortable";
+import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import type { ColumnType, Task } from "../types";
 import { IconTrash } from "@tabler/icons-react";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { IconPlus } from "@tabler/icons-react";
@@ -29,6 +29,9 @@ export default function ColumnContainer({
   tasks,
 }: Props) {
   const [editMode, setEditMode] = useState<boolean>(false);
+  const tasksIds = useMemo(() => {
+    return tasks.map((task) => task.id)
+  }, [tasks]);
   const {
     setNodeRef,
     attributes,
@@ -99,7 +102,10 @@ export default function ColumnContainer({
         </Button>
       </div>
       <ScrollArea className="flex flex-col grow pt-2 pb-4 pr-2 h-80">
-        {tasks.map((task) => <TaskCard key={task.id} task={task} updateTask={updateTask} deleteTask={deleteTask}/>)}
+        <SortableContext items={tasksIds}>
+
+          {tasks.map((task) => <TaskCard key={task.id} task={task} updateTask={updateTask} deleteTask={deleteTask}/>)}
+        </SortableContext>
       </ScrollArea>
       <Button
         onClick={() => createNewTask(column.id)}
