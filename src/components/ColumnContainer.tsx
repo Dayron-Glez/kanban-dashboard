@@ -55,7 +55,7 @@ export default function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className="flex flex-col bg-columnBg rounded-lg w-[360px] h-[500px] max-h-[500px] p-4 opacity-40 border-2 border-rose-500"
+        className="flex flex-col bg-columnBg rounded-lg w-[360px] h-[550px] max-h-[500px] p-4 opacity-40 border-2 border-rose-500"
       ></div>
     );
   }
@@ -64,7 +64,7 @@ export default function ColumnContainer({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-col bg-columnBg rounded-lg w-[360px] h-[500px] max-h-[500px] p-4"
+      className="flex flex-col bg-columnBg rounded-lg w-[360px] h-[550px] max-h-[550px] p-4"
     >
       <div
         onClick={() => setEditMode(true)}

@@ -9,6 +9,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { Task } from "@/types";
 import { IconEye } from "@tabler/icons-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 interface EditTaskSheetProps {
   task: Task;
 }
@@ -17,13 +23,20 @@ export function DetailsTaskSheet({ task }: EditTaskSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="group hover:bg-transparent"
-        >
-          <IconEye className="group-hover:stroke-rose-500" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="group hover:bg-transparent"
+              >
+                <IconEye className="group-hover:stroke-rose-500" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>View Task Details</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </SheetTrigger>
 
       <SheetContent className="bg-columnBg border-transparent flex flex-col justify-between">

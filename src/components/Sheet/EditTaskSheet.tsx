@@ -10,8 +10,14 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { IconEdit } from "@tabler/icons-react";
+import { IconEdit, IconEye } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 interface EditTaskSheetProps {
   taskId: string | number;
@@ -34,13 +40,20 @@ export function EditTaskSheet({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="group hover:bg-transparent"
-        >
-          <IconEdit className="group-hover:stroke-rose-500" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="group hover:bg-transparent"
+              >
+                <IconEdit className="group-hover:stroke-rose-500" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit Task</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </SheetTrigger>
 
       <SheetContent className="bg-columnBg border-transparent flex flex-col justify-between">

@@ -34,16 +34,27 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
           </TooltipProvider>
 
           <div className="flex">
-			<DetailsTaskSheet task={task}/>
-			<EditTaskSheet taskId={task.id} initialContent={task.content} onSave={updateTask}/>
-            <Button
-              onClick={() => deleteTask(task.id)}
-              variant="ghost"
-              size="icon-sm"
-              className="group hover:bg-transparent"
-            >
-              <IconTrash className="group-hover:stroke-rose-500" />
-            </Button>
+            <DetailsTaskSheet task={task} />
+            <EditTaskSheet
+              taskId={task.id}
+              initialContent={task.content}
+              onSave={updateTask}
+            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => deleteTask(task.id)}
+                    variant="ghost"
+                    size="icon-sm"
+                    className="group hover:bg-transparent"
+                  >
+                    <IconTrash className="group-hover:stroke-rose-500" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete Task</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </CardTitle>
       </CardHeader>
