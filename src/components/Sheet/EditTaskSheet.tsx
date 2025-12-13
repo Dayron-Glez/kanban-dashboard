@@ -10,7 +10,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { IconEdit, IconEye } from "@tabler/icons-react";
+import { IconEdit } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import {
   TooltipProvider,
@@ -32,17 +32,16 @@ export function EditTaskSheet({
 }: EditTaskSheetProps) {
   const [editedContent, setEditedContent] = useState(initialContent);
 
-  // Resetear contenido cada vez que se abre
   useEffect(() => {
     setEditedContent(initialContent);
   }, [initialContent]);
 
   return (
     <Sheet>
-      <SheetTrigger asChild>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -50,14 +49,13 @@ export function EditTaskSheet({
               >
                 <IconEdit className="group-hover:stroke-rose-500" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>Edit Task</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </SheetTrigger>
+            </SheetTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Edit Task</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <SheetContent className="bg-columnBg border-transparent flex flex-col justify-between">
-        {/* Header + Textarea */}
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-white">Edit Task</SheetTitle>
@@ -75,7 +73,6 @@ export function EditTaskSheet({
           </div>
         </div>
 
-        {/* Footer */}
         <SheetFooter className="grid grid-cols-2 mt-6 gap-2">
           <SheetClose asChild>
             <Button

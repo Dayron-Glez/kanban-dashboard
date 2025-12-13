@@ -5,6 +5,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import type { Task } from "@/types";
@@ -15,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+
 interface EditTaskSheetProps {
   task: Task;
 }
@@ -22,9 +24,9 @@ interface EditTaskSheetProps {
 export function DetailsTaskSheet({ task }: EditTaskSheetProps) {
   return (
     <Sheet>
-      <SheetTrigger asChild>
-        <TooltipProvider>
-          <Tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <SheetTrigger asChild>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
@@ -34,20 +36,24 @@ export function DetailsTaskSheet({ task }: EditTaskSheetProps) {
                 <IconEye className="group-hover:stroke-rose-500" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>View Task Details</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </SheetTrigger>
+          </SheetTrigger>
+          <TooltipContent>View Task Details</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <SheetContent className="bg-columnBg border-transparent flex flex-col justify-between">
-        {/* Header + Textarea */}
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-white">View Task Details</SheetTitle>
+             <SheetDescription className="text-white"/>
           </SheetHeader>
 
           <div className="mt-4 px-2">
-            <Textarea value={task.content} className="min-h-32 max-h-96" />
+            <Textarea
+              value={task.content}
+              readOnly
+              className="min-h-32 max-h-96"
+            />
           </div>
         </div>
       </SheetContent>
