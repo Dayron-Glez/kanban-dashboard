@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from "uuid";
 
 // Helpers
 
-const shortId = () => uuidv4().slice(0, 2);
+const Id = () => uuidv4();
 
 export default function KanbanBoard() {
   // State
@@ -30,8 +30,8 @@ export default function KanbanBoard() {
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
-  const [columnCounter, setColumnCounter] = useState(0);
-  const [taskCounter, setTaskCounter] = useState(0);
+  const [columnCounter, setColumnCounter] = useState<number>(0);
+  const [taskCounter, setTaskCounter] = useState<number>(0);
 
   // Memo
   const columnsId = useMemo(
@@ -49,7 +49,7 @@ export default function KanbanBoard() {
   // Columns CRUD
   const createNewColumn = (): void => {
     const newColumn: ColumnType = {
-      id: shortId(),
+      id: Id(),
       title: `Column ${columnCounter + 1}`,
     };
     setColumns((prev) => [...prev, newColumn]);
@@ -70,7 +70,7 @@ export default function KanbanBoard() {
   // Tasks CRUD
   const createNewTask = (columnId: string | number): void => {
     const newTask: Task = {
-      id: shortId(),
+      id: Id(),
       columnId,
       content: `Task ${taskCounter + 1}`,
     };
