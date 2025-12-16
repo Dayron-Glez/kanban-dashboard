@@ -20,7 +20,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 interface Props {
   column: ColumnType;
@@ -144,7 +149,8 @@ export default function ColumnContainer({
                 Delete column?
               </AlertDialogTitle>
               <AlertDialogDescription className="text-white">
-                This action cannot be undone. The column will be permanently removed.
+                This action cannot be undone. The column will be permanently
+                removed.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
