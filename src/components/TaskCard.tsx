@@ -32,7 +32,6 @@ interface Props {
 }
 
 export default function TaskCard({ task, deleteTask, updateTask }: Props) {
-
   const {
     setNodeRef,
     attributes,
