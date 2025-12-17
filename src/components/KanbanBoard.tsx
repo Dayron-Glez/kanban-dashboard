@@ -166,11 +166,11 @@ export default function KanbanBoard() {
 
           <Button
             onClick={() => createNewColumn()}
-            className="group bg-mainBg border border-columnBg ring-2 hover:bg-mainBg hover:ring-rose-500 hover:text-white cursor-pointer"
+            className="text-black group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
             variant="outline"
             size="lg"
           >
-            <IconPlus className="transition-transform duration-300 group-hover:rotate-90 group-hover:text-rose-500" />
+            <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
             Add column
           </Button>
         </div>

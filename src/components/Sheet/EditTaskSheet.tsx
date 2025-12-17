@@ -30,7 +30,7 @@ export function EditTaskSheet({
   initialContent,
   onSave,
 }: EditTaskSheetProps) {
-  const [editedContent, setEditedContent] = useState(initialContent);
+  const [editedContent, setEditedContent] = useState<string>(initialContent);
 
   useEffect(() => {
     setEditedContent(initialContent);
@@ -43,11 +43,12 @@ export function EditTaskSheet({
           <TooltipTrigger asChild>
             <SheetTrigger asChild>
               <Button
+                type="button"
                 variant="ghost"
-                size="icon-sm"
-                className="group hover:bg-transparent"
+                size="icon-lg"
+                className="hover:bg-primary/10 hover:text-primary transition-colors"
               >
-                <IconEdit className="group-hover:stroke-rose-500" />
+                <IconEdit />
               </Button>
             </SheetTrigger>
           </TooltipTrigger>
@@ -55,11 +56,13 @@ export function EditTaskSheet({
         </Tooltip>
       </TooltipProvider>
 
-      <SheetContent className="bg-columnBg border-transparent flex flex-col justify-between">
+      <SheetContent className="border-transparent flex flex-col justify-between">
         <div className="flex flex-col">
           <SheetHeader>
-            <SheetTitle className="text-white">Edit Task</SheetTitle>
-            <SheetDescription className="text-white">
+            <SheetTitle className=" text-primary font-semibold">
+              Edit Task
+            </SheetTitle>
+            <SheetDescription>
               Modify the content of this task and click save.
             </SheetDescription>
           </SheetHeader>
@@ -75,21 +78,17 @@ export function EditTaskSheet({
 
         <SheetFooter className="grid grid-cols-2 mt-6 gap-2">
           <SheetClose asChild>
+            <Button type="button" variant="outline">
+              Close
+            </Button>
+          </SheetClose>
+          <SheetClose asChild>
             <Button
-              className="bg-rose-500 hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500"
+              variant="default"
               type="button"
               onClick={() => onSave(taskId, editedContent)}
             >
               Save changes
-            </Button>
-          </SheetClose>
-
-          <SheetClose asChild>
-            <Button
-              type="button"
-              className="bg-rose-500 hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500"
-            >
-              Close
             </Button>
           </SheetClose>
         </SheetFooter>
