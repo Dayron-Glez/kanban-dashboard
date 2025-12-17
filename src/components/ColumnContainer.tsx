@@ -1,14 +1,10 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
-import type { ColumnType, Task } from "../types";
-import { IconTrash } from "@tabler/icons-react";
 import { CSS } from "@dnd-kit/utilities";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { IconPlus } from "@tabler/icons-react";
-import { ScrollArea } from "./ui/scroll-area";
 
-import TaskCard from "./TaskCard";
+import type { ColumnType, Task } from "../types";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,12 +16,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
+import { Input } from "./ui/input";
+import { ScrollArea } from "./ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+
+import TaskCard from "./TaskCard";
 
 interface Props {
   column: ColumnType;
@@ -71,37 +73,42 @@ export default function ColumnContainer({
     transform: CSS.Transform.toString(transform),
   };
 
+  // Vista mientras se arrastra
   if (isDragging) {
     return (
       <div
         ref={setNodeRef}
         style={style}
-        className="flex flex-col bg-columnBg rounded-lg w-[360px] h-[550px] max-h-[500px] p-4 opacity-40 border-2 border-rose-500"
-      ></div>
+        className="w-[360px] h-[550px] opacity-40 border-2 border-primary rounded-lg bg-card/50"
+      />
     );
   }
 
   return (
-    <div
+    <Card
       ref={setNodeRef}
       style={style}
-      className="flex flex-col bg-columnBg rounded-lg w-[360px] h-[550px] max-h-[550px] p-4"
+      className="w-[360px] h-[550px] max-h-[550px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2"
     >
-      <div
+      {/* Header de la columna - Área draggable */}
+      <CardHeader
         {...attributes}
         {...listeners}
-        className="flex gap-2 items-center justify-between bg-mainBg text-md h-16 cursor-grab rounded-md rounded-b-none font-bold border-columnBg border-4 p-2"
+        className="flex flex-row gap-2 items-center justify-between cursor-grab active:cursor-grabbing rounded-t-lg bg-muted border-b border-border p-4 space-y-0"
       >
-        <div>{tasks.length}</div>
+        {/* Contador de tareas */}
+        <div className="flex items-center justify-center bg-background text-muted-foreground font-semibold text-sm rounded-md px-2.5 py-1 min-w-8 shadow-sm">
+          {tasks.length}
+        </div>
 
-        {/* Solo el título activa editMode */}
+        {/* Título editable */}
         {!editMode && (
           <span
             onClick={(e) => {
               e.stopPropagation();
               setEditMode(true);
             }}
-            className="truncate"
+            className="truncate font-bold text-foreground flex-1 cursor-pointer hover:text-primary transition-colors px-2"
           >
             {column.title}
           </span>
@@ -109,7 +116,7 @@ export default function ColumnContainer({
 
         {editMode && (
           <Input
-            className="focus:border-rose-500 outline-none"
+            className="flex-1 h-9 focus-visible:ring-primary focus-visible:ring-1"
             value={column.title}
             onChange={(e) => updateColumn(column.id, e.target.value)}
             type="text"
@@ -117,12 +124,12 @@ export default function ColumnContainer({
             autoFocus
             onBlur={() => setEditMode(false)}
             onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              setEditMode(false);
+              if (e.key === "Enter") setEditMode(false);
             }}
           />
         )}
 
+        {/* Botón eliminar columna */}
         <AlertDialog>
           <TooltipProvider>
             <Tooltip>
@@ -131,36 +138,32 @@ export default function ColumnContainer({
                   <Button
                     onClick={(e) => e.stopPropagation()}
                     variant="ghost"
-                    size="icon-sm"
-                    className="group hover:bg-transparent"
+                    size="icon"
+                    className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive transition-colors"
                   >
-                    <IconTrash className="group-hover:stroke-rose-500" />
+                    <IconTrash className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
               </TooltipTrigger>
-
-              <TooltipContent>Delete Column</TooltipContent>
+              <TooltipContent>
+                <p>Delete Column</p>
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
-          <AlertDialogContent className="bg-columnBg border-transparent">
+          <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-white">
-                Delete column?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-white">
-                This action cannot be undone. The column will be permanently
-                removed.
+              <AlertDialogTitle>Delete column?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. The column and all its tasks will
+                be permanently removed.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-rose-500 border-none hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500 hover:text-white">
-                Cancel
-              </AlertDialogCancel>
-
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                className="bg-rose-500 hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500"
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => deleteColumn(column.id)}
               >
                 Delete
@@ -168,30 +171,38 @@ export default function ColumnContainer({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
+      </CardHeader>
 
-      <ScrollArea className="flex flex-col grow pt-2 pb-4 pr-2 h-80">
-        <SortableContext items={tasksIds}>
-          {tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              updateTask={updateTask}
-              deleteTask={deleteTask}
-            />
-          ))}
-        </SortableContext>
-      </ScrollArea>
+      {/* Área de tareas con scroll */}
+      <CardContent className="flex-1 overflow-hidden p-4">
+        <ScrollArea className="h-full pr-4">
+          <SortableContext items={tasksIds}>
+            <div className="space-y-3">
+              {tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  updateTask={updateTask}
+                  deleteTask={deleteTask}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </ScrollArea>
+      </CardContent>
 
-      <Button
-        onClick={() => createNewTask(column.id)}
-        variant="ghost"
-        type="button"
-        className="group hover:text-white hover:ring-2 hover:ring-inset hover:ring-rose-500 bg-mainBg hover:bg-mainBg"
-      >
-        <IconPlus className="group-hover:stroke-rose-500 transition-transform duration-300 group-hover:rotate-90" />
-        Add Task
-      </Button>
-    </div>
+      {/* Footer con botón añadir tarea */}
+      <CardFooter className="p-4 pt-0">
+        <Button
+          onClick={() => createNewTask(column.id)}
+          variant="outline"
+          type="button"
+          className="w-full group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
+        >
+          <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
+          Add Task
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
