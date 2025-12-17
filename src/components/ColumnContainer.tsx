@@ -79,7 +79,7 @@ export default function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className="w-[360px] h-[550px] opacity-40 border-2 border-primary rounded-lg bg-card/50"
+        className="w-[360px] h-[550px] opacity-40 border-2 border-primary rounded-lg "
       />
     );
   }
@@ -94,12 +94,16 @@ export default function ColumnContainer({
       <CardHeader
         {...attributes}
         {...listeners}
-        className="flex flex-row gap-2 items-center justify-between cursor-grab active:cursor-grabbing rounded-t-lg bg-muted border-b border-border p-4 space-y-0"
+        className="flex flex-row gap-2 items-center justify-between cursor-grab active:cursor-grabbing rounded-t-lg border-b border-border p-4 space-y-0"
       >
         {/* Contador de tareas */}
-        <div className="flex items-center justify-center bg-background text-muted-foreground font-semibold text-sm rounded-md px-2.5 py-1 min-w-8 shadow-sm">
+        <Button
+          type="button"
+          variant="default"
+          className="flex items-center justify-center bg-primary text-white font-semibold text-sm rounded-md px-2.5 py-1 min-w-8 shadow-sm"
+        >
           {tasks.length}
-        </div>
+        </Button>
 
         {/* Título editable */}
         {!editMode && (
@@ -138,10 +142,10 @@ export default function ColumnContainer({
                   <Button
                     onClick={(e) => e.stopPropagation()}
                     variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    size="icon-lg"
+                    className="hover:bg-destructive/10 hover:text-destructive transition-colors"
                   >
-                    <IconTrash className="h-4 w-4" />
+                    <IconTrash />
                   </Button>
                 </AlertDialogTrigger>
               </TooltipTrigger>
@@ -163,7 +167,7 @@ export default function ColumnContainer({
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/60"
                 onClick={() => deleteColumn(column.id)}
               >
                 Delete
@@ -197,7 +201,7 @@ export default function ColumnContainer({
           onClick={() => createNewTask(column.id)}
           variant="outline"
           type="button"
-          className="w-full group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
+          className="w-full group border-dashed border-2 hover:text-primary transition-all"
         >
           <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
           Add Task

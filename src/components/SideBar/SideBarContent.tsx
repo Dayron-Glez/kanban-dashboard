@@ -6,7 +6,7 @@ import {
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarMenuButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import type { ComponentType } from "react";
 import type { IconProps } from "@tabler/icons-react";
@@ -18,6 +18,8 @@ type MenuItem = {
 };
 
 export default function SideBarContent() {
+  const { open } = useSidebar();
+
   const menuItems: MenuItem[] = [
     { icon: IconHome, label: "Inicio", path: "/" },
     { icon: IconSettings, label: "Ajustes", path: "/settings" },
@@ -25,20 +27,30 @@ export default function SideBarContent() {
   ];
 
   return (
-    <SidebarContent>
+    <SidebarContent className="bg-background py-10">
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
-            {menuItems.map((item) => {
+            {menuItems.map((item: MenuItem) => {
               const IconComponent = item.icon;
               return (
                 <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild>
-                    <Link to={item.path}>
-                      <IconComponent />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted transition-colors ${
+                      open ? "justify-start" : "justify-center"
+                    }`}
+                  >
+                    <IconComponent
+                      size={24}
+                      className="text-primary shrink-0"
+                    />
+                    {open && (
+                      <span className="font-semibold text-primary">
+                        {item.label}
+                      </span>
+                    )}
+                  </Link>
                 </SidebarMenuItem>
               );
             })}

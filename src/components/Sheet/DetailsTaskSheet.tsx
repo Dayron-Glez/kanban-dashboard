@@ -29,11 +29,12 @@ export function DetailsTaskSheet({ task }: EditTaskSheetProps) {
           <SheetTrigger asChild>
             <TooltipTrigger asChild>
               <Button
+                type="button"
                 variant="ghost"
-                size="icon-sm"
-                className="group hover:bg-transparent"
+                size="icon-lg"
+                className="hover:bg-primary/10 hover:text-primary transition-colors"
               >
-                <IconEye className="group-hover:stroke-rose-500" />
+                <IconEye />
               </Button>
             </TooltipTrigger>
           </SheetTrigger>
@@ -41,18 +42,20 @@ export function DetailsTaskSheet({ task }: EditTaskSheetProps) {
         </Tooltip>
       </TooltipProvider>
 
-      <SheetContent className="bg-columnBg border-transparent flex flex-col justify-between">
+      <SheetContent className="border-transparent flex flex-col justify-between">
         <div className="flex flex-col">
           <SheetHeader>
-            <SheetTitle className="text-white">View Task Details</SheetTitle>
-             <SheetDescription className="text-white"/>
+            <SheetTitle className=" font-semibold text-primary">
+              View Task Details
+            </SheetTitle>
+            <SheetDescription />
           </SheetHeader>
-
           <div className="mt-4 px-2">
             <Textarea
               value={task.content}
               readOnly
-              className="min-h-32 max-h-96"
+              disabled
+              className="min-h-32 max-h-96 bg-muted"
             />
           </div>
         </div>

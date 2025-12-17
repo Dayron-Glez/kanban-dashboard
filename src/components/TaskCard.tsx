@@ -59,7 +59,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className="bg-mainBg h-24 min-h-24 justify-center border-2 border-rose-500 cursor-grab text-md text-white rounded-lg font-bold p-2 my-2 opacity-40"
+        className="bg-card h-24 min-h-24 justify-center border-sky cursor-grab text-md rounded-lg font-bold p-2 my-2 opacity-40"
       />
     );
   }
@@ -70,7 +70,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-mainBg h-24 min-h-24 justify-center hover:ring-2 hover:ring-inset hover:ring-rose-500 cursor-grab text-md text-white rounded-lg font-bold p-2 my-2 border-transparent"
+      className="bg-card h-24 min-h-24 justify-center hover:border-sky cursor-grab text-md rounded-lg font-bold p-2 my-2"
     >
       <CardHeader className="p-0 flex">
         <CardTitle className="flex items-center justify-between w-full">
@@ -98,11 +98,12 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                   <TooltipTrigger asChild>
                     <AlertDialogTrigger asChild>
                       <Button
+                        type="button"
                         variant="ghost"
-                        size="icon-sm"
-                        className="group hover:bg-transparent"
+                        size="icon-lg"
+                        className="hover:bg-destructive/10 hover:text-destructive transition-colors"
                       >
-                        <IconTrash className="group-hover:stroke-rose-500" />
+                        <IconTrash />
                       </Button>
                     </AlertDialogTrigger>
                   </TooltipTrigger>
@@ -111,24 +112,19 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                 </Tooltip>
               </TooltipProvider>
 
-              <AlertDialogContent className="bg-columnBg border-transparent">
+              <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-white">
-                    Delete task?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="text-white">
+                  <AlertDialogTitle>Delete task?</AlertDialogTitle>
+                  <AlertDialogDescription>
                     This action cannot be undone. The task will be permanently
                     removed.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
 
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-rose-500 border-none hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500 hover:text-white">
-                    Cancel
-                  </AlertDialogCancel>
-
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-rose-500 hover:bg-transparent hover:ring-2 hover:ring-inset hover:ring-rose-500"
+                    className=" bg-destructive text-destructive-foreground hover:bg-destructive/60"
                     onClick={() => deleteTask(task.id)}
                   >
                     Delete
