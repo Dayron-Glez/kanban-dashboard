@@ -36,14 +36,14 @@ export default function KanbanBoard() {
   // Memo
   const columnsId = useMemo(
     () => columns.map((column) => column.id),
-    [columns],
+    [columns]
   );
 
   // Sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 3 },
-    }),
+    })
   );
 
   // Columns CRUD
@@ -58,7 +58,7 @@ export default function KanbanBoard() {
 
   const updateColumn = (id: string | number, title: string): void => {
     setColumns((prev) =>
-      prev.map((col) => (col.id === id ? { ...col, title } : col)),
+      prev.map((col) => (col.id === id ? { ...col, title } : col))
     );
   };
 
@@ -80,7 +80,7 @@ export default function KanbanBoard() {
 
   const updateTask = (id: string | number, content: string): void => {
     setTasks((prev) =>
-      prev.map((task) => (task.id === id ? { ...task, content } : task)),
+      prev.map((task) => (task.id === id ? { ...task, content } : task))
     );
   };
 
@@ -141,7 +141,7 @@ export default function KanbanBoard() {
   };
 
   return (
-    <div className="m-auto flex min-h-screen w-full items-center overflow-x-auto overflow-y-hidden px-10">
+    <div className="flex gap-4 min-w-max px-10 py-4">
       <DndContext
         sensors={sensors}
         onDragStart={onDragStart}
@@ -186,7 +186,7 @@ export default function KanbanBoard() {
                 deleteTask={deleteTask}
                 updateTask={updateTask}
                 tasks={tasks.filter(
-                  (task) => task.columnId === activeColumn.id,
+                  (task) => task.columnId === activeColumn.id
                 )}
               />
             )}
@@ -199,7 +199,7 @@ export default function KanbanBoard() {
               />
             )}
           </DragOverlay>,
-          document.body,
+          document.body
         )}
       </DndContext>
     </div>
