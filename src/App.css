@@ -1,3 +1,4 @@
+@import "tailwindcss";
 @reference "tailwindcss";
 
 * {
@@ -21,4 +22,86 @@ html, body, #root {
 
 ::-webkit-scrollbar-thumb {
   @apply bg-rose-900 rounded-xl;
+}
+
+
+@layer base {
+  :root {
+    /* ===== PALETA BASE (formato HSL para shadcn) ===== */
+    --primary: 172 65% 54%;           /* #3dd5c3 - Cyan */
+    --primary-foreground: 172 100% 5%; /* Texto sobre primary */
+    
+    --secondary: 232 66% 57%;         /* #4a5dd8 - Azul */
+    --secondary-foreground: 0 0% 100%;
+    
+    --accent: 290 62% 59%;            /* #c853d8 - Magenta */
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 352 63% 57%;       /* #d8495c - Rojo/Danger */
+    --destructive-foreground: 0 0% 100%;
+    
+    --warning: 54 66% 57%;            /* #d8c74a - Amarillo */
+    --warning-foreground: 222 47% 11%;
+    
+    --success: 112 65% 57%;           /* #5dd84a - Verde */
+    --success-foreground: 222 47% 11%;
+    
+    --info: 188 94% 43%;              /* #06b6d4 - Info */
+    --info-foreground: 0 0% 100%;
+    
+    /* ===== BACKGROUNDS ===== */
+    --background: 60 20% 98%;         /* #fafaf7 - Crema muy claro */
+    --foreground: 222 47% 11%;        /* #0f172a - Texto principal */
+    
+    --card: 60 14% 95%;               /* #f5f5f0 - Tarjetas */
+    --card-foreground: 222 47% 11%;
+    
+    --popover: 60 14% 95%;
+    --popover-foreground: 222 47% 11%;
+    
+    /* ===== ELEMENTOS UI ===== */
+    --muted: 60 14% 93%;              /* #f0f0e8 - Fondos terciarios */
+    --muted-foreground: 215 16% 47%;  /* #64748b - Texto atenuado */
+    
+    --border: 48 16% 89%;             /* #e8e8e0 - Bordes */
+    --input: 214 32% 91%;             /* Bordes de inputs */
+    --ring: 172 65% 54%;              /* Focus ring = primary */
+    
+    /* ===== ESTADOS ===== */
+    --disabled: 60 14% 95%;           /* #f5f5f0 */
+    --disabled-foreground: 215 16% 57%; /* #94a3b8 */
+    
+    /* Radius para shadcn */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Si más adelante quieres modo oscuro */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    /* ... más colores dark */
+  }
+}
+
+/* ===== CLASES UTILITY ADICIONALES ===== */
+@layer utilities {
+  .bg-primary {
+    background-color: hsl(var(--primary));
+  }
+  
+  .text-primary {
+    color: hsl(var(--primary));
+  }
+  
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+  
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+  
+  .bg-info {
+    background-color: hsl(var(--info));
+  }
 }

@@ -16,7 +16,7 @@ export default function Layout() {
 
       <SidebarInset className="h-screen flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-x-auto flex items-center justify-center">
+        <main className="flex-1 overflow-x-auto flex items-center justify-center bg-primary">
           <Outlet />
         </main>
       </SidebarInset>
