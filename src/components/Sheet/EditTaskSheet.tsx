@@ -31,13 +31,21 @@ export function EditTaskSheet({
   onSave,
 }: EditTaskSheetProps) {
   const [editedContent, setEditedContent] = useState<string>(initialContent);
+  const [open, setOpen] = useState<boolean>(false);
 
   useEffect(() => {
     setEditedContent(initialContent);
   }, [initialContent]);
 
+  const handleOpenChange = (isOpen: boolean): void => {
+    setOpen(isOpen);
+    if (isOpen) {
+      setEditedContent(initialContent);
+    }
+  };
+
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
