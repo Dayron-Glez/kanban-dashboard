@@ -179,7 +179,7 @@ export default function ColumnContainer({
 
       {/* Área de tareas con scroll */}
       <CardContent className="flex-1 overflow-hidden p-4">
-        <ScrollArea className="h-full pr-4">
+        <ScrollArea className="h-full pr-2">
           <SortableContext items={tasksIds}>
             <div className="space-y-3">
               {tasks.map((task) => (
