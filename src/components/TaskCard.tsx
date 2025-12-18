@@ -82,7 +82,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className="bg-card h-24 min-h-24 justify-center hover:border-sky cursor-grab text-md rounded-lg font-bold p-2 my-2"
+        className="bg-sky/10 h-24 min-h-24 justify-center hover:border-sky cursor-grab text-md rounded-lg font-bold p-2 my-2"
       >
         <CardHeader className="p-0 flex">
           <CardTitle className="flex items-center justify-between w-full">
@@ -105,6 +105,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                           variant="ghost"
                           aria-label="Open menu"
                           size="icon-sm"
+                          className=" hover:bg-transparent"
                         >
                           <IconDots />
                         </Button>
