@@ -124,6 +124,7 @@ export default function KanbanBoard() {
 
     const isActiveTask = active.data.current?.type === "task";
     const isOverTask = over.data.current?.type === "task";
+    const isOverColumn = over.data.current?.type === "column";
 
     if (!isActiveTask) return;
 
@@ -134,6 +135,11 @@ export default function KanbanBoard() {
         const overIndex = prev.findIndex((t) => t.id === over.id);
         prev[activeIndex].columnId = prev[overIndex].columnId;
         return arrayMove(prev, activeIndex, overIndex);
+      }
+
+      if (isOverColumn) {
+        prev[activeIndex].columnId = over.id;
+        return [...prev];
       }
 
       return prev;
