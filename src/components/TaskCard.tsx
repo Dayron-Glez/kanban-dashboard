@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Task } from "@/types";
 import { Card, CardHeader, CardTitle } from "./ui/card";
 import {
@@ -7,7 +8,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { Button } from "./ui/button";
-import { IconTrash } from "@tabler/icons-react";
+import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react";
 import { EditTaskSheet } from "./Sheet/EditTaskSheet";
 import { DetailsTaskSheet } from "./Sheet/DetailsTaskSheet";
 import { useSortable } from "@dnd-kit/sortable";
@@ -15,7 +16,6 @@ import { CSS } from "@dnd-kit/utilities";
 
 import {
   AlertDialog,
-  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -24,6 +24,13 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 interface Props {
   task: Task;
@@ -32,6 +39,10 @@ interface Props {
 }
 
 export default function TaskCard({ task, deleteTask, updateTask }: Props) {
+  const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
+  const [editOpen, setEditOpen] = useState<boolean>(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+
   const {
     setNodeRef,
     attributes,
@@ -65,76 +76,124 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
   }
 
   return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="bg-card h-24 min-h-24 justify-center hover:border-sky cursor-grab text-md rounded-lg font-bold p-2 my-2"
-    >
-      <CardHeader className="p-0 flex">
-        <CardTitle className="flex items-center justify-between w-full">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="w-48 truncate block cursor-default">
-                  {task.content}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{task.content}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+    <>
+      <Card
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className="bg-card h-24 min-h-24 justify-center hover:border-sky cursor-grab text-md rounded-lg font-bold p-2 my-2"
+      >
+        <CardHeader className="p-0 flex">
+          <CardTitle className="flex items-center justify-between w-full">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="w-64 truncate block">{task.content}</span>
+                </TooltipTrigger>
+                <TooltipContent>{task.content}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <div className="flex">
-            <DetailsTaskSheet task={task} />
-            <EditTaskSheet
-              taskId={task.id}
-              initialContent={task.content}
-              onSave={updateTask}
-            />
-            <AlertDialog>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <AlertDialogTrigger asChild>
+            <div className="flex">
+              <DropdownMenu modal={false}>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          aria-label="Open menu"
+                          size="icon-sm"
+                        >
+                          <IconDots />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Actions</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <DropdownMenuContent className="w-40" align="end">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onSelect={() => setDetailsOpen(true)}>
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon-lg"
-                        className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        size="icon-sm"
+                        className="hover:bg-primary/10 hover:text-primary transition-colors mr-2"
+                      >
+                        <IconEye />
+                      </Button>
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="hover:bg-primary/10 hover:text-primary transition-colors mr-2"
+                      >
+                        <IconEdit />
+                      </Button>
+                      Edit Task
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onSelect={() => setDeleteDialogOpen(true)}
+                    >
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="hover:bg-destructive/10 hover:text-destructive transition-colors mr-2"
                       >
                         <IconTrash />
                       </Button>
-                    </AlertDialogTrigger>
-                  </TooltipTrigger>
+                      Delete Task
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardTitle>
+        </CardHeader>
+      </Card>
 
-                  <TooltipContent>Delete Task</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+      {/* Sheets fuera del Card para evitar conflictos */}
+      <DetailsTaskSheet
+        task={task}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
+      <EditTaskSheet
+        taskId={task.id}
+        initialContent={task.content}
+        onSave={updateTask}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
 
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete task?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. The task will be permanently
-                    removed.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className=" bg-destructive text-destructive-foreground hover:bg-destructive/60"
-                    onClick={() => deleteTask(task.id)}
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </CardTitle>
-      </CardHeader>
-    </Card>
+      {/* AlertDialog fuera del Card */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The task will be permanently
+              removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/60"
+              onClick={() => deleteTask(task.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

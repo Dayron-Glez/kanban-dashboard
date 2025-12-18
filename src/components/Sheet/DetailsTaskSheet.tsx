@@ -1,7 +1,5 @@
-import { Button } from "@/components/ui/button";
 import {
   Sheet,
-  SheetTrigger,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -9,39 +7,20 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import type { Task } from "@/types";
-import { IconEye } from "@tabler/icons-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
 
-interface EditTaskSheetProps {
+interface DetailsTaskSheetProps {
   task: Task;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function DetailsTaskSheet({ task }: EditTaskSheetProps) {
+export function DetailsTaskSheet({
+  task,
+  open,
+  onOpenChange,
+}: DetailsTaskSheetProps) {
   return (
-    <Sheet>
-      <TooltipProvider>
-        <Tooltip>
-          <SheetTrigger asChild>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-lg"
-                className="hover:bg-primary/10 hover:text-primary transition-colors"
-              >
-                <IconEye />
-              </Button>
-            </TooltipTrigger>
-          </SheetTrigger>
-          <TooltipContent>View Task Details</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="border-transparent flex flex-col justify-between">
         <div className="flex flex-col">
           <SheetHeader>
