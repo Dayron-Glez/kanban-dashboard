@@ -13,18 +13,6 @@ html, body, #root {
   @apply box-border;
 }
 
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar:horizontal {
-  height: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-rose-900 rounded-xl;
-}
-
 :root {
     --sky: hsl(201 80% 52%);
     --purple: hsl(281 45% 51%);
