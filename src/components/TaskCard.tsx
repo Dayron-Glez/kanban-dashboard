@@ -120,7 +120,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="hover:bg-primary/10 hover:text-primary transition-colors mr-2"
+                        className=" hover:bg-transparent"
                       >
                         <IconEye />
                       </Button>
@@ -131,7 +131,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="hover:bg-primary/10 hover:text-primary transition-colors mr-2"
+                        className=" hover:bg-transparent"
                       >
                         <IconEdit />
                       </Button>
@@ -145,9 +145,9 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="hover:bg-destructive/10 hover:text-destructive transition-colors mr-2"
+                        className=" hover:bg-transparent"
                       >
-                        <IconTrash />
+                        <IconTrash className=" text-destructive" />
                       </Button>
                       Delete Task
                     </DropdownMenuItem>
@@ -159,7 +159,6 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
         </CardHeader>
       </Card>
 
-      {/* Sheets fuera del Card para evitar conflictos */}
       <DetailsTaskSheet
         task={task}
         open={detailsOpen}
@@ -173,7 +172,6 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
         onOpenChange={setEditOpen}
       />
 
-      {/* AlertDialog fuera del Card */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
