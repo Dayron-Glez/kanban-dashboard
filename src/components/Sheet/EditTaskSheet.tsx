@@ -9,7 +9,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 
 interface EditTaskSheetProps {
   taskId: string | number;
@@ -43,7 +43,7 @@ export function EditTaskSheet({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = (): void => {
     onSave(taskId, editedContent);
     onOpenChange?.(false);
   };
@@ -64,7 +64,9 @@ export function EditTaskSheet({
           <div className="mt-4 px-2">
             <Textarea
               value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                setEditedContent(e.target.value)
+              }
               className="min-h-32 max-h-96"
             />
           </div>
