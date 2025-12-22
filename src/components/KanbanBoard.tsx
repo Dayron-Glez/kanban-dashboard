@@ -68,11 +68,11 @@ export default function KanbanBoard() {
   };
 
   // Tasks CRUD
-  const createNewTask = (columnId: string | number): void => {
+  const createNewTask = (columnId: string | number, content: string): void => {
     const newTask: Task = {
       id: Id(),
       columnId,
-      content: `Task ${taskCounter + 1}`,
+      content,
     };
     setTasks((prev) => [...prev, newTask]);
     setTaskCounter((prev) => prev + 1);
