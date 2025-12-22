@@ -145,14 +145,14 @@ export default function KanbanBoard() {
   };
 
   return (
-    <div className="flex gap-4 min-w-max px-10 py-4">
+    <div className=" min-w-max p-4">
       <DndContext
         sensors={sensors}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
       >
-        <div className="m-auto flex gap-4">
+        <div className="m-auto flex gap-2">
           <SortableContext items={columnsId}>
             {columns.map((column) => (
               <ColumnContainer

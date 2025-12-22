@@ -5,7 +5,25 @@ import {
   Sidebar,
   SidebarInset,
   SidebarProvider,
+  useSidebar,
 } from "@/components/ui/sidebar";
+
+function MainContent() {
+  const { state } = useSidebar();
+
+  return (
+    <>
+      <Header />
+      <main
+        className={`flex-1 overflow-x-auto flex items-center bg-muted ${
+          state === "collapsed" ? "pl-4" : ""
+        }`}
+      >
+        <Outlet />
+      </main>
+    </>
+  );
+}
 
 export default function Layout() {
   return (
@@ -18,10 +36,7 @@ export default function Layout() {
       </Sidebar>
 
       <SidebarInset className="h-screen flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-x-auto flex items-center justify-center p-4 bg-muted">
-          <Outlet />
-        </main>
+        <MainContent />
       </SidebarInset>
     </SidebarProvider>
   );
