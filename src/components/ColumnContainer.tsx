@@ -79,7 +79,7 @@ export default function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className="w-[350px] h-[550px] opacity-40 border-2 border-primary rounded-lg "
+        className="w-[350px] h-[620px] opacity-40 border-2 border-primary rounded-lg "
       />
     );
   }
@@ -88,7 +88,7 @@ export default function ColumnContainer({
     <Card
       ref={setNodeRef}
       style={style}
-      className="w-[350px] h-[550px] max-h-[550px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2"
+      className="w-[350px] h-[620px] max-h-[620px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2"
     >
       {/* Header de la columna - Área draggable */}
       <CardHeader
