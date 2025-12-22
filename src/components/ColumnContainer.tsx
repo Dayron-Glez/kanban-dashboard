@@ -1,7 +1,7 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react";
+import { useMemo, useState, type ChangeEvent } from "react";
 
 import type { ColumnType, Task } from "../types";
 
@@ -112,7 +112,7 @@ export default function ColumnContainer({
           {/* Título editable */}
           {!editMode && (
             <span
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 e.stopPropagation();
                 setEditMode(true);
               }}
@@ -126,7 +126,9 @@ export default function ColumnContainer({
             <Input
               className="flex-1 h-9 focus-visible:ring-primary focus-visible:ring-1"
               value={column.title}
-              onChange={(e) => updateColumn(column.id, e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                updateColumn(column.id, e.target.value)
+              }
               type="text"
               placeholder="Column name"
               autoFocus
@@ -144,12 +146,15 @@ export default function ColumnContainer({
                 <TooltipTrigger asChild>
                   <AlertDialogTrigger asChild>
                     <Button
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) =>
+                        e.stopPropagation()
+                      }
                       variant="ghost"
                       size="icon-lg"
                       className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      disabled={tasks.length > 0}
                     >
-                      <IconTrash />
+                      {tasks.length > 0 ? <IconTrashOff /> : <IconTrash />}
                     </Button>
                   </AlertDialogTrigger>
                 </TooltipTrigger>
