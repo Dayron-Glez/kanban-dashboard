@@ -31,7 +31,6 @@ export default function KanbanBoard() {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const [columnCounter, setColumnCounter] = useState<number>(0);
-  const [taskCounter, setTaskCounter] = useState<number>(0);
 
   // Memo
   const columnsId = useMemo(
@@ -75,7 +74,6 @@ export default function KanbanBoard() {
       content,
     };
     setTasks((prev) => [...prev, newTask]);
-    setTaskCounter((prev) => prev + 1);
   };
 
   const updateTask = (id: string | number, content: string): void => {
