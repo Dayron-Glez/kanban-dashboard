@@ -31,7 +31,6 @@ export default function KanbanBoard() {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const [columnCounter, setColumnCounter] = useState<number>(0);
-  const [taskCounter, setTaskCounter] = useState<number>(0);
 
   // Memo
   const columnsId = useMemo(
@@ -68,14 +67,13 @@ export default function KanbanBoard() {
   };
 
   // Tasks CRUD
-  const createNewTask = (columnId: string | number): void => {
+  const createNewTask = (columnId: string | number, content: string): void => {
     const newTask: Task = {
       id: Id(),
       columnId,
-      content: `Task ${taskCounter + 1}`,
+      content,
     };
     setTasks((prev) => [...prev, newTask]);
-    setTaskCounter((prev) => prev + 1);
   };
 
   const updateTask = (id: string | number, content: string): void => {
@@ -147,14 +145,14 @@ export default function KanbanBoard() {
   };
 
   return (
-    <div className="flex gap-4 min-w-max px-10 py-4">
+    <div className=" min-w-max p-4">
       <DndContext
         sensors={sensors}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
       >
-        <div className="m-auto flex gap-4">
+        <div className="m-auto flex gap-2">
           <SortableContext items={columnsId}>
             {columns.map((column) => (
               <ColumnContainer
