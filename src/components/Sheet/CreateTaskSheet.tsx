@@ -47,7 +47,7 @@ export default function CreateTaskSheet({
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                 setContent(e.target.value)
               }
-              className="min-h-32 max-h-96"
+              className="min-h-32 max-h-96 focus-visible:ring-0"
             />
           </div>
         </div>
