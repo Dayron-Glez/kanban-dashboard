@@ -9,10 +9,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { KanbanProvider, useKanban } from "@/context/KanbanContext";
+import noDataSvg from "@/assets/noData.svg";
 
 function MainContent() {
   const { state } = useSidebar();
-  const { scrollContainerRef } = useKanban();
+  const { scrollContainerRef, columns } = useKanban();
 
   return (
     <>
@@ -21,9 +22,19 @@ function MainContent() {
         ref={scrollContainerRef}
         className={`flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${
           state === "collapsed" ? "pl-4" : ""
-        }`}
+        } ${columns && columns.length === 0 ? "justify-center" : ""}`}
       >
-        <Outlet />
+        {columns && columns.length > 0 ? (
+          <Outlet />
+        ) : (
+          <div className="flex flex-col items-center justify-center">
+            <img src={noDataSvg} alt="No data" className="size-64 mb-4" />
+            <p className="text-primary text-lg">
+              No hay columnas creadas. Pulse en el botón Add Column para crear
+              una nueva columna
+            </p>
+          </div>
+        )}
       </main>
     </>
   );
