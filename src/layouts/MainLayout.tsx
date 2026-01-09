@@ -8,15 +8,17 @@ import {
   SidebarProvider,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { KanbanProvider } from "@/context/KanbanContext";
+import { KanbanProvider, useKanban } from "@/context/KanbanContext";
 
 function MainContent() {
   const { state } = useSidebar();
+  const { scrollContainerRef } = useKanban();
 
   return (
     <>
       <Header />
       <main
+        ref={scrollContainerRef}
         className={`flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${
           state === "collapsed" ? "pl-4" : ""
         }`}

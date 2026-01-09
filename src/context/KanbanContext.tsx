@@ -3,7 +3,10 @@ import {
   useContext,
   useState,
   useMemo,
+  useRef,
+  useCallback,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { ColumnType, Task } from "../types";
@@ -20,36 +23,48 @@ interface KanbanContextType {
   deleteTask: (id: string | number) => void;
   setColumns: React.Dispatch<React.SetStateAction<ColumnType[]>>;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  scrollContainerRef: RefObject<HTMLElement | null>;
 }
+
+const baseColumns: ColumnType[] = [
+  { id: uuidv4(), title: "Backlog" },
+  { id: uuidv4(), title: "Ready" },
+  { id: uuidv4(), title: "In Progress" },
+  { id: uuidv4(), title: "In Review" },
+  { id: uuidv4(), title: "Done" },
+];
 
 const KanbanContext = createContext<KanbanContextType | null>(null);
 
 export function KanbanProvider({ children }: { children: ReactNode }) {
-  const baseColumns: ColumnType[] = [
-    { id: uuidv4(), title: "Backlog" },
-    { id: uuidv4(), title: "Ready" },
-    { id: uuidv4(), title: "In Progress" },
-    { id: uuidv4(), title: "In Review" },
-    { id: uuidv4(), title: "Done" },
-  ];
-
   const [columns, setColumns] = useState<ColumnType[]>(baseColumns);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [columnCounter, setColumnCounter] = useState<number>(0);
+
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
 
   const columnsId = useMemo(
     () => columns.map((column) => column.id),
     [columns]
   );
 
-  const createNewColumn = (): void => {
+  const createNewColumn = useCallback((): void => {
     const newColumn: ColumnType = {
       id: uuidv4(),
       title: `Column ${columnCounter + 1}`,
     };
     setColumns((prev) => [...prev, newColumn]);
     setColumnCounter((prev) => prev + 1);
-  };
+
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          left: scrollContainerRef.current.scrollWidth,
+          behavior: "smooth",
+        });
+      }
+    }, 50);
+  }, [columnCounter]);
 
   const updateColumn = (id: string | number, title: string): void => {
     setColumns((prev) =>
@@ -95,6 +110,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         deleteTask,
         setColumns,
         setTasks,
+        scrollContainerRef,
       }}
     >
       {children}
