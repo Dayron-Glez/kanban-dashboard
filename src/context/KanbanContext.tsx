@@ -51,7 +51,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   const createNewColumn = useCallback((): void => {
     const newColumn: ColumnType = {
       id: uuidv4(),
-      title: `Column ${columnCounter + 1}`,
+      title: `Columna ${columnCounter + 1}`,
     };
     setColumns((prev) => [...prev, newColumn]);
     setColumnCounter((prev) => prev + 1);
@@ -121,7 +121,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
 export function useKanban() {
   const context = useContext(KanbanContext);
   if (!context) {
-    throw new Error("useKanban must be used within a KanbanProvider");
+    throw new Error("useKanban debe usarse dentro de KanbanProvider");
   }
   return context;
 }
