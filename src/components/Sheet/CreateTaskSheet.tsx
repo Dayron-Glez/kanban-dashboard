@@ -35,15 +35,15 @@ export default function CreateTaskSheet({
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className=" font-semibold text-primary">
-              Create Task
+              Crear Tarea
             </SheetTitle>
             <SheetDescription>
-              Enter the content of this task and click save.
+              Esciba el contenido de la tarea y de click en Guardar
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4 px-2">
             <Textarea
-              placeholder="Enter the content of the task"
+              placeholder="Escriba el contenido de la tarea"
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                 setContent(e.target.value)
               }
@@ -54,11 +54,11 @@ export default function CreateTaskSheet({
         <SheetFooter className="grid grid-cols-2 mt-6 gap-2">
           <SheetClose asChild>
             <Button type="button" variant="outline">
-              Close
+              Cerrar
             </Button>
           </SheetClose>
           <Button variant="default" type="button" onClick={handleSave}>
-            Save changes
+            Guardar Cambios
           </Button>
         </SheetFooter>
       </SheetContent>
