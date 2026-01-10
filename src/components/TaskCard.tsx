@@ -103,7 +103,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
-                          aria-label="Open menu"
+                          aria-label="Abrir menú de acciones"
                           size="icon-sm"
                           className=" hover:bg-transparent"
                         >
@@ -111,7 +111,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                         </Button>
                       </DropdownMenuTrigger>
                     </TooltipTrigger>
-                    <TooltipContent>Actions</TooltipContent>
+                    <TooltipContent>Acciones</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 <DropdownMenuContent className="w-40" align="end">
@@ -125,7 +125,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                       >
                         <IconEye />
                       </Button>
-                      View Details
+                      Ver Detalles
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setEditOpen(true)}>
                       <Button
@@ -136,7 +136,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                       >
                         <IconEdit />
                       </Button>
-                      Edit Task
+                      Editar Tarea
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
@@ -150,7 +150,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                       >
                         <IconTrash className=" text-destructive" />
                       </Button>
-                      Delete Task
+                      Eliminar Tarea
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
@@ -175,20 +175,20 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
+          <AlertDialogTitle>¿ Eliminar Tarea ?</AlertDialogTitle>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete task?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The task will be permanently
-              removed.
+              Esta acción no se puede deshacer. La tarea será eliminada
+              permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/60"
               onClick={() => deleteTask(task.id)}
             >
-              Delete
+              Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
