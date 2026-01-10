@@ -38,7 +38,7 @@ export default function CreateTaskSheet({
               Crear Tarea
             </SheetTitle>
             <SheetDescription>
-              Esciba el contenido de la tarea y de click en Guardar
+              Esciba el contenido de la tarea y de click en Guardar Cambios
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4 px-2">
