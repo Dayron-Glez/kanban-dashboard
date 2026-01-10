@@ -130,7 +130,7 @@ export default function ColumnContainer({
                 updateColumn(column.id, e.target.value)
               }
               type="text"
-              placeholder="Column name"
+              placeholder="Nombre de la columna"
               autoFocus
               onBlur={() => setEditMode(false)}
               onKeyDown={(e) => {
@@ -159,27 +159,27 @@ export default function ColumnContainer({
                   </AlertDialogTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Delete Column</p>
+                  <p>Eliminar Columna</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
 
             <AlertDialogContent>
+              <AlertDialogTitle>¿ Eliminar Columna ?</AlertDialogTitle>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete column?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. The column and all its tasks
-                  will be permanently removed.
+                  Esta acción no se puede deshacer. La columna y todas sus
+                  tareas serán eliminadas permanentemente.
                 </AlertDialogDescription>
               </AlertDialogHeader>
 
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/60"
                   onClick={() => deleteColumn(column.id)}
                 >
-                  Delete
+                  Eliminar
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -207,14 +207,13 @@ export default function ColumnContainer({
         {/* Footer con botón añadir tarea */}
         <CardFooter className="p-4 pt-0">
           <Button
-            // onClick={() => createNewTask(column.id)}
             onClick={() => setCreateTaskDialogOpen(true)}
             variant="outline"
             type="button"
             className="w-full group border-dashed border-2 hover:text-primary transition-all"
           >
             <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
-            Add Task
+            Agregar Tarea
           </Button>
         </CardFooter>
       </Card>
