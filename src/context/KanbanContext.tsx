@@ -4,7 +4,6 @@ import {
   useState,
   useMemo,
   useRef,
-  useCallback,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -15,7 +14,7 @@ interface KanbanContextType {
   columns: ColumnType[];
   tasks: Task[];
   columnsId: (string | number)[];
-  createNewColumn: () => void;
+  createNewColumn: (title?: string) => void;
   updateColumn: (id: string | number, title: string) => void;
   deleteColumn: (id: string | number) => void;
   createNewTask: (columnId: string | number, content: string) => void;
@@ -48,10 +47,12 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     [columns]
   );
 
-  const createNewColumn = useCallback((): void => {
+  const createNewColumn = (title?: string): void => {
     const newColumn: ColumnType = {
       id: uuidv4(),
-      title: `Columna ${columnCounter + 1}`,
+      title: title && title.trim() !== ""
+        ? title.trim()
+        : `Columna ${columnCounter + 1}`,
     };
     setColumns((prev) => [...prev, newColumn]);
     setColumnCounter((prev) => prev + 1);
@@ -64,7 +65,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         });
       }
     }, 50);
-  }, [columnCounter]);
+  };
 
   const updateColumn = (id: string | number, title: string): void => {
     setColumns((prev) =>
