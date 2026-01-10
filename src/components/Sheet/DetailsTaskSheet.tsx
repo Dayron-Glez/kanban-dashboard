@@ -25,7 +25,7 @@ export function DetailsTaskSheet({
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className=" font-semibold text-primary">
-              View Task Details
+              Detalles de la tarea
             </SheetTitle>
             <SheetDescription />
           </SheetHeader>

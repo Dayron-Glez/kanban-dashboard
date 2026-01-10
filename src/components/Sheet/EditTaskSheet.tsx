@@ -54,10 +54,10 @@ export function EditTaskSheet({
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-primary font-semibold">
-              Edit Task
+              Editar Tarea
             </SheetTitle>
             <SheetDescription>
-              Modify the content of this task and click save.
+              Modifique el contenido de la tarea y haga clic en Guardar Cambios
             </SheetDescription>
           </SheetHeader>
 
@@ -75,11 +75,11 @@ export function EditTaskSheet({
         <SheetFooter className="grid grid-cols-2 mt-6 gap-2">
           <SheetClose asChild>
             <Button type="button" variant="outline">
-              Close
+              Cerrar
             </Button>
           </SheetClose>
           <Button variant="default" type="button" onClick={handleSave}>
-            Save changes
+            Guardar Cambios
           </Button>
         </SheetFooter>
       </SheetContent>

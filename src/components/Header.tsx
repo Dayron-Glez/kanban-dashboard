@@ -21,7 +21,7 @@ export default function Header() {
         disabled={columns.length >= 8}
       >
         <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
-        Add column
+        Agregar Columna
       </Button>
     </header>
   );
