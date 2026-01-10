@@ -9,8 +9,8 @@ import {
 } from "./ui/tooltip";
 import { Button } from "./ui/button";
 import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react";
-import { EditTaskSheet } from "./Sheet/EditTaskSheet";
-import { DetailsTaskSheet } from "./Sheet/DetailsTaskSheet";
+import { EditTaskSheet } from "./Sheet/Task/EditTaskSheet";
+import { DetailsTaskSheet } from "./Sheet/Task/DetailsTaskSheet";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 

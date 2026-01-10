@@ -28,7 +28,7 @@ import {
 } from "./ui/tooltip";
 
 import TaskCard from "./TaskCard";
-import CreateTaskSheet from "./Sheet/CreateTaskSheet";
+import CreateTaskSheet from "./Sheet/Task/CreateTaskSheet";
 
 interface Props {
   column: ColumnType;

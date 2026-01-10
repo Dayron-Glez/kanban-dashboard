@@ -7,43 +7,52 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "../ui/sheet";
-import { Textarea } from "../ui/textarea";
-import { Button } from "../ui/button";
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
-interface CreateTaskSheetProps {
-  columnId: string | number;
+interface CreateColumnSheetProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSave: (id: string | number, content: string) => void;
+  onSave: (content: string) => void;
 }
 
-export default function CreateTaskSheet({
-  columnId,
+export default function CreateColumnSheet({
   open,
   onOpenChange,
   onSave,
-}: CreateTaskSheetProps) {
+}: CreateColumnSheetProps) {
   const [content, setContent] = useState<string>("");
+
+  const handleOpenChange = (open: boolean): void => {
+    if (!open) {
+      setContent("");
+    }
+    onOpenChange?.(open);
+  };
+
   const handleSave = (): void => {
-    onSave(columnId, content);
+    onSave(content);
+    setContent("");
     onOpenChange?.(false);
   };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="border-transparent flex flex-col justify-between">
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className=" font-semibold text-primary">
-              Crear Tarea
+              Crear Columna
             </SheetTitle>
             <SheetDescription>
-              Esciba el contenido de la tarea y de click en Guardar Cambios
+              Esciba el nombre de la columna y de click en Guardar Cambios
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4 px-2">
             <Textarea
-              placeholder="Escriba el contenido de la tarea"
+              value={content}
+              placeholder="Escriba el nombre de la columna"
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                 setContent(e.target.value)
               }
