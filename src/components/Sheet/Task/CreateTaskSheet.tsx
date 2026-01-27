@@ -1,4 +1,6 @@
-import { useState, type ChangeEvent } from "react";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   Sheet,
   SheetClose,
@@ -8,8 +10,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { validationSchema } from "@/components/Sheet/Task/Form/validationSchema";
+import { Content } from "./Form/TextArea/Content";
 
 interface CreateTaskSheetProps {
   columnId: string | number;
@@ -24,17 +27,30 @@ export default function CreateTaskSheet({
   onOpenChange,
   onSave,
 }: CreateTaskSheetProps) {
-  const [content, setContent] = useState<string>("");
-  const handleSave = (): void => {
-    onSave(columnId, content);
-    onOpenChange?.(false);
+  const form = useForm<z.infer<typeof validationSchema>>({
+    resolver: zodResolver(validationSchema),
+    defaultValues: {
+      content: "",
+    },
+  });
+
+  const handleSave = async (): Promise<void> => {
+    const isValid = await form.trigger();
+
+    if (isValid) {
+      const { content } = form.getValues();
+      onSave(columnId, content);
+      form.reset();
+      onOpenChange?.(false);
+    }
   };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="border-transparent flex flex-col justify-between">
         <div className="flex flex-col">
           <SheetHeader>
-            <SheetTitle className=" font-semibold text-primary">
+            <SheetTitle className="font-semibold text-primary">
               Crear Tarea
             </SheetTitle>
             <SheetDescription>
@@ -42,13 +58,9 @@ export default function CreateTaskSheet({
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4 px-2">
-            <Textarea
-              placeholder="Escriba el contenido de la tarea"
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                setContent(e.target.value)
-              }
-              className="min-h-32 max-h-96 focus-visible:ring-0"
-            />
+            <FormProvider {...form}>
+              <Content />
+            </FormProvider>
           </div>
         </div>
         <SheetFooter className="grid grid-cols-2 mt-6 gap-2">
