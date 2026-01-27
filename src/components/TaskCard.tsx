@@ -175,7 +175,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
-          <AlertDialogTitle>¿ Eliminar Tarea ?</AlertDialogTitle>
+          <AlertDialogTitle>{`¿ Eliminar Tarea ${task.content} ?`}</AlertDialogTitle>
           <AlertDialogHeader>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. La tarea será eliminada

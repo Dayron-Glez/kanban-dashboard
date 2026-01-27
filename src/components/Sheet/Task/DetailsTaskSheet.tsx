@@ -1,3 +1,4 @@
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Sheet,
   SheetContent,
@@ -30,12 +31,16 @@ export function DetailsTaskSheet({
             <SheetDescription />
           </SheetHeader>
           <div className="mt-4 px-2">
-            <Textarea
-              value={task.content}
-              readOnly
-              disabled
-              className="min-h-32 max-h-96 bg-muted"
-            />
+            <Field>
+              <FieldLabel htmlFor="task-content">Contenido</FieldLabel>
+              <Textarea
+                id="task-content"
+                value={task.content}
+                readOnly
+                disabled
+                className="min-h-32 max-h-96 bg-muted"
+              />
+            </Field>
           </div>
         </div>
       </SheetContent>

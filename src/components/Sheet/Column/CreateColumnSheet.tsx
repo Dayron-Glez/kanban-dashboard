@@ -1,4 +1,3 @@
-import { useState, type ChangeEvent } from "react";
 import {
   Sheet,
   SheetClose,
@@ -8,8 +7,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { FormProvider, useForm } from "react-hook-form";
+import { validationSchema } from "./Form/validationSchema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type z from "zod";
+import { Title } from "./Form/TextArea/Title";
 
 interface CreateColumnSheetProps {
   open?: boolean;
@@ -22,23 +25,32 @@ export default function CreateColumnSheet({
   onOpenChange,
   onSave,
 }: CreateColumnSheetProps) {
-  const [content, setContent] = useState<string>("");
+  const form = useForm<z.infer<typeof validationSchema>>({
+    resolver: zodResolver(validationSchema),
+    defaultValues: {
+      title: "",
+    },
+  });
 
-  const handleOpenChange = (open: boolean): void => {
-    if (!open) {
-      setContent("");
+  const handleSave = async (): Promise<void> => {
+    const isValid = await form.trigger();
+
+    if (isValid) {
+      const { title } = form.getValues();
+      onSave(title);
+      form.reset();
+      onOpenChange?.(false);
     }
-    onOpenChange?.(open);
-  };
-
-  const handleSave = (): void => {
-    onSave(content);
-    setContent("");
-    onOpenChange?.(false);
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
+    <Sheet
+      open={open}
+      onOpenChange={(isOpen) => {
+        onOpenChange?.(isOpen);
+        if (!isOpen) form.reset();
+      }}
+    >
       <SheetContent className="border-transparent flex flex-col justify-between">
         <div className="flex flex-col">
           <SheetHeader>
@@ -50,14 +62,9 @@ export default function CreateColumnSheet({
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4 px-2">
-            <Textarea
-              value={content}
-              placeholder="Escriba el nombre de la columna"
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                setContent(e.target.value)
-              }
-              className="min-h-32 max-h-96 focus-visible:ring-0"
-            />
+            <FormProvider {...form}>
+              <Title />
+            </FormProvider>
           </div>
         </div>
         <SheetFooter className="grid grid-cols-2 mt-6 gap-2">

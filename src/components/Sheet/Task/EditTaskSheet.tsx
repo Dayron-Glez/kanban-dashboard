@@ -8,8 +8,12 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useEffect } from "react";
+import { validationSchema } from "@/components/Sheet/Task/Form/validationSchema";
+import { Content } from "./Form/TextArea/Content";
 
 interface EditTaskSheetProps {
   taskId: string | number;
@@ -26,26 +30,33 @@ export function EditTaskSheet({
   open,
   onOpenChange,
 }: EditTaskSheetProps) {
-  const [editedContent, setEditedContent] = useState<string>(initialContent);
+  const form = useForm<z.infer<typeof validationSchema>>({
+    resolver: zodResolver(validationSchema),
+    defaultValues: {
+      content: initialContent,
+    },
+  });
 
-  // Resetear el contenido cuando se abre el sheet o cambia initialContent
+  // Actualizar el formulario cuando cambia initialContent
   useEffect(() => {
-    if (open) {
-      setEditedContent(initialContent);
-    }
-  }, [open, initialContent]);
+    form.reset({ content: initialContent });
+  }, [initialContent, form]);
 
   const handleOpenChange = (isOpen: boolean): void => {
     onOpenChange?.(isOpen);
-    // Resetear contenido cuando se cierra
     if (!isOpen) {
-      setEditedContent(initialContent);
+      form.reset({ content: initialContent });
     }
   };
 
-  const handleSave = (): void => {
-    onSave(taskId, editedContent);
-    onOpenChange?.(false);
+  const handleSave = async (): Promise<void> => {
+    const isValid = await form.trigger();
+
+    if (isValid) {
+      const { content } = form.getValues();
+      onSave(taskId, content);
+      onOpenChange?.(false);
+    }
   };
 
   return (
@@ -62,13 +73,9 @@ export function EditTaskSheet({
           </SheetHeader>
 
           <div className="mt-4 px-2">
-            <Textarea
-              value={editedContent}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                setEditedContent(e.target.value)
-              }
-              className="min-h-32 max-h-96"
-            />
+            <FormProvider {...form}>
+              <Content />
+            </FormProvider>
           </div>
         </div>
 
