@@ -159,7 +159,7 @@ export default function ColumnContainer({
             </TooltipProvider>
 
             <AlertDialogContent>
-              <AlertDialogTitle>¿ Eliminar Columna ?</AlertDialogTitle>
+              <AlertDialogTitle>{`¿ Eliminar Columna ${column.title} ?`}</AlertDialogTitle>
               <AlertDialogHeader>
                 <AlertDialogDescription>
                   Esta acción no se puede deshacer. La columna y todas sus
