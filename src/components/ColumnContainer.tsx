@@ -1,7 +1,7 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react";
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useMemo, useState } from "react";
 
 import type { ColumnType, Task } from "../types";
 
@@ -18,7 +18,6 @@ import {
 } from "./ui/alert-dialog";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
-import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
 import {
   Tooltip,
@@ -29,6 +28,7 @@ import {
 
 import TaskCard from "./TaskCard";
 import CreateTaskSheet from "./Sheet/Task/CreateTaskSheet";
+import { EditableColumnTitle } from "./Sheet/Column/Form/Input/EditableColumnTitle";
 
 interface Props {
   column: ColumnType;
@@ -112,7 +112,7 @@ export default function ColumnContainer({
           {/* Título editable */}
           {!editMode && (
             <span
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
                 e.stopPropagation();
                 setEditMode(true);
               }}
@@ -123,19 +123,13 @@ export default function ColumnContainer({
           )}
 
           {editMode && (
-            <Input
-              className="flex-1 h-9 focus-visible:ring-primary focus-visible:ring-1"
-              value={column.title}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                updateColumn(column.id, e.target.value)
-              }
-              type="text"
-              placeholder="Nombre de la columna"
-              autoFocus
-              onBlur={() => setEditMode(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") setEditMode(false);
+            <EditableColumnTitle
+              title={column.title}
+              onSave={(newTitle) => {
+                updateColumn(column.id, newTitle);
+                setEditMode(false);
               }}
+              onCancel={() => setEditMode(false)}
             />
           )}
 

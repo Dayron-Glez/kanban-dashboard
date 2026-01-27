@@ -6,21 +6,21 @@ interface Props {
   disabled?: boolean;
 }
 
-export function Content({ disabled }: Props) {
+export function Title({ disabled }: Props) {
   const { control } = useFormContext();
 
   return (
     <Controller
-      name="content"
+      name="title"
       control={control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid}>
           <Textarea
             {...field}
-            id="content"
+            id="title"
             aria-invalid={fieldState.invalid}
             className="min-h-32 max-h-96 focus-visible:ring-0"
-            placeholder="Escriba el contenido de la tarea"
+            placeholder="Escriba el nombre de la columna"
             disabled={disabled}
           />
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

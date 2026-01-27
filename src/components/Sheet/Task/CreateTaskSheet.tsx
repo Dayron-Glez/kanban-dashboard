@@ -46,7 +46,10 @@ export default function CreateTaskSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={(isOpen) => {
+      onOpenChange?.(isOpen);
+      if (!isOpen) form.reset();
+    }}>
       <SheetContent className="border-transparent flex flex-col justify-between">
         <div className="flex flex-col">
           <SheetHeader>
