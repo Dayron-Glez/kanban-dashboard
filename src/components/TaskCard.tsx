@@ -86,15 +86,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
       >
         <CardHeader className="p-0 flex">
           <CardTitle className="flex items-center justify-between w-full">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="w-64 truncate block">{task.content}</span>
-                </TooltipTrigger>
-                <TooltipContent>{task.content}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
+            <span className="max-w-56 line-clamp-3">{task.content}</span>
             <div className="flex">
               <DropdownMenu modal={false}>
                 <TooltipProvider>
