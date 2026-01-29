@@ -1,18 +1,18 @@
-export type TaskPriority = "P0" | "P1" | "P2";
-export type TaskSize = "XS" | "S" | "M" | "L" | "XL";
+export const TASK_PRIORITIES = ["P0", "P1", "P2"] as const;
+export const TASK_SIZES = ["XS", "S", "M", "L", "XL"] as const;
 
-export type ColumnType = {
-  id: number | string;
-  title: string;
-};
+export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+export type TaskSize = (typeof TASK_SIZES)[number];
 
-export type Task = {
-  id: number | string;
-  columnId: number | string;
+export interface Task {
+  id: string | number;
   content: string;
   priority: TaskPriority;
   size: TaskSize;
-};
+  columnId: string | number;
+}
 
-export const TASK_PRIORITIES: TaskPriority[] = ["P0", "P1", "P2"];
-export const TASK_SIZES: TaskSize[] = ["XS", "S", "M", "L", "XL"];
+export interface ColumnType {
+  id: string | number;
+  title: string;
+}
