@@ -86,15 +86,9 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
       >
         <CardHeader className="p-0 flex">
           <CardTitle className="flex items-center justify-between w-full">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="w-64 truncate block">{task.content}</span>
-                </TooltipTrigger>
-                <TooltipContent>{task.content}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
+            <span className="max-w-56 line-clamp-3 text-ellipsis">
+              {task.content}
+            </span>
             <div className="flex">
               <DropdownMenu modal={false}>
                 <TooltipProvider>
@@ -175,7 +169,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
-          <AlertDialogTitle>{`¿ Eliminar Tarea ${task.content} ?`}</AlertDialogTitle>
+          <AlertDialogTitle>¿ Eliminar Tarea ?</AlertDialogTitle>
           <AlertDialogHeader>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. La tarea será eliminada
