@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from "react";
 import { v4 as uuidv4 } from "uuid";
-import type { ColumnType, Task } from "../types";
+import type { ColumnType, Task, TaskPriority, TaskSize } from "../types";
 
 interface KanbanContextType {
   columns: ColumnType[];
@@ -17,8 +17,14 @@ interface KanbanContextType {
   createNewColumn: (title?: string) => void;
   updateColumn: (id: string | number, title: string) => void;
   deleteColumn: (id: string | number) => void;
-  createNewTask: (columnId: string | number, content: string) => void;
-  updateTask: (id: string | number, content: string) => void;
+  createNewTask: (
+    columnId: string | number,
+    taskData: { content: string; priority: TaskPriority; size: TaskSize },
+  ) => void;
+  updateTask: (
+    id: string | number,
+    taskData: { content: string; priority: TaskPriority; size: TaskSize },
+  ) => void;
   deleteTask: (id: string | number) => void;
   setColumns: React.Dispatch<React.SetStateAction<ColumnType[]>>;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
@@ -44,15 +50,16 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
 
   const columnsId = useMemo(
     () => columns.map((column) => column.id),
-    [columns]
+    [columns],
   );
 
   const createNewColumn = (title?: string): void => {
     const newColumn: ColumnType = {
       id: uuidv4(),
-      title: title && title.trim() !== ""
-        ? title.trim()
-        : `Columna ${columnCounter + 1}`,
+      title:
+        title && title.trim() !== ""
+          ? title.trim()
+          : `Columna ${columnCounter + 1}`,
     };
     setColumns((prev) => [...prev, newColumn]);
     setColumnCounter((prev) => prev + 1);
@@ -69,7 +76,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
 
   const updateColumn = (id: string | number, title: string): void => {
     setColumns((prev) =>
-      prev.map((col) => (col.id === id ? { ...col, title } : col))
+      prev.map((col) => (col.id === id ? { ...col, title } : col)),
     );
   };
 
@@ -78,18 +85,35 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     setTasks((prev) => prev.filter((task) => task.columnId !== id));
   };
 
-  const createNewTask = (columnId: string | number, content: string): void => {
+  const createNewTask = (
+    columnId: string | number,
+    taskData: { content: string; priority: TaskPriority; size: TaskSize },
+  ): void => {
     const newTask: Task = {
       id: uuidv4(),
       columnId,
-      content,
+      content: taskData.content,
+      priority: taskData.priority,
+      size: taskData.size,
     };
     setTasks((prev) => [...prev, newTask]);
   };
 
-  const updateTask = (id: string | number, content: string): void => {
+  const updateTask = (
+    id: string | number,
+    taskData: { content: string; priority: TaskPriority; size: TaskSize },
+  ): void => {
     setTasks((prev) =>
-      prev.map((task) => (task.id === id ? { ...task, content } : task))
+      prev.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              content: taskData.content,
+              priority: taskData.priority,
+              size: taskData.size,
+            }
+          : task,
+      ),
     );
   };
 

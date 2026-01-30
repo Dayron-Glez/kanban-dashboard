@@ -13,6 +13,8 @@ import { EditTaskSheet } from "./Sheet/Task/EditTaskSheet";
 import { DetailsTaskSheet } from "./Sheet/Task/DetailsTaskSheet";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { validationSchema } from "@/components/Sheet/Task/Form/validationSchema";
+import type z from "zod";
 
 import {
   AlertDialog,
@@ -35,7 +37,10 @@ import {
 interface Props {
   task: Task;
   deleteTask: (id: number | string) => void;
-  updateTask: (id: number | string, content: string) => void;
+  updateTask: (
+    id: string | number,
+    taskData: z.infer<typeof validationSchema>,
+  ) => void;
 }
 
 export default function TaskCard({ task, deleteTask, updateTask }: Props) {
@@ -86,9 +91,19 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
       >
         <CardHeader className="p-0 flex">
           <CardTitle className="flex items-center justify-between w-full">
-            <span className="max-w-56 line-clamp-3 text-ellipsis">
-              {task.content}
-            </span>
+            <div className="flex-1">
+              <span className="max-w-56 line-clamp-3 text-ellipsis block mb-2">
+                {task.content}
+              </span>
+              <div className="flex gap-2">
+                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded">
+                  {task.priority}
+                </span>
+                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded">
+                  {task.size}
+                </span>
+              </div>
+            </div>
             <div className="flex">
               <DropdownMenu modal={false}>
                 <TooltipProvider>
@@ -99,7 +114,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                           variant="ghost"
                           aria-label="Abrir menú de acciones"
                           size="icon-sm"
-                          className=" hover:bg-transparent"
+                          className="hover:bg-transparent"
                         >
                           <IconDots />
                         </Button>
@@ -115,7 +130,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className=" hover:bg-transparent"
+                        className="hover:bg-transparent"
                       >
                         <IconEye />
                       </Button>
@@ -126,7 +141,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className=" hover:bg-transparent"
+                        className="hover:bg-transparent"
                       >
                         <IconEdit />
                       </Button>
@@ -140,9 +155,9 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className=" hover:bg-transparent"
+                        className="hover:bg-transparent"
                       >
-                        <IconTrash className=" text-destructive" />
+                        <IconTrash className="text-destructive" />
                       </Button>
                       Eliminar Tarea
                     </DropdownMenuItem>
@@ -160,8 +175,7 @@ export default function TaskCard({ task, deleteTask, updateTask }: Props) {
         onOpenChange={setDetailsOpen}
       />
       <EditTaskSheet
-        taskId={task.id}
-        initialContent={task.content}
+        task={task}
         onSave={updateTask}
         open={editOpen}
         onOpenChange={setEditOpen}

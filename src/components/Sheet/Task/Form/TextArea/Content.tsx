@@ -1,12 +1,12 @@
 import { useFormContext, Controller } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldError } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 
-interface Props {
+interface ContentProps {
   disabled?: boolean;
 }
 
-export function Content({ disabled }: Props) {
+export function Content({ disabled = false }: ContentProps) {
   const { control } = useFormContext();
 
   return (
@@ -15,11 +15,17 @@ export function Content({ disabled }: Props) {
       control={control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid}>
+          <FieldLabel
+            htmlFor="content"
+            className={`text-primary ${fieldState.invalid ? "text-red-500" : ""}`}
+          >
+            Contenido de la Tarea
+          </FieldLabel>
           <Textarea
             {...field}
             id="content"
             aria-invalid={fieldState.invalid}
-            className="min-h-32 max-h-96 focus-visible:ring-0"
+            className="w-full min-h-32 max-h-96 p-2 border border-gray-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Escriba el contenido de la tarea"
             disabled={disabled}
           />
