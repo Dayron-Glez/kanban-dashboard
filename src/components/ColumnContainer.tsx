@@ -34,9 +34,14 @@ import { SearchContext } from "@/layouts/MainLayout";
 interface Props {
   column: ColumnType;
   tasks: Task[];
+  hasFilteredTasks?: boolean;
 }
 
-export default function ColumnContainer({ column, tasks }: Props) {
+export default function ColumnContainer({
+  column,
+  tasks,
+  hasFilteredTasks = false,
+}: Props) {
   const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask } =
     useKanban();
 
@@ -86,7 +91,9 @@ export default function ColumnContainer({ column, tasks }: Props) {
       <Card
         ref={setNodeRef}
         style={style}
-        className="w-[350px] h-[620px] max-h-[620px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2"
+        className={`w-[350px] h-[620px] max-h-[620px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2 ${
+          hasFilteredTasks ? "border-2 border-primary" : ""
+        }`}
       >
         {/* Header de la columna - Área draggable */}
         <CardHeader

@@ -105,15 +105,23 @@ export default function KanbanBoard() {
       >
         <div className="m-auto flex gap-2">
           <SortableContext items={columnsId}>
-            {columns.map((column) => (
-              <ColumnContainer
-                key={column.id}
-                column={column}
-                tasks={filteredTasks.filter(
-                  (task) => task.columnId === column.id,
-                )}
-              />
-            ))}
+            {columns.map((column) => {
+              const columnFilteredTasks = filteredTasks.filter(
+                (task) => task.columnId === column.id,
+              );
+
+              return (
+                <ColumnContainer
+                  key={column.id}
+                  column={column}
+                  tasks={columnFilteredTasks}
+                  hasFilteredTasks={
+                    searchValue.trim().length > 0 &&
+                    columnFilteredTasks.length > 0
+                  }
+                />
+              );
+            })}
           </SortableContext>
         </div>
 
@@ -125,6 +133,12 @@ export default function KanbanBoard() {
                 tasks={filteredTasks.filter(
                   (task) => task.columnId === activeColumn.id,
                 )}
+                hasFilteredTasks={
+                  searchValue.trim().length > 0 &&
+                  filteredTasks.filter(
+                    (task) => task.columnId === activeColumn.id,
+                  ).length > 0
+                }
               />
             )}
             {activeTask && (
