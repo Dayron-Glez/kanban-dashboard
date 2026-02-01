@@ -4,8 +4,14 @@ import { Button } from "@/components/ui/button";
 import { useKanban } from "@/context/KanbanContext";
 import { useState } from "react";
 import CreateColumnSheet from "./Sheet/Column/CreateColumnSheet";
+import { SearchInput } from "./SearchInput";
 
-export default function Header() {
+interface HeaderProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+}
+
+export default function Header({ searchValue, onSearchChange }: HeaderProps) {
   const { createNewColumn, columns } = useKanban();
   const [createColumnDialogOpen, setCreateColumnDialogOpen] =
     useState<boolean>(false);
@@ -24,16 +30,18 @@ export default function Header() {
             Kanban Dashboard
           </h1>
         </div>
-        <Button
-          onClick={() => setCreateColumnDialogOpen(true)}
-          className="text-black group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
-          variant="outline"
-          size="lg"
-          disabled={columns.length >= 8}
-        >
-          <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
-          Agregar Columna
-        </Button>
+        <div className="flex items-center gap-4">
+          <SearchInput value={searchValue} onChange={onSearchChange} />
+          <Button
+            onClick={() => setCreateColumnDialogOpen(true)}
+            className="text-black group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
+            variant="outline"
+            disabled={columns.length >= 8}
+          >
+            <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
+            Agregar Columna
+          </Button>
+        </div>
       </header>
       <CreateColumnSheet
         open={createColumnDialogOpen}

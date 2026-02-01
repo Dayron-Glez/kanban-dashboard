@@ -1,7 +1,7 @@
-// Layout.tsx
+import { createContext, useState } from "react";
+import { Outlet } from "react-router";
 import Header from "@/components/Header";
 import SideBarContent from "@/components/SideBar/SideBarContent";
-import { Outlet } from "react-router";
 import {
   Sidebar,
   SidebarInset,
@@ -11,13 +11,19 @@ import {
 import { KanbanProvider, useKanban } from "@/context/KanbanContext";
 import noDataSvg from "@/assets/noData.svg";
 
+export const SearchContext = createContext<{
+  searchValue: string;
+  setSearchValue: (value: string) => void;
+} | null>(null);
+
 function MainContent() {
   const { state } = useSidebar();
   const { scrollContainerRef, columns } = useKanban();
+  const [searchValue, setSearchValue] = useState<string>("");
 
   return (
     <>
-      <Header />
+      <Header searchValue={searchValue} onSearchChange={setSearchValue} />
       <main
         ref={scrollContainerRef}
         className={`flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${
@@ -25,13 +31,16 @@ function MainContent() {
         } ${columns && columns.length === 0 ? "justify-center" : ""}`}
       >
         {columns && columns.length > 0 ? (
-          <Outlet />
+          <SearchContext.Provider value={{ searchValue, setSearchValue }}>
+            <Outlet />
+          </SearchContext.Provider>
         ) : (
           <div className="flex flex-col items-center justify-center">
             <img src={noDataSvg} alt="No data" className="size-64 mb-4" />
             <p className="text-primary text-lg">
-              No hay columnas creadas. Pulse en el botón Add Column para crear
-              una nueva columna
+              No hay columnas creadas. Pulse en el botón{" "}
+              <span className="font-bold">Agregar Columna</span> para crear una
+              nueva columna
             </p>
           </div>
         )}

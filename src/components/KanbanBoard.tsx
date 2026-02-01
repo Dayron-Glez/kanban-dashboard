@@ -1,5 +1,4 @@
-// KanbanBoard.tsx
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -16,8 +15,12 @@ import { useKanban } from "@/context/KanbanContext";
 import ColumnContainer from "./ColumnContainer";
 import TaskCard from "./TaskCard";
 import type { ColumnType, Task } from "../types";
+import { SearchContext } from "@/layouts/MainLayout";
 
 export default function KanbanBoard() {
+  const searchContext = useContext(SearchContext);
+  const searchValue = searchContext?.searchValue ?? "";
+
   const { columns, tasks, columnsId, setColumns, setTasks } = useKanban();
 
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null);
@@ -28,6 +31,13 @@ export default function KanbanBoard() {
       activationConstraint: { distance: 3 },
     }),
   );
+
+  // Filtrar tareas por contenido
+
+  const filteredTasks = tasks.filter((task) => {
+    if (!task.content) return false;
+    return task.content.toLowerCase().includes(searchValue.toLowerCase());
+  });
 
   const onDragStart = (event: DragStartEvent): void => {
     if (event.active.data.current?.type === "column") {
@@ -95,7 +105,9 @@ export default function KanbanBoard() {
               <ColumnContainer
                 key={column.id}
                 column={column}
-                tasks={tasks.filter((task) => task.columnId === column.id)}
+                tasks={filteredTasks.filter(
+                  (task) => task.columnId === column.id,
+                )}
               />
             ))}
           </SortableContext>
@@ -106,7 +118,7 @@ export default function KanbanBoard() {
             {activeColumn && (
               <ColumnContainer
                 column={activeColumn}
-                tasks={tasks.filter(
+                tasks={filteredTasks.filter(
                   (task) => task.columnId === activeColumn.id,
                 )}
               />

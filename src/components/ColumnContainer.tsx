@@ -1,7 +1,7 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import type { ColumnType, Task } from "../types";
 import { useKanban } from "@/context/KanbanContext";
 
@@ -29,6 +29,7 @@ import {
 import TaskCard from "./TaskCard";
 import CreateTaskSheet from "./Sheet/Task/CreateTaskSheet";
 import { EditableColumnTitle } from "./Sheet/Column/Form/Input/EditableColumnTitle";
+import { SearchContext } from "@/layouts/MainLayout";
 
 interface Props {
   column: ColumnType;
@@ -38,6 +39,9 @@ interface Props {
 export default function ColumnContainer({ column, tasks }: Props) {
   const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask } =
     useKanban();
+
+  const searchContext = useContext(SearchContext);
+  const searchValue = searchContext?.searchValue ?? "";
 
   const [editMode, setEditMode] = useState<boolean>(false);
   const [createTaskDialogOpen, setCreateTaskDialogOpen] =
@@ -136,9 +140,15 @@ export default function ColumnContainer({ column, tasks }: Props) {
                       variant="ghost"
                       size="icon-lg"
                       className="hover:bg-destructive/10 hover:text-destructive transition-colors"
-                      disabled={tasks.length > 0}
+                      disabled={
+                        tasks.length > 0 || searchValue.trim().length > 0
+                      }
                     >
-                      {tasks.length > 0 ? <IconTrashOff /> : <IconTrash />}
+                      {tasks.length > 0 || searchValue.trim().length > 0 ? (
+                        <IconTrashOff />
+                      ) : (
+                        <IconTrash />
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                 </TooltipTrigger>
