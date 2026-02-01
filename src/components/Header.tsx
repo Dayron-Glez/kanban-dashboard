@@ -5,6 +5,12 @@ import { useKanban } from "@/context/KanbanContext";
 import { useState } from "react";
 import CreateColumnSheet from "./Sheet/Column/CreateColumnSheet";
 import { SearchInput } from "./SearchInput";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface HeaderProps {
   searchValue: string;
@@ -12,7 +18,7 @@ interface HeaderProps {
 }
 
 export default function Header({ searchValue, onSearchChange }: HeaderProps) {
-  const { createNewColumn, columns } = useKanban();
+  const { createNewColumn, columns, tasks } = useKanban();
   const [createColumnDialogOpen, setCreateColumnDialogOpen] =
     useState<boolean>(false);
 
@@ -31,7 +37,24 @@ export default function Header({ searchValue, onSearchChange }: HeaderProps) {
           </h1>
         </div>
         <div className="flex items-center gap-4">
-          <SearchInput value={searchValue} onChange={onSearchChange} />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <SearchInput
+                    value={searchValue}
+                    onChange={onSearchChange}
+                    disabled={tasks.length === 0}
+                  />
+                </div>
+              </TooltipTrigger>
+              {tasks.length === 0 && (
+                <TooltipContent>
+                  Crea una tarea para empezar a filtrar
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           <Button
             onClick={() => setCreateColumnDialogOpen(true)}
             className="text-black group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
