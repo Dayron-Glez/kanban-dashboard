@@ -1,19 +1,7 @@
 import { useState } from "react";
-import type { Task } from "@/types";
-import { Card, CardHeader, CardTitle } from "./ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
-import { Button } from "./ui/button";
 import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react";
-import { EditTaskSheet } from "./Sheet/Task/EditTaskSheet";
-import { DetailsTaskSheet } from "./Sheet/Task/DetailsTaskSheet";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { validationSchema } from "@/components/Sheet/Task/Form/validationSchema";
 import type z from "zod";
 
 import {
@@ -25,25 +13,35 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  taskValidationSchema,
+  Button,
+  Card,
+  CardHeader,
+  CardTitle,
+  DetailsTaskSheet,
+  EditTaskSheet,
+  type Task,
+} from "@/index";
 
 interface Props {
   task: Task;
   deleteTask: (id: number | string) => void;
   updateTask: (
     id: string | number,
-    taskData: z.infer<typeof validationSchema>,
+    taskData: z.infer<typeof taskValidationSchema>,
   ) => void;
 }
 
-export default function TaskCard({ task, deleteTask, updateTask }: Props) {
+export function TaskCard({ task, deleteTask, updateTask }: Props) {
   const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
   const [editOpen, setEditOpen] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);

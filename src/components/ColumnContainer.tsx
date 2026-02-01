@@ -2,9 +2,6 @@ import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react";
 import { useContext, useMemo, useState } from "react";
-import type { ColumnType, Task } from "../types";
-import { useKanban } from "@/context/KanbanContext";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,21 +12,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "./ui/alert-dialog";
-import { Button } from "./ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
-import { ScrollArea } from "./ui/scroll-area";
-import {
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CreateTaskSheet,
+  EditableColumnTitle,
+  SearchContext,
+  ScrollArea,
+  TaskCard,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./ui/tooltip";
-
-import TaskCard from "./TaskCard";
-import CreateTaskSheet from "./Sheet/Task/CreateTaskSheet";
-import { EditableColumnTitle } from "./Sheet/Column/Form/Input/EditableColumnTitle";
-import { SearchContext } from "@/layouts/MainLayout";
+  useKanban,
+  type ColumnType,
+  type Task,
+} from "../index";
 
 interface Props {
   column: ColumnType;

@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-export const validationSchema = z.object({
+export const columnValidationSchema = z.object({
   title: z
     .string()
     .min(5, "El nombre de la columna debe de tener 5 caracteres como mínimo.")
