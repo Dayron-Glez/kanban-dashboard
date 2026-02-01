@@ -18,8 +18,11 @@ import type { ColumnType, Task } from "../types";
 import { SearchContext } from "@/layouts/MainLayout";
 
 export default function KanbanBoard() {
-  const searchContext = useContext(SearchContext);
-  const searchValue = searchContext?.searchValue ?? "";
+  const searchContext = useContext<{
+    searchValue: string;
+    setSearchValue: (value: string) => void;
+  } | null>(SearchContext);
+  const searchValue: string = searchContext?.searchValue ?? "";
 
   const { columns, tasks, columnsId, setColumns, setTasks } = useKanban();
 
@@ -32,11 +35,12 @@ export default function KanbanBoard() {
     }),
   );
 
-  // Filtrar tareas por contenido
+  const filteredTasks = tasks.filter((task: Task) => {
+    const searchTerm = searchValue.trim().toLowerCase();
 
-  const filteredTasks = tasks.filter((task) => {
-    if (!task.content) return false;
-    return task.content.toLowerCase().includes(searchValue.toLowerCase());
+    if (!task.content || !searchTerm) return true;
+
+    return task.content.toLowerCase().includes(searchTerm);
   });
 
   const onDragStart = (event: DragStartEvent): void => {
