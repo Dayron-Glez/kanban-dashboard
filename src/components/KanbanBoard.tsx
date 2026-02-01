@@ -109,6 +109,7 @@ export default function KanbanBoard() {
               const columnFilteredTasks = filteredTasks.filter(
                 (task) => task.columnId === column.id,
               );
+              const isSearching = searchValue.trim().length > 0;
 
               return (
                 <ColumnContainer
@@ -116,8 +117,7 @@ export default function KanbanBoard() {
                   column={column}
                   tasks={columnFilteredTasks}
                   hasFilteredTasks={
-                    searchValue.trim().length > 0 &&
-                    columnFilteredTasks.length > 0
+                    isSearching && columnFilteredTasks.length > 0
                   }
                 />
               );

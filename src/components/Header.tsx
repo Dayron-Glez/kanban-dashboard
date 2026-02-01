@@ -36,7 +36,7 @@ export default function Header({ searchValue, onSearchChange }: HeaderProps) {
             onClick={() => setCreateColumnDialogOpen(true)}
             className="text-black group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
             variant="outline"
-            disabled={columns.length >= 8}
+            disabled={columns.length >= 6}
           >
             <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
             Agregar Columna
