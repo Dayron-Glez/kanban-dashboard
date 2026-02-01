@@ -91,7 +91,7 @@ export default function ColumnContainer({
       <Card
         ref={setNodeRef}
         style={style}
-        className={`w-[350px] h-[620px] max-h-[620px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2 transition-opacity ${
+        className={`w-[350px] h-[620px] max-h-[620px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2 ${
           hasFilteredTasks ? "border-2 border-primary" : ""
         } ${
           searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-40" : ""
