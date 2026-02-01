@@ -2,8 +2,8 @@ import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
-
 import type { ColumnType, Task } from "../types";
+import { useKanban } from "@/context/KanbanContext";
 
 import {
   AlertDialog,
@@ -32,23 +32,13 @@ import { EditableColumnTitle } from "./Sheet/Column/Form/Input/EditableColumnTit
 
 interface Props {
   column: ColumnType;
-  updateColumn: (id: number | string, title: string) => void;
-  deleteColumn: (id: number | string) => void;
-  createNewTask: (columnId: number | string, content: string) => void;
-  deleteTask: (id: number | string) => void;
-  updateTask: (id: number | string, content: string) => void;
   tasks: Task[];
 }
 
-export default function ColumnContainer({
-  column,
-  updateColumn,
-  deleteColumn,
-  createNewTask,
-  deleteTask,
-  updateTask,
-  tasks,
-}: Props) {
+export default function ColumnContainer({ column, tasks }: Props) {
+  const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask } =
+    useKanban();
+
   const [editMode, setEditMode] = useState<boolean>(false);
   const [createTaskDialogOpen, setCreateTaskDialogOpen] =
     useState<boolean>(false);

@@ -18,18 +18,7 @@ import TaskCard from "./TaskCard";
 import type { ColumnType, Task } from "../types";
 
 export default function KanbanBoard() {
-  const {
-    columns,
-    tasks,
-    columnsId,
-    updateColumn,
-    deleteColumn,
-    createNewTask,
-    updateTask,
-    deleteTask,
-    setColumns,
-    setTasks,
-  } = useKanban();
+  const { columns, tasks, columnsId, setColumns, setTasks } = useKanban();
 
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -37,7 +26,7 @@ export default function KanbanBoard() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 3 },
-    })
+    }),
   );
 
   const onDragStart = (event: DragStartEvent): void => {
@@ -106,11 +95,6 @@ export default function KanbanBoard() {
               <ColumnContainer
                 key={column.id}
                 column={column}
-                updateColumn={updateColumn}
-                deleteColumn={deleteColumn}
-                createNewTask={createNewTask}
-                deleteTask={deleteTask}
-                updateTask={updateTask}
                 tasks={tasks.filter((task) => task.columnId === column.id)}
               />
             ))}
@@ -122,25 +106,20 @@ export default function KanbanBoard() {
             {activeColumn && (
               <ColumnContainer
                 column={activeColumn}
-                updateColumn={updateColumn}
-                deleteColumn={deleteColumn}
-                createNewTask={createNewTask}
-                deleteTask={deleteTask}
-                updateTask={updateTask}
                 tasks={tasks.filter(
-                  (task) => task.columnId === activeColumn.id
+                  (task) => task.columnId === activeColumn.id,
                 )}
               />
             )}
             {activeTask && (
               <TaskCard
                 task={activeTask}
-                deleteTask={deleteTask}
-                updateTask={updateTask}
+                deleteTask={() => {}}
+                updateTask={() => {}}
               />
             )}
           </DragOverlay>,
-          document.body
+          document.body,
         )}
       </DndContext>
     </div>

@@ -1,4 +1,3 @@
-import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Sheet,
   SheetContent,
@@ -6,7 +5,8 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
+import { FormProvider, useForm } from "react-hook-form";
+import { TaskForm } from "./Form/TaskForm";
 import type { Task } from "@/types";
 
 interface DetailsTaskSheetProps {
@@ -20,27 +20,28 @@ export function DetailsTaskSheet({
   open,
   onOpenChange,
 }: DetailsTaskSheetProps) {
+  const form = useForm({
+    defaultValues: {
+      content: task.content,
+      priority: task.priority,
+      size: task.size,
+    },
+  });
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="border-transparent flex flex-col justify-between">
         <div className="flex flex-col">
           <SheetHeader>
-            <SheetTitle className=" font-semibold text-primary">
+            <SheetTitle className="font-semibold text-primary">
               Detalles de la tarea
             </SheetTitle>
             <SheetDescription />
           </SheetHeader>
           <div className="mt-4 px-2">
-            <Field>
-              <FieldLabel htmlFor="task-content">Contenido</FieldLabel>
-              <Textarea
-                id="task-content"
-                value={task.content}
-                readOnly
-                disabled
-                className="min-h-32 max-h-96 bg-muted"
-              />
-            </Field>
+            <FormProvider {...form}>
+              <TaskForm disabled />
+            </FormProvider>
           </div>
         </div>
       </SheetContent>
