@@ -4,10 +4,10 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
+  TaskForm,
+  type Task,
+} from "@/index";
 import { FormProvider, useForm } from "react-hook-form";
-import { TaskForm } from "./Form/TaskForm";
-import type { Task } from "@/types";
 
 interface DetailsTaskSheetProps {
   task: Task;

@@ -1,4 +1,6 @@
+import type { ComponentType } from "react";
 import { IconHome, IconSettings, IconInfoCircle } from "@tabler/icons-react";
+import type { IconProps } from "@tabler/icons-react";
 import { Link } from "react-router";
 import {
   SidebarContent,
@@ -7,9 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
-import type { ComponentType } from "react";
-import type { IconProps } from "@tabler/icons-react";
+} from "@/index";
 
 type MenuItem = {
   icon: ComponentType<IconProps>;
@@ -17,7 +17,7 @@ type MenuItem = {
   path: string;
 };
 
-export default function SideBarContent() {
+export function SideBarContent() {
   const { open } = useSidebar();
 
   const menuItems: MenuItem[] = [

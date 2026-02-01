@@ -1,9 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type z from "zod";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/ui/field";
-import { validationSchema } from "../validationSchema";
+import { columnValidationSchema, Field, Input } from "@/index";
 
 interface EditableColumnTitleProps {
   title: string;
@@ -16,8 +14,8 @@ export function EditableColumnTitle({
   onSave,
   onCancel,
 }: EditableColumnTitleProps) {
-  const form = useForm<z.infer<typeof validationSchema>>({
-    resolver: zodResolver(validationSchema),
+  const form = useForm<z.infer<typeof columnValidationSchema>>({
+    resolver: zodResolver(columnValidationSchema),
     defaultValues: {
       title: title,
     },

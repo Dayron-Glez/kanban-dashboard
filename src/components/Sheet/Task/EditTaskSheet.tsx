@@ -2,6 +2,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
+  Button,
   Sheet,
   SheetClose,
   SheetContent,
@@ -9,12 +10,11 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { validationSchema } from "@/components/Sheet/Task/Form/validationSchema";
-import { TaskForm } from "./Form/TaskForm";
+  TaskForm,
+  taskValidationSchema,
+  type Task,
+} from "@/index";
 import { useEffect } from "react";
-import type { Task } from "@/types";
 
 interface EditTaskSheetProps {
   task: Task | null;
@@ -22,7 +22,7 @@ interface EditTaskSheetProps {
   onOpenChange?: (open: boolean) => void;
   onSave: (
     id: string | number,
-    taskData: z.infer<typeof validationSchema>,
+    taskData: z.infer<typeof taskValidationSchema>,
   ) => void;
 }
 
@@ -32,8 +32,8 @@ export function EditTaskSheet({
   onOpenChange,
   onSave,
 }: EditTaskSheetProps) {
-  const form = useForm<z.infer<typeof validationSchema>>({
-    resolver: zodResolver(validationSchema),
+  const form = useForm<z.infer<typeof taskValidationSchema>>({
+    resolver: zodResolver(taskValidationSchema),
     defaultValues: {
       content: "",
       priority: "P1",

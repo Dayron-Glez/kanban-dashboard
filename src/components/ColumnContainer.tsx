@@ -29,7 +29,7 @@ import {
   useKanban,
   type ColumnType,
   type Task,
-} from "../index";
+} from "@/index";
 
 interface Props {
   column: ColumnType;
@@ -37,7 +37,7 @@ interface Props {
   hasFilteredTasks?: boolean;
 }
 
-export default function ColumnContainer({
+export function ColumnContainer({
   column,
   tasks,
   hasFilteredTasks = false,

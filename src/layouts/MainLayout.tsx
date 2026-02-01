@@ -1,14 +1,15 @@
 import { createContext, useState } from "react";
 import { Outlet } from "react-router";
-import Header from "@/components/Header";
-import SideBarContent from "@/components/SideBar/SideBarContent";
 import {
+  Header,
+  KanbanProvider,
   Sidebar,
+  SideBarContent,
   SidebarInset,
   SidebarProvider,
+  useKanban,
   useSidebar,
-} from "@/components/ui/sidebar";
-import { KanbanProvider, useKanban } from "@/context/KanbanContext";
+} from "@/index";
 import noDataSvg from "@/assets/noData.svg";
 import notFindByFilter from "@/assets/notFindByFilter.svg";
 
