@@ -209,37 +209,39 @@ export default function ColumnContainer({
 
         {/* Footer con botón añadir tarea */}
         <CardFooter className="p-4 pt-0">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className={`w-full ${
-                    searchValue.trim().length > 0 ? "cursor-not-allowed" : ""
-                  }`}
-                >
-                  <Button
-                    onClick={() => {
-                      if (searchValue.trim().length === 0) {
-                        setCreateTaskDialogOpen(true);
-                      }
-                    }}
-                    variant="outline"
-                    type="button"
-                    className="w-full group border-dashed border-2 transition-all hover:text-primary"
-                    disabled={searchValue.trim().length > 0}
-                  >
-                    <IconPlus className="h-4 w-4 mr-2" />
-                    Agregar Tarea
-                  </Button>
-                </div>
-              </TooltipTrigger>
-              {searchValue.trim().length > 0 && (
+          {searchValue.trim().length > 0 ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="w-full cursor-not-allowed">
+                    <Button
+                      onClick={() => {}}
+                      variant="outline"
+                      type="button"
+                      className="w-full group border-dashed border-2 transition-all hover:text-foreground"
+                      disabled={true}
+                    >
+                      <IconPlus className="h-4 w-4 mr-2" />
+                      Agregar Tarea
+                    </Button>
+                  </div>
+                </TooltipTrigger>
                 <TooltipContent className="z-50">
                   Limpia el filtro para crear una tarea
                 </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button
+              onClick={() => setCreateTaskDialogOpen(true)}
+              variant="outline"
+              type="button"
+              className="w-full group border-dashed border-2 transition-all hover:text-primary"
+            >
+              <IconPlus className="h-4 w-4 mr-2" />
+              Agregar Tarea
+            </Button>
+          )}
         </CardFooter>
       </Card>
       <CreateTaskSheet
