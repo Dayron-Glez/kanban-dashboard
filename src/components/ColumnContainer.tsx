@@ -1,7 +1,7 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import type { ColumnType, Task } from "../types";
 import { useKanban } from "@/context/KanbanContext";
 
@@ -29,15 +29,24 @@ import {
 import TaskCard from "./TaskCard";
 import CreateTaskSheet from "./Sheet/Task/CreateTaskSheet";
 import { EditableColumnTitle } from "./Sheet/Column/Form/Input/EditableColumnTitle";
+import { SearchContext } from "@/layouts/MainLayout";
 
 interface Props {
   column: ColumnType;
   tasks: Task[];
+  hasFilteredTasks?: boolean;
 }
 
-export default function ColumnContainer({ column, tasks }: Props) {
+export default function ColumnContainer({
+  column,
+  tasks,
+  hasFilteredTasks = false,
+}: Props) {
   const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask } =
     useKanban();
+
+  const searchContext = useContext(SearchContext);
+  const searchValue = searchContext?.searchValue ?? "";
 
   const [editMode, setEditMode] = useState<boolean>(false);
   const [createTaskDialogOpen, setCreateTaskDialogOpen] =
@@ -82,7 +91,11 @@ export default function ColumnContainer({ column, tasks }: Props) {
       <Card
         ref={setNodeRef}
         style={style}
-        className="w-[350px] h-[620px] max-h-[620px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2"
+        className={`w-[350px] h-[620px] max-h-[620px] flex flex-col shadow-sm py-0 rounded-lg gap-y-2 transition-opacity ${
+          hasFilteredTasks ? "border-2 border-primary" : ""
+        } ${
+          searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-40" : ""
+        }`}
       >
         {/* Header de la columna - Área draggable */}
         <CardHeader
@@ -136,9 +149,15 @@ export default function ColumnContainer({ column, tasks }: Props) {
                       variant="ghost"
                       size="icon-lg"
                       className="hover:bg-destructive/10 hover:text-destructive transition-colors"
-                      disabled={tasks.length > 0}
+                      disabled={
+                        tasks.length > 0 || searchValue.trim().length > 0
+                      }
                     >
-                      {tasks.length > 0 ? <IconTrashOff /> : <IconTrash />}
+                      {tasks.length > 0 || searchValue.trim().length > 0 ? (
+                        <IconTrashOff />
+                      ) : (
+                        <IconTrash />
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                 </TooltipTrigger>
@@ -190,15 +209,39 @@ export default function ColumnContainer({ column, tasks }: Props) {
 
         {/* Footer con botón añadir tarea */}
         <CardFooter className="p-4 pt-0">
-          <Button
-            onClick={() => setCreateTaskDialogOpen(true)}
-            variant="outline"
-            type="button"
-            className="w-full group border-dashed border-2 hover:text-primary transition-all"
-          >
-            <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
-            Agregar Tarea
-          </Button>
+          {searchValue.trim().length > 0 ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="w-full cursor-not-allowed">
+                    <Button
+                      onClick={() => {}}
+                      variant="outline"
+                      type="button"
+                      className="w-full group border-dashed border-2 transition-all hover:text-foreground"
+                      disabled={true}
+                    >
+                      <IconPlus className="h-4 w-4 mr-2" />
+                      Agregar Tarea
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="z-50">
+                  Limpia el filtro para crear una tarea
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button
+              onClick={() => setCreateTaskDialogOpen(true)}
+              variant="outline"
+              type="button"
+              className="w-full group border-dashed border-2 transition-all hover:text-primary"
+            >
+              <IconPlus className="h-4 w-4 mr-2" />
+              Agregar Tarea
+            </Button>
+          )}
         </CardFooter>
       </Card>
       <CreateTaskSheet

@@ -1,5 +1,4 @@
-// KanbanBoard.tsx
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -16,8 +15,15 @@ import { useKanban } from "@/context/KanbanContext";
 import ColumnContainer from "./ColumnContainer";
 import TaskCard from "./TaskCard";
 import type { ColumnType, Task } from "../types";
+import { SearchContext } from "@/layouts/MainLayout";
 
 export default function KanbanBoard() {
+  const searchContext = useContext<{
+    searchValue: string;
+    setSearchValue: (value: string) => void;
+  } | null>(SearchContext);
+  const searchValue: string = searchContext?.searchValue ?? "";
+
   const { columns, tasks, columnsId, setColumns, setTasks } = useKanban();
 
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null);
@@ -28,6 +34,14 @@ export default function KanbanBoard() {
       activationConstraint: { distance: 3 },
     }),
   );
+
+  const filteredTasks = tasks.filter((task: Task) => {
+    const searchTerm = searchValue.trim().toLowerCase();
+
+    if (!task.content || !searchTerm) return true;
+
+    return task.content.toLowerCase().includes(searchTerm);
+  });
 
   const onDragStart = (event: DragStartEvent): void => {
     if (event.active.data.current?.type === "column") {
@@ -91,13 +105,23 @@ export default function KanbanBoard() {
       >
         <div className="m-auto flex gap-2">
           <SortableContext items={columnsId}>
-            {columns.map((column) => (
-              <ColumnContainer
-                key={column.id}
-                column={column}
-                tasks={tasks.filter((task) => task.columnId === column.id)}
-              />
-            ))}
+            {columns.map((column) => {
+              const columnFilteredTasks = filteredTasks.filter(
+                (task) => task.columnId === column.id,
+              );
+              const isSearching = searchValue.trim().length > 0;
+
+              return (
+                <ColumnContainer
+                  key={column.id}
+                  column={column}
+                  tasks={columnFilteredTasks}
+                  hasFilteredTasks={
+                    isSearching && columnFilteredTasks.length > 0
+                  }
+                />
+              );
+            })}
           </SortableContext>
         </div>
 
@@ -106,9 +130,15 @@ export default function KanbanBoard() {
             {activeColumn && (
               <ColumnContainer
                 column={activeColumn}
-                tasks={tasks.filter(
+                tasks={filteredTasks.filter(
                   (task) => task.columnId === activeColumn.id,
                 )}
+                hasFilteredTasks={
+                  searchValue.trim().length > 0 &&
+                  filteredTasks.filter(
+                    (task) => task.columnId === activeColumn.id,
+                  ).length > 0
+                }
               />
             )}
             {activeTask && (
