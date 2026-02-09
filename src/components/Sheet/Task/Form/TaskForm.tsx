@@ -1,6 +1,4 @@
-import { Priority } from "./Select/Priority";
-import { Size } from "./Select/Size";
-import { Content } from "./TextArea/Content";
+import { Content, Priority, Size } from "@/index";
 
 interface TaskFormProps {
   disabled?: boolean;

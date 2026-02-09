@@ -1,4 +1,6 @@
 import { useContext, useState } from "react";
+import { createPortal } from "react-dom";
+import { arrayMove, SortableContext } from "@dnd-kit/sortable";
 import {
   DndContext,
   DragOverlay,
@@ -9,13 +11,14 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { arrayMove, SortableContext } from "@dnd-kit/sortable";
-import { createPortal } from "react-dom";
-import { useKanban } from "@/context/KanbanContext";
-import ColumnContainer from "./ColumnContainer";
-import TaskCard from "./TaskCard";
-import type { ColumnType, Task } from "../types";
-import { SearchContext } from "@/layouts/MainLayout";
+import {
+  ColumnContainer,
+  SearchContext,
+  TaskCard,
+  useKanban,
+  type ColumnType,
+  type Task,
+} from "@/index";
 
 export default function KanbanBoard() {
   const searchContext = useContext<{

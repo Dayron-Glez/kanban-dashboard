@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { TASK_PRIORITIES, TASK_SIZES } from "@/types";
 
-export const validationSchema = z.object({
+export const taskValidationSchema = z.object({
   content: z
     .string()
     .trim()

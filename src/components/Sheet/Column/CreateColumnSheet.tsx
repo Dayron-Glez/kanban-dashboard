@@ -1,4 +1,6 @@
 import {
+  Button,
+  columnValidationSchema,
   Sheet,
   SheetClose,
   SheetContent,
@@ -6,13 +8,11 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+  Title,
+} from "@/index";
 import { FormProvider, useForm } from "react-hook-form";
-import { validationSchema } from "./Form/validationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type z from "zod";
-import { Title } from "./Form/TextArea/Title";
 
 interface CreateColumnSheetProps {
   open?: boolean;
@@ -20,13 +20,13 @@ interface CreateColumnSheetProps {
   onSave: (content: string) => void;
 }
 
-export default function CreateColumnSheet({
+export function CreateColumnSheet({
   open,
   onOpenChange,
   onSave,
 }: CreateColumnSheetProps) {
-  const form = useForm<z.infer<typeof validationSchema>>({
-    resolver: zodResolver(validationSchema),
+  const form = useForm<z.infer<typeof columnValidationSchema>>({
+    resolver: zodResolver(columnValidationSchema),
     defaultValues: {
       title: "",
     },

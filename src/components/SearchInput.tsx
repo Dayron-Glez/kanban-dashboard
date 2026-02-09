@@ -1,8 +1,5 @@
-import { Field } from "@/components/ui/field";
-
 import { IconSearch } from "@tabler/icons-react";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "./ui/input-group";
-
+import { Field, InputGroup, InputGroupInput, InputGroupAddon } from "@/index";
 interface SearchInputProps {
   placeholder?: string;
   value: string;

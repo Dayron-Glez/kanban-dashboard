@@ -1,23 +1,23 @@
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { IconPlus } from "@tabler/icons-react";
-import { Button } from "@/components/ui/button";
-import { useKanban } from "@/context/KanbanContext";
 import { useState } from "react";
-import CreateColumnSheet from "./Sheet/Column/CreateColumnSheet";
-import { SearchInput } from "./SearchInput";
+import { IconPlus } from "@tabler/icons-react";
 import {
+  CreateColumnSheet,
+  Button,
+  SearchInput,
+  SidebarTrigger,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+  useKanban,
+} from "@/index";
 
 interface HeaderProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
 }
 
-export default function Header({ searchValue, onSearchChange }: HeaderProps) {
+export function Header({ searchValue, onSearchChange }: HeaderProps) {
   const { createNewColumn, columns, tasks } = useKanban();
   const [createColumnDialogOpen, setCreateColumnDialogOpen] =
     useState<boolean>(false);

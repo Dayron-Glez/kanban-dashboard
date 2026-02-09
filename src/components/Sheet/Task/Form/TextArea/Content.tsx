@@ -1,6 +1,5 @@
 import { useFormContext, Controller } from "react-hook-form";
-import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel, Textarea } from "@/index";
 
 interface ContentProps {
   disabled?: boolean;

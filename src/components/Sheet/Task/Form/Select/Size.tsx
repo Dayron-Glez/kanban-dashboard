@@ -1,13 +1,15 @@
 import { useFormContext, Controller } from "react-hook-form";
 import {
+  Field,
+  FieldError,
+  FieldLabel,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { TASK_SIZES } from "@/types";
+  TASK_SIZES,
+} from "@/index";
 
 interface SelectSizeProps {
   disabled?: boolean;
