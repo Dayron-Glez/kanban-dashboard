@@ -17,19 +17,16 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
-  CreateTaskSheet,
-  EditableColumnTitle,
   SearchContext,
   ScrollArea,
-  TaskCard,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  useKanban,
-  type ColumnType,
-  type Task,
-} from "@/index";
+} from "@/shared/index";
+import { useKanban, type ColumnType, type Task } from "@/features/board/index";
+import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle";
+import { CreateTaskSheet, TaskCard } from "@/index";
 
 interface Props {
   column: ColumnType;

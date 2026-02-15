@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type z from "zod";
-import { columnValidationSchema, Field, Input } from "@/index";
+import { Field, Input } from "@/shared/index";
+import { columnValidationSchema } from "../../schemas/column.schema";
 
 interface EditableColumnTitleProps {
   title: string;

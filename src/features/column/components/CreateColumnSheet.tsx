@@ -1,6 +1,5 @@
 import {
   Button,
-  columnValidationSchema,
   Sheet,
   SheetClose,
   SheetContent,
@@ -8,11 +7,12 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  Title,
-} from "@/index";
+} from "@/shared/index";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type z from "zod";
+import { columnValidationSchema } from "../schemas/column.schema";
+import { TitleTextArea } from "./EditableColumnTitle/TitleTextArea";
 
 interface CreateColumnSheetProps {
   open?: boolean;
@@ -63,7 +63,7 @@ export function CreateColumnSheet({
           </SheetHeader>
           <div className="mt-4 px-2">
             <FormProvider {...form}>
-              <Title />
+              <TitleTextArea />
             </FormProvider>
           </div>
         </div>
