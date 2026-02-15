@@ -106,85 +106,128 @@ La aplicación estará disponible en `http://localhost:5173`.
 
 ## Estructura del Proyecto
 
+El proyecto sigue una **Screaming Architecture** organizada por dominios/features. La estructura de carpetas comunica inmediatamente de qué trata la aplicación.
+
 ```
 kanban-dashboard/
-├── public/                          # Activos estáticos
+├── public/                              # Activos estáticos
 ├── src/
-│   ├── assets/                      # SVGs e imágenes
-│   │   ├── noData.svg               # Estado vacío del tablero
-│   │   ├── notFindByFilter.svg      # Sin resultados de búsqueda
-│   │   ├── soon.svg                 # Página en construcción
-│   │   └── ...
-│   ├── components/
-│   │   ├── Header.tsx               # Barra superior (título, búsqueda, agregar columna)
-│   │   ├── KanbanBoard.tsx          # Tablero principal con drag & drop
-│   │   ├── ColumnContainer.tsx      # Contenedor de columna individual
-│   │   ├── TaskCard.tsx             # Tarjeta de tarea con menú de acciones
-│   │   ├── SearchInput.tsx          # Input de búsqueda con filtrado
-│   │   ├── SideBar/
-│   │   │   └── SideBarContent.tsx   # Contenido de la barra lateral
-│   │   ├── Sheet/
-│   │   │   ├── Column/
-│   │   │   │   ├── CreateColumnSheet.tsx
-│   │   │   │   └── Form/            # Formularios de columna
-│   │   │   └── Task/
-│   │   │       ├── CreateTaskSheet.tsx
-│   │   │       ├── EditTaskSheet.tsx
-│   │   │       ├── DetailsTaskSheet.tsx
-│   │   │       └── Form/            # Formularios de tarea (TaskForm, validación)
-│   │   └── ui/                      # Componentes shadcn/ui (Button, Card, Input, etc.)
-│   ├── context/
-│   │   └── KanbanContext.tsx         # Estado global del tablero (columnas, tareas, acciones)
-│   ├── hooks/
-│   │   └── use-mobile.ts            # Hook para detectar dispositivos móviles
+│   ├── features/                        # Dominios de la aplicación
+│   │   ├── board/                       # Feature: Tablero Kanban
+│   │   │   ├── components/
+│   │   │   │   └── KanbanBoard.tsx      # Orquestación del tablero con drag & drop
+│   │   │   ├── context/
+│   │   │   │   └── KanbanContext.tsx     # Estado global (columnas + tareas + CRUD)
+│   │   │   ├── hooks/
+│   │   │   │   └── useKanban.ts         # Hook para consumir el contexto
+│   │   │   ├── types/
+│   │   │   │   └── board.types.ts       # Tipos del dominio (Task, ColumnType, enums)
+│   │   │   └── index.ts                 # API pública del feature
+│   │   │
+│   │   ├── column/                      # Feature: Columnas
+│   │   │   ├── components/
+│   │   │   │   ├── ColumnContainer.tsx   # Contenedor de columna con drag & drop
+│   │   │   │   ├── CreateColumnSheet.tsx # Panel lateral para crear columna
+│   │   │   │   └── EditableColumnTitle/  # Edición inline del título
+│   │   │   ├── schemas/
+│   │   │   │   └── column.schema.ts     # Validación Zod para columnas
+│   │   │   └── index.ts
+│   │   │
+│   │   └── task/                        # Feature: Tareas
+│   │       ├── components/
+│   │       │   ├── TaskCard.tsx          # Tarjeta de tarea con menú de acciones
+│   │       │   ├── CreateTaskSheet.tsx   # Panel lateral para crear tarea
+│   │       │   ├── EditTaskSheet.tsx     # Panel lateral para editar tarea
+│   │       │   ├── DetailsTaskSheet.tsx  # Panel lateral de detalles (solo lectura)
+│   │       │   └── TaskForm/            # Formulario reutilizable de tarea
+│   │       │       ├── TaskForm.tsx
+│   │       │       ├── ContentTextArea.tsx
+│   │       │       ├── PrioritySelect.tsx
+│   │       │       └── SizeSelect.tsx
+│   │       ├── schemas/
+│   │       │   └── task.schema.ts       # Validación Zod para tareas
+│   │       └── index.ts
+│   │
+│   ├── shared/                          # Infraestructura compartida
+│   │   ├── components/
+│   │   │   ├── ui/                      # Componentes shadcn/ui (Button, Card, Input, etc.)
+│   │   │   ├── Header.tsx               # Barra superior (título, búsqueda, agregar columna)
+│   │   │   ├── SearchInput.tsx          # Input de búsqueda con filtrado
+│   │   │   └── Sidebar/
+│   │   │       └── SideBarContent.tsx   # Contenido de la barra lateral
+│   │   ├── context/
+│   │   │   └── SearchContext.tsx         # Contexto de búsqueda (cross-cutting)
+│   │   ├── hooks/
+│   │   │   └── use-mobile.ts            # Hook para detectar dispositivos móviles
+│   │   ├── lib/
+│   │   │   └── utils.ts                 # Utilidad cn() para clases CSS
+│   │   └── index.ts                     # API pública de shared
+│   │
 │   ├── layouts/
-│   │   └── MainLayout.tsx           # Layout principal (sidebar + contenido + SearchContext)
-│   ├── lib/
-│   │   └── utils.ts                 # Utilidad cn() para clases CSS
-│   ├── App.tsx                      # Configuración de rutas
-│   ├── index.ts                     # Barrel exports
-│   ├── main.tsx                     # Punto de entrada de la aplicación
-│   └── types.ts                     # Tipos e interfaces (Task, ColumnType, enums)
-├── tailwind.css                     # Variables CSS y tema personalizado
-├── tailwind.config.js               # Configuración de Tailwind (colores, animaciones)
-├── vite.config.ts                   # Configuración de Vite (alias @, plugins)
-├── tsconfig.json                    # Configuración base de TypeScript
-├── tsconfig.app.json                # Configuración TS para la aplicación
-├── eslint.config.js                 # Configuración de ESLint
-├── components.json                  # Configuración de shadcn/ui
+│   │   └── MainLayout.tsx               # Layout principal (sidebar + contenido)
+│   ├── assets/                          # SVGs e imágenes
+│   ├── App.tsx                          # Configuración de rutas
+│   └── main.tsx                         # Punto de entrada de la aplicación
+│
+├── tailwind.css                         # Variables CSS y tema personalizado
+├── tailwind.config.js                   # Configuración de Tailwind (colores, animaciones)
+├── vite.config.ts                       # Configuración de Vite (alias @, plugins)
+├── tsconfig.json                        # Configuración base de TypeScript
+├── tsconfig.app.json                    # Configuración TS para la aplicación
+├── eslint.config.js                     # Configuración de ESLint
+├── components.json                      # Configuración de shadcn/ui
 └── package.json
 ```
 
 ## Arquitectura
 
+### Screaming Architecture
+
+El proyecto sigue una **Screaming Architecture** donde la estructura de carpetas comunica el dominio de la aplicación. Cada feature es autocontenida con sus propios componentes, hooks, tipos y esquemas de validación.
+
+**Jerarquía de dependencias:**
+
+```
+shared ← board ← { column, task }
+```
+
+- `shared/` no importa de ninguna feature.
+- `board/` importa de `column/` y `task/` para orquestar el tablero.
+- `column/` y `task/` importan de `board/` (tipos) y `shared/` (UI), pero no entre sí directamente.
+
+**Reglas de imports:**
+
+- Dentro de la misma feature: imports relativos (`./`, `../`)
+- Entre features: `@/features/board`, `@/features/column`, `@/features/task`
+- Infraestructura compartida: `@/shared`
+
 ### Gestión de Estado
 
 El proyecto utiliza **React Context API** para manejar el estado global:
 
-- **`KanbanContext`** — Estado principal del tablero. Contiene las columnas, tareas y todas las acciones CRUD (`createNewColumn`, `updateColumn`, `deleteColumn`, `createNewTask`, `updateTask`, `deleteTask`). También expone `setColumns` y `setTasks` para las operaciones de drag & drop.
+- **`KanbanContext`** (`features/board/context/`) — Estado principal del tablero. Contiene las columnas, tareas y todas las acciones CRUD (`createNewColumn`, `updateColumn`, `deleteColumn`, `createNewTask`, `updateTask`, `deleteTask`). Se mantiene unificado porque columnas y tareas forman un bounded context (eliminar una columna cascadea sus tareas).
 
-- **`SearchContext`** — Estado de búsqueda gestionado en `MainLayout`. Almacena el valor del input de búsqueda y lo comparte entre el `Header` y el `KanbanBoard` para filtrar tareas en tiempo real.
+- **`SearchContext`** (`shared/context/`) — Contexto cross-cutting para la funcionalidad de filtrado. Almacena el valor del input de búsqueda y lo comparte entre el `Header` y el `KanbanBoard` para filtrar tareas en tiempo real.
 
 ### Patrones de Componentes
 
-Los componentes están organizados por responsabilidad:
+Los componentes se organizan por dominio dentro de cada feature:
 
-- **Layout** (`MainLayout`) — Estructura general con sidebar, header y outlet de rutas.
-- **Core** (`KanbanBoard`, `ColumnContainer`, `TaskCard`) — Lógica principal del tablero Kanban.
-- **Sheets** (`CreateTaskSheet`, `EditTaskSheet`, etc.) — Paneles laterales para formularios CRUD.
-- **Forms** (`TaskForm`, `Title`, `Priority`, `Size`) — Campos de formulario reutilizables con validación Zod.
-- **UI** (`button`, `card`, `input`, etc.) — Componentes base de shadcn/ui.
+- **Board** (`features/board/`) — Orquestación del tablero con drag & drop.
+- **Column** (`features/column/`) — Contenedor de columna, creacion y edicion inline del titulo.
+- **Task** (`features/task/`) — Tarjeta de tarea, paneles laterales CRUD y formulario reutilizable.
+- **Shared** (`shared/components/`) — Header, SearchInput, Sidebar y componentes shadcn/ui.
 
 ### Validación
 
-Se utiliza **Zod** para definir esquemas de validación integrados con **React Hook Form**:
+Se utiliza **Zod** para definir esquemas de validación integrados con **React Hook Form**, co-localizados con cada feature:
 
-- Las tareas requieren: contenido (mín. 5 caracteres), prioridad (`P0`, `P1`, `P2`) y tamaño (`XS`, `S`, `M`, `L`, `XL`).
-- Las columnas requieren un título no vacío.
+- `features/task/schemas/task.schema.ts` — Contenido (min. 5 caracteres), prioridad (`P0`, `P1`, `P2`) y tamano (`XS`, `S`, `M`, `L`, `XL`).
+- `features/column/schemas/column.schema.ts` — Titulo no vacio con minimo de 5 caracteres.
 
 ### Drag & Drop
 
-Implementado con **@dnd-kit**, el sistema permite:
+Implementado con **@dnd-kit** en `features/board/components/KanbanBoard.tsx`:
 
 - Reordenar columnas horizontalmente.
 - Mover tareas entre columnas.
