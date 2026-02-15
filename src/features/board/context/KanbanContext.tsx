@@ -1,6 +1,5 @@
 import {
   createContext,
-  useContext,
   useState,
   useMemo,
   useRef,
@@ -8,7 +7,12 @@ import {
   type RefObject,
 } from "react";
 import { v4 as uuidv4 } from "uuid";
-import type { ColumnType, Task, TaskPriority, TaskSize } from "@/index";
+import type {
+  ColumnType,
+  Task,
+  TaskPriority,
+  TaskSize,
+} from "../types/board.types";
 
 interface KanbanContextType {
   columns: ColumnType[];
@@ -39,7 +43,7 @@ const baseColumns: ColumnType[] = [
   { id: uuidv4(), title: "Done" },
 ];
 
-const KanbanContext = createContext<KanbanContextType | null>(null);
+export const KanbanContext = createContext<KanbanContextType | null>(null);
 
 export function KanbanProvider({ children }: { children: ReactNode }) {
   const [columns, setColumns] = useState<ColumnType[]>(baseColumns);
@@ -141,12 +145,4 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
       {children}
     </KanbanContext.Provider>
   );
-}
-
-export function useKanban() {
-  const context = useContext(KanbanContext);
-  if (!context) {
-    throw new Error("useKanban debe usarse dentro de KanbanProvider");
-  }
-  return context;
 }
