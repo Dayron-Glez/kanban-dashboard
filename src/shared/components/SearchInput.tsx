@@ -1,5 +1,10 @@
 import { IconSearch } from "@tabler/icons-react";
-import { Field, InputGroup, InputGroupInput, InputGroupAddon } from "@/index";
+import {
+  Field,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+} from "@/shared/index";
 interface SearchInputProps {
   placeholder?: string;
   value: string;

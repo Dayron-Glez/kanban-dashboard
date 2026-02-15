@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { IconPlus } from "@tabler/icons-react";
 import {
-  CreateColumnSheet,
   Button,
   SearchInput,
   SidebarTrigger,
@@ -9,8 +8,8 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  useKanban,
-} from "@/index";
+} from "@/shared/index";
+import { CreateColumnSheet, useKanban } from "@/index";
 
 interface HeaderProps {
   searchValue: string;

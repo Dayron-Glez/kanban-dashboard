@@ -9,7 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   useSidebar,
-} from "@/index";
+} from "@/shared/index";
 
 type MenuItem = {
   icon: ComponentType<IconProps>;
