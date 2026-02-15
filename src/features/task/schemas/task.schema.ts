@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { TASK_PRIORITIES, TASK_SIZES } from "@/types";
+import { TASK_PRIORITIES, TASK_SIZES } from "@/features/board/index";
 
 export const taskValidationSchema = z.object({
   content: z

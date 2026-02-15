@@ -8,14 +8,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  TASK_PRIORITIES,
-} from "@/index";
+} from "@/shared/index";
+import { TASK_PRIORITIES } from "@/features/board/index";
 
 interface SelectPriorityProps {
   disabled?: boolean;
 }
 
-export function Priority({ disabled = false }: SelectPriorityProps) {
+export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
   const {
     control,
     formState: { errors },

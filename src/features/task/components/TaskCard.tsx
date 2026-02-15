@@ -22,15 +22,15 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  taskValidationSchema,
   Button,
   Card,
   CardHeader,
   CardTitle,
-  DetailsTaskSheet,
-  EditTaskSheet,
-  type Task,
-} from "@/index";
+} from "@/shared/index";
+import { type Task } from "@/features/board/index";
+import { taskValidationSchema } from "../schemas/task.schema";
+import { DetailsTaskSheet } from "./DetailsTaskSheet";
+import { EditTaskSheet } from "./EditTaskSheet";
 
 interface Props {
   task: Task;

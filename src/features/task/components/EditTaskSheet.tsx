@@ -10,10 +10,10 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  TaskForm,
-  taskValidationSchema,
-  type Task,
-} from "@/index";
+} from "@/shared/index";
+import { type Task } from "@/features/board/index";
+import { taskValidationSchema } from "../schemas/task.schema";
+import { TaskForm } from "./TaskForm/TaskForm";
 import { useEffect } from "react";
 
 interface EditTaskSheetProps {

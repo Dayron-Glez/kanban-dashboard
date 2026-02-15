@@ -10,9 +10,9 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  TaskForm,
-  taskValidationSchema,
-} from "@/index";
+} from "@/shared/index";
+import { taskValidationSchema } from "../schemas/task.schema";
+import { TaskForm } from "./TaskForm/TaskForm";
 
 interface CreateTaskSheetProps {
   columnId: string | number;

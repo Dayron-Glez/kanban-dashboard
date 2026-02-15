@@ -8,14 +8,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  TASK_SIZES,
-} from "@/index";
+} from "@/shared/index";
+import { TASK_SIZES } from "@/features/board/index";
 
 interface SelectSizeProps {
   disabled?: boolean;
 }
 
-export function Size({ disabled = false }: SelectSizeProps) {
+export function SizeSelect({ disabled = false }: SelectSizeProps) {
   const {
     control,
     formState: { errors },

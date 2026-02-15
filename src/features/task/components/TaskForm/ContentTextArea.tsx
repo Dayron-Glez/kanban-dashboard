@@ -1,11 +1,11 @@
 import { useFormContext, Controller } from "react-hook-form";
-import { Field, FieldError, FieldLabel, Textarea } from "@/index";
+import { Field, FieldError, FieldLabel, Textarea } from "@/shared/index";
 
 interface ContentProps {
   disabled?: boolean;
 }
 
-export function Content({ disabled = false }: ContentProps) {
+export function ContentTextArea({ disabled = false }: ContentProps) {
   const { control } = useFormContext();
 
   return (

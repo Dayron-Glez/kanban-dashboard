@@ -4,9 +4,9 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  TaskForm,
-  type Task,
-} from "@/index";
+} from "@/shared/index";
+import { type Task } from "@/features/board/index";
+import { TaskForm } from "./TaskForm/TaskForm";
 import { FormProvider, useForm } from "react-hook-form";
 
 interface DetailsTaskSheetProps {
