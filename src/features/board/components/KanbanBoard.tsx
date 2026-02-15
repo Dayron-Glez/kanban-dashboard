@@ -11,15 +11,10 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import {
-  ColumnContainer,
-  SearchContext,
-  TaskCard,
-  useKanban,
-  type ColumnType,
-  type Task,
-} from "@/index";
-
+import { SearchContext } from "@/shared/index";
+import { ColumnContainer } from "@/features/column/index";
+import { TaskCard } from "@/features/task/index";
+import { useKanban, type ColumnType, type Task } from "../index";
 export default function KanbanBoard() {
   const searchContext = useContext<{
     searchValue: string;

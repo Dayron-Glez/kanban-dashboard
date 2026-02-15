@@ -9,7 +9,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shared/index";
-import { CreateColumnSheet, useKanban } from "@/index";
+import { useKanban } from "@/features/board/index";
+import { CreateColumnSheet } from "@/features/column/index";
 
 interface HeaderProps {
   searchValue: string;

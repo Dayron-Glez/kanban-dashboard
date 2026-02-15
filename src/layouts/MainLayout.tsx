@@ -9,7 +9,7 @@ import {
   SidebarProvider,
   useSidebar,
 } from "@/shared/index";
-import { KanbanProvider, useKanban } from "@/index";
+import { KanbanProvider, useKanban } from "@/features/board/index";
 import noDataSvg from "@/assets/noData.svg";
 import notFindByFilter from "@/assets/notFindByFilter.svg";
 
