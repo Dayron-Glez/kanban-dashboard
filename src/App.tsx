@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router";
 import "../tailwind.css";
-import KanbanBoard from "./components/KanbanBoard";
 import MainLayout from "./layouts/MainLayout";
+import KanbanBoard from "./features/board/components/KanbanBoard";
 
 export default App;
 

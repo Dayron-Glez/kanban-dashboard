@@ -1,22 +1,17 @@
-import { createContext, useState } from "react";
+import { useState } from "react";
 import { Outlet } from "react-router";
 import {
   Header,
-  KanbanProvider,
+  SearchContext,
   Sidebar,
   SideBarContent,
   SidebarInset,
   SidebarProvider,
-  useKanban,
   useSidebar,
-} from "@/index";
+} from "@/shared/index";
+import { KanbanProvider, useKanban } from "@/features/board/index";
 import noDataSvg from "@/assets/noData.svg";
 import notFindByFilter from "@/assets/notFindByFilter.svg";
-
-export const SearchContext = createContext<{
-  searchValue: string;
-  setSearchValue: (value: string) => void;
-} | null>(null);
 
 function MainContent() {
   const { state } = useSidebar();
