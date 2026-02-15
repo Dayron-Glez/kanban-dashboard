@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/index";
-import { TASK_SIZES } from "@/features/board/index";
+import { TASK_SIZES } from "@/features/board/types/board.types";
 
 interface SelectSizeProps {
   disabled?: boolean;

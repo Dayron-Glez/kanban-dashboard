@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/index";
-import { TASK_PRIORITIES } from "@/features/board/index";
+import { TASK_PRIORITIES } from "@/features/board/types/board.types";
 
 interface SelectPriorityProps {
   disabled?: boolean;
