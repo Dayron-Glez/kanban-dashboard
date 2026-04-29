@@ -2,13 +2,13 @@ import { useState } from "react"
 import { IconPlus } from "@tabler/icons-react"
 import { SidebarTrigger } from "@/shared"
 import { Button } from "@/shared"
-import { useProjects } from "../hooks/useProjects"
+import { useProjectsContext } from "../context/ProjectsContext"
 import { ProjectCard } from "./ProjectCard"
 import { CreateProjectModal } from "./CreateProjectModal"
 import type { ProjectFormValues } from "../schemas/project.schema"
 
 export function ProjectsPage() {
-  const { projects, loading, createProject } = useProjects()
+  const { projects, loading, createProject } = useProjectsContext()
   const [modalOpen, setModalOpen] = useState(false)
 
   const handleCreate = async (values: ProjectFormValues) => {

@@ -12,11 +12,11 @@ import {
 } from "@/shared"
 import { Button } from "@/shared"
 import { supabase } from "@/shared/supabase"
-import { useProjects } from "../hooks/useProjects"
+import { useProjectsContext } from "../context/ProjectsContext"
 
 export function ProjectSidebarContent() {
   const { open } = useSidebar()
-  const { projects } = useProjects()
+  const { projects } = useProjectsContext()
   const { id: activeId } = useParams()
   const navigate = useNavigate()
 
