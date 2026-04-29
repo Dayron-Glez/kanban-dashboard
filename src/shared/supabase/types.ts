@@ -3,14 +3,14 @@ export type TaskSize = "xs" | "s" | "m" | "l" | "xl"
 export type MemberRole = "owner" | "member"
 export type InvitationStatus = "pending" | "accepted"
 
-export interface Profile {
+export type Profile = {
   id: string
   full_name: string | null
   avatar_url: string | null
   updated_at: string
 }
 
-export interface Project {
+export type Project = {
   id: string
   owner_id: string
   name: string
@@ -19,7 +19,7 @@ export interface Project {
   created_at: string
 }
 
-export interface ProjectMember {
+export type ProjectMember = {
   id: string
   project_id: string
   user_id: string
@@ -28,7 +28,7 @@ export interface ProjectMember {
   profiles?: Profile
 }
 
-export interface ProjectInvitation {
+export type ProjectInvitation = {
   id: string
   project_id: string
   email: string
@@ -38,14 +38,14 @@ export interface ProjectInvitation {
   created_at: string
 }
 
-export interface Column {
+export type Column = {
   id: string
   project_id: string
   title: string
   position: number
 }
 
-export interface Task {
+export type Task = {
   id: string
   column_id: string
   project_id: string
@@ -58,7 +58,7 @@ export interface Task {
   profiles?: Profile
 }
 
-export interface TaskHistory {
+export type TaskHistory = {
   id: string
   task_id: string
   from_column_id: string | null
@@ -72,13 +72,50 @@ export interface TaskHistory {
 export type Database = {
   public: {
     Tables: {
-      profiles: { Row: Profile }
-      projects: { Row: Project }
-      project_members: { Row: ProjectMember }
-      project_invitations: { Row: ProjectInvitation }
-      columns: { Row: Column }
-      tasks: { Row: Task }
-      task_history: { Row: TaskHistory }
+      profiles: {
+        Row: { id: string; full_name: string | null; avatar_url: string | null; updated_at: string }
+        Insert: { id?: string; full_name?: string | null; avatar_url?: string | null; updated_at?: string }
+        Update: { id?: string; full_name?: string | null; avatar_url?: string | null; updated_at?: string }
+        Relationships: []
+      }
+      projects: {
+        Row: { id: string; owner_id: string; name: string; description: string | null; color: string; created_at: string }
+        Insert: { id?: string; owner_id: string; name: string; description?: string | null; color: string; created_at?: string }
+        Update: { id?: string; owner_id?: string; name?: string; description?: string | null; color?: string; created_at?: string }
+        Relationships: []
+      }
+      project_members: {
+        Row: { id: string; project_id: string; user_id: string; role: MemberRole; joined_at: string }
+        Insert: { id?: string; project_id: string; user_id: string; role: MemberRole; joined_at?: string }
+        Update: { id?: string; project_id?: string; user_id?: string; role?: MemberRole; joined_at?: string }
+        Relationships: []
+      }
+      project_invitations: {
+        Row: { id: string; project_id: string; email: string; token: string; status: InvitationStatus; expires_at: string; created_at: string }
+        Insert: { id?: string; project_id: string; email: string; token: string; status?: InvitationStatus; expires_at: string; created_at?: string }
+        Update: { id?: string; project_id?: string; email?: string; token?: string; status?: InvitationStatus; expires_at?: string; created_at?: string }
+        Relationships: []
+      }
+      columns: {
+        Row: { id: string; project_id: string; title: string; position: number }
+        Insert: { id?: string; project_id: string; title: string; position: number }
+        Update: { id?: string; project_id?: string; title?: string; position?: number }
+        Relationships: []
+      }
+      tasks: {
+        Row: { id: string; column_id: string; project_id: string; assignee_id: string | null; content: string; priority: TaskPriority; size: TaskSize; position: number; created_at: string }
+        Insert: { id?: string; column_id: string; project_id: string; assignee_id?: string | null; content: string; priority: TaskPriority; size: TaskSize; position: number; created_at?: string }
+        Update: { id?: string; column_id?: string; project_id?: string; assignee_id?: string | null; content?: string; priority?: TaskPriority; size?: TaskSize; position?: number; created_at?: string }
+        Relationships: []
+      }
+      task_history: {
+        Row: { id: string; task_id: string; from_column_id: string | null; to_column_id: string; moved_at: string }
+        Insert: { id?: string; task_id: string; from_column_id?: string | null; to_column_id: string; moved_at?: string }
+        Update: { id?: string; task_id?: string; from_column_id?: string | null; to_column_id?: string; moved_at?: string }
+        Relationships: []
+      }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
   }
 }

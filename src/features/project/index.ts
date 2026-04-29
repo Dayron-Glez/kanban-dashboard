@@ -1,0 +1,8 @@
+export { ProjectsPage } from "./components/ProjectsPage"
+export { ProjectCard } from "./components/ProjectCard"
+export { ProjectSidebarContent } from "./components/ProjectSidebarContent"
+export { CreateProjectModal } from "./components/CreateProjectModal"
+export { ProjectsProvider, useProjectsContext } from "./context/ProjectsContext"
+export { useProjects } from "./hooks/useProjects"
+export { projectSchema, PROJECT_COLORS } from "./schemas/project.schema"
+export type { ProjectFormValues } from "./schemas/project.schema"

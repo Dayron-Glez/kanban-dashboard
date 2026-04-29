@@ -1,32 +1,32 @@
-import { useState } from "react";
-import { Outlet } from "react-router";
+import { useState } from "react"
+import { Outlet, useParams } from "react-router"
 import {
   Header,
   SearchContext,
-  Sidebar,
-  SideBarContent,
-  SidebarInset,
-  SidebarProvider,
   useSidebar,
-} from "@/shared/index";
-import { KanbanProvider, useKanban } from "@/features/board/index";
-import noDataSvg from "@/assets/noData.svg";
-import notFindByFilter from "@/assets/notFindByFilter.svg";
+} from "@/shared/index"
+import { KanbanProvider, useKanban } from "@/features/board/index"
+import { useProjectsContext } from "@/features/project"
+import noDataSvg from "@/assets/noData.svg"
+import notFindByFilter from "@/assets/notFindByFilter.svg"
 
-function MainContent() {
-  const { state } = useSidebar();
-  const { scrollContainerRef, columns, tasks } = useKanban();
-  const [searchValue, setSearchValue] = useState<string>("");
+function KanbanContent() {
+  const { state } = useSidebar()
+  const { scrollContainerRef, columns, tasks } = useKanban()
+  const [searchValue, setSearchValue] = useState<string>("")
+  const { id } = useParams()
+  const { projects } = useProjectsContext()
+  const projectName = projects.find((p) => p.id === id)?.name
 
   const filteredTasks = tasks.filter((task) => {
-    const searchTerm = searchValue.trim().toLowerCase();
-    if (!task.content || !searchTerm) return true;
-    return task.content.toLowerCase().includes(searchTerm);
-  });
+    const searchTerm = searchValue.trim().toLowerCase()
+    if (!task.content || !searchTerm) return true
+    return task.content.toLowerCase().includes(searchTerm)
+  })
 
   return (
     <>
-      <Header searchValue={searchValue} onSearchChange={setSearchValue} />
+      <Header searchValue={searchValue} onSearchChange={setSearchValue} projectName={projectName} />
       <main
         ref={scrollContainerRef}
         className={`flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${
@@ -36,7 +36,6 @@ function MainContent() {
         {columns && columns.length > 0 ? (
           <SearchContext.Provider value={{ searchValue, setSearchValue }}>
             {filteredTasks.length === 0 && searchValue.trim().length > 0 ? (
-              // Blank state cuando no hay coincidencias
               <div className="flex flex-col items-center justify-center w-full h-full">
                 <img
                   src={notFindByFilter}
@@ -65,24 +64,13 @@ function MainContent() {
         )}
       </main>
     </>
-  );
+  )
 }
 
-export default function Layout() {
+export default function KanbanLayout() {
   return (
     <KanbanProvider>
-      <SidebarProvider defaultOpen={true} className="h-screen">
-        <Sidebar
-          collapsible="icon"
-          className="min-w-16 border-r-transparent shadow-md bg-background"
-        >
-          <SideBarContent />
-        </Sidebar>
-
-        <SidebarInset className="h-screen flex flex-col overflow-hidden">
-          <MainContent />
-        </SidebarInset>
-      </SidebarProvider>
+      <KanbanContent />
     </KanbanProvider>
-  );
+  )
 }

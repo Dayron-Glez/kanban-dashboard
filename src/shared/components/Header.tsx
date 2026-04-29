@@ -15,9 +15,10 @@ import { CreateColumnSheet } from "@/features/column/index";
 interface HeaderProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
+  projectName?: string;
 }
 
-export function Header({ searchValue, onSearchChange }: HeaderProps) {
+export function Header({ searchValue, onSearchChange, projectName }: HeaderProps) {
   const { createNewColumn, columns, tasks } = useKanban();
   const [createColumnDialogOpen, setCreateColumnDialogOpen] =
     useState<boolean>(false);
@@ -32,8 +33,14 @@ export function Header({ searchValue, onSearchChange }: HeaderProps) {
       <header className="flex items-center justify-between gap-4 border-b px-6 py-4 bg-background border-b-transparent shadow-md">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-primary" />
-          <h1 className="text-xl font-semibold text-primary">
+          <h1 className="text-xl font-semibold text-primary flex items-center gap-2">
             Kanban Dashboard
+            {projectName && (
+              <>
+                <span className="text-muted-foreground font-normal">|</span>
+                <span>{projectName}</span>
+              </>
+            )}
           </h1>
         </div>
         <div className="flex items-center gap-4">
