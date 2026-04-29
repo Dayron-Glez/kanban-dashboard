@@ -1,11 +1,12 @@
 import { useState } from "react"
-import { Outlet } from "react-router"
+import { Outlet, useParams } from "react-router"
 import {
   Header,
   SearchContext,
   useSidebar,
 } from "@/shared/index"
 import { KanbanProvider, useKanban } from "@/features/board/index"
+import { useProjectsContext } from "@/features/project"
 import noDataSvg from "@/assets/noData.svg"
 import notFindByFilter from "@/assets/notFindByFilter.svg"
 
@@ -13,6 +14,9 @@ function KanbanContent() {
   const { state } = useSidebar()
   const { scrollContainerRef, columns, tasks } = useKanban()
   const [searchValue, setSearchValue] = useState<string>("")
+  const { id } = useParams()
+  const { projects } = useProjectsContext()
+  const projectName = projects.find((p) => p.id === id)?.name
 
   const filteredTasks = tasks.filter((task) => {
     const searchTerm = searchValue.trim().toLowerCase()
@@ -22,7 +26,7 @@ function KanbanContent() {
 
   return (
     <>
-      <Header searchValue={searchValue} onSearchChange={setSearchValue} />
+      <Header searchValue={searchValue} onSearchChange={setSearchValue} projectName={projectName} />
       <main
         ref={scrollContainerRef}
         className={`flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${
