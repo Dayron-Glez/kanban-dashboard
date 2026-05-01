@@ -11,18 +11,18 @@ export const useProjects = () => {
 
   useEffect(() => {
     if (!user) return
-    fetchProjects()
-  }, [user?.id])
-
-  const fetchProjects = async () => {
-    setLoading(true)
-    const { data } = await supabase
+    let cancelled = false
+    supabase
       .from("projects")
       .select("*")
       .order("created_at", { ascending: false })
-    setProjects(data ?? [])
-    setLoading(false)
-  }
+      .then(({ data }) => {
+        if (cancelled) return
+        setProjects(data ?? [])
+        setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [user?.id])
 
   const createProject = async (values: ProjectFormValues): Promise<Project | null> => {
     if (!user) return null
@@ -32,6 +32,12 @@ export const useProjects = () => {
       .select()
       .single()
     if (error || !data) return null
+
+    const defaultColumns = ["Backlog", "Ready", "In Progress", "In Review", "Done"]
+    await supabase.from("columns").insert(
+      defaultColumns.map((title, position) => ({ project_id: data.id, title, position })),
+    )
+
     setProjects((prev) => [data, ...prev])
     return data
   }

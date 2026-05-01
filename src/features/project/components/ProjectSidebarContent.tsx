@@ -12,7 +12,7 @@ import {
 } from "@/shared"
 import { Button } from "@/shared"
 import { supabase } from "@/shared/supabase"
-import { useProjectsContext } from "../context/ProjectsContext"
+import { useProjectsContext } from "../context/projectsCtx"
 
 export function ProjectSidebarContent() {
   const { open } = useSidebar()
