@@ -3,6 +3,7 @@ import { Outlet, useParams } from "react-router"
 import {
   Header,
   SearchContext,
+  Skeleton,
   useSidebar,
 } from "@/shared/index"
 import { KanbanProvider, useKanban } from "@/features/board/index"
@@ -12,7 +13,7 @@ import notFindByFilter from "@/assets/notFindByFilter.svg"
 
 function KanbanContent() {
   const { state } = useSidebar()
-  const { scrollContainerRef, columns, tasks } = useKanban()
+  const { scrollContainerRef, columns, tasks, loading } = useKanban()
   const [searchValue, setSearchValue] = useState<string>("")
   const { id } = useParams()
   const { projects } = useProjectsContext()
@@ -31,21 +32,22 @@ function KanbanContent() {
         ref={scrollContainerRef}
         className={`flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${
           state === "collapsed" ? "pl-4" : ""
-        } ${columns && columns.length === 0 ? "justify-center" : ""}`}
+        } ${!loading && columns.length === 0 ? "justify-center" : ""}`}
       >
-        {columns && columns.length > 0 ? (
+        {loading ? (
+          <div className="flex gap-3 p-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="w-[350px] h-[620px] rounded-lg shrink-0" />
+            ))}
+          </div>
+        ) : columns.length > 0 ? (
           <SearchContext.Provider value={{ searchValue, setSearchValue }}>
             {filteredTasks.length === 0 && searchValue.trim().length > 0 ? (
               <div className="flex flex-col items-center justify-center w-full h-full">
-                <img
-                  src={notFindByFilter}
-                  alt="Sin resultados"
-                  className="size-[500px]"
-                />
+                <img src={notFindByFilter} alt="Sin resultados" className="size-[500px]" />
                 <p className="text-primary text-lg font-semibold">
-                  No hay tareas que coincidan con el filtro de búsqueda
-                  aplicado. Por favor, intente con otro término de búsqueda o
-                  elimine el filtro.
+                  No hay tareas que coincidan con el filtro de búsqueda aplicado. Por favor, intente
+                  con otro término de búsqueda o elimine el filtro.
                 </p>
               </div>
             ) : (
@@ -57,8 +59,7 @@ function KanbanContent() {
             <img src={noDataSvg} alt="No data" className="size-64 mb-4" />
             <p className="text-primary text-lg">
               No hay columnas creadas. Pulse en el botón{" "}
-              <span className="font-bold">Agregar Columna</span> para crear una
-              nueva columna
+              <span className="font-bold">Agregar Columna</span> para crear una nueva columna
             </p>
           </div>
         )}
