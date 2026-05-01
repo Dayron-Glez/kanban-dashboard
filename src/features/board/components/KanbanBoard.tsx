@@ -57,20 +57,26 @@ export default function KanbanBoard() {
     setActiveColumn(null)
     setActiveTask(null)
 
-    if (!over || active.id === over.id) {
+    if (!over) {
       dragOriginColumnId.current = null
+      dragTargetColumnId.current = null
       return
     }
 
     // ── Reordenar columnas ────────────────────────────────────────
     if (!wasTask) {
+      if (active.id === over.id) return
       setColumns((prev) => {
         const activeIndex = prev.findIndex((c) => c.id === active.id)
         const overIndex = prev.findIndex((c) => c.id === over.id)
         if (activeIndex === -1 || overIndex === -1) return prev
         const reordered = arrayMove(prev, activeIndex, overIndex)
-        // Persistir nuevas posiciones
-        const updates = reordered.map((col, i) => ({ id: col.id, position: i, project_id: col.project_id, title: col.title }))
+        const updates = reordered.map((col, i) => ({
+          id: col.id,
+          position: i,
+          project_id: col.project_id,
+          title: col.title,
+        }))
         supabase.from("columns").upsert(updates).then(() => {})
         return reordered.map((col, i) => ({ ...col, position: i }))
       })
@@ -78,26 +84,73 @@ export default function KanbanBoard() {
     }
 
     // ── Persistir movimiento de tarea ─────────────────────────────
+    // dragTargetColumnId was set synchronously in onDragOver from dnd-kit's
+    // live ref. This avoids stale closures and the active.id === over.id
+    // early-return that prevented persistence when the cursor was over
+    // the task's own ghost after arrayMove repositioned it in the new column.
     const taskId = String(active.id)
     const originColumnId = dragOriginColumnId.current
-    const newColumnId = dragTargetColumnId.current ?? originColumnId
+    const newColumnId = dragTargetColumnId.current ?? ""
+
     dragOriginColumnId.current = null
     dragTargetColumnId.current = null
 
-    if (!newColumnId) return
+    if (!newColumnId || !originColumnId) return
 
-    supabase
-      .from("tasks")
-      .update({ column_id: newColumnId })
-      .eq("id", taskId)
-      .then(() => {})
+    // Persistir posiciones (y column_id) para las columnas afectadas.
+    // El functional updater recibe el estado YA actualizado por onDragOver
+    // (columnId correcto + orden por arrayMove), así que prev es la fuente
+    // de verdad del orden final — sin dependencia de closures estables.
+    setTasks((prev) => {
+      const tasksInNewColumn = prev.filter((t) => t.columnId === newColumnId)
+      supabase
+        .from("tasks")
+        .upsert(
+          tasksInNewColumn.map((t, i) => ({
+            id: t.id,
+            position: i,
+            column_id: t.columnId,
+            project_id: t.project_id,
+            content: t.content,
+            priority: t.priority,
+            size: t.size,
+          })),
+        )
+        .then(({ error }) => {
+          if (error) console.error("[kanban] task positions upsert failed:", error)
+        })
+
+      if (originColumnId !== newColumnId) {
+        const tasksInOriginColumn = prev.filter((t) => t.columnId === originColumnId)
+        supabase
+          .from("tasks")
+          .upsert(
+            tasksInOriginColumn.map((t, i) => ({
+              id: t.id,
+              position: i,
+              column_id: t.columnId,
+              project_id: t.project_id,
+              content: t.content,
+              priority: t.priority,
+              size: t.size,
+            })),
+          )
+          .then(({ error }) => {
+            if (error) console.error("[kanban] origin column positions upsert failed:", error)
+          })
+      }
+
+      return prev
+    })
 
     // Registrar en task_history solo si cambió de columna
-    if (originColumnId && originColumnId !== newColumnId) {
+    if (originColumnId !== newColumnId) {
       supabase
         .from("task_history")
         .insert({ task_id: taskId, from_column_id: originColumnId, to_column_id: newColumnId })
-        .then(() => {})
+        .then(({ error }) => {
+          if (error) console.error("[kanban] task_history insert failed:", error)
+        })
     }
   }
 
@@ -111,6 +164,16 @@ export default function KanbanBoard() {
 
     if (!isActiveTask) return
 
+    // Track destination synchronously from dnd-kit's live ref before setTasks runs.
+    // We read the OVER element's data (never the active task's data) so the value
+    // is always stable — only the active task's columnId changes via setTasks.
+    if (isOverTask) {
+      const overTask = over.data.current?.task as { columnId: string } | undefined
+      if (overTask?.columnId) dragTargetColumnId.current = overTask.columnId
+    } else if (isOverColumn) {
+      dragTargetColumnId.current = String(over.id)
+    }
+
     setTasks((prev) => {
       const activeIndex = prev.findIndex((t) => t.id === active.id)
       if (activeIndex === -1) return prev
@@ -119,17 +182,13 @@ export default function KanbanBoard() {
         const overIndex = prev.findIndex((t) => t.id === over.id)
         if (overIndex === -1) return prev
         const updated = [...prev]
-        const targetColumnId = updated[overIndex].columnId
-        updated[activeIndex] = { ...updated[activeIndex], columnId: targetColumnId }
-        dragTargetColumnId.current = targetColumnId
+        updated[activeIndex] = { ...updated[activeIndex], columnId: updated[overIndex].columnId }
         return arrayMove(updated, activeIndex, overIndex)
       }
 
       if (isOverColumn) {
-        const targetColumnId = String(over.id)
         const updated = [...prev]
-        updated[activeIndex] = { ...updated[activeIndex], columnId: targetColumnId }
-        dragTargetColumnId.current = targetColumnId
+        updated[activeIndex] = { ...updated[activeIndex], columnId: String(over.id) }
         return updated
       }
 
@@ -138,7 +197,7 @@ export default function KanbanBoard() {
   }
 
   return (
-    <div className="min-w-max p-4">
+    <div className="min-w-max pt-6 px-4 pb-4">
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragOver={onDragOver}>
         <div className="m-auto flex gap-2">
           <SortableContext items={columnsId}>

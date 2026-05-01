@@ -21,26 +21,26 @@ html, body, #root {
     --orange: hsl(32 97.7% 62.4%);
     --yellow: hsl(50 97.8% 63.5%);
 
-    --background: hsl(201.3 100% 98%);
-    --foreground: hsl(201.3 5% 10%);
-    --card: hsl(201.3 50% 98%);
-    --card-foreground: hsl(201.3 5% 15%);
+    --background: hsl(0 0% 100%);
+    --foreground: hsl(240 4% 10%);
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(240 4% 15%);
     --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(222.2 84% 4.9%);
-    --primary: hsl(201.3 96.3% 32.2%);
+    --popover-foreground: hsl(240 4% 10%);
+    --primary: hsl(224 71% 40%);
     --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(201.3 30% 90%);
-    --secondary-foreground: hsl(0 0% 0%);
-    --muted: hsl(210 40% 96.1%);
-    --muted-foreground: hsl(215.4 16.3% 46.9%);
-    --accent: hsl(210 40% 96.1%);
-    --accent-foreground: hsl(222.2 47.4% 11.2%);
-    --destructive: hsl(0 100% 50%);
-    --destructive-foreground: hsl(201.3 5% 98%);
-    --border: hsl(201.3 30% 82%);
-    --input: hsl(201.3 30% 50%);
-    --ring: hsl(201.3 96.3% 32.2%);
-    --row-selected: hsl(201, 72%, 80%);
+    --secondary: hsl(240 5% 92%);
+    --secondary-foreground: hsl(240 4% 10%);
+    --muted: hsl(240 5% 96%);
+    --muted-foreground: hsl(240 4% 46%);
+    --accent: hsl(240 5% 96%);
+    --accent-foreground: hsl(240 4% 10%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 100%);
+    --border: hsl(240 5% 90%);
+    --input: hsl(240 5% 65%);
+    --ring: hsl(224 71% 40%);
+    --row-selected: hsl(224 71% 90%);
     --radius: 0.5rem;
 
     --vis-tooltip-background-color: none !important;
@@ -137,6 +137,7 @@ html, body, #root {
 
     body {
         @apply bg-background text-foreground;
+        font-family: 'Inter', system-ui, sans-serif;
     }
 
     @media print {
