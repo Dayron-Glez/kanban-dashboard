@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
 import {
   Header,
+  ScrollArea,
   SearchContext,
   Skeleton,
   useSidebar,
@@ -37,12 +38,14 @@ function KanbanContent() {
         ref={!isAnalytics ? scrollContainerRef : undefined}
         className={
           isAnalytics
-            ? `flex-1 overflow-y-auto overflow-x-hidden bg-muted ${state === "collapsed" ? "pl-4" : ""}`
+            ? `flex-1 overflow-hidden bg-muted ${state === "collapsed" ? "pl-4" : ""}`
             : `flex-1 overflow-x-auto overflow-y-hidden flex bg-muted ${state === "collapsed" ? "pl-4" : ""}`
         }
       >
         {isAnalytics ? (
-          <Outlet />
+          <ScrollArea className="h-full">
+            <Outlet />
+          </ScrollArea>
         ) : loading ? (
           <div className="flex gap-3 pt-6 px-4 pb-4">
             {Array.from({ length: 3 }).map((_, i) => (
