@@ -30,7 +30,7 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
 
   return (
     <>
-      <header className="flex items-center justify-between gap-4 border-b px-6 py-4 bg-background border-b-transparent shadow-md">
+      <header className="h-16 shrink-0 flex items-center justify-between gap-4 border-b px-6 bg-background border-b-transparent shadow-md">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-primary" />
           <h1 className="text-xl font-semibold text-primary flex items-center gap-2">

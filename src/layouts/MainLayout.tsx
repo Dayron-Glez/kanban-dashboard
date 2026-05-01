@@ -38,13 +38,13 @@ function KanbanContent() {
         className={
           isAnalytics
             ? `flex-1 overflow-y-auto overflow-x-hidden bg-muted ${state === "collapsed" ? "pl-4" : ""}`
-            : `flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${state === "collapsed" ? "pl-4" : ""} ${!loading && columns.length === 0 ? "justify-center" : ""}`
+            : `flex-1 overflow-x-auto overflow-y-hidden flex bg-muted ${state === "collapsed" ? "pl-4" : ""}`
         }
       >
         {isAnalytics ? (
           <Outlet />
         ) : loading ? (
-          <div className="flex gap-3 p-4">
+          <div className="flex gap-3 pt-6 px-4 pb-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="w-[350px] h-[620px] rounded-lg shrink-0" />
             ))}
@@ -64,7 +64,7 @@ function KanbanContent() {
             )}
           </SearchContext.Provider>
         ) : (
-          <div className="flex flex-col items-center justify-center">
+          <div className="w-full h-full flex flex-col items-center justify-center">
             <img src={noDataSvg} alt="No data" className="size-64 mb-4" />
             <p className="text-primary text-lg">
               No hay columnas creadas. Pulse en el botón{" "}
