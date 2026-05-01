@@ -29,6 +29,7 @@ export default function KanbanBoard() {
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const dragOriginColumnId = useRef<string | null>(null)
+  const dragTargetColumnId = useRef<string | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 3 } }))
 
@@ -77,27 +78,25 @@ export default function KanbanBoard() {
     }
 
     // ── Persistir movimiento de tarea ─────────────────────────────
-    const movedTask = tasks.find((t) => t.id === String(active.id))
+    const taskId = String(active.id)
     const originColumnId = dragOriginColumnId.current
+    const newColumnId = dragTargetColumnId.current ?? originColumnId
     dragOriginColumnId.current = null
+    dragTargetColumnId.current = null
 
-    if (!movedTask) return
+    if (!newColumnId) return
 
-    const newColumnId = movedTask.columnId
-    const newPosition = tasks.filter((t) => t.columnId === newColumnId).findIndex((t) => t.id === movedTask.id)
-
-    // Actualizar columna y posición en tasks
     supabase
       .from("tasks")
-      .update({ column_id: newColumnId, position: newPosition })
-      .eq("id", movedTask.id)
+      .update({ column_id: newColumnId })
+      .eq("id", taskId)
       .then(() => {})
 
     // Registrar en task_history solo si cambió de columna
     if (originColumnId && originColumnId !== newColumnId) {
       supabase
         .from("task_history")
-        .insert({ task_id: movedTask.id, from_column_id: originColumnId, to_column_id: newColumnId })
+        .insert({ task_id: taskId, from_column_id: originColumnId, to_column_id: newColumnId })
         .then(() => {})
     }
   }
@@ -120,13 +119,17 @@ export default function KanbanBoard() {
         const overIndex = prev.findIndex((t) => t.id === over.id)
         if (overIndex === -1) return prev
         const updated = [...prev]
-        updated[activeIndex] = { ...updated[activeIndex], columnId: updated[overIndex].columnId }
+        const targetColumnId = updated[overIndex].columnId
+        updated[activeIndex] = { ...updated[activeIndex], columnId: targetColumnId }
+        dragTargetColumnId.current = targetColumnId
         return arrayMove(updated, activeIndex, overIndex)
       }
 
       if (isOverColumn) {
+        const targetColumnId = String(over.id)
         const updated = [...prev]
-        updated[activeIndex] = { ...updated[activeIndex], columnId: String(over.id) }
+        updated[activeIndex] = { ...updated[activeIndex], columnId: targetColumnId }
+        dragTargetColumnId.current = targetColumnId
         return updated
       }
 
