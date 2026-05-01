@@ -97,13 +97,51 @@ export default function KanbanBoard() {
 
     if (!newColumnId || !originColumnId) return
 
-    supabase
-      .from("tasks")
-      .update({ column_id: newColumnId })
-      .eq("id", taskId)
-      .then(({ error }) => {
-        if (error) console.error("[kanban] task column update failed:", error)
-      })
+    // Persistir posiciones (y column_id) para las columnas afectadas.
+    // El functional updater recibe el estado YA actualizado por onDragOver
+    // (columnId correcto + orden por arrayMove), así que prev es la fuente
+    // de verdad del orden final — sin dependencia de closures estables.
+    setTasks((prev) => {
+      const tasksInNewColumn = prev.filter((t) => t.columnId === newColumnId)
+      supabase
+        .from("tasks")
+        .upsert(
+          tasksInNewColumn.map((t, i) => ({
+            id: t.id,
+            position: i,
+            column_id: t.columnId,
+            project_id: t.project_id,
+            content: t.content,
+            priority: t.priority,
+            size: t.size,
+          })),
+        )
+        .then(({ error }) => {
+          if (error) console.error("[kanban] task positions upsert failed:", error)
+        })
+
+      if (originColumnId !== newColumnId) {
+        const tasksInOriginColumn = prev.filter((t) => t.columnId === originColumnId)
+        supabase
+          .from("tasks")
+          .upsert(
+            tasksInOriginColumn.map((t, i) => ({
+              id: t.id,
+              position: i,
+              column_id: t.columnId,
+              project_id: t.project_id,
+              content: t.content,
+              priority: t.priority,
+              size: t.size,
+            })),
+          )
+          .then(({ error }) => {
+            if (error) console.error("[kanban] origin column positions upsert failed:", error)
+          })
+      }
+
+      return prev
+    })
 
     // Registrar en task_history solo si cambió de columna
     if (originColumnId !== newColumnId) {
