@@ -1,5 +1,5 @@
-import { IconLayoutKanban, IconLogout } from "@tabler/icons-react"
-import { Link, useNavigate, useParams } from "react-router"
+import { IconChartBar, IconLayoutKanban, IconLogout } from "@tabler/icons-react"
+import { Link, useLocation, useNavigate, useParams } from "react-router"
 import {
   SidebarContent,
   SidebarFooter,
@@ -14,10 +14,16 @@ import { Button } from "@/shared"
 import { supabase } from "@/shared/supabase"
 import { useProjectsContext } from "../context/projectsCtx"
 
+const PROJECT_VIEWS = [
+  { label: "Tablero", icon: IconLayoutKanban, path: (id: string) => `/projects/${id}` },
+  { label: "Analytics", icon: IconChartBar, path: (id: string) => `/projects/${id}/analytics` },
+]
+
 export function ProjectSidebarContent() {
   const { open } = useSidebar()
   const { projects } = useProjectsContext()
   const { id: activeId } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -50,30 +56,52 @@ export function ProjectSidebarContent() {
           {open && <SidebarGroupLabel>Proyectos</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {projects.map((project) => (
-                <SidebarMenuItem key={project.id}>
-                  <Link
-                    to={`/projects/${project.id}`}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                      activeId === project.id
-                        ? "bg-muted text-primary font-medium"
-                        : "hover:bg-muted text-muted-foreground hover:text-primary"
-                    } ${open ? "justify-start" : "justify-center"}`}
-                  >
-                    <span
-                      className="h-2.5 w-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: project.color }}
-                    />
-                    {open && (
-                      <span className="truncate text-sm">{project.name}</span>
+              {projects.map((project) => {
+                const isActive = activeId === project.id
+                return (
+                  <SidebarMenuItem key={project.id}>
+                    <Link
+                      to={`/projects/${project.id}`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                        isActive
+                          ? "bg-muted text-primary font-medium"
+                          : "hover:bg-muted text-muted-foreground hover:text-primary"
+                      } ${open ? "justify-start" : "justify-center"}`}
+                    >
+                      <span
+                        className="h-2.5 w-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: project.color }}
+                      />
+                      {open && <span className="truncate text-sm">{project.name}</span>}
+                    </Link>
+
+                    {isActive && open && (
+                      <div className="mt-0.5 flex flex-col gap-0.5">
+                        {PROJECT_VIEWS.map(({ label, icon: Icon, path }) => {
+                          const href = path(project.id)
+                          const isView = location.pathname === href
+                          return (
+                            <Link
+                              key={label}
+                              to={href}
+                              className={`flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-md text-sm transition-colors ${
+                                isView
+                                  ? "text-primary font-medium bg-primary/8"
+                                  : "text-muted-foreground hover:text-primary hover:bg-muted"
+                              }`}
+                            >
+                              <Icon size={14} />
+                              {label}
+                            </Link>
+                          )
+                        })}
+                      </div>
                     )}
-                  </Link>
-                </SidebarMenuItem>
-              ))}
+                  </SidebarMenuItem>
+                )
+              })}
               {projects.length === 0 && open && (
-                <p className="px-3 text-xs text-muted-foreground">
-                  Sin proyectos aún
-                </p>
+                <p className="px-3 text-xs text-muted-foreground">Sin proyectos aún</p>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
