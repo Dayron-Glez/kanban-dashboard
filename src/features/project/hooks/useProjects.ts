@@ -22,7 +22,7 @@ export const useProjects = () => {
         setLoading(false)
       })
     return () => { cancelled = true }
-  }, [user?.id])
+  }, [user])
 
   const createProject = async (values: ProjectFormValues): Promise<Project | null> => {
     if (!user) return null
