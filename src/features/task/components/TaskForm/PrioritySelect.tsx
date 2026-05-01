@@ -41,7 +41,7 @@ export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
             <SelectContent>
               {TASK_PRIORITIES.map((priority) => (
                 <SelectItem key={priority} value={priority}>
-                  {priority}
+                  {priority.toUpperCase()}
                 </SelectItem>
               ))}
             </SelectContent>

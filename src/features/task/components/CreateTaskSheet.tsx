@@ -15,11 +15,11 @@ import { taskValidationSchema } from "../schemas/task.schema";
 import { TaskForm } from "./TaskForm/TaskForm";
 
 interface CreateTaskSheetProps {
-  columnId: string | number;
+  columnId: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSave: (
-    id: string | number,
+    id: string,
     taskData: z.infer<typeof taskValidationSchema>,
   ) => void;
 }
@@ -34,8 +34,8 @@ export function CreateTaskSheet({
     resolver: zodResolver(taskValidationSchema),
     defaultValues: {
       content: "",
-      priority: "P1",
-      size: "M",
+      priority: "p1",
+      size: "m",
     },
   });
 
