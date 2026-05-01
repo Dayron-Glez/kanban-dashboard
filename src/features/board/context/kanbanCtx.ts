@@ -6,6 +6,7 @@ export interface KanbanContextType {
   columns: ColumnType[]
   tasks: Task[]
   columnsId: string[]
+  loading: boolean
   createNewColumn: (title?: string) => void
   updateColumn: (id: string, title: string) => void
   deleteColumn: (id: string) => void

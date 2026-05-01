@@ -1,82 +1,135 @@
-import {
-  useState,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react"
-import { v4 as uuidv4 } from "uuid"
+import { useState, useMemo, useRef, useEffect, type ReactNode } from "react"
+import { useParams } from "react-router"
+import { supabase } from "@/shared/supabase"
 import type { ColumnType, Task, TaskPriority, TaskSize } from "../types/board.types"
 import { KanbanContext } from "./kanbanCtx"
 
 export function KanbanProvider({ children }: { children: ReactNode }) {
+  const { id: projectId } = useParams<{ id: string }>()
+
   const [columns, setColumns] = useState<ColumnType[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
-  const [columnCounter, setColumnCounter] = useState<number>(0)
+  const [loading, setLoading] = useState(true)
 
   const scrollContainerRef = useRef<HTMLElement | null>(null)
+  const columnsId = useMemo(() => columns.map((c) => c.id), [columns])
 
-  const columnsId = useMemo(() => columns.map((column) => column.id), [columns])
-
-  const createNewColumn = (title?: string): void => {
-    const newColumn: ColumnType = {
-      id: uuidv4(),
-      title: title && title.trim() !== "" ? title.trim() : `Columna ${columnCounter + 1}`,
-      project_id: "",
-      position: columns.length,
+  // ── Carga inicial ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!projectId) return
+    const load = async () => {
+      setLoading(true)
+      const [{ data: cols }, { data: tsks }] = await Promise.all([
+        supabase.from("columns").select("*").eq("project_id", projectId).order("position"),
+        supabase.from("tasks").select("*").eq("project_id", projectId).order("position"),
+      ])
+      setColumns(
+        (cols ?? []).map((c) => ({
+          id: c.id,
+          title: c.title,
+          project_id: c.project_id,
+          position: c.position,
+        })),
+      )
+      setTasks(
+        (tsks ?? []).map((t) => ({
+          id: t.id,
+          columnId: t.column_id,
+          content: t.content,
+          priority: t.priority as TaskPriority,
+          size: t.size as TaskSize,
+          project_id: t.project_id,
+          position: t.position,
+        })),
+      )
+      setLoading(false)
     }
-    setColumns((prev) => [...prev, newColumn])
-    setColumnCounter((prev) => prev + 1)
+    load()
+  }, [projectId])
+
+  // ── Columnas ───────────────────────────────────────────────────
+  const createNewColumn = async (title?: string): Promise<void> => {
+    if (!projectId) return
+    const resolvedTitle = title && title.trim() !== "" ? title.trim() : `Columna ${columns.length + 1}`
+    const position = columns.length
+
+    const { data, error } = await supabase
+      .from("columns")
+      .insert({ project_id: projectId, title: resolvedTitle, position })
+      .select()
+      .single()
+
+    if (error || !data) return
+    const newCol: ColumnType = { id: data.id, title: data.title, project_id: data.project_id, position: data.position }
+    setColumns((prev) => [...prev, newCol])
 
     setTimeout(() => {
       if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({
-          left: scrollContainerRef.current.scrollWidth,
-          behavior: "smooth",
-        })
+        scrollContainerRef.current.scrollTo({ left: scrollContainerRef.current.scrollWidth, behavior: "smooth" })
       }
     }, 50)
   }
 
-  const updateColumn = (id: string, title: string): void => {
-    setColumns((prev) => prev.map((col) => (col.id === id ? { ...col, title } : col)))
+  const updateColumn = async (id: string, title: string): Promise<void> => {
+    setColumns((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)))
+    await supabase.from("columns").update({ title }).eq("id", id)
   }
 
-  const deleteColumn = (id: string): void => {
-    setColumns((prev) => prev.filter((column) => column.id !== id))
-    setTasks((prev) => prev.filter((task) => task.columnId !== id))
+  const deleteColumn = async (id: string): Promise<void> => {
+    setColumns((prev) => prev.filter((c) => c.id !== id))
+    setTasks((prev) => prev.filter((t) => t.columnId !== id))
+    await supabase.from("columns").delete().eq("id", id)
   }
 
-  const createNewTask = (
+  // ── Tareas ─────────────────────────────────────────────────────
+  const createNewTask = async (
     columnId: string,
     taskData: { content: string; priority: TaskPriority; size: TaskSize },
-  ): void => {
+  ): Promise<void> => {
+    if (!projectId) return
+    const position = tasks.filter((t) => t.columnId === columnId).length
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert({
+        column_id: columnId,
+        project_id: projectId,
+        content: taskData.content,
+        priority: taskData.priority,
+        size: taskData.size,
+        position,
+      })
+      .select()
+      .single()
+
+    if (error || !data) return
     const newTask: Task = {
-      id: uuidv4(),
-      columnId,
-      content: taskData.content,
-      priority: taskData.priority,
-      size: taskData.size,
-      project_id: "",
-      position: tasks.filter((t) => t.columnId === columnId).length,
+      id: data.id,
+      columnId: data.column_id,
+      content: data.content,
+      priority: data.priority as TaskPriority,
+      size: data.size as TaskSize,
+      project_id: data.project_id,
+      position: data.position,
     }
     setTasks((prev) => [...prev, newTask])
   }
 
-  const updateTask = (
+  const updateTask = async (
     id: string,
     taskData: { content: string; priority: TaskPriority; size: TaskSize },
-  ): void => {
+  ): Promise<void> => {
     setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id
-          ? { ...task, content: taskData.content, priority: taskData.priority, size: taskData.size }
-          : task,
+      prev.map((t) =>
+        t.id === id ? { ...t, content: taskData.content, priority: taskData.priority, size: taskData.size } : t,
       ),
     )
+    await supabase.from("tasks").update({ content: taskData.content, priority: taskData.priority, size: taskData.size }).eq("id", id)
   }
 
-  const deleteTask = (id: string): void => {
-    setTasks((prev) => prev.filter((task) => task.id !== id))
+  const deleteTask = async (id: string): Promise<void> => {
+    setTasks((prev) => prev.filter((t) => t.id !== id))
+    await supabase.from("tasks").delete().eq("id", id)
   }
 
   return (
@@ -85,6 +138,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         columns,
         tasks,
         columnsId,
+        loading,
         createNewColumn,
         updateColumn,
         deleteColumn,
