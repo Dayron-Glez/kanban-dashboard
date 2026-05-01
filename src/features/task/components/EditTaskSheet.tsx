@@ -21,7 +21,7 @@ interface EditTaskSheetProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSave: (
-    id: string | number,
+    id: string,
     taskData: z.infer<typeof taskValidationSchema>,
   ) => void;
 }
@@ -36,8 +36,8 @@ export function EditTaskSheet({
     resolver: zodResolver(taskValidationSchema),
     defaultValues: {
       content: "",
-      priority: "P1",
-      size: "M",
+      priority: "p1",
+      size: "m",
     },
   });
 

@@ -85,7 +85,7 @@ export default function KanbanBoard() {
       }
 
       if (isOverColumn) {
-        prev[activeIndex].columnId = over.id;
+        prev[activeIndex].columnId = String(over.id);
         return [...prev];
       }
 

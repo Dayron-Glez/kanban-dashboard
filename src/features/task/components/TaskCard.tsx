@@ -34,9 +34,9 @@ import { EditTaskSheet } from "./EditTaskSheet";
 
 interface Props {
   task: Task;
-  deleteTask: (id: number | string) => void;
+  deleteTask: (id: string) => void;
   updateTask: (
-    id: string | number,
+    id: string,
     taskData: z.infer<typeof taskValidationSchema>,
   ) => void;
 }
@@ -94,10 +94,10 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
                 {task.content}
               </span>
               <div className="flex gap-2">
-                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded">
+                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded uppercase">
                   {task.priority}
                 </span>
-                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded">
+                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded uppercase">
                   {task.size}
                 </span>
               </div>

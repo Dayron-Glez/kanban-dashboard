@@ -41,7 +41,7 @@ export function SizeSelect({ disabled = false }: SelectSizeProps) {
             <SelectContent>
               {TASK_SIZES.map((size) => (
                 <SelectItem key={size} value={size}>
-                  {size}
+                  {size.toUpperCase()}
                 </SelectItem>
               ))}
             </SelectContent>
