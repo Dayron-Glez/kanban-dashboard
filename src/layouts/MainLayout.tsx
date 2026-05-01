@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Outlet, useParams } from "react-router"
+import { Outlet, useLocation, useParams } from "react-router"
 import {
   Header,
   SearchContext,
@@ -17,6 +17,8 @@ function KanbanContent() {
   const [searchValue, setSearchValue] = useState<string>("")
   const { id } = useParams()
   const { projects } = useProjectsContext()
+  const location = useLocation()
+  const isAnalytics = location.pathname.endsWith("/analytics")
   const projectName = projects.find((p) => p.id === id)?.name
 
   const filteredTasks = tasks.filter((task) => {
@@ -27,14 +29,21 @@ function KanbanContent() {
 
   return (
     <>
-      <Header searchValue={searchValue} onSearchChange={setSearchValue} projectName={projectName} />
+      <Header
+        projectName={projectName}
+        {...(!isAnalytics && { searchValue, onSearchChange: setSearchValue })}
+      />
       <main
-        ref={scrollContainerRef}
-        className={`flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${
-          state === "collapsed" ? "pl-4" : ""
-        } ${!loading && columns.length === 0 ? "justify-center" : ""}`}
+        ref={!isAnalytics ? scrollContainerRef : undefined}
+        className={
+          isAnalytics
+            ? `flex-1 overflow-y-auto overflow-x-hidden bg-muted ${state === "collapsed" ? "pl-4" : ""}`
+            : `flex-1 overflow-x-auto overflow-y-hidden flex items-center bg-muted ${state === "collapsed" ? "pl-4" : ""} ${!loading && columns.length === 0 ? "justify-center" : ""}`
+        }
       >
-        {loading ? (
+        {isAnalytics ? (
+          <Outlet />
+        ) : loading ? (
           <div className="flex gap-3 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="w-[350px] h-[620px] rounded-lg shrink-0" />

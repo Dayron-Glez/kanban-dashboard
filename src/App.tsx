@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import "../tailwind.css"
 import { AuthProvider, AuthGuard, LoginPage, RegisterPage } from "@/features/auth"
 import { ProjectsPage } from "@/features/project"
+import { AnalyticsPage } from "@/features/analytics"
 import AppLayout from "./layouts/AppLayout"
 import KanbanLayout from "./layouts/MainLayout"
 import KanbanBoard from "./features/board/components/KanbanBoard"
@@ -23,6 +24,7 @@ function App() {
               <Route path="/projects" element={<ProjectsPage />} />
               <Route element={<KanbanLayout />}>
                 <Route path="/projects/:id" element={<KanbanBoard />} />
+                <Route path="/projects/:id/analytics" element={<AnalyticsPage />} />
               </Route>
             </Route>
           </Route>
