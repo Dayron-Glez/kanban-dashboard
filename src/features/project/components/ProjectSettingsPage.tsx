@@ -126,7 +126,7 @@ export function ProjectSettingsPage() {
   }
 
   return (
-    <div className="p-6 flex flex-col gap-6 w-full min-h-[calc(100vh-4rem)] justify-center">
+    <div className="p-6 flex flex-col gap-6 w-full min-h-[calc(100vh-4rem)]">
       {/* ── Header ── */}
       <div className="flex items-center gap-3 pb-2">
         <div className="p-2 rounded-lg bg-primary/10">
@@ -139,6 +139,7 @@ export function ProjectSettingsPage() {
       </div>
 
       {/* ── Grid 2×2 ── */}
+      <div className="flex-1 flex items-center">
       <div className="grid grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
 
         {/* ── Col izquierda: Miembros + Renombrar ── */}
@@ -429,6 +430,8 @@ export function ProjectSettingsPage() {
           )}
         </div>
       </div>
+
+      </div>{/* cierre flex-1 wrapper */}
 
       {/* ── AlertDialog eliminar proyecto ── */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
