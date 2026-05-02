@@ -126,7 +126,7 @@ export function ProjectSettingsPage() {
   }
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-4xl w-full">
+    <div className="p-6 flex flex-col gap-6 max-w-4xl w-full mx-auto">
       {/* ── Header ── */}
       <div className="flex items-center gap-3 pb-2">
         <div className="p-2 rounded-lg bg-primary/10">
@@ -134,7 +134,7 @@ export function ProjectSettingsPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-primary leading-tight">Ajustes del proyecto</h1>
-          <p className="text-sm text-muted-foreground">Gestiona los miembros y las invitaciones.</p>
+          <p className="text-sm text-muted-foreground">Gestiona los miembros, invitaciones y configuración general del proyecto.</p>
         </div>
       </div>
 
