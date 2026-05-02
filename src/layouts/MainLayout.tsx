@@ -40,7 +40,7 @@ function KanbanContent() {
         className={
           isScrollablePage
             ? `flex-1 overflow-hidden bg-muted ${state === "collapsed" ? "pl-4" : ""}`
-            : `flex-1 overflow-x-auto overflow-y-hidden flex bg-muted ${state === "collapsed" ? "pl-4" : ""}`
+            : `flex-1 overflow-hidden flex bg-muted ${state === "collapsed" ? "pl-4" : ""}`
         }
       >
         {isScrollablePage ? (
@@ -48,9 +48,9 @@ function KanbanContent() {
             <Outlet />
           </ScrollArea>
         ) : loading ? (
-          <div className="flex gap-3 pt-6 px-4 pb-4">
+          <div className="flex gap-4 h-full p-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="w-[350px] h-[620px] rounded-lg shrink-0" />
+              <Skeleton key={i} className="flex-1 max-h-[calc(100vh-96px)] rounded-[14px] shrink-0" />
             ))}
           </div>
         ) : columns.length > 0 ? (
