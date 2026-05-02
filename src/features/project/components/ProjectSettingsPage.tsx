@@ -197,9 +197,8 @@ export function ProjectSettingsPage() {
 
       {/* ── Grid D1: 3 columnas ── */}
       <div className="grid grid-cols-3 gap-3 items-start">
-
         {/* ── Col 1: Miembros ── */}
-        <Card className="overflow-hidden py-4 gap-4">
+        <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-primary/50">
           <CardHead
             icon={<IconUsers size={15} />}
             title="Miembros"
@@ -209,7 +208,10 @@ export function ProjectSettingsPage() {
             {loading ? (
               <div className="flex flex-col gap-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-12 rounded-lg bg-muted animate-pulse"
+                  />
                 ))}
               </div>
             ) : members.length === 0 ? (
@@ -222,7 +224,7 @@ export function ProjectSettingsPage() {
                 return (
                   <div
                     key={m.id}
-                    className="group flex items-center gap-[10px] py-[9px] border-b border-border last:border-0"
+                    className="group flex items-center gap-2.5 py-[9px] border-b border-border last:border-0"
                   >
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-extrabold"
@@ -252,12 +254,17 @@ export function ProjectSettingsPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>¿Eliminar miembro?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              ¿Eliminar miembro?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
                               <strong>
-                                {m.profiles?.full_name ?? m.profiles?.email ?? "Este miembro"}
+                                {m.profiles?.full_name ??
+                                  m.profiles?.email ??
+                                  "Este miembro"}
                               </strong>{" "}
-                              perderá el acceso al proyecto. Esta acción no se puede deshacer.
+                              perderá el acceso al proyecto. Esta acción no se
+                              puede deshacer.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -282,9 +289,8 @@ export function ProjectSettingsPage() {
         {/* ── Cols 2+3: sub-grid 2×2 (CSS grid iguala alturas por fila) ── */}
         {isOwner && (
           <div className="col-span-2 grid grid-cols-2 gap-3">
-
             {/* Fila 1 — Invitar miembro */}
-            <Card className="overflow-hidden py-4 gap-4">
+            <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-primary/50">
               <CardHead
                 icon={<IconUserPlus size={15} />}
                 title="Invitar miembro"
@@ -301,20 +307,25 @@ export function ProjectSettingsPage() {
                     placeholder="correo@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleInvite(); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleInvite();
+                    }}
                     className="flex-1"
                   />
                   <Button
                     onClick={handleInvite}
                     disabled={inviting || !email.trim()}
-                    className="shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
+                    className="shrink-0 transition-colors"
                   >
                     {inviting ? "Enviando…" : "Invitar"}
                   </Button>
                 </div>
                 {inviteLink && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg border border-border">
-                    <IconLink size={13} className="text-muted-foreground shrink-0" />
+                    <IconLink
+                      size={13}
+                      className="text-muted-foreground shrink-0"
+                    />
                     <span className="flex-1 text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                       {inviteLink}
                     </span>
@@ -322,10 +333,11 @@ export function ProjectSettingsPage() {
                       onClick={() => handleCopy(inviteLink)}
                       className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
                     >
-                      {copiedToken === inviteLink
-                        ? <IconCheck size={13} className="text-emerald-500" />
-                        : <IconCopy size={13} />
-                      }
+                      {copiedToken === inviteLink ? (
+                        <IconCheck size={13} className="text-emerald-500" />
+                      ) : (
+                        <IconCopy size={13} />
+                      )}
                     </button>
                   </div>
                 )}
@@ -333,30 +345,44 @@ export function ProjectSettingsPage() {
             </Card>
 
             {/* Fila 1 — Renombrar proyecto */}
-            <Card className="overflow-hidden py-4 gap-4">
+            <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-yellow/50">
               <CardHead
                 icon={<IconPencil size={14} />}
                 variant="warn"
                 title="Renombrar proyecto"
               />
               <div className="p-4 flex flex-col gap-4">
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                   <Input
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleRename();
+                    }}
                     placeholder="Nombre del proyecto"
                     className="flex-1 min-w-0"
                   />
                   <Button
                     variant={renamed ? "outline" : "default"}
-                    className={`shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow ${
+                    className={`shrink-0 transition-colors ${
                       renamed ? "text-emerald-600 border-emerald-400/60" : ""
                     }`}
                     onClick={handleRename}
-                    disabled={renaming || !newName.trim() || newName.trim() === currentProject?.name}
+                    disabled={
+                      renaming ||
+                      !newName.trim() ||
+                      newName.trim() === currentProject?.name
+                    }
                   >
-                    {renamed ? <><IconCheck size={13} /> Guardado</> : renaming ? "Guardando…" : "Guardar"}
+                    {renamed ? (
+                      <>
+                        <IconCheck size={13} /> Guardado
+                      </>
+                    ) : renaming ? (
+                      "Guardando…"
+                    ) : (
+                      "Guardar"
+                    )}
                   </Button>
                 </div>
                 <p className="text-[11.5px] text-muted-foreground">
@@ -366,16 +392,18 @@ export function ProjectSettingsPage() {
             </Card>
 
             {/* Fila 2 — Invitaciones pendientes */}
-            <Card className="overflow-hidden py-4 gap-4">
+            <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-primary/50">
               <CardHead
                 icon={<IconMail size={15} />}
                 title="Invitaciones pendientes"
                 count={invitations.length}
               />
               {invitations.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center px-4">
-                  No hay invitaciones pendientes.
-                </p>
+                <div className="flex-1 flex items-center justify-center px-4">
+                  <p className="text-sm text-muted-foreground text-center">
+                    No hay invitaciones pendientes.
+                  </p>
+                </div>
               ) : (
                 <div className="px-4">
                   {invitations.map((inv) => {
@@ -391,20 +419,24 @@ export function ProjectSettingsPage() {
                         </span>
                         <span className="text-[11px] text-muted-foreground shrink-0">
                           exp.{" "}
-                          {new Date(inv.expires_at).toLocaleDateString("es-ES", {
-                            day: "numeric",
-                            month: "short",
-                          })}
+                          {new Date(inv.expires_at).toLocaleDateString(
+                            "es-ES",
+                            {
+                              day: "numeric",
+                              month: "short",
+                            },
+                          )}
                         </span>
                         <button
                           onClick={() => handleCopy(link)}
                           className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
                           title="Copiar enlace"
                         >
-                          {isCopied
-                            ? <IconCheck size={13} className="text-emerald-500" />
-                            : <IconCopy size={13} />
-                          }
+                          {isCopied ? (
+                            <IconCheck size={13} className="text-emerald-500" />
+                          ) : (
+                            <IconCopy size={13} />
+                          )}
                         </button>
                         <button
                           onClick={() => cancelInvitation(inv.id)}
@@ -421,21 +453,20 @@ export function ProjectSettingsPage() {
             </Card>
 
             {/* Fila 2 — Zona de peligro */}
-            <Card className="overflow-hidden py-4 gap-4">
+            <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-destructive/50">
               <CardHead
                 icon={<IconShieldX size={15} />}
                 variant="danger"
                 title="Zona de peligro"
               />
               <div className="p-4 flex flex-col gap-4">
-                <p className="text-[12.5px] text-muted-foreground leading-[1.55]">
-                  Elimina permanentemente todas las columnas, tareas, miembros e invitaciones.
-                </p>
-                <div className="flex justify-end">
+                <div className="flex items-center gap-4">
+                  <p className="flex-1 text-[11.5px] text-muted-foreground">
+                    Elimina permanentemente todas las columnas, tareas, miembros
+                    e invitaciones. Esta acción no se puede deshacer.
+                  </p>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/40 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-all"
+                    className="bg-destructive text-white hover:bg-destructive/90 transition-colors"
                     onClick={() => setDeleteDialogOpen(true)}
                   >
                     <IconTrash size={13} />
@@ -444,7 +475,6 @@ export function ProjectSettingsPage() {
                 </div>
               </div>
             </Card>
-
           </div>
         )}
       </div>
