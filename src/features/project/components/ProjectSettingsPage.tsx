@@ -196,9 +196,10 @@ export function ProjectSettingsPage() {
       </div>
 
       {/* ── Grid D1: 3 columnas ── */}
-      <div className="grid grid-cols-3 gap-4 items-start">
-        {/* ──────────────────── Col 1: Miembros ──────────────────── */}
-        <Card className="overflow-hidden gap-4 py-4">
+      <div className="grid grid-cols-3 gap-3 items-start">
+
+        {/* ── Col 1: Miembros ── */}
+        <Card className="overflow-hidden py-4 gap-4">
           <CardHead
             icon={<IconUsers size={15} />}
             title="Miembros"
@@ -206,16 +207,13 @@ export function ProjectSettingsPage() {
           />
           <div className="px-4">
             {loading ? (
-              <div className="flex flex-col gap-4 py-4">
+              <div className="flex flex-col gap-2">
                 {[1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="h-12 rounded-lg bg-muted animate-pulse"
-                  />
+                  <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
                 ))}
               </div>
             ) : members.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
+              <p className="text-sm text-muted-foreground text-center">
                 Sin miembros aún.
               </p>
             ) : (
@@ -224,17 +222,14 @@ export function ProjectSettingsPage() {
                 return (
                   <div
                     key={m.id}
-                    className="group flex items-center gap-2.5 py-[9px] border-b border-border last:border-0"
+                    className="group flex items-center gap-[10px] py-[9px] border-b border-border last:border-0"
                   >
-                    {/* Avatar */}
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-extrabold"
                       style={{ background: av.bg, color: av.txt }}
                     >
                       {getInitials(m.profiles?.full_name)}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[13px] font-semibold text-foreground truncate">
@@ -248,8 +243,6 @@ export function ProjectSettingsPage() {
                         </span>
                       )}
                     </div>
-
-                    {/* Remove */}
                     {isOwner && m.role !== "owner" && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -259,17 +252,12 @@ export function ProjectSettingsPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              ¿Eliminar miembro?
-                            </AlertDialogTitle>
+                            <AlertDialogTitle>¿Eliminar miembro?</AlertDialogTitle>
                             <AlertDialogDescription>
                               <strong>
-                                {m.profiles?.full_name ??
-                                  m.profiles?.email ??
-                                  "Este miembro"}
+                                {m.profiles?.full_name ?? m.profiles?.email ?? "Este miembro"}
                               </strong>{" "}
-                              perderá el acceso al proyecto. Esta acción no se
-                              puede deshacer.
+                              perderá el acceso al proyecto. Esta acción no se puede deshacer.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -291,10 +279,11 @@ export function ProjectSettingsPage() {
           </div>
         </Card>
 
-        {/* ──────────────────── Col 2: Invitar + Pendientes (dos cards) ──────────────────── */}
+        {/* ── Cols 2+3: sub-grid 2×2 (CSS grid iguala alturas por fila) ── */}
         {isOwner && (
-          <div className="flex flex-col gap-4">
-            {/* Card: Invitar miembro */}
+          <div className="col-span-2 grid grid-cols-2 gap-3">
+
+            {/* Fila 1 — Invitar miembro */}
             <Card className="overflow-hidden py-4 gap-4">
               <CardHead
                 icon={<IconUserPlus size={15} />}
@@ -312,9 +301,7 @@ export function ProjectSettingsPage() {
                     placeholder="correo@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleInvite();
-                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleInvite(); }}
                     className="flex-1"
                   />
                   <Button
@@ -325,14 +312,9 @@ export function ProjectSettingsPage() {
                     {inviting ? "Enviando…" : "Invitar"}
                   </Button>
                 </div>
-
-                {/* Enlace generado tras invitar */}
                 {inviteLink && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg border border-border">
-                    <IconLink
-                      size={13}
-                      className="text-muted-foreground shrink-0"
-                    />
+                    <IconLink size={13} className="text-muted-foreground shrink-0" />
                     <span className="flex-1 text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                       {inviteLink}
                     </span>
@@ -340,18 +322,50 @@ export function ProjectSettingsPage() {
                       onClick={() => handleCopy(inviteLink)}
                       className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
                     >
-                      {copiedToken === inviteLink ? (
-                        <IconCheck size={13} className="text-emerald-500" />
-                      ) : (
-                        <IconCopy size={13} />
-                      )}
+                      {copiedToken === inviteLink
+                        ? <IconCheck size={13} className="text-emerald-500" />
+                        : <IconCopy size={13} />
+                      }
                     </button>
                   </div>
                 )}
               </div>
             </Card>
 
-            {/* Card: Invitaciones pendientes (siempre visible) */}
+            {/* Fila 1 — Renombrar proyecto */}
+            <Card className="overflow-hidden py-4 gap-4">
+              <CardHead
+                icon={<IconPencil size={14} />}
+                variant="warn"
+                title="Renombrar proyecto"
+              />
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+                    placeholder="Nombre del proyecto"
+                    className="flex-1 min-w-0"
+                  />
+                  <Button
+                    variant={renamed ? "outline" : "default"}
+                    className={`shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow ${
+                      renamed ? "text-emerald-600 border-emerald-400/60" : ""
+                    }`}
+                    onClick={handleRename}
+                    disabled={renaming || !newName.trim() || newName.trim() === currentProject?.name}
+                  >
+                    {renamed ? <><IconCheck size={13} /> Guardado</> : renaming ? "Guardando…" : "Guardar"}
+                  </Button>
+                </div>
+                <p className="text-[11.5px] text-muted-foreground">
+                  Visible para todos los miembros del proyecto.
+                </p>
+              </div>
+            </Card>
+
+            {/* Fila 2 — Invitaciones pendientes */}
             <Card className="overflow-hidden py-4 gap-4">
               <CardHead
                 icon={<IconMail size={15} />}
@@ -359,11 +373,11 @@ export function ProjectSettingsPage() {
                 count={invitations.length}
               />
               {invitations.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6 px-4">
+                <p className="text-sm text-muted-foreground text-center px-4">
                   No hay invitaciones pendientes.
                 </p>
               ) : (
-                <div className="px-4 py-1">
+                <div className="px-4">
                   {invitations.map((inv) => {
                     const link = `${window.location.origin}/invite/${inv.token}`;
                     const isCopied = copiedToken === link;
@@ -377,24 +391,20 @@ export function ProjectSettingsPage() {
                         </span>
                         <span className="text-[11px] text-muted-foreground shrink-0">
                           exp.{" "}
-                          {new Date(inv.expires_at).toLocaleDateString(
-                            "es-ES",
-                            {
-                              day: "numeric",
-                              month: "short",
-                            },
-                          )}
+                          {new Date(inv.expires_at).toLocaleDateString("es-ES", {
+                            day: "numeric",
+                            month: "short",
+                          })}
                         </span>
                         <button
                           onClick={() => handleCopy(link)}
                           className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
                           title="Copiar enlace"
                         >
-                          {isCopied ? (
-                            <IconCheck size={13} className="text-emerald-500" />
-                          ) : (
-                            <IconCopy size={13} />
-                          )}
+                          {isCopied
+                            ? <IconCheck size={13} className="text-emerald-500" />
+                            : <IconCopy size={13} />
+                          }
                         </button>
                         <button
                           onClick={() => cancelInvitation(inv.id)}
@@ -409,60 +419,8 @@ export function ProjectSettingsPage() {
                 </div>
               )}
             </Card>
-          </div>
-        )}
 
-        {/* ──────────────────── Col 3: Renombrar + Zona de peligro ──────────────────── */}
-        {isOwner && (
-          <div className="flex flex-col gap-4">
-            {/* Renombrar */}
-            <Card className="overflow-hidden py-4 gap-4">
-              <CardHead
-                icon={<IconPencil size={14} />}
-                variant="warn"
-                title="Renombrar proyecto"
-              />
-              <div className="p-4 flex flex-col gap-4">
-                <div className="flex gap-2">
-                  <Input
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleRename();
-                    }}
-                    placeholder="Nombre del proyecto"
-                    className="flex-1 min-w-0"
-                  />
-                  <Button
-                    variant={renamed ? "outline" : "default"}
-                    className={`shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow ${
-                      renamed ? "text-emerald-600 border-emerald-400/60" : ""
-                    }`}
-                    onClick={handleRename}
-                    disabled={
-                      renaming ||
-                      !newName.trim() ||
-                      newName.trim() === currentProject?.name
-                    }
-                  >
-                    {renamed ? (
-                      <>
-                        <IconCheck size={13} /> Guardado
-                      </>
-                    ) : renaming ? (
-                      "Guardando…"
-                    ) : (
-                      "Guardar"
-                    )}
-                  </Button>
-                </div>
-                <p className="text-[11.5px] text-muted-foreground">
-                  Visible para todos los miembros del proyecto.
-                </p>
-              </div>
-            </Card>
-
-            {/* Zona de peligro */}
+            {/* Fila 2 — Zona de peligro */}
             <Card className="overflow-hidden py-4 gap-4">
               <CardHead
                 icon={<IconShieldX size={15} />}
@@ -471,8 +429,7 @@ export function ProjectSettingsPage() {
               />
               <div className="p-4 flex flex-col gap-4">
                 <p className="text-[12.5px] text-muted-foreground leading-[1.55]">
-                  Elimina permanentemente todas las columnas, tareas, miembros e
-                  invitaciones.
+                  Elimina permanentemente todas las columnas, tareas, miembros e invitaciones.
                 </p>
                 <div className="flex justify-end">
                   <Button
@@ -487,6 +444,7 @@ export function ProjectSettingsPage() {
                 </div>
               </div>
             </Card>
+
           </div>
         )}
       </div>
