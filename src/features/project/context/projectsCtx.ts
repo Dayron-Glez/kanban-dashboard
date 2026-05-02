@@ -8,6 +8,7 @@ export interface ProjectsContextValue {
   userRoles: Record<string, MemberRole>
   createProject: (values: ProjectFormValues) => Promise<Project | null>
   deleteProject: (id: string) => Promise<void>
+  renameProject: (id: string, name: string) => Promise<void>
 }
 
 export const ProjectsContext = createContext<ProjectsContextValue | null>(null)
