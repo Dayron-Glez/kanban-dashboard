@@ -13,23 +13,38 @@ export const useProjects = () => {
   useEffect(() => {
     if (!user) return
     let cancelled = false
-    supabase
-      .from("project_members")
-      .select("role, projects!inner(*)")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        if (cancelled) return
-        const rows = (data ?? []) as Array<{ role: MemberRole; projects: Project }>
-        const sorted = rows.sort(
-          (a, b) =>
-            new Date(b.projects.created_at).getTime() - new Date(a.projects.created_at).getTime(),
-        )
-        setProjects(sorted.map((r) => r.projects))
-        const roles: Record<string, MemberRole> = {}
-        for (const r of sorted) roles[r.projects.id] = r.role
-        setUserRoles(roles)
+    const load = async () => {
+      // Paso 1: obtener membresías del usuario
+      const { data: memberRows } = await supabase
+        .from("project_members")
+        .select("project_id, role")
+        .eq("user_id", user.id)
+
+      if (cancelled) return
+
+      if (!memberRows || memberRows.length === 0) {
+        setProjects([])
         setLoading(false)
-      })
+        return
+      }
+
+      // Paso 2: obtener los proyectos por IDs
+      const projectIds = memberRows.map((r) => r.project_id)
+      const { data: projectsData } = await supabase
+        .from("projects")
+        .select("*")
+        .in("id", projectIds)
+        .order("created_at", { ascending: false })
+
+      if (cancelled) return
+
+      setProjects(projectsData ?? [])
+      const roles: Record<string, MemberRole> = {}
+      for (const r of memberRows) roles[r.project_id] = r.role as MemberRole
+      setUserRoles(roles)
+      setLoading(false)
+    }
+    load()
     return () => {
       cancelled = true
     }
