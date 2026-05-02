@@ -90,6 +90,11 @@ export default function InviteAcceptPage() {
       .eq("user_id", user!.id)
 
     if (existingRows && existingRows.length > 0) {
+      // Ya es miembro — limpiar la invitación si aún quedó pendiente
+      await supabase
+        .from("project_invitations")
+        .update({ status: "accepted" })
+        .eq("id", invitationId)
       setState("already-member")
       setTimeout(() => navigate(`/projects/${projectId}`), 1500)
       return
@@ -110,6 +115,11 @@ export default function InviteAcceptPage() {
     if (memberError || inviteError) {
       // 23505 = unique_violation: el usuario ya es miembro (intento duplicado)
       if (memberError?.code === "23505") {
+        // Ya es miembro — limpiar la invitación si aún quedó pendiente
+        await supabase
+          .from("project_invitations")
+          .update({ status: "accepted" })
+          .eq("id", invitationId)
         setState("already-member")
         setTimeout(() => navigate(`/projects/${projectId}`), 1500)
         return
