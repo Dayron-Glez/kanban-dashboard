@@ -132,16 +132,16 @@ export function ProjectSettingsPage() {
     removeMember,
   } = useProjectMembers(projectId ?? "");
 
-  const [email, setEmail] = useState("");
-  const [inviting, setInviting] = useState(false);
+  const [email, setEmail] = useState<string>("");
+  const [inviting, setInviting] = useState<boolean>(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [newName, setNewName] = useState(currentProject?.name ?? "");
-  const [renaming, setRenaming] = useState(false);
-  const [renamed, setRenamed] = useState(false);
+  const [renaming, setRenaming] = useState<boolean>(false);
+  const [renamed, setRenamed] = useState<boolean>(false);
 
-  const handleInvite = async () => {
+  const handleInvite = async (): Promise<void> => {
     if (!email.trim()) return;
     setInviting(true);
     const result = await inviteMember(email.trim());
@@ -152,19 +152,19 @@ export function ProjectSettingsPage() {
     }
   };
 
-  const handleCopy = (link: string) => {
+  const handleCopy = (link: string): void => {
     navigator.clipboard.writeText(link);
     setCopiedToken(link);
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
-  const handleDeleteProject = async () => {
+  const handleDeleteProject = async (): Promise<void> => {
     if (!projectId) return;
     await deleteProject(projectId);
     navigate("/projects");
   };
 
-  const handleRename = async () => {
+  const handleRename = async (): Promise<void> => {
     if (
       !projectId ||
       !newName.trim() ||
