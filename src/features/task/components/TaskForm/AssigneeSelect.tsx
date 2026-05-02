@@ -50,10 +50,19 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
               {members.map((m) => (
                 <SelectItem key={m.user_id} value={m.user_id}>
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-semibold shrink-0">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold shrink-0">
                       {getInitials(m.profiles?.full_name)}
                     </span>
-                    <span>{m.profiles?.full_name ?? m.user_id.slice(0, 8)}</span>
+                    <div className="flex flex-col gap-0">
+                      <span className="text-sm leading-tight">
+                        {m.profiles?.full_name ?? m.user_id.slice(0, 8)}
+                      </span>
+                      {m.profiles?.email && (
+                        <span className="text-[10px] text-muted-foreground leading-tight">
+                          {m.profiles.email}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </SelectItem>
               ))}
