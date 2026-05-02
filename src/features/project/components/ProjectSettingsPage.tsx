@@ -11,6 +11,15 @@ import {
   IconUsers,
 } from "@tabler/icons-react"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Button,
   Card,
   CardContent,
@@ -146,15 +155,36 @@ export function ProjectSettingsPage() {
                     )}
                   </div>
                   {isOwner && m.role !== "owner" && (
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="hover:text-destructive hover:bg-destructive/10 shrink-0"
-                      onClick={() => removeMember(m.id)}
-                      title="Eliminar miembro"
-                    >
-                      <IconUserMinus size={16} />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="hover:text-destructive hover:bg-destructive/10 shrink-0"
+                          title="Eliminar miembro"
+                        >
+                          <IconUserMinus size={16} />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar miembro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            <strong>{m.profiles?.full_name ?? m.profiles?.email ?? "Este miembro"}</strong>{" "}
+                            perderá el acceso al proyecto. Esta acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => removeMember(m.id)}
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                 </div>
               ))}
