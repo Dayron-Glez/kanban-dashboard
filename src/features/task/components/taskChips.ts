@@ -1,9 +1,9 @@
 import type { TaskPriority, TaskSize } from "@/features/board/types/board.types"
 
-export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; className: string }> = {
-  p0: { label: "P0", className: "bg-red-100 text-red-600" },
-  p1: { label: "P1", className: "bg-orange-100 text-orange-600" },
-  p2: { label: "P2", className: "bg-blue-100 text-blue-600" },
+export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; className: string; borderClassName: string }> = {
+  p0: { label: "P0", className: "bg-red-100 text-red-600",    borderClassName: "border-red-300" },
+  p1: { label: "P1", className: "bg-orange-100 text-orange-600", borderClassName: "border-orange-300" },
+  p2: { label: "P2", className: "bg-blue-100 text-blue-600",  borderClassName: "border-blue-300" },
 }
 
 export const SIZE_CONFIG: Record<TaskSize, { label: string; className: string }> = {
