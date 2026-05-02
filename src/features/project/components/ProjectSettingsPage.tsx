@@ -255,80 +255,81 @@ export function ProjectSettingsPage() {
           </div>
         </Card>
 
-        {/* ──────────────────── Col 2: Invitar + Pendientes (una card) ──────────────────── */}
+        {/* ──────────────────── Col 2: Invitar + Pendientes (dos cards) ──────────────────── */}
         {isOwner && (
-          <Card className="overflow-hidden">
-            <CardHead
-              icon={<IconUserPlus size={15} />}
-              title="Invitar miembro"
-              note="Válido 7 días"
-            />
+          <div className="flex flex-col gap-3">
 
-            {/* Invite form */}
-            <div className="p-4 flex flex-col gap-4">
-              <div className="flex gap-2">
-                <Label htmlFor="invite-email" className="sr-only">
-                  Correo electrónico
-                </Label>
-                <Input
-                  id="invite-email"
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleInvite}
-                  disabled={inviting || !email.trim()}
-                  className="shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
-                >
-                  {inviting ? "Enviando…" : "Invitar"}
-                </Button>
-              </div>
-
-              {/* Invite link bar */}
-              {inviteLink && (
-                <div className="flex items-center gap-2 px-[10px] py-[7px] bg-muted rounded-lg border border-border">
-                  <IconLink size={13} className="text-muted-foreground shrink-0" />
-                  <span className="flex-1 text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
-                    {inviteLink}
-                  </span>
-                  <button
-                    onClick={() => handleCopy(inviteLink)}
-                    className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
+            {/* Card: Invitar miembro */}
+            <Card className="overflow-hidden">
+              <CardHead
+                icon={<IconUserPlus size={15} />}
+                title="Invitar miembro"
+                note="Válido 7 días"
+              />
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Label htmlFor="invite-email" className="sr-only">
+                    Correo electrónico
+                  </Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleInvite}
+                    disabled={inviting || !email.trim()}
+                    className="shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
                   >
-                    {copiedToken === inviteLink
-                      ? <IconCheck size={13} className="text-emerald-500" />
-                      : <IconCopy size={13} />
-                    }
-                  </button>
+                    {inviting ? "Enviando…" : "Invitar"}
+                  </Button>
                 </div>
-              )}
-            </div>
 
-            {/* Pending invitations section */}
-            {invitations.length > 0 && (
-              <>
-                <div className="h-px bg-border" />
-                <div className="px-4 pt-3 pb-1 flex items-center gap-2">
-                  <IconMail size={14} className="text-muted-foreground" />
-                  <span className="text-[12px] font-bold text-muted-foreground flex-1">
-                    Invitaciones pendientes
-                  </span>
-                  <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                    {invitations.length}
-                  </span>
-                </div>
-                <div className="px-4 pb-3">
+                {/* Enlace generado tras invitar */}
+                {inviteLink && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg border border-border">
+                    <IconLink size={13} className="text-muted-foreground shrink-0" />
+                    <span className="flex-1 text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                      {inviteLink}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(inviteLink)}
+                      className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
+                    >
+                      {copiedToken === inviteLink
+                        ? <IconCheck size={13} className="text-emerald-500" />
+                        : <IconCopy size={13} />
+                      }
+                    </button>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Card: Invitaciones pendientes (siempre visible) */}
+            <Card className="overflow-hidden">
+              <CardHead
+                icon={<IconMail size={15} />}
+                title="Invitaciones pendientes"
+                count={invitations.length}
+              />
+              {invitations.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6 px-4">
+                  No hay invitaciones pendientes.
+                </p>
+              ) : (
+                <div className="px-4 py-1">
                   {invitations.map((inv) => {
                     const link = `${window.location.origin}/invite/${inv.token}`
                     const isCopied = copiedToken === link
                     return (
                       <div
                         key={inv.id}
-                        className="flex items-center gap-[9px] py-[7px] border-b border-border last:border-0"
+                        className="flex items-center gap-2 py-3 border-b border-border last:border-0"
                       >
                         <span className="text-[12.5px] flex-1 text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {inv.email}
@@ -361,9 +362,10 @@ export function ProjectSettingsPage() {
                     )
                   })}
                 </div>
-              </>
-            )}
-          </Card>
+              )}
+            </Card>
+
+          </div>
         )}
 
         {/* ──────────────────── Col 3: Renombrar + Zona de peligro ──────────────────── */}
