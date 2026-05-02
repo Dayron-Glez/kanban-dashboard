@@ -126,7 +126,7 @@ export function ProjectSettingsPage() {
   }
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-4xl w-full mx-auto">
+    <div className="p-6 flex flex-col gap-6 w-full">
       {/* ── Header ── */}
       <div className="flex items-center gap-3 pb-2">
         <div className="p-2 rounded-lg bg-primary/10">
@@ -139,7 +139,7 @@ export function ProjectSettingsPage() {
       </div>
 
       {/* ── Grid 2×2 ── */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
 
         {/* ── Col izquierda: Miembros + Renombrar ── */}
         <div className="flex flex-col gap-6">
