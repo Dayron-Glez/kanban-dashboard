@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import "../tailwind.css"
 import { AuthProvider, AuthGuard, LoginPage, RegisterPage } from "@/features/auth"
-import { ProjectsPage } from "@/features/project"
+import { ProjectsPage, ProjectSettingsPage } from "@/features/project"
 import { AnalyticsPage } from "@/features/analytics"
 import { InviteAcceptPage } from "@/features/invite"
 import AppLayout from "./layouts/AppLayout"
@@ -27,6 +27,7 @@ function App() {
               <Route element={<KanbanLayout />}>
                 <Route path="/projects/:id" element={<KanbanBoard />} />
                 <Route path="/projects/:id/analytics" element={<AnalyticsPage />} />
+                <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
               </Route>
             </Route>
           </Route>
