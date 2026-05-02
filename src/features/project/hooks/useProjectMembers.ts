@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/shared/supabase"
 import type { ProjectInvitation, ProjectMember, MemberRole } from "@/shared/supabase"
 
@@ -6,6 +6,9 @@ export const useProjectMembers = (projectId: string) => {
   const [members, setMembers] = useState<ProjectMember[]>([])
   const [invitations, setInvitations] = useState<ProjectInvitation[]>([])
   const [loading, setLoading] = useState(true)
+  const [tick, setTick] = useState(0)
+
+  const reload = useCallback(() => setTick((t) => t + 1), [])
 
   useEffect(() => {
     if (!projectId) return
@@ -53,7 +56,7 @@ export const useProjectMembers = (projectId: string) => {
     return () => {
       cancelled = true
     }
-  }, [projectId])
+  }, [projectId, tick])
 
   const inviteMember = async (email: string): Promise<{ token: string } | null> => {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -78,5 +81,5 @@ export const useProjectMembers = (projectId: string) => {
     setMembers((prev) => prev.filter((m) => m.id !== memberId))
   }
 
-  return { members, invitations, loading, inviteMember, cancelInvitation, removeMember }
+  return { members, invitations, loading, inviteMember, cancelInvitation, removeMember, reload }
 }

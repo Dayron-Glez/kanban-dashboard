@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { IconCopy, IconCheck, IconUserMinus, IconX } from "@tabler/icons-react"
 import {
   Button,
@@ -39,8 +39,12 @@ export function ProjectSettingsSheet({
   const { userRoles } = useProjectsContext()
   const isOwner = userRoles[projectId] === "owner"
 
-  const { members, invitations, loading, inviteMember, cancelInvitation, removeMember } =
+  const { members, invitations, loading, inviteMember, cancelInvitation, removeMember, reload } =
     useProjectMembers(projectId)
+
+  useEffect(() => {
+    if (open) reload()
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [email, setEmail] = useState("")
   const [inviting, setInviting] = useState(false)
