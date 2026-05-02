@@ -255,11 +255,11 @@ export function ProjectSettingsPage() {
           </div>
         </Card>
 
-        {/* ──────────────────── Col 2: Invitar + Pendientes (dos cards) ──────────────────── */}
+        {/* ──── Cols 2+3: sub-grid 2×2 (filas igualadas por CSS grid) ──── */}
         {isOwner && (
-          <div className="flex flex-col gap-3">
+          <div className="col-span-2 grid grid-cols-2 gap-3">
 
-            {/* Card: Invitar miembro */}
+            {/* Fila 1, col A: Invitar miembro */}
             <Card className="overflow-hidden">
               <CardHead
                 icon={<IconUserPlus size={15} />}
@@ -310,7 +310,42 @@ export function ProjectSettingsPage() {
               </div>
             </Card>
 
-            {/* Card: Invitaciones pendientes (siempre visible) */}
+            {/* Fila 1, col B: Renombrar proyecto */}
+            <Card className="overflow-hidden">
+              <CardHead
+                icon={<IconPencil size={14} />}
+                variant="warn"
+                title="Renombrar proyecto"
+              />
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRename() }}
+                    placeholder="Nombre del proyecto"
+                    className="flex-1 min-w-0"
+                  />
+                  <Button
+                    variant={renamed ? "outline" : "default"}
+                    className={`shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow ${
+                      renamed ? "text-emerald-600 border-emerald-400/60" : ""
+                    }`}
+                    onClick={handleRename}
+                    disabled={renaming || !newName.trim() || newName.trim() === currentProject?.name}
+                  >
+                    {renamed ? (
+                      <><IconCheck size={13} /> Guardado</>
+                    ) : renaming ? "Guardando…" : "Guardar"}
+                  </Button>
+                </div>
+                <p className="text-[11.5px] text-muted-foreground">
+                  Visible para todos los miembros del proyecto.
+                </p>
+              </div>
+            </Card>
+
+            {/* Fila 2, col A: Invitaciones pendientes (siempre visible) */}
             <Card className="overflow-hidden">
               <CardHead
                 icon={<IconMail size={15} />}
@@ -365,49 +400,7 @@ export function ProjectSettingsPage() {
               )}
             </Card>
 
-          </div>
-        )}
-
-        {/* ──────────────────── Col 3: Renombrar + Zona de peligro ──────────────────── */}
-        {isOwner && (
-          <div className="flex flex-col gap-3">
-
-            {/* Renombrar */}
-            <Card className="overflow-hidden">
-              <CardHead
-                icon={<IconPencil size={14} />}
-                variant="warn"
-                title="Renombrar proyecto"
-              />
-              <div className="p-4 flex flex-col gap-4">
-                <div className="flex gap-2">
-                  <Input
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleRename() }}
-                    placeholder="Nombre del proyecto"
-                    className="flex-1 min-w-0"
-                  />
-                  <Button
-                    variant={renamed ? "outline" : "default"}
-                    className={`shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow ${
-                      renamed ? "text-emerald-600 border-emerald-400/60" : ""
-                    }`}
-                    onClick={handleRename}
-                    disabled={renaming || !newName.trim() || newName.trim() === currentProject?.name}
-                  >
-                    {renamed ? (
-                      <><IconCheck size={13} /> Guardado</>
-                    ) : renaming ? "Guardando…" : "Guardar"}
-                  </Button>
-                </div>
-                <p className="text-[11.5px] text-muted-foreground">
-                  Visible para todos los miembros del proyecto.
-                </p>
-              </div>
-            </Card>
-
-            {/* Zona de peligro */}
+            {/* Fila 2, col B: Zona de peligro */}
             <Card className="overflow-hidden">
               <CardHead
                 icon={<IconShieldX size={15} />}
