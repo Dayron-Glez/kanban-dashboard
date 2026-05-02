@@ -65,7 +65,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className={`border border-dashed ${priority.borderClassName} rounded-lg min-h-[72px] bg-muted/50 my-2 opacity-60`}
+        className={`border border-l-4 border-dashed ${priority.borderClassName} rounded-lg min-h-[72px] bg-muted/30 my-2 opacity-60`}
       />
     );
   }
@@ -77,7 +77,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className={`bg-card border ${priority.borderClassName} rounded-lg shadow-sm hover:shadow-md transition-all cursor-grab my-2 p-3 flex flex-col gap-2`}
+        className={`border border-l-4 ${priority.borderClassName} ${priority.bgClassName} rounded-lg shadow-sm hover:shadow-md transition-all cursor-grab my-2 p-3 flex flex-col gap-2`}
       >
         {/* Fila superior: título + menú */}
         <div className="flex items-start gap-2">
