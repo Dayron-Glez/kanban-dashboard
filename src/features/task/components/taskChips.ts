@@ -7,20 +7,20 @@ export const PRIORITY_CONFIG: Record<
   p0: {
     label: "P0",
     className: "bg-red-100 text-red-600",
-    borderClassName: "border-red-200 border-l-red-400",
-    bgClassName: "bg-red-50/60",
+    borderClassName: "border-red-200 border-l-red-400 dark:border-red-900 dark:border-l-red-600",
+    bgClassName: "bg-red-50/60 dark:bg-red-950/40",
   },
   p1: {
     label: "P1",
     className: "bg-orange-100 text-orange-600",
-    borderClassName: "border-orange-200 border-l-orange-400",
-    bgClassName: "bg-orange-50/60",
+    borderClassName: "border-orange-200 border-l-orange-400 dark:border-orange-900 dark:border-l-orange-600",
+    bgClassName: "bg-orange-50/60 dark:bg-orange-950/40",
   },
   p2: {
     label: "P2",
     className: "bg-blue-100 text-blue-600",
-    borderClassName: "border-blue-200 border-l-blue-400",
-    bgClassName: "bg-blue-50/50",
+    borderClassName: "border-blue-200 border-l-blue-400 dark:border-blue-900 dark:border-l-blue-600",
+    bgClassName: "bg-blue-50/50 dark:bg-blue-950/40",
   },
 }
 

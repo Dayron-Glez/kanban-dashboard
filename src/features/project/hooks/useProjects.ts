@@ -86,5 +86,10 @@ export const useProjects = () => {
     })
   }
 
-  return { projects, loading, createProject, deleteProject, userRoles }
+  const renameProject = async (id: string, name: string) => {
+    const { error } = await supabase.from("projects").update({ name }).eq("id", id)
+    if (!error) setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)))
+  }
+
+  return { projects, loading, createProject, deleteProject, renameProject, userRoles }
 }

@@ -18,5 +18,6 @@ export * from "./components/ui/skeleton";
 export * from "./components/ui/textarea";
 export * from "./components/ui/tooltip";
 export * from "./context/SearchContext";
+export * from "./context/ThemeContext";
 export * from "./hooks/use-mobile";
 export * from "./lib/utils";
