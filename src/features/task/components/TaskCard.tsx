@@ -2,7 +2,6 @@ import { useState } from "react";
 import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type z from "zod";
 
 import {
   AlertDialog,
@@ -28,17 +27,24 @@ import {
   CardTitle,
 } from "@/shared/index";
 import { type Task } from "@/features/board/index";
-import { taskValidationSchema } from "../schemas/task.schema";
+import { type TaskFormValues } from "../schemas/task.schema";
 import { DetailsTaskSheet } from "./DetailsTaskSheet";
 import { EditTaskSheet } from "./EditTaskSheet";
+
+const getInitials = (name: string | null | undefined): string => {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
 
 interface Props {
   task: Task;
   deleteTask: (id: string) => void;
-  updateTask: (
-    id: string,
-    taskData: z.infer<typeof taskValidationSchema>,
-  ) => void;
+  updateTask: (id: string, taskData: TaskFormValues) => void;
 }
 
 export function TaskCard({ task, deleteTask, updateTask }: Props) {
@@ -85,7 +91,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className="bg-sky/10 h-24 min-h-24 justify-center hover:border-sky cursor-grab text-md rounded-lg font-bold p-2 my-2"
+        className="bg-sky/10 min-h-24 justify-center hover:border-sky cursor-grab text-md rounded-lg font-bold p-2 my-2"
       >
         <CardHeader className="p-0 flex">
           <CardTitle className="flex items-center justify-between w-full">
@@ -93,7 +99,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
               <span className="max-w-56 line-clamp-3 text-ellipsis block mb-2">
                 {task.content}
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded uppercase">
                   {task.priority}
                 </span>
@@ -101,8 +107,18 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
                   {task.size}
                 </span>
               </div>
+              {task.assigneeProfile && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div className="h-5 w-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-semibold shrink-0">
+                    {getInitials(task.assigneeProfile.full_name)}
+                  </div>
+                  <span className="text-xs text-muted-foreground truncate max-w-[140px]">
+                    {task.assigneeProfile.full_name ?? "Sin nombre"}
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="flex">
+            <div className="flex self-start">
               <DropdownMenu modal={false}>
                 <TooltipProvider>
                   <Tooltip>

@@ -3,6 +3,7 @@ import "../tailwind.css"
 import { AuthProvider, AuthGuard, LoginPage, RegisterPage } from "@/features/auth"
 import { ProjectsPage } from "@/features/project"
 import { AnalyticsPage } from "@/features/analytics"
+import { InviteAcceptPage } from "@/features/invite"
 import AppLayout from "./layouts/AppLayout"
 import KanbanLayout from "./layouts/MainLayout"
 import KanbanBoard from "./features/board/components/KanbanBoard"
@@ -17,6 +18,7 @@ function App() {
           {/* Públicas */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
           {/* Privadas */}
           <Route element={<AuthGuard />}>

@@ -1,4 +1,5 @@
-import { IconChartBar, IconLayoutKanban, IconLogout } from "@tabler/icons-react"
+import { useState } from "react"
+import { IconChartBar, IconLayoutKanban, IconLogout, IconSettings } from "@tabler/icons-react"
 import { Link, useLocation, useNavigate, useParams } from "react-router"
 import {
   SidebarContent,
@@ -13,6 +14,7 @@ import {
 import { Button } from "@/shared"
 import { supabase } from "@/shared/supabase"
 import { useProjectsContext } from "../context/projectsCtx"
+import { ProjectSettingsSheet } from "./ProjectSettingsSheet"
 
 const PROJECT_VIEWS = [
   { label: "Tablero", icon: IconLayoutKanban, path: (id: string) => `/projects/${id}` },
@@ -25,6 +27,7 @@ export function ProjectSidebarContent() {
   const { id: activeId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -95,6 +98,14 @@ export function ProjectSidebarContent() {
                             </Link>
                           )
                         })}
+                        {/* Ajustes — abre Sheet, no navega */}
+                        <button
+                          onClick={() => setSettingsOpen(true)}
+                          className="flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-md text-sm transition-colors text-muted-foreground hover:text-primary hover:bg-muted w-full text-left"
+                        >
+                          <IconSettings size={14} />
+                          Ajustes
+                        </button>
                       </div>
                     )}
                   </SidebarMenuItem>
@@ -131,6 +142,15 @@ export function ProjectSidebarContent() {
           )}
         </div>
       </SidebarFooter>
+
+      {/* Settings Sheet — solo se monta si hay proyecto activo */}
+      {activeId && (
+        <ProjectSettingsSheet
+          projectId={activeId}
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+        />
+      )}
     </>
   )
 }

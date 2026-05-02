@@ -1,10 +1,11 @@
 import { createContext, useContext } from "react"
+import type { MemberRole, Project } from "@/shared/supabase"
 import type { ProjectFormValues } from "../schemas/project.schema"
-import type { Project } from "@/shared/supabase"
 
 export interface ProjectsContextValue {
   projects: Project[]
   loading: boolean
+  userRoles: Record<string, MemberRole>
   createProject: (values: ProjectFormValues) => Promise<Project | null>
   deleteProject: (id: string) => Promise<void>
 }

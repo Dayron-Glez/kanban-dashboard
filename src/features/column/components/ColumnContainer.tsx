@@ -39,8 +39,10 @@ export function ColumnContainer({
   tasks,
   hasFilteredTasks = false,
 }: Props) {
-  const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask } =
+  const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask, userRole } =
     useKanban();
+
+  const isOwner = userRole === "owner";
 
   const searchContext = useContext(SearchContext);
   const searchValue = searchContext?.searchValue ?? "";
@@ -109,20 +111,25 @@ export function ColumnContainer({
             {tasks.length}
           </Button>
 
-          {/* Título editable */}
+          {/* Título: editable solo para owner */}
           {!editMode && (
             <span
               onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
+                if (!isOwner) return;
                 e.stopPropagation();
                 setEditMode(true);
               }}
-              className="truncate font-bold text-foreground flex-1 cursor-pointer hover:text-primary transition-colors px-2"
+              className={`truncate font-bold text-foreground flex-1 px-2 transition-colors ${
+                isOwner
+                  ? "cursor-pointer hover:text-primary"
+                  : "cursor-default"
+              }`}
             >
               {column.title}
             </span>
           )}
 
-          {editMode && (
+          {editMode && isOwner && (
             <EditableColumnTitle
               title={column.title}
               onSave={(newTitle) => {
@@ -133,57 +140,59 @@ export function ColumnContainer({
             />
           )}
 
-          {/* Botón eliminar columna */}
-          <AlertDialog>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      onClick={(e: React.MouseEvent<HTMLButtonElement>) =>
-                        e.stopPropagation()
-                      }
-                      variant="ghost"
-                      size="icon-lg"
-                      className="hover:bg-destructive/10 hover:text-destructive transition-colors"
-                      disabled={
-                        tasks.length > 0 || searchValue.trim().length > 0
-                      }
-                    >
-                      {tasks.length > 0 || searchValue.trim().length > 0 ? (
-                        <IconTrashOff />
-                      ) : (
-                        <IconTrash />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Eliminar Columna</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          {/* Botón eliminar columna: solo visible para owner */}
+          {isOwner && (
+            <AlertDialog>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) =>
+                          e.stopPropagation()
+                        }
+                        variant="ghost"
+                        size="icon-lg"
+                        className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        disabled={
+                          tasks.length > 0 || searchValue.trim().length > 0
+                        }
+                      >
+                        {tasks.length > 0 || searchValue.trim().length > 0 ? (
+                          <IconTrashOff />
+                        ) : (
+                          <IconTrash />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Eliminar Columna</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-            <AlertDialogContent>
-              <AlertDialogTitle>¿ Eliminar Columna ?</AlertDialogTitle>
-              <AlertDialogHeader>
-                <AlertDialogDescription>
-                  Esta acción no se puede deshacer. La columna y todas sus
-                  tareas serán eliminadas permanentemente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
+              <AlertDialogContent>
+                <AlertDialogTitle>¿ Eliminar Columna ?</AlertDialogTitle>
+                <AlertDialogHeader>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. La columna y todas sus
+                    tareas serán eliminadas permanentemente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
 
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/60"
-                  onClick={() => deleteColumn(column.id)}
-                >
-                  Eliminar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/60"
+                    onClick={() => deleteColumn(column.id)}
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </CardHeader>
 
         {/* Área de tareas con scroll */}

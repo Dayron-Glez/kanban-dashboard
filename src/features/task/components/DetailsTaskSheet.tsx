@@ -25,6 +25,7 @@ export function DetailsTaskSheet({
       content: task.content,
       priority: task.priority,
       size: task.size,
+      assignee_id: task.assignee_id,
     },
   });
 

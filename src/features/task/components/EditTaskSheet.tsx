@@ -1,6 +1,6 @@
+import { useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Button,
   Sheet,
@@ -12,18 +12,14 @@ import {
   SheetTitle,
 } from "@/shared/index";
 import { type Task } from "@/features/board/index";
-import { taskValidationSchema } from "../schemas/task.schema";
+import { taskValidationSchema, type TaskFormValues } from "../schemas/task.schema";
 import { TaskForm } from "./TaskForm/TaskForm";
-import { useEffect } from "react";
 
 interface EditTaskSheetProps {
   task: Task | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSave: (
-    id: string,
-    taskData: z.infer<typeof taskValidationSchema>,
-  ) => void;
+  onSave: (id: string, taskData: TaskFormValues) => void;
 }
 
 export function EditTaskSheet({
@@ -32,12 +28,13 @@ export function EditTaskSheet({
   onOpenChange,
   onSave,
 }: EditTaskSheetProps) {
-  const form = useForm<z.infer<typeof taskValidationSchema>>({
+  const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskValidationSchema),
     defaultValues: {
       content: "",
       priority: "p1",
       size: "m",
+      assignee_id: null,
     },
   });
 
@@ -47,6 +44,7 @@ export function EditTaskSheet({
         content: task.content,
         priority: task.priority,
         size: task.size,
+        assignee_id: task.assignee_id,
       });
     }
   }, [task, open, form]);
@@ -58,13 +56,13 @@ export function EditTaskSheet({
         content: task.content,
         priority: task.priority,
         size: task.size,
+        assignee_id: task.assignee_id,
       });
     }
   };
 
   const handleSave = async (): Promise<void> => {
     const isValid = await form.trigger();
-
     if (isValid && task) {
       const data = form.getValues();
       onSave(task.id, data);
