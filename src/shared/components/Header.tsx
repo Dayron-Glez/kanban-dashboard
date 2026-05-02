@@ -80,7 +80,7 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
               {isOwner && (
                 <Button
                   onClick={() => setCreateColumnDialogOpen(true)}
-                  className="text-black group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
+                  className="group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
                   variant="outline"
                   disabled={columns.length >= 6}
                 >
