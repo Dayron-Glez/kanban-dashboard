@@ -10,16 +10,14 @@ import {
   SelectValue,
 } from "@/shared/index";
 import { TASK_SIZES } from "@/features/board/types/board.types";
+import { SIZE_CONFIG } from "../taskChips";
 
 interface SelectSizeProps {
   disabled?: boolean;
 }
 
 export function SizeSelect({ disabled = false }: SelectSizeProps) {
-  const {
-    control,
-    formState: { errors },
-  } = useFormContext();
+  const { control, formState: { errors } } = useFormContext();
 
   return (
     <Controller
@@ -27,23 +25,24 @@ export function SizeSelect({ disabled = false }: SelectSizeProps) {
       control={control}
       render={({ field }) => (
         <Field data-invalid={!!errors.size}>
-          <FieldLabel htmlFor="size" className=" text-primary">
+          <FieldLabel htmlFor="size" className="text-primary">
             Tamaño
           </FieldLabel>
-          <Select
-            value={field.value}
-            onValueChange={field.onChange}
-            disabled={disabled}
-          >
+          <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
             <SelectTrigger id="size" disabled={disabled}>
               <SelectValue placeholder="Selecciona un tamaño" />
             </SelectTrigger>
             <SelectContent>
-              {TASK_SIZES.map((size) => (
-                <SelectItem key={size} value={size}>
-                  {size.toUpperCase()}
-                </SelectItem>
-              ))}
+              {TASK_SIZES.map((size) => {
+                const cfg = SIZE_CONFIG[size];
+                return (
+                  <SelectItem key={size} value={size}>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.className}`}>
+                      {cfg.label}
+                    </span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           {errors.size && <FieldError errors={[errors.size]} />}
