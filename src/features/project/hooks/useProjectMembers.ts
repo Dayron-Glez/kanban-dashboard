@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/shared/supabase"
-import type { ProjectInvitation, ProjectMember } from "@/shared/supabase"
+import type { ProjectInvitation, ProjectMember, MemberRole } from "@/shared/supabase"
 
 export const useProjectMembers = (projectId: string) => {
   const [members, setMembers] = useState<ProjectMember[]>([])
@@ -12,19 +12,40 @@ export const useProjectMembers = (projectId: string) => {
     let cancelled = false
     const load = async () => {
       setLoading(true)
-      const [{ data: membersData }, { data: invitationsData }] = await Promise.all([
-        supabase
-          .from("project_members")
-          .select("*, profiles(full_name, avatar_url)")
-          .eq("project_id", projectId),
+      const [{ data: membersRaw }, { data: invitationsData }] = await Promise.all([
+        supabase.from("project_members").select("*").eq("project_id", projectId),
         supabase
           .from("project_invitations")
           .select("*")
           .eq("project_id", projectId)
           .eq("status", "pending"),
       ])
+
       if (cancelled) return
-      setMembers((membersData ?? []) as ProjectMember[])
+
+      // Cargar perfiles por separado
+      const memberIds = (membersRaw ?? []).map((m) => m.user_id as string)
+      let profilesMap: Record<string, { id: string; full_name: string | null; avatar_url: string | null; updated_at: string }> = {}
+      if (memberIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, full_name, avatar_url, updated_at")
+          .in("id", memberIds)
+        for (const p of profilesData ?? []) profilesMap[p.id] = p
+      }
+
+      if (cancelled) return
+
+      setMembers(
+        (membersRaw ?? []).map((m) => ({
+          id: m.id,
+          project_id: m.project_id,
+          user_id: m.user_id,
+          role: m.role as MemberRole,
+          joined_at: m.joined_at,
+          profiles: profilesMap[m.user_id] ?? undefined,
+        })),
+      )
       setInvitations(invitationsData ?? [])
       setLoading(false)
     }

@@ -1,10 +1,40 @@
 import { useState, useMemo, useRef, useEffect, type ReactNode } from "react"
 import { useParams } from "react-router"
 import { supabase } from "@/shared/supabase"
-import type { MemberRole, ProjectMember } from "@/shared/supabase"
+import type { MemberRole, Profile, ProjectMember } from "@/shared/supabase"
 import { useAuth } from "@/features/auth"
 import type { ColumnType, Task, TaskPriority, TaskSize } from "../types/board.types"
 import { KanbanContext } from "./kanbanCtx"
+
+type RawTask = {
+  id: string
+  column_id: string
+  content: string
+  priority: string
+  size: string
+  project_id: string
+  position: number
+  assignee_id: string | null
+}
+
+type RawMember = {
+  id: string
+  project_id: string
+  user_id: string
+  role: string
+  joined_at: string
+}
+
+const fetchProfiles = async (userIds: string[]): Promise<Record<string, Profile>> => {
+  if (userIds.length === 0) return {}
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, updated_at")
+    .in("id", userIds)
+  const map: Record<string, Profile> = {}
+  for (const p of data ?? []) map[p.id] = p
+  return map
+}
 
 export function KanbanProvider({ children }: { children: ReactNode }) {
   const { id: projectId } = useParams<{ id: string }>()
@@ -25,30 +55,11 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     const load = async () => {
       setLoading(true)
 
-      type RawTask = {
-        id: string
-        column_id: string
-        content: string
-        priority: string
-        size: string
-        project_id: string
-        position: number
-        assignee_id: string | null
-        profiles: { full_name: string | null; avatar_url: string | null } | null
-      }
-
-      const [{ data: cols }, { data: tsksRaw }, { data: membersData }, { data: memberRow }] =
+      const [{ data: cols }, { data: tsksRaw }, { data: membersRaw }, { data: memberRow }] =
         await Promise.all([
           supabase.from("columns").select("*").eq("project_id", projectId).order("position"),
-          (supabase
-            .from("tasks")
-            .select("*, profiles(full_name, avatar_url)")
-            .eq("project_id", projectId)
-            .order("position")) as unknown as Promise<{ data: RawTask[] | null }>,
-          (supabase
-            .from("project_members")
-            .select("*, profiles(full_name, avatar_url)")
-            .eq("project_id", projectId)) as unknown as Promise<{ data: ProjectMember[] | null }>,
+          supabase.from("tasks").select("*").eq("project_id", projectId).order("position"),
+          supabase.from("project_members").select("*").eq("project_id", projectId),
           supabase
             .from("project_members")
             .select("role")
@@ -56,6 +67,15 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
             .eq("user_id", user.id)
             .single(),
         ])
+
+      // Cargar perfiles de asignados y miembros en una sola query
+      const assigneeIds = (tsksRaw ?? [])
+        .map((t) => (t as RawTask).assignee_id)
+        .filter((id): id is string => id !== null)
+      const memberIds = (membersRaw ?? []).map((m) => (m as RawMember).user_id)
+      const allUserIds = [...new Set([...assigneeIds, ...memberIds])]
+      const profilesMap = await fetchProfiles(allUserIds)
+
       setColumns(
         (cols ?? []).map((c) => ({
           id: c.id,
@@ -65,19 +85,34 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         })),
       )
       setTasks(
-        (tsksRaw ?? []).map((t) => ({
-          id: t.id,
-          columnId: t.column_id,
-          content: t.content,
-          priority: t.priority as TaskPriority,
-          size: t.size as TaskSize,
-          project_id: t.project_id,
-          position: t.position,
-          assignee_id: t.assignee_id ?? null,
-          assigneeProfile: t.profiles ?? null,
-        })),
+        (tsksRaw ?? []).map((t) => {
+          const raw = t as RawTask
+          return {
+            id: raw.id,
+            columnId: raw.column_id,
+            content: raw.content,
+            priority: raw.priority as TaskPriority,
+            size: raw.size as TaskSize,
+            project_id: raw.project_id,
+            position: raw.position,
+            assignee_id: raw.assignee_id ?? null,
+            assigneeProfile: raw.assignee_id ? (profilesMap[raw.assignee_id] ?? null) : null,
+          }
+        }),
       )
-      setMembers(membersData ?? [])
+      setMembers(
+        (membersRaw ?? []).map((m) => {
+          const raw = m as RawMember
+          return {
+            id: raw.id,
+            project_id: raw.project_id,
+            user_id: raw.user_id,
+            role: raw.role as MemberRole,
+            joined_at: raw.joined_at,
+            profiles: profilesMap[raw.user_id],
+          }
+        }),
+      )
       setUserRole((memberRow?.role as MemberRole) ?? null)
       setLoading(false)
     }
@@ -126,19 +161,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     if (!projectId) return
     const position = tasks.filter((t) => t.columnId === columnId).length
 
-    type RawTask = {
-      id: string
-      column_id: string
-      content: string
-      priority: string
-      size: string
-      project_id: string
-      position: number
-      assignee_id: string | null
-      profiles: { full_name: string | null; avatar_url: string | null } | null
-    }
-
-    const { data, error } = await (supabase
+    const { data, error } = await supabase
       .from("tasks")
       .insert({
         column_id: columnId,
@@ -149,20 +172,22 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         position,
         assignee_id: taskData.assignee_id ?? null,
       })
-      .select("*, profiles(full_name, avatar_url)")
-      .single() as unknown as Promise<{ data: RawTask | null; error: unknown }>)
+      .select("*")
+      .single()
 
     if (error || !data) return
+    const raw = data as RawTask
+    const assigneeProfile = raw.assignee_id ? (members.find((m) => m.user_id === raw.assignee_id)?.profiles ?? null) : null
     const newTask: Task = {
-      id: data.id,
-      columnId: data.column_id,
-      content: data.content,
-      priority: data.priority as TaskPriority,
-      size: data.size as TaskSize,
-      project_id: data.project_id,
-      position: data.position,
-      assignee_id: data.assignee_id ?? null,
-      assigneeProfile: data.profiles ?? null,
+      id: raw.id,
+      columnId: raw.column_id,
+      content: raw.content,
+      priority: raw.priority as TaskPriority,
+      size: raw.size as TaskSize,
+      project_id: raw.project_id,
+      position: raw.position,
+      assignee_id: raw.assignee_id ?? null,
+      assigneeProfile: assigneeProfile ?? null,
     }
     setTasks((prev) => [...prev, newTask])
   }
@@ -171,7 +196,6 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     id: string,
     taskData: { content: string; priority: TaskPriority; size: TaskSize; assignee_id?: string | null },
   ): Promise<void> => {
-    // Resolve assignee profile from members list
     const assigneeProfile =
       taskData.assignee_id
         ? members.find((m) => m.user_id === taskData.assignee_id)?.profiles ?? null
@@ -186,7 +210,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
               priority: taskData.priority,
               size: taskData.size,
               assignee_id: taskData.assignee_id ?? null,
-              assigneeProfile,
+              assigneeProfile: assigneeProfile ?? null,
             }
           : t,
       ),
