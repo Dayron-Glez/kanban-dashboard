@@ -12,6 +12,7 @@ import {
   IconUserMinus,
   IconUserPlus,
   IconUsers,
+  IconX,
 } from "@tabler/icons-react"
 import {
   AlertDialog,
@@ -25,43 +26,35 @@ import {
   AlertDialogTrigger,
   Button,
   Card,
-  CardContent,
   Input,
   Label,
-  Separator,
 } from "@/shared/index"
 import { useKanban } from "@/features/board/index"
 import { useProjectMembers } from "../hooks/useProjectMembers"
 import { useProjectsContext } from "../context/projectsCtx"
 import type { MemberRole } from "@/shared/supabase"
 
+// ── Paleta de avatares ─────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  "bg-blue-500/15 text-blue-600",
-  "bg-violet-500/15 text-violet-600",
-  "bg-emerald-500/15 text-emerald-600",
-  "bg-amber-500/15 text-amber-600",
-  "bg-rose-500/15 text-rose-600",
-  "bg-cyan-500/15 text-cyan-600",
+  { bg: "rgba(99,102,241,.14)",  txt: "#6366f1" },
+  { bg: "rgba(16,185,129,.14)",  txt: "#059669" },
+  { bg: "rgba(249,115,22,.14)",  txt: "#ea580c" },
+  { bg: "rgba(14,165,233,.14)",  txt: "#0284c7" },
+  { bg: "rgba(168,85,247,.14)",  txt: "#9333ea" },
 ]
 
 const getInitials = (name: string | null | undefined): string => {
   if (!name) return "?"
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
+  return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
 }
 
-const getAvatarColor = (userId: string): string => {
-  const idx = userId.charCodeAt(0) % AVATAR_COLORS.length
-  return AVATAR_COLORS[idx]
-}
+const getAvatarColor = (userId: string) =>
+  AVATAR_COLORS[userId.charCodeAt(userId.length - 1) % AVATAR_COLORS.length]
 
+// ── RoleBadge ──────────────────────────────────────────────────────────────
 const RoleBadge = ({ role }: { role: MemberRole }) => (
   <span
-    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+    className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap tracking-wide ${
       role === "owner"
         ? "bg-primary/10 text-primary"
         : "bg-muted text-muted-foreground"
@@ -71,28 +64,39 @@ const RoleBadge = ({ role }: { role: MemberRole }) => (
   </span>
 )
 
-interface CardHeadProps {
-  iconBg: string
-  iconColor: string
-  icon: React.ReactNode
-  title: string
-  subtitle?: string
+// ── CardHead ───────────────────────────────────────────────────────────────
+type ChipVariant = "default" | "warn" | "danger"
+
+const chipClass: Record<ChipVariant, string> = {
+  default: "bg-primary/10 text-primary",
+  warn:    "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
+  danger:  "bg-red-100   dark:bg-red-950/40   text-red-600   dark:text-red-400",
 }
 
-const CardHead = ({ iconBg, iconColor, icon, title, subtitle }: CardHeadProps) => (
-  <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-    <div
-      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg} ${iconColor}`}
-    >
+interface CardHeadProps {
+  icon:     React.ReactNode
+  variant?: ChipVariant
+  title:    string
+  count?:   number
+  note?:    string
+}
+
+const CardHead = ({ icon, variant = "default", title, count, note }: CardHeadProps) => (
+  <div className="flex items-center gap-[9px] px-[15px] py-[11px] border-b border-border">
+    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${chipClass[variant]}`}>
       {icon}
     </div>
-    <div className="min-w-0">
-      <p className="text-sm font-semibold leading-tight">{title}</p>
-      {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
-    </div>
+    <span className="text-[13px] font-bold text-foreground flex-1">{title}</span>
+    {count != null && (
+      <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+        {count}
+      </span>
+    )}
+    {note && <span className="text-[11.5px] text-muted-foreground">{note}</span>}
   </div>
 )
 
+// ── Página de ajustes ──────────────────────────────────────────────────────
 export function ProjectSettingsPage() {
   const { id: projectId } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -105,14 +109,14 @@ export function ProjectSettingsPage() {
   const { members, invitations, loading, inviteMember, cancelInvitation, removeMember } =
     useProjectMembers(projectId ?? "")
 
-  const [email, setEmail] = useState("")
+  const [email,    setEmail]    = useState("")
   const [inviting, setInviting] = useState(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
-  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [inviteLink,  setInviteLink]  = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [newName, setNewName] = useState(currentProject?.name ?? "")
+  const [newName,  setNewName]  = useState(currentProject?.name ?? "")
   const [renaming, setRenaming] = useState(false)
-  const [renamed, setRenamed] = useState(false)
+  const [renamed,  setRenamed]  = useState(false)
 
   const handleInvite = async () => {
     if (!email.trim()) return
@@ -148,7 +152,8 @@ export function ProjectSettingsPage() {
 
   return (
     <div className="p-6 flex flex-col gap-6 w-full min-h-[calc(100vh-4rem)]">
-      {/* ── Header ── */}
+
+      {/* ── Header de página ── */}
       <div className="flex items-center gap-3 pb-2">
         <div className="p-2 rounded-lg bg-primary/10">
           <IconSettings size={22} className="text-primary" />
@@ -156,68 +161,70 @@ export function ProjectSettingsPage() {
         <div>
           <h1 className="text-xl font-bold text-primary leading-tight">Ajustes del proyecto</h1>
           <p className="text-sm text-muted-foreground">
-            Gestiona los miembros, invitaciones y configuración general del proyecto.
+            Miembros · Invitaciones · Configuración general
           </p>
         </div>
       </div>
 
       {/* ── Grid D1: 3 columnas ── */}
-      <div className="grid grid-cols-3 gap-4 items-start">
+      <div className="grid grid-cols-3 gap-3 items-start">
 
-        {/* ── Col 1: Miembros ── */}
+        {/* ──────────────────── Col 1: Miembros ──────────────────── */}
         <Card className="overflow-hidden">
           <CardHead
-            iconBg="bg-indigo-100 dark:bg-indigo-950/40"
-            iconColor="text-indigo-600 dark:text-indigo-400"
             icon={<IconUsers size={15} />}
             title="Miembros"
-            subtitle={`${members.length} en este proyecto`}
+            count={members.length}
           />
-          <CardContent className="p-0">
+          <div className="px-[15px]">
             {loading ? (
-              <div className="flex flex-col gap-2 p-4">
+              <div className="flex flex-col gap-2 py-3">
                 {[1, 2].map((i) => (
-                  <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />
+                  <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
                 ))}
               </div>
             ) : members.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Sin miembros aún.</p>
             ) : (
-              <div className="flex flex-col divide-y divide-border">
-                {members.map((m) => (
+              members.map((m) => {
+                const av = getAvatarColor(m.user_id)
+                return (
                   <div
                     key={m.id}
-                    className="group flex items-center gap-3 px-5 py-3"
+                    className="group flex items-center gap-[10px] py-[9px] border-b border-border last:border-0"
                   >
+                    {/* Avatar */}
                     <div
-                      className={`h-9 w-9 rounded-full text-sm flex items-center justify-center font-bold shrink-0 ${getAvatarColor(m.user_id)}`}
+                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-extrabold"
+                      style={{ background: av.bg, color: av.txt }}
                     >
                       {getInitials(m.profiles?.full_name)}
                     </div>
+
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium leading-tight truncate">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[13px] font-semibold text-foreground truncate">
                           {m.profiles?.full_name ?? "Sin nombre"}
-                        </p>
+                        </span>
                         <RoleBadge role={m.role} />
                       </div>
                       {m.profiles?.email && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        <span className="text-[11.5px] text-muted-foreground truncate">
                           {m.profiles.email}
-                        </p>
+                        </span>
                       )}
                     </div>
+
+                    {/* Remove */}
                     {isOwner && m.role !== "owner" && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 shrink-0 transition-opacity"
-                            title="Eliminar miembro"
+                          <button
+                            className="p-[5px] rounded-md cursor-pointer border-0 bg-transparent text-transparent group-hover:bg-destructive/10 group-hover:text-destructive transition-all"
                           >
-                            <IconUserMinus size={15} />
-                          </Button>
+                            <IconUserMinus size={13} />
+                          </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
@@ -242,174 +249,143 @@ export function ProjectSettingsPage() {
                       </AlertDialog>
                     )}
                   </div>
-                ))}
-              </div>
+                )
+              })
             )}
-          </CardContent>
+          </div>
         </Card>
 
-        {/* ── Col 2: Invitar + Pendientes ── */}
-        <div className="flex flex-col gap-4">
+        {/* ──────────────────── Col 2: Invitar + Pendientes (una card) ──────────────────── */}
+        {isOwner && (
+          <Card className="overflow-hidden">
+            <CardHead
+              icon={<IconUserPlus size={15} />}
+              title="Invitar miembro"
+              note="Válido 7 días"
+            />
 
-          {/* Invitar miembro */}
-          {isOwner && (
-            <Card className="overflow-hidden">
-              <CardHead
-                iconBg="bg-emerald-100 dark:bg-emerald-950/40"
-                iconColor="text-emerald-600 dark:text-emerald-400"
-                icon={<IconUserPlus size={15} />}
-                title="Invitar miembro"
-                subtitle="Envía un enlace de acceso por email"
-              />
-              <CardContent className="flex flex-col gap-4 pt-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="invite-email" className="text-xs text-muted-foreground">
-                    Correo electrónico
-                  </Label>
-                  <Input
-                    id="invite-email"
-                    type="email"
-                    placeholder="correo@ejemplo.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    onClick={handleInvite}
-                    disabled={inviting || !email.trim()}
-                    className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
+            {/* Invite form */}
+            <div className="px-[15px] py-3 flex flex-col gap-[9px]">
+              <div>
+                <Label htmlFor="invite-email" className="sr-only">
+                  Correo electrónico
+                </Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  placeholder="correo@ejemplo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleInvite}
+                  disabled={inviting || !email.trim()}
+                  className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
+                >
+                  {inviting ? "Enviando…" : "Invitar"}
+                </Button>
+              </div>
+
+              {/* Invite link bar */}
+              {inviteLink && (
+                <div className="flex items-center gap-2 px-[10px] py-[7px] bg-muted rounded-lg border border-border">
+                  <IconLink size={13} className="text-muted-foreground shrink-0" />
+                  <span className="flex-1 text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                    {inviteLink}
+                  </span>
+                  <button
+                    onClick={() => handleCopy(inviteLink)}
+                    className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
                   >
-                    {inviting ? "Enviando…" : "Invitar"}
-                  </Button>
+                    {copiedToken === inviteLink
+                      ? <IconCheck size={13} className="text-emerald-500" />
+                      : <IconCopy size={13} />
+                    }
+                  </button>
                 </div>
+              )}
+            </div>
 
-                {inviteLink && (
-                  <>
-                    <Separator />
-                    <div className="flex flex-col gap-2">
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <IconLink size={12} />
-                        Comparte este enlace (válido 7 días)
-                      </p>
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2 font-normal hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
-                        onClick={() => handleCopy(inviteLink)}
-                      >
-                        {copiedToken === inviteLink ? (
-                          <>
-                            <IconCheck size={15} className="text-emerald-500 shrink-0" />
-                            <span className="text-emerald-600">¡Enlace copiado!</span>
-                          </>
-                        ) : (
-                          <>
-                            <IconCopy size={15} className="shrink-0" />
-                            <span className="truncate text-left">{inviteLink}</span>
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Invitaciones pendientes */}
-          {isOwner && invitations.length > 0 && (
-            <Card className="overflow-hidden">
-              <CardHead
-                iconBg="bg-amber-100 dark:bg-amber-950/40"
-                iconColor="text-amber-600 dark:text-amber-400"
-                icon={<IconMail size={15} />}
-                title="Invitaciones pendientes"
-                subtitle={`${invitations.length} en espera de aceptación`}
-              />
-              <CardContent className="p-0">
-                <div className="flex flex-col divide-y divide-border">
+            {/* Pending invitations section */}
+            {invitations.length > 0 && (
+              <>
+                <div className="h-px bg-border" />
+                <div className="px-[15px] pt-[10px] pb-[3px] flex items-center gap-2">
+                  <IconMail size={14} className="text-muted-foreground" />
+                  <span className="text-[12px] font-bold text-muted-foreground flex-1">
+                    Invitaciones pendientes
+                  </span>
+                  <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {invitations.length}
+                  </span>
+                </div>
+                <div className="px-[15px] pb-[6px]">
                   {invitations.map((inv) => {
                     const link = `${window.location.origin}/invite/${inv.token}`
                     const isCopied = copiedToken === link
                     return (
                       <div
                         key={inv.id}
-                        className="flex items-center gap-3 px-5 py-3"
+                        className="flex items-center gap-[9px] py-[7px] border-b border-border last:border-0"
                       >
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                          <IconMail size={14} className="text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{inv.email}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Expira el{" "}
-                            {new Date(inv.expires_at).toLocaleDateString("es-ES", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => handleCopy(link)}
-                            title="Copiar enlace"
-                          >
-                            {isCopied ? (
-                              <IconCheck size={14} className="text-emerald-500" />
-                            ) : (
-                              <IconCopy size={14} />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => cancelInvitation(inv.id)}
-                            title="Cancelar invitación"
-                          >
-                            <span className="text-base leading-none">×</span>
-                          </Button>
-                        </div>
+                        <span className="text-[12.5px] flex-1 text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                          {inv.email}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground shrink-0">
+                          exp.{" "}
+                          {new Date(inv.expires_at).toLocaleDateString("es-ES", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </span>
+                        <button
+                          onClick={() => handleCopy(link)}
+                          className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
+                          title="Copiar enlace"
+                        >
+                          {isCopied
+                            ? <IconCheck size={13} className="text-emerald-500" />
+                            : <IconCopy size={13} />
+                          }
+                        </button>
+                        <button
+                          onClick={() => cancelInvitation(inv.id)}
+                          className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-destructive transition-colors"
+                          title="Cancelar invitación"
+                        >
+                          <IconX size={14} />
+                        </button>
                       </div>
                     )
                   })}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              </>
+            )}
+          </Card>
+        )}
 
-        {/* ── Col 3: Renombrar + Zona de peligro ── */}
+        {/* ──────────────────── Col 3: Renombrar + Zona de peligro ──────────────────── */}
         {isOwner && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
 
-            {/* Renombrar proyecto */}
+            {/* Renombrar */}
             <Card className="overflow-hidden">
               <CardHead
-                iconBg="bg-violet-100 dark:bg-violet-950/40"
-                iconColor="text-violet-600 dark:text-violet-400"
-                icon={<IconPencil size={15} />}
+                icon={<IconPencil size={14} />}
+                variant="warn"
                 title="Renombrar proyecto"
-                subtitle="Cambia el nombre visible para todos los miembros"
               />
-              <CardContent className="flex flex-col gap-4 pt-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="project-name" className="text-xs text-muted-foreground">
-                    Nombre del proyecto
-                  </Label>
-                  <Input
-                    id="project-name"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleRename() }}
-                    placeholder="Nombre del proyecto"
-                  />
-                </div>
+              <div className="px-[15px] py-3 flex flex-col gap-[9px]">
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleRename() }}
+                  placeholder="Nombre del proyecto"
+                />
                 <div className="flex justify-end">
                   <Button
                     size="sm"
@@ -421,42 +397,39 @@ export function ProjectSettingsPage() {
                     disabled={renaming || !newName.trim() || newName.trim() === currentProject?.name}
                   >
                     {renamed ? (
-                      <><IconCheck size={14} /> Guardado</>
+                      <><IconCheck size={13} /> Guardado</>
                     ) : renaming ? "Guardando…" : "Guardar cambios"}
                   </Button>
                 </div>
-              </CardContent>
+                <p className="text-[11.5px] text-muted-foreground">
+                  Visible para todos los miembros del proyecto.
+                </p>
+              </div>
             </Card>
 
             {/* Zona de peligro */}
             <Card className="overflow-hidden">
               <CardHead
-                iconBg="bg-red-100 dark:bg-red-950/40"
-                iconColor="text-red-600 dark:text-red-400"
                 icon={<IconShieldX size={15} />}
+                variant="danger"
                 title="Zona de peligro"
-                subtitle="Las acciones de esta sección son permanentes"
               />
-              <CardContent className="flex flex-col gap-3 pt-4">
-                <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">Eliminar este proyecto</p>
-                  <p className="text-xs text-muted-foreground">
-                    Se eliminarán todas las columnas, tareas, miembros e invitaciones. Esta acción
-                    no se puede deshacer.
-                  </p>
-                </div>
+              <div className="px-[15px] py-3 flex flex-col gap-3">
+                <p className="text-[12.5px] text-muted-foreground leading-[1.55]">
+                  Elimina permanentemente todas las columnas, tareas, miembros e invitaciones.
+                </p>
                 <div className="flex justify-end">
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
-                    className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
+                    className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/40 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-all"
                     onClick={() => setDeleteDialogOpen(true)}
                   >
-                    <IconTrash size={14} />
+                    <IconTrash size={13} />
                     Eliminar proyecto
                   </Button>
                 </div>
-              </CardContent>
+              </div>
             </Card>
 
           </div>
