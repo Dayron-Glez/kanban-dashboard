@@ -265,7 +265,7 @@ export function ProjectSettingsPage() {
             />
 
             {/* Invite form */}
-            <div className="px-[15px] py-3 flex flex-col gap-[9px]">
+            <div className="p-[15px] flex flex-col gap-[15px]">
               <div className="flex gap-2">
                 <Label htmlFor="invite-email" className="sr-only">
                   Correo electrónico
@@ -280,7 +280,6 @@ export function ProjectSettingsPage() {
                   className="flex-1"
                 />
                 <Button
-                  size="sm"
                   onClick={handleInvite}
                   disabled={inviting || !email.trim()}
                   className="shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
@@ -378,7 +377,7 @@ export function ProjectSettingsPage() {
                 variant="warn"
                 title="Renombrar proyecto"
               />
-              <div className="px-[15px] py-3 flex flex-col gap-[9px]">
+              <div className="p-[15px] flex flex-col gap-[15px]">
                 <div className="flex gap-2">
                   <Input
                     value={newName}
@@ -388,7 +387,6 @@ export function ProjectSettingsPage() {
                     className="flex-1 min-w-0"
                   />
                   <Button
-                    size="sm"
                     variant={renamed ? "outline" : "default"}
                     className={`shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow ${
                       renamed ? "text-emerald-600 border-emerald-400/60" : ""
