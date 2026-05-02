@@ -29,7 +29,7 @@ const fetchProfiles = async (userIds: string[]): Promise<Record<string, Profile>
   if (userIds.length === 0) return {}
   const { data } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url, updated_at")
+    .select("id, full_name, avatar_url, email, updated_at")
     .in("id", userIds)
   const map: Record<string, Profile> = {}
   for (const p of data ?? []) map[p.id] = p

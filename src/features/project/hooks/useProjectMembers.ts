@@ -28,11 +28,11 @@ export const useProjectMembers = (projectId: string) => {
 
       // Cargar perfiles por separado
       const memberIds = (membersRaw ?? []).map((m) => m.user_id as string)
-      let profilesMap: Record<string, { id: string; full_name: string | null; avatar_url: string | null; updated_at: string }> = {}
+      let profilesMap: Record<string, { id: string; full_name: string | null; avatar_url: string | null; email: string | null; updated_at: string }> = {}
       if (memberIds.length > 0) {
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("id, full_name, avatar_url, updated_at")
+          .select("id, full_name, avatar_url, email, updated_at")
           .in("id", memberIds)
         for (const p of profilesData ?? []) profilesMap[p.id] = p
       }
