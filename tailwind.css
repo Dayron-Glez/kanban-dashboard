@@ -56,25 +56,27 @@ html, body, #root {
 }
 
 .dark {
-    --background: hsl(201.3 50% 10%);
-    --foreground: hsl(201.3 5% 98%);
-    --card: hsl(201.3 50% 10%);
-    --card-foreground: hsl(201.3 5% 98%);
-    --popover: hsl(201.3 50% 5%);
-    --popover-foreground: hsl(201.3 5% 98%);
-    --primary: hsl(201.3 96.3% 32.2%);
+    /* GitHub dark theme — Primer color system */
+    --background: hsl(216 28% 7%);        /* #0d1117 canvas.default */
+    --foreground: hsl(213 15% 83%);       /* #c9d1d9 fg.default */
+    --card: hsl(215 22% 11%);             /* #161b22 canvas.overlay */
+    --card-foreground: hsl(213 15% 83%);
+    --popover: hsl(215 22% 11%);          /* #161b22 */
+    --popover-foreground: hsl(213 15% 83%);
+    --primary: hsl(212 92% 57%);          /* #2f81f7 accent.fg */
     --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(201.3 30% 20%);
-    --secondary-foreground: hsl(0 0% 100%);
-    --muted: hsl(163.3 30% 25%);
-    --muted-foreground: hsl(201.3 5% 65%);
-    --accent: hsl(163.3 30% 25%);
-    --accent-foreground: hsl(201.3 5% 95%);
-    --destructive: hsl(0 100% 50%);
-    --destructive-foreground: hsl(201.3 5% 98%);
-    --border: hsl(201.3 30% 50%);
-    --input: hsl(201.3 30% 50%);
-    --ring: hsl(201.3 96.3% 32.2%);
+    --secondary: hsl(215 14% 15%);        /* #21262d canvas.subtle */
+    --secondary-foreground: hsl(213 15% 83%);
+    --muted: hsl(215 14% 15%);            /* #21262d */
+    --muted-foreground: hsl(215 8% 57%);  /* #8b949e fg.muted */
+    --accent: hsl(215 14% 15%);           /* #21262d */
+    --accent-foreground: hsl(213 15% 83%);
+    --destructive: hsl(2 92% 63%);        /* #f85149 danger.fg */
+    --destructive-foreground: hsl(0 0% 100%);
+    --border: hsl(216 12% 21%);           /* #30363d border.default */
+    --input: hsl(216 12% 21%);            /* #30363d */
+    --ring: hsl(212 92% 57%);             /* #2f81f7 */
+    --row-selected: hsl(212 92% 15%);
     --radius: 0.5rem;
 }
 
