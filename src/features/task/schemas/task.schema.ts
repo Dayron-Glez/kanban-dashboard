@@ -12,6 +12,7 @@ export const taskValidationSchema = z.object({
   size: z.enum(TASK_SIZES, {
     message: "Selecciona un tamaño válido",
   }),
+  assignee_id: z.string().nullable().optional(),
 })
 
 export type TaskFormValues = z.infer<typeof taskValidationSchema>

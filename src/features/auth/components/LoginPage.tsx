@@ -1,13 +1,15 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Link, useNavigate } from "react-router"
+import { Link, useNavigate, useSearchParams } from "react-router"
 import { supabase } from "@/shared/supabase"
 import { Button, Card, CardContent, CardHeader, Input, Label } from "@/shared"
 import { loginSchema, type LoginFormValues } from "../schemas/auth.schema"
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = searchParams.get("redirect") ?? "/projects"
   const [authError, setAuthError] = useState<string | null>(null)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
@@ -24,13 +26,13 @@ export function LoginPage() {
       setAuthError("Email o contraseña incorrectos")
       return
     }
-    navigate("/projects")
+    navigate(redirectTo)
   }
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/projects` },
+      options: { redirectTo: `${window.location.origin}${redirectTo}` },
     })
   }
 

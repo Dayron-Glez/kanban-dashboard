@@ -19,7 +19,8 @@ function KanbanContent() {
   const { id } = useParams()
   const { projects } = useProjectsContext()
   const location = useLocation()
-  const isAnalytics = location.pathname.endsWith("/analytics")
+  const isScrollablePage =
+    location.pathname.endsWith("/analytics") || location.pathname.endsWith("/settings")
   const projectName = projects.find((p) => p.id === id)?.name
 
   const filteredTasks = tasks.filter((task) => {
@@ -32,17 +33,17 @@ function KanbanContent() {
     <>
       <Header
         projectName={projectName}
-        {...(!isAnalytics && { searchValue, onSearchChange: setSearchValue })}
+        {...(!isScrollablePage && { searchValue, onSearchChange: setSearchValue })}
       />
       <main
-        ref={!isAnalytics ? scrollContainerRef : undefined}
+        ref={!isScrollablePage ? scrollContainerRef : undefined}
         className={
-          isAnalytics
+          isScrollablePage
             ? `flex-1 overflow-hidden bg-muted ${state === "collapsed" ? "pl-4" : ""}`
             : `flex-1 overflow-x-auto overflow-y-hidden flex bg-muted ${state === "collapsed" ? "pl-4" : ""}`
         }
       >
-        {isAnalytics ? (
+        {isScrollablePage ? (
           <ScrollArea className="h-full">
             <Outlet />
           </ScrollArea>

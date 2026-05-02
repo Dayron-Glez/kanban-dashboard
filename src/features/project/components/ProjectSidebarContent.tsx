@@ -1,4 +1,4 @@
-import { IconChartBar, IconLayoutKanban, IconLogout } from "@tabler/icons-react"
+import { IconChartBar, IconLayoutKanban, IconLogout, IconSettings } from "@tabler/icons-react"
 import { Link, useLocation, useNavigate, useParams } from "react-router"
 import {
   SidebarContent,
@@ -17,6 +17,7 @@ import { useProjectsContext } from "../context/projectsCtx"
 const PROJECT_VIEWS = [
   { label: "Tablero", icon: IconLayoutKanban, path: (id: string) => `/projects/${id}` },
   { label: "Analytics", icon: IconChartBar, path: (id: string) => `/projects/${id}/analytics` },
+  { label: "Ajustes", icon: IconSettings, path: (id: string) => `/projects/${id}/settings` },
 ]
 
 export function ProjectSidebarContent() {
@@ -131,6 +132,7 @@ export function ProjectSidebarContent() {
           )}
         </div>
       </SidebarFooter>
+
     </>
   )
 }

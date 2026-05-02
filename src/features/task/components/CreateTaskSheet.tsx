@@ -1,6 +1,5 @@
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Button,
   Sheet,
@@ -11,17 +10,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/shared/index";
-import { taskValidationSchema } from "../schemas/task.schema";
+import { taskValidationSchema, type TaskFormValues } from "../schemas/task.schema";
 import { TaskForm } from "./TaskForm/TaskForm";
 
 interface CreateTaskSheetProps {
   columnId: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSave: (
-    id: string,
-    taskData: z.infer<typeof taskValidationSchema>,
-  ) => void;
+  onSave: (id: string, taskData: TaskFormValues) => void;
 }
 
 export function CreateTaskSheet({
@@ -30,18 +26,18 @@ export function CreateTaskSheet({
   onOpenChange,
   onSave,
 }: CreateTaskSheetProps) {
-  const form = useForm<z.infer<typeof taskValidationSchema>>({
+  const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskValidationSchema),
     defaultValues: {
       content: "",
       priority: "p1",
       size: "m",
+      assignee_id: null,
     },
   });
 
   const handleSave = async (): Promise<void> => {
     const isValid = await form.trigger();
-
     if (isValid) {
       const data = form.getValues();
       onSave(columnId, data);
