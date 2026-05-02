@@ -6,7 +6,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/shared/index";
 import { useKanban } from "@/features/board/index";
 
@@ -32,7 +31,10 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
     <Controller
       name="assignee_id"
       control={control}
-      render={({ field }) => (
+      render={({ field }) => {
+        const selected = members.find((m) => m.user_id === field.value);
+
+        return (
         <Field className="col-span-2">
           <FieldLabel htmlFor="assignee_id" className="text-primary">
             Asignado a
@@ -42,8 +44,19 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
             onValueChange={(val) => field.onChange(val === "none" ? null : val)}
             disabled={disabled}
           >
-            <SelectTrigger id="assignee_id" disabled={disabled} className="h-auto py-2">
-              <SelectValue placeholder="Sin asignar" />
+            <SelectTrigger id="assignee_id" disabled={disabled}>
+              {selected ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold shrink-0">
+                    {getInitials(selected.profiles?.full_name)}
+                  </span>
+                  <span className="text-sm truncate">
+                    {selected.profiles?.full_name ?? selected.user_id.slice(0, 8)}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">Sin asignar</span>
+              )}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Sin asignar</SelectItem>
@@ -69,7 +82,8 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
             </SelectContent>
           </Select>
         </Field>
-      )}
+        );
+      }}
     />
   );
 }
