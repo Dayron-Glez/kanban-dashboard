@@ -82,7 +82,7 @@ interface CardHeadProps {
 }
 
 const CardHead = ({ icon, variant = "default", title, count, note }: CardHeadProps) => (
-  <div className="flex items-center gap-[9px] px-[15px] py-[11px] border-b border-border">
+  <div className="flex items-center gap-[9px] px-4 py-3 border-b border-border">
     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${chipClass[variant]}`}>
       {icon}
     </div>
@@ -176,7 +176,7 @@ export function ProjectSettingsPage() {
             title="Miembros"
             count={members.length}
           />
-          <div className="px-[15px]">
+          <div className="px-4">
             {loading ? (
               <div className="flex flex-col gap-2 py-3">
                 {[1, 2].map((i) => (
@@ -265,7 +265,7 @@ export function ProjectSettingsPage() {
             />
 
             {/* Invite form */}
-            <div className="p-[15px] flex flex-col gap-[15px]">
+            <div className="p-4 flex flex-col gap-4">
               <div className="flex gap-2">
                 <Label htmlFor="invite-email" className="sr-only">
                   Correo electrónico
@@ -312,7 +312,7 @@ export function ProjectSettingsPage() {
             {invitations.length > 0 && (
               <>
                 <div className="h-px bg-border" />
-                <div className="px-[15px] pt-[10px] pb-[3px] flex items-center gap-2">
+                <div className="px-4 pt-3 pb-1 flex items-center gap-2">
                   <IconMail size={14} className="text-muted-foreground" />
                   <span className="text-[12px] font-bold text-muted-foreground flex-1">
                     Invitaciones pendientes
@@ -321,7 +321,7 @@ export function ProjectSettingsPage() {
                     {invitations.length}
                   </span>
                 </div>
-                <div className="px-[15px] pb-[6px]">
+                <div className="px-4 pb-3">
                   {invitations.map((inv) => {
                     const link = `${window.location.origin}/invite/${inv.token}`
                     const isCopied = copiedToken === link
@@ -377,7 +377,7 @@ export function ProjectSettingsPage() {
                 variant="warn"
                 title="Renombrar proyecto"
               />
-              <div className="p-[15px] flex flex-col gap-[15px]">
+              <div className="p-4 flex flex-col gap-4">
                 <div className="flex gap-2">
                   <Input
                     value={newName}
@@ -412,7 +412,7 @@ export function ProjectSettingsPage() {
                 variant="danger"
                 title="Zona de peligro"
               />
-              <div className="px-[15px] py-3 flex flex-col gap-3">
+              <div className="p-4 flex flex-col gap-4">
                 <p className="text-[12.5px] text-muted-foreground leading-[1.55]">
                   Elimina permanentemente todas las columnas, tareas, miembros e invitaciones.
                 </p>
