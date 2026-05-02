@@ -47,7 +47,7 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
             >
               <SelectTrigger id="assignee_id" disabled={disabled}>
                 {/* SelectValue oculto — necesario para el estado interno de Radix */}
-                <SelectValue className="hidden" />
+                <span style={{ display: "none" }}><SelectValue /></span>
                 {/* Display personalizado: avatar + nombre en una línea */}
                 {selected ? (
                   <div className="flex items-center gap-2">
