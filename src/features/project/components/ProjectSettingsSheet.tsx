@@ -12,7 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/shared/index"
-import { useKanban } from "@/features/board/index"
+import { useProjectsContext } from "../context/projectsCtx"
 import { useProjectMembers } from "../hooks/useProjectMembers"
 
 const getInitials = (name: string | null | undefined): string => {
@@ -36,8 +36,8 @@ export function ProjectSettingsSheet({
   open,
   onOpenChange,
 }: ProjectSettingsSheetProps) {
-  const { userRole } = useKanban()
-  const isOwner = userRole === "owner"
+  const { userRoles } = useProjectsContext()
+  const isOwner = userRoles[projectId] === "owner"
 
   const { members, invitations, loading, inviteMember, cancelInvitation, removeMember } =
     useProjectMembers(projectId)
