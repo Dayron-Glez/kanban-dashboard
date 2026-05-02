@@ -148,23 +148,23 @@ export function ProjectSettingsSheet({
                   </div>
 
                   {inviteLink && (
-                    <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2">
-                      <p className="text-xs text-muted-foreground flex-1 truncate">
-                        {inviteLink}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleCopy(inviteLink)}
-                        title="Copiar enlace"
-                      >
-                        {copiedToken === inviteLink ? (
-                          <IconCheck size={14} className="text-green-500" />
-                        ) : (
-                          <IconCopy size={14} />
-                        )}
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => handleCopy(inviteLink)}
+                    >
+                      {copiedToken === inviteLink ? (
+                        <>
+                          <IconCheck size={16} className="text-green-500" />
+                          <span className="text-green-500">¡Enlace copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <IconCopy size={16} />
+                          Copiar enlace de invitación
+                        </>
+                      )}
+                    </Button>
                   )}
                 </div>
 
@@ -198,7 +198,7 @@ export function ProjectSettingsSheet({
                                     `${window.location.origin}/invite/${inv.token}`,
                                   )
                                 }
-                                title="Copiar enlace"
+                                title="Copiar enlace de invitación"
                               >
                                 {copiedToken ===
                                 `${window.location.origin}/invite/${inv.token}` ? (
