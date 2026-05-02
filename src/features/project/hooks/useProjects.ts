@@ -15,13 +15,10 @@ export const useProjects = () => {
     let cancelled = false
     const load = async () => {
       // Paso 1: obtener membresías del usuario
-      const { data: memberRows, error: memberError } = await supabase
+      const { data: memberRows } = await supabase
         .from("project_members")
         .select("project_id, role")
         .eq("user_id", user.id)
-
-      console.log("[useProjects] user.id:", user.id)
-      console.log("[useProjects] memberRows:", memberRows, "error:", memberError)
 
       if (cancelled) return
 
@@ -33,13 +30,11 @@ export const useProjects = () => {
 
       // Paso 2: obtener los proyectos por IDs
       const projectIds = memberRows.map((r) => r.project_id)
-      const { data: projectsData, error: projectsError } = await supabase
+      const { data: projectsData } = await supabase
         .from("projects")
         .select("*")
         .in("id", projectIds)
         .order("created_at", { ascending: false })
-
-      console.log("[useProjects] projectsData:", projectsData, "error:", projectsError)
 
       if (cancelled) return
 

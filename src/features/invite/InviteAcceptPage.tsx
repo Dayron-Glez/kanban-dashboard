@@ -82,15 +82,14 @@ export default function InviteAcceptPage() {
   const doAccept = async (invitationId: string, projectId: string) => {
     setState("accepting")
 
-    // Verificar si ya es miembro
-    const { data: existing } = await supabase
+    // Verificar si ya es miembro (sin .single() para evitar 406 cuando no hay filas)
+    const { data: existingRows } = await supabase
       .from("project_members")
       .select("id")
       .eq("project_id", projectId)
       .eq("user_id", user!.id)
-      .single()
 
-    if (existing) {
+    if (existingRows && existingRows.length > 0) {
       setState("already-member")
       setTimeout(() => navigate(`/projects/${projectId}`), 1500)
       return
@@ -109,6 +108,12 @@ export default function InviteAcceptPage() {
     ])
 
     if (memberError || inviteError) {
+      // 23505 = unique_violation: el usuario ya es miembro (intento duplicado)
+      if (memberError?.code === "23505") {
+        setState("already-member")
+        setTimeout(() => navigate(`/projects/${projectId}`), 1500)
+        return
+      }
       setState("error")
       setMessage("Ocurrió un error al aceptar la invitación. Inténtalo de nuevo.")
       return
