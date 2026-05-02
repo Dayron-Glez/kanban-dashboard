@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconPlus } from "@tabler/icons-react";
+import { IconPlus, IconSun, IconMoon } from "@tabler/icons-react";
 import {
   Button,
   SearchInput,
@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  useTheme,
 } from "@/shared/index";
 import { useKanban } from "@/features/board/index";
 import { CreateColumnSheet } from "@/features/column/index";
@@ -20,6 +21,7 @@ interface HeaderProps {
 
 export function Header({ searchValue, onSearchChange, projectName }: HeaderProps) {
   const { createNewColumn, columns, tasks, userRole } = useKanban();
+  const { theme, toggleTheme } = useTheme();
   const [createColumnDialogOpen, setCreateColumnDialogOpen] =
     useState<boolean>(false);
 
@@ -45,39 +47,50 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
             )}
           </h1>
         </div>
-        {onSearchChange && (
-          <div className="flex items-center gap-4">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <SearchInput
-                      value={searchValue ?? ""}
-                      onChange={onSearchChange}
-                      disabled={tasks.length === 0}
-                    />
-                  </div>
-                </TooltipTrigger>
-                {tasks.length === 0 && (
-                  <TooltipContent>
-                    Crea una tarea para empezar a filtrar
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-            {isOwner && (
-              <Button
-                onClick={() => setCreateColumnDialogOpen(true)}
-                className="text-black group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
-                variant="outline"
-                disabled={columns.length >= 6}
-              >
-                <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
-                Agregar Columna
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Cambiar tema"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {theme === "dark" ? <IconSun size={18} /> : <IconMoon size={18} />}
+          </Button>
+          {onSearchChange && (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <SearchInput
+                        value={searchValue ?? ""}
+                        onChange={onSearchChange}
+                        disabled={tasks.length === 0}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  {tasks.length === 0 && (
+                    <TooltipContent>
+                      Crea una tarea para empezar a filtrar
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+              {isOwner && (
+                <Button
+                  onClick={() => setCreateColumnDialogOpen(true)}
+                  className="text-black group border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
+                  variant="outline"
+                  disabled={columns.length >= 6}
+                >
+                  <IconPlus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
+                  Agregar Columna
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </header>
       {onSearchChange && isOwner && (
         <CreateColumnSheet
