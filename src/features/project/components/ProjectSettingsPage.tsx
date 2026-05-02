@@ -1,11 +1,13 @@
 import { useState } from "react"
-import { useParams } from "react-router"
+import { useParams, useNavigate } from "react-router"
 import {
   IconCheck,
   IconCopy,
   IconLink,
   IconMail,
   IconSettings,
+  IconShieldX,
+  IconTrash,
   IconUserMinus,
   IconUserPlus,
   IconUsers,
@@ -30,6 +32,7 @@ import {
 } from "@/shared/index"
 import { useKanban } from "@/features/board/index"
 import { useProjectMembers } from "../hooks/useProjectMembers"
+import { useProjectsContext } from "../context/projectsCtx"
 import type { MemberRole } from "@/shared/supabase"
 
 const AVATAR_COLORS = [
@@ -70,8 +73,10 @@ const RoleBadge = ({ role }: { role: MemberRole }) => (
 
 export function ProjectSettingsPage() {
   const { id: projectId } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { userRole } = useKanban()
   const isOwner = userRole === "owner"
+  const { deleteProject } = useProjectsContext()
 
   const { members, invitations, loading, inviteMember, cancelInvitation, removeMember } =
     useProjectMembers(projectId ?? "")
@@ -80,6 +85,13 @@ export function ProjectSettingsPage() {
   const [inviting, setInviting] = useState(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+  const handleDeleteProject = async () => {
+    if (!projectId) return
+    await deleteProject(projectId)
+    navigate("/projects")
+  }
 
   const handleInvite = async () => {
     if (!email.trim()) return
@@ -324,6 +336,58 @@ export function ProjectSettingsPage() {
           )}
         </>
       )}
+
+      {/* ── Zona de peligro (solo owner) ── */}
+      {isOwner && (
+        <Card className="border-destructive/40">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <IconShieldX size={16} className="text-destructive" />
+              <span className="font-semibold text-sm text-destructive">Zona de peligro</span>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">Eliminar este proyecto</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Se eliminarán todas las columnas, tareas, miembros e invitaciones. Esta acción es permanente.
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <IconTrash size={14} />
+                Eliminar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar proyecto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminarán permanentemente todas las columnas,
+              tareas, miembros e invitaciones del proyecto.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteProject}
+            >
+              Eliminar proyecto
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
