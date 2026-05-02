@@ -126,7 +126,7 @@ export function ProjectSettingsPage() {
   }
 
   return (
-    <div className="p-6 flex flex-col gap-6 w-full">
+    <div className="p-6 flex flex-col gap-6 w-full min-h-full justify-center">
       {/* ── Header ── */}
       <div className="flex items-center gap-3 pb-2">
         <div className="p-2 rounded-lg bg-primary/10">
