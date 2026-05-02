@@ -155,8 +155,8 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
-          <AlertDialogTitle>¿Eliminar Tarea?</AlertDialogTitle>
           <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar Tarea?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. La tarea será eliminada permanentemente.
             </AlertDialogDescription>
