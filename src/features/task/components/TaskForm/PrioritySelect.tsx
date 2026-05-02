@@ -10,16 +10,14 @@ import {
   SelectValue,
 } from "@/shared/index";
 import { TASK_PRIORITIES } from "@/features/board/types/board.types";
+import { PRIORITY_CONFIG } from "../taskChips";
 
 interface SelectPriorityProps {
   disabled?: boolean;
 }
 
 export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
-  const {
-    control,
-    formState: { errors },
-  } = useFormContext();
+  const { control, formState: { errors } } = useFormContext();
 
   return (
     <Controller
@@ -27,23 +25,24 @@ export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
       control={control}
       render={({ field }) => (
         <Field data-invalid={!!errors.priority}>
-          <FieldLabel htmlFor="priority" className=" text-primary">
+          <FieldLabel htmlFor="priority" className="text-primary">
             Prioridad
           </FieldLabel>
-          <Select
-            value={field.value}
-            onValueChange={field.onChange}
-            disabled={disabled}
-          >
+          <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
             <SelectTrigger id="priority" disabled={disabled}>
               <SelectValue placeholder="Selecciona una prioridad" />
             </SelectTrigger>
             <SelectContent>
-              {TASK_PRIORITIES.map((priority) => (
-                <SelectItem key={priority} value={priority}>
-                  {priority.toUpperCase()}
-                </SelectItem>
-              ))}
+              {TASK_PRIORITIES.map((priority) => {
+                const cfg = PRIORITY_CONFIG[priority];
+                return (
+                  <SelectItem key={priority} value={priority}>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.className}`}>
+                      {cfg.label}
+                    </span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           {errors.priority && <FieldError errors={[errors.priority]} />}
