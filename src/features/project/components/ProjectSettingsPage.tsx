@@ -266,7 +266,7 @@ export function ProjectSettingsPage() {
 
             {/* Invite form */}
             <div className="px-[15px] py-3 flex flex-col gap-[9px]">
-              <div>
+              <div className="flex gap-2">
                 <Label htmlFor="invite-email" className="sr-only">
                   Correo electrónico
                 </Label>
@@ -277,14 +277,13 @@ export function ProjectSettingsPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
+                  className="flex-1"
                 />
-              </div>
-              <div className="flex justify-end">
                 <Button
                   size="sm"
                   onClick={handleInvite}
                   disabled={inviting || !email.trim()}
-                  className="hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
+                  className="shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow"
                 >
                   {inviting ? "Enviando…" : "Invitar"}
                 </Button>
@@ -380,17 +379,18 @@ export function ProjectSettingsPage() {
                 title="Renombrar proyecto"
               />
               <div className="px-[15px] py-3 flex flex-col gap-[9px]">
-                <Input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleRename() }}
-                  placeholder="Nombre del proyecto"
-                />
-                <div className="flex justify-end">
+                <div className="flex gap-2">
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRename() }}
+                    placeholder="Nombre del proyecto"
+                    className="flex-1 min-w-0"
+                  />
                   <Button
                     size="sm"
                     variant={renamed ? "outline" : "default"}
-                    className={`hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow ${
+                    className={`shrink-0 hover:shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-shadow ${
                       renamed ? "text-emerald-600 border-emerald-400/60" : ""
                     }`}
                     onClick={handleRename}
@@ -398,7 +398,7 @@ export function ProjectSettingsPage() {
                   >
                     {renamed ? (
                       <><IconCheck size={13} /> Guardado</>
-                    ) : renaming ? "Guardando…" : "Guardar cambios"}
+                    ) : renaming ? "Guardando…" : "Guardar"}
                   </Button>
                 </div>
                 <p className="text-[11.5px] text-muted-foreground">
