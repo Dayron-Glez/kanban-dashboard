@@ -197,9 +197,8 @@ export default function KanbanBoard() {
   }
 
   return (
-    <div className="min-w-max pt-6 px-4 pb-4">
-      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragOver={onDragOver}>
-        <div className="m-auto flex gap-2">
+    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragOver={onDragOver}>
+      <div className="flex items-start gap-4 h-full p-4 w-full">
           <SortableContext items={columnsId}>
             {columns.map((column) => {
               const columnFilteredTasks = filteredTasks.filter((t) => t.columnId === column.id)
@@ -213,25 +212,24 @@ export default function KanbanBoard() {
               )
             })}
           </SortableContext>
-        </div>
+      </div>
 
-        {createPortal(
-          <DragOverlay>
-            {activeColumn && (
-              <ColumnContainer
-                column={activeColumn}
-                tasks={filteredTasks.filter((t) => t.columnId === activeColumn.id)}
-                hasFilteredTasks={
-                  searchValue.trim().length > 0 &&
-                  filteredTasks.filter((t) => t.columnId === activeColumn.id).length > 0
-                }
-              />
-            )}
-            {activeTask && <TaskCard task={activeTask} deleteTask={() => {}} updateTask={() => {}} />}
-          </DragOverlay>,
-          document.body,
-        )}
-      </DndContext>
-    </div>
+      {createPortal(
+        <DragOverlay>
+          {activeColumn && (
+            <ColumnContainer
+              column={activeColumn}
+              tasks={filteredTasks.filter((t) => t.columnId === activeColumn.id)}
+              hasFilteredTasks={
+                searchValue.trim().length > 0 &&
+                filteredTasks.filter((t) => t.columnId === activeColumn.id).length > 0
+              }
+            />
+          )}
+          {activeTask && <TaskCard task={activeTask} deleteTask={() => {}} updateTask={() => {}} />}
+        </DragOverlay>,
+        document.body,
+      )}
+    </DndContext>
   )
 }
