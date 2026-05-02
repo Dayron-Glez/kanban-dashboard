@@ -42,19 +42,19 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
             onValueChange={(val) => field.onChange(val === "none" ? null : val)}
             disabled={disabled}
           >
-            <SelectTrigger id="assignee_id" disabled={disabled}>
+            <SelectTrigger id="assignee_id" disabled={disabled} className="h-auto py-2">
               <SelectValue placeholder="Sin asignar" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Sin asignar</SelectItem>
               {members.map((m) => (
                 <SelectItem key={m.user_id} value={m.user_id}>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold shrink-0">
+                  <div className="flex items-center gap-2 py-0.5">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold shrink-0">
                       {getInitials(m.profiles?.full_name)}
                     </span>
-                    <div className="flex flex-col gap-0">
-                      <span className="text-sm leading-tight">
+                    <div className="flex flex-col">
+                      <span className="text-sm leading-snug">
                         {m.profiles?.full_name ?? m.user_id.slice(0, 8)}
                       </span>
                       {m.profiles?.email && (
