@@ -80,7 +80,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         className={`border border-l-4 ${priority.borderClassName} ${priority.bgClassName} rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-grab my-2 p-3 flex flex-col gap-2`}
       >
         {/* Fila superior: título + menú */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-center gap-2">
           <span className="flex-1 text-sm font-medium text-foreground leading-snug line-clamp-2">
             {task.content}
           </span>
@@ -89,7 +89,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted"
                 aria-label="Abrir menú de acciones"
               >
                 <IconDots size={14} />
