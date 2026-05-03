@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useParams, useNavigate } from "react-router"
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router";
 import {
   IconCheck,
   IconCopy,
@@ -12,7 +12,8 @@ import {
   IconUserMinus,
   IconUserPlus,
   IconUsers,
-} from "@tabler/icons-react"
+  IconX,
+} from "@tabler/icons-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,44 +26,40 @@ import {
   AlertDialogTrigger,
   Button,
   Card,
-  CardContent,
-  CardHeader,
   Input,
   Label,
-  Separator,
-} from "@/shared/index"
-import { useKanban } from "@/features/board/index"
-import { useProjectMembers } from "../hooks/useProjectMembers"
-import { useProjectsContext } from "../context/projectsCtx"
-import type { MemberRole } from "@/shared/supabase"
+} from "@/shared/index";
+import { useKanban } from "@/features/board/index";
+import { useProjectMembers } from "../hooks/useProjectMembers";
+import { useProjectsContext } from "../context/projectsCtx";
+import type { MemberRole } from "@/shared/supabase";
 
+// ── Paleta de avatares ─────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  "bg-blue-500/15 text-blue-600",
-  "bg-violet-500/15 text-violet-600",
-  "bg-emerald-500/15 text-emerald-600",
-  "bg-amber-500/15 text-amber-600",
-  "bg-rose-500/15 text-rose-600",
-  "bg-cyan-500/15 text-cyan-600",
-]
+  { bg: "rgba(99,102,241,.14)", txt: "#6366f1" },
+  { bg: "rgba(16,185,129,.14)", txt: "#059669" },
+  { bg: "rgba(249,115,22,.14)", txt: "#ea580c" },
+  { bg: "rgba(14,165,233,.14)", txt: "#0284c7" },
+  { bg: "rgba(168,85,247,.14)", txt: "#9333ea" },
+];
 
 const getInitials = (name: string | null | undefined): string => {
-  if (!name) return "?"
+  if (!name) return "?";
   return name
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2)
-}
+    .slice(0, 2);
+};
 
-const getAvatarColor = (userId: string): string => {
-  const idx = userId.charCodeAt(0) % AVATAR_COLORS.length
-  return AVATAR_COLORS[idx]
-}
+const getAvatarColor = (userId: string) =>
+  AVATAR_COLORS[userId.charCodeAt(userId.length - 1) % AVATAR_COLORS.length];
 
+// ── RoleBadge ──────────────────────────────────────────────────────────────
 const RoleBadge = ({ role }: { role: MemberRole }) => (
   <span
-    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+    className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap tracking-wide ${
       role === "owner"
         ? "bg-primary/10 text-primary"
         : "bg-muted text-muted-foreground"
@@ -70,368 +67,417 @@ const RoleBadge = ({ role }: { role: MemberRole }) => (
   >
     {role === "owner" ? "Propietario" : "Miembro"}
   </span>
-)
+);
 
+// ── CardHead ───────────────────────────────────────────────────────────────
+type ChipVariant = "default" | "warn" | "danger";
+
+const chipClass: Record<ChipVariant, string> = {
+  default: "bg-primary/10 text-primary",
+  warn: "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
+  danger: "bg-red-100   dark:bg-red-950/40   text-red-600   dark:text-red-400",
+};
+
+interface CardHeadProps {
+  icon: React.ReactNode;
+  variant?: ChipVariant;
+  title: string;
+  count?: number;
+  note?: string;
+}
+
+const CardHead = ({
+  icon,
+  variant = "default",
+  title,
+  count,
+  note,
+}: CardHeadProps) => (
+  <div className="flex items-center gap-[9px] px-4 py-3 border-b border-border">
+    <div
+      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${chipClass[variant]}`}
+    >
+      {icon}
+    </div>
+    <span className="text-[13px] font-bold text-foreground flex-1">
+      {title}
+    </span>
+    {count != null && (
+      <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+        {count}
+      </span>
+    )}
+    {note && (
+      <span className="text-[11.5px] text-muted-foreground">{note}</span>
+    )}
+  </div>
+);
+
+// ── Página de ajustes ──────────────────────────────────────────────────────
 export function ProjectSettingsPage() {
-  const { id: projectId } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const { userRole } = useKanban()
-  const isOwner = userRole === "owner"
-  const { projects, deleteProject, renameProject } = useProjectsContext()
+  const { id: projectId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { userRole } = useKanban();
+  const isOwner = userRole === "owner";
+  const { projects, deleteProject, renameProject } = useProjectsContext();
 
-  const currentProject = projects.find((p) => p.id === projectId)
+  const currentProject = projects.find((p) => p.id === projectId);
 
-  const { members, invitations, loading, inviteMember, cancelInvitation, removeMember } =
-    useProjectMembers(projectId ?? "")
+  const {
+    members,
+    invitations,
+    loading,
+    inviteMember,
+    cancelInvitation,
+    removeMember,
+  } = useProjectMembers(projectId ?? "");
 
-  const [email, setEmail] = useState("")
-  const [inviting, setInviting] = useState(false)
-  const [copiedToken, setCopiedToken] = useState<string | null>(null)
-  const [inviteLink, setInviteLink] = useState<string | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [newName, setNewName] = useState(currentProject?.name ?? "")
-  const [renaming, setRenaming] = useState(false)
-  const [renamed, setRenamed] = useState(false)
+  const [email, setEmail] = useState<string>("");
+  const [inviting, setInviting] = useState<boolean>(false);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [newName, setNewName] = useState(currentProject?.name ?? "");
+  const [renaming, setRenaming] = useState<boolean>(false);
+  const [renamed, setRenamed] = useState<boolean>(false);
 
-  const handleInvite = async () => {
-    if (!email.trim()) return
-    setInviting(true)
-    const result = await inviteMember(email.trim())
-    setInviting(false)
+  const handleInvite = async (): Promise<void> => {
+    if (!email.trim()) return;
+    setInviting(true);
+    const result = await inviteMember(email.trim());
+    setInviting(false);
     if (result) {
-      setInviteLink(`${window.location.origin}/invite/${result.token}`)
-      setEmail("")
+      setInviteLink(`${window.location.origin}/invite/${result.token}`);
+      setEmail("");
     }
-  }
+  };
 
-  const handleCopy = (link: string) => {
-    navigator.clipboard.writeText(link)
-    setCopiedToken(link)
-    setTimeout(() => setCopiedToken(null), 2000)
-  }
+  const handleCopy = (link: string): void => {
+    navigator.clipboard.writeText(link);
+    setCopiedToken(link);
+    setTimeout(() => setCopiedToken(null), 2000);
+  };
 
-  const handleDeleteProject = async () => {
-    if (!projectId) return
-    await deleteProject(projectId)
-    navigate("/projects")
-  }
+  const handleDeleteProject = async (): Promise<void> => {
+    if (!projectId) return;
+    await deleteProject(projectId);
+    navigate("/projects");
+  };
 
-  const handleRename = async () => {
-    if (!projectId || !newName.trim() || newName.trim() === currentProject?.name) return
-    setRenaming(true)
-    await renameProject(projectId, newName.trim())
-    setRenaming(false)
-    setRenamed(true)
-    setTimeout(() => setRenamed(false), 2000)
-  }
+  const handleRename = async (): Promise<void> => {
+    if (
+      !projectId ||
+      !newName.trim() ||
+      newName.trim() === currentProject?.name
+    )
+      return;
+    setRenaming(true);
+    await renameProject(projectId, newName.trim());
+    setRenaming(false);
+    setRenamed(true);
+    setTimeout(() => setRenamed(false), 2000);
+  };
 
   return (
     <div className="p-6 flex flex-col gap-6 w-full min-h-[calc(100vh-4rem)]">
-      {/* ── Header ── */}
+      {/* ── Header de página ── */}
       <div className="flex items-center gap-3 pb-2">
         <div className="p-2 rounded-lg bg-primary/10">
           <IconSettings size={22} className="text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-primary leading-tight">Ajustes del proyecto</h1>
-          <p className="text-sm text-muted-foreground">Gestiona los miembros, invitaciones y configuración general del proyecto.</p>
+          <h1 className="text-xl font-bold text-primary leading-tight">
+            Ajustes del proyecto
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Miembros · Invitaciones · Configuración general
+          </p>
         </div>
       </div>
 
-      {/* ── Grid 2×2 ── */}
-      <div className="flex-1 flex items-center">
-      <div className="grid grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
-
-        {/* ── Col izquierda: Miembros + Renombrar ── */}
-        <div className="flex flex-col gap-6">
-
-          {/* Miembros actuales */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <IconUsers size={16} className="text-muted-foreground" />
-                <span className="font-semibold text-sm">
-                  Miembros{" "}
-                  <span className="text-muted-foreground font-normal">({members.length})</span>
-                </span>
+      {/* ── Grid D1: 3 columnas ── */}
+      <div className="grid grid-cols-3 gap-3 items-start">
+        {/* ── Col 1: Miembros ── */}
+        <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-primary/50">
+          <CardHead
+            icon={<IconUsers size={15} />}
+            title="Miembros"
+            count={members.length}
+          />
+          <div className="px-4">
+            {loading ? (
+              <div className="flex flex-col gap-2">
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-12 rounded-lg bg-muted animate-pulse"
+                  />
+                ))}
               </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {loading ? (
-                <div className="flex flex-col gap-2">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
-                  ))}
-                </div>
-              ) : members.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Sin miembros aún.</p>
-              ) : (
-                <div className="flex flex-col divide-y divide-border">
-                  {members.map((m) => (
-                    <div key={m.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                      <div
-                        className={`h-10 w-10 rounded-full text-sm flex items-center justify-center font-bold shrink-0 ${getAvatarColor(m.user_id)}`}
-                      >
-                        {getInitials(m.profiles?.full_name)}
+            ) : members.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">
+                Sin miembros aún.
+              </p>
+            ) : (
+              members.map((m) => {
+                const av = getAvatarColor(m.user_id);
+                return (
+                  <div
+                    key={m.id}
+                    className="group flex items-center gap-2.5 py-[9px] border-b border-border last:border-0"
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-extrabold"
+                      style={{ background: av.bg, color: av.txt }}
+                    >
+                      {getInitials(m.profiles?.full_name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[13px] font-semibold text-foreground truncate">
+                          {m.profiles?.full_name ?? "Sin nombre"}
+                        </span>
+                        <RoleBadge role={m.role} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium leading-tight">
-                            {m.profiles?.full_name ?? "Sin nombre"}
-                          </p>
-                          <RoleBadge role={m.role} />
-                        </div>
-                        {m.profiles?.email && (
-                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                            <IconMail size={11} />
-                            {m.profiles.email}
-                          </p>
-                        )}
-                      </div>
-                      {isOwner && m.role !== "owner" && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className="hover:text-destructive hover:bg-destructive/10 shrink-0"
-                              title="Eliminar miembro"
-                            >
-                              <IconUserMinus size={16} />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar miembro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                <strong>{m.profiles?.full_name ?? m.profiles?.email ?? "Este miembro"}</strong>{" "}
-                                perderá el acceso al proyecto. Esta acción no se puede deshacer.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => removeMember(m.id)}
-                              >
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                      {m.profiles?.email && (
+                        <span className="text-[11.5px] text-muted-foreground truncate">
+                          {m.profiles.email}
+                        </span>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    {isOwner && m.role !== "owner" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="p-[5px] rounded-md cursor-pointer border-0 bg-transparent text-transparent group-hover:bg-destructive/10 group-hover:text-destructive transition-all">
+                            <IconUserMinus size={13} />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              ¿Eliminar miembro?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              <strong>
+                                {m.profiles?.full_name ??
+                                  m.profiles?.email ??
+                                  "Este miembro"}
+                              </strong>{" "}
+                              perderá el acceso al proyecto. Esta acción no se
+                              puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => removeMember(m.id)}
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </Card>
 
-          {/* Renombrar proyecto */}
-          {isOwner && (
-            <Card className="border-amber-400/40">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <IconPencil size={16} className="text-amber-500" />
-                  <span className="font-semibold text-sm text-amber-600 dark:text-amber-400">
-                    Renombrar proyecto
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0 flex flex-col gap-3">
-                <p className="text-xs text-muted-foreground">
-                  Cambia el nombre visible del proyecto para todos los miembros.
-                </p>
-                <div className="flex gap-2">
+        {/* ── Cols 2+3: sub-grid 2×2 (CSS grid iguala alturas por fila) ── */}
+        {isOwner && (
+          <div className="col-span-2 grid grid-cols-2 gap-3">
+            {/* Fila 1 — Invitar miembro */}
+            <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-primary/50">
+              <CardHead
+                icon={<IconUserPlus size={15} />}
+                title="Invitar miembro"
+                note="Válido 7 días"
+              />
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex gap-4">
+                  <Label htmlFor="invite-email" className="sr-only">
+                    Correo electrónico
+                  </Label>
                   <Input
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleRename() }}
-                    placeholder="Nombre del proyecto"
+                    id="invite-email"
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleInvite();
+                    }}
                     className="flex-1"
                   />
                   <Button
-                    size="sm"
-                    variant="outline"
-                    className={`shrink-0 border-amber-400/60 hover:bg-amber-50 dark:hover:bg-amber-950/30 ${renamed ? "text-emerald-600 border-emerald-400/60" : "text-amber-600 dark:text-amber-400"}`}
-                    onClick={handleRename}
-                    disabled={renaming || !newName.trim() || newName.trim() === currentProject?.name}
+                    onClick={handleInvite}
+                    disabled={inviting || !email.trim()}
+                    className="shrink-0 transition-colors"
                   >
-                    {renamed ? (
-                      <><IconCheck size={14} /> Guardado</>
-                    ) : renaming ? "Guardando…" : "Renombrar"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* ── Col derecha: Invitar + Pendientes + Eliminar ── */}
-        <div className="flex flex-col gap-6">
-
-          {/* Invitar miembro */}
-          {isOwner && (
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <IconUserPlus size={16} className="text-muted-foreground" />
-                  <span className="font-semibold text-sm">Invitar miembro</span>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0 flex flex-col gap-3">
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor="invite-email" className="sr-only">
-                      Email del invitado
-                    </Label>
-                    <Input
-                      id="invite-email"
-                      type="email"
-                      placeholder="correo@ejemplo.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
-                    />
-                  </div>
-                  <Button onClick={handleInvite} disabled={inviting || !email.trim()}>
                     {inviting ? "Enviando…" : "Invitar"}
                   </Button>
                 </div>
-
                 {inviteLink && (
-                  <>
-                    <Separator />
-                    <div className="flex flex-col gap-2">
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <IconLink size={12} />
-                        Comparte este enlace con el invitado (válido 7 días)
-                      </p>
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2 font-normal"
-                        onClick={() => handleCopy(inviteLink)}
-                      >
-                        {copiedToken === inviteLink ? (
-                          <>
-                            <IconCheck size={15} className="text-emerald-500 shrink-0" />
-                            <span className="text-emerald-600">¡Enlace copiado!</span>
-                          </>
-                        ) : (
-                          <>
-                            <IconCopy size={15} className="shrink-0" />
-                            <span className="truncate text-left">{inviteLink}</span>
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg border border-border">
+                    <IconLink
+                      size={13}
+                      className="text-muted-foreground shrink-0"
+                    />
+                    <span className="flex-1 text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                      {inviteLink}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(inviteLink)}
+                      className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
+                    >
+                      {copiedToken === inviteLink ? (
+                        <IconCheck size={13} className="text-emerald-500" />
+                      ) : (
+                        <IconCopy size={13} />
+                      )}
+                    </button>
+                  </div>
                 )}
-              </CardContent>
+              </div>
             </Card>
-          )}
 
-          {/* Invitaciones pendientes */}
-          {isOwner && invitations.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <IconMail size={16} className="text-muted-foreground" />
-                  <span className="font-semibold text-sm">
-                    Invitaciones pendientes{" "}
-                    <span className="text-muted-foreground font-normal">({invitations.length})</span>
-                  </span>
+            {/* Fila 1 — Renombrar proyecto */}
+            <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-yellow/50">
+              <CardHead
+                icon={<IconPencil size={14} />}
+                variant="warn"
+                title="Renombrar proyecto"
+              />
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex gap-4">
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleRename();
+                    }}
+                    placeholder="Nombre del proyecto"
+                    className="flex-1 min-w-0"
+                  />
+                  <Button
+                    variant={renamed ? "outline" : "default"}
+                    className={`shrink-0 transition-colors ${
+                      renamed ? "text-emerald-600 border-emerald-400/60" : ""
+                    }`}
+                    onClick={handleRename}
+                    disabled={
+                      renaming ||
+                      !newName.trim() ||
+                      newName.trim() === currentProject?.name
+                    }
+                  >
+                    {renamed ? (
+                      <>
+                        <IconCheck size={13} /> Guardado
+                      </>
+                    ) : renaming ? (
+                      "Guardando…"
+                    ) : (
+                      "Guardar"
+                    )}
+                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex flex-col divide-y divide-border">
+                <p className="text-[11.5px] text-muted-foreground">
+                  Visible para todos los miembros del proyecto.
+                </p>
+              </div>
+            </Card>
+
+            {/* Fila 2 — Invitaciones pendientes */}
+            <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-primary/50">
+              <CardHead
+                icon={<IconMail size={15} />}
+                title="Invitaciones pendientes"
+                count={invitations.length}
+              />
+              {invitations.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center px-4">
+                  <p className="text-sm text-muted-foreground text-center">
+                    No hay invitaciones pendientes.
+                  </p>
+                </div>
+              ) : (
+                <div className="px-4">
                   {invitations.map((inv) => {
-                    const link = `${window.location.origin}/invite/${inv.token}`
-                    const isCopied = copiedToken === link
+                    const link = `${window.location.origin}/invite/${inv.token}`;
+                    const isCopied = copiedToken === link;
                     return (
                       <div
                         key={inv.id}
-                        className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                        className="flex items-center gap-2 py-3 border-b border-border last:border-0"
                       >
-                        <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                          <IconMail size={15} className="text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{inv.email}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Expira el{" "}
-                            {new Date(inv.expires_at).toLocaleDateString("es-ES", {
+                        <span className="text-[12.5px] flex-1 text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                          {inv.email}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground shrink-0">
+                          exp.{" "}
+                          {new Date(inv.expires_at).toLocaleDateString(
+                            "es-ES",
+                            {
                               day: "numeric",
                               month: "short",
-                              year: "numeric",
-                            })}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => handleCopy(link)}
-                            title="Copiar enlace"
-                          >
-                            {isCopied ? (
-                              <IconCheck size={14} className="text-emerald-500" />
-                            ) : (
-                              <IconCopy size={14} />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => cancelInvitation(inv.id)}
-                            title="Cancelar invitación"
-                          >
-                            <span className="text-base leading-none">×</span>
-                          </Button>
-                        </div>
+                            },
+                          )}
+                        </span>
+                        <button
+                          onClick={() => handleCopy(link)}
+                          className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-emerald-500 transition-colors"
+                          title="Copiar enlace"
+                        >
+                          {isCopied ? (
+                            <IconCheck size={13} className="text-emerald-500" />
+                          ) : (
+                            <IconCopy size={13} />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => cancelInvitation(inv.id)}
+                          className="p-[3px] cursor-pointer border-0 bg-transparent flex text-muted-foreground hover:text-destructive transition-colors"
+                          title="Cancelar invitación"
+                        >
+                          <IconX size={14} />
+                        </button>
                       </div>
-                    )
+                    );
                   })}
                 </div>
-              </CardContent>
+              )}
             </Card>
-          )}
 
-          {/* Eliminar proyecto */}
-          {isOwner && (
-            <Card className="border-destructive/40">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <IconShieldX size={16} className="text-destructive" />
-                  <span className="font-semibold text-sm text-destructive">Zona de peligro</span>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium">Eliminar este proyecto</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Se eliminarán todas las columnas, tareas, miembros e invitaciones. Esta acción es permanente.
-                    </p>
-                  </div>
+            {/* Fila 2 — Zona de peligro */}
+            <Card className="overflow-hidden py-4 gap-4 transition-all duration-200 hover:ring-2 hover:ring-destructive/50">
+              <CardHead
+                icon={<IconShieldX size={15} />}
+                variant="danger"
+                title="Zona de peligro"
+              />
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <p className="flex-1 text-[11.5px] text-muted-foreground">
+                    Elimina permanentemente todas las columnas, tareas, miembros
+                    e invitaciones. Esta acción no se puede deshacer.
+                  </p>
                   <Button
-                    variant="destructive"
-                    size="sm"
-                    className="shrink-0"
+                    className="bg-destructive text-white hover:bg-destructive/90 transition-colors"
                     onClick={() => setDeleteDialogOpen(true)}
                   >
-                    <IconTrash size={14} />
-                    Eliminar
+                    <IconTrash size={13} />
+                    Eliminar proyecto
                   </Button>
                 </div>
-              </CardContent>
+              </div>
             </Card>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-
-      </div>{/* cierre flex-1 wrapper */}
 
       {/* ── AlertDialog eliminar proyecto ── */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -439,8 +485,8 @@ export function ProjectSettingsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar proyecto?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminarán permanentemente todas las columnas,
-              tareas, miembros e invitaciones del proyecto.
+              Esta acción no se puede deshacer. Se eliminarán permanentemente
+              todas las columnas, tareas, miembros e invitaciones del proyecto.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -455,5 +501,5 @@ export function ProjectSettingsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

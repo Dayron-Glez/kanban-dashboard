@@ -19,7 +19,11 @@ interface HeaderProps {
   projectName?: string;
 }
 
-export function Header({ searchValue, onSearchChange, projectName }: HeaderProps) {
+export function Header({
+  searchValue,
+  onSearchChange,
+  projectName,
+}: HeaderProps) {
   const { createNewColumn, columns, tasks, userRole } = useKanban();
   const { theme, toggleTheme } = useTheme();
   const [createColumnDialogOpen, setCreateColumnDialogOpen] =
@@ -42,7 +46,7 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
             {projectName && (
               <>
                 <span className="text-muted-foreground font-normal">|</span>
-                <span>{projectName}</span>
+                <span className=" text-lg font-extralight ">{projectName}</span>
               </>
             )}
           </h1>
