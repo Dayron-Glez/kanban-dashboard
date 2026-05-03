@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react"
-import { useNavigate, useParams } from "react-router"
-import { IconLoader2 } from "@tabler/icons-react"
-import { supabase } from "@/shared/supabase"
-import { useAuth } from "@/features/auth"
-import { Button } from "@/shared"
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import { IconLoader2 } from "@tabler/icons-react";
+import { supabase } from "@/shared/supabase";
+import { useAuth } from "@/features/auth";
+import { Button } from "@/shared";
 
 type InviteState =
   | "loading"
@@ -13,91 +13,34 @@ type InviteState =
   | "expired"
   | "already-member"
   | "email-mismatch"
-  | "error"
+  | "error";
 
 export default function InviteAcceptPage() {
-  const { token } = useParams<{ token: string }>()
-  const { user, loading: authLoading } = useAuth()
-  const navigate = useNavigate()
-  const [state, setState] = useState<InviteState>("loading")
-  const [message, setMessage] = useState("")
-
-  useEffect(() => {
-    if (authLoading) return
-
-    if (!user) {
-      setState("not-authenticated")
-      return
-    }
-
-    if (!token) {
-      setState("invalid")
-      setMessage("El enlace de invitación no es válido.")
-      return
-    }
-
-    const acceptInvite = async () => {
-      setState("accepting")
-
-      // Obtener invitación por token
-      const { data: invitation, error } = await supabase
-        .from("project_invitations")
-        .select("*")
-        .eq("token", token)
-        .single()
-
-      if (error || !invitation) {
-        setState("invalid")
-        setMessage("El enlace de invitación no existe o ha expirado.")
-        return
-      }
-
-      if (invitation.status !== "pending") {
-        setState("invalid")
-        setMessage("Esta invitación ya fue utilizada.")
-        return
-      }
-
-      if (new Date(invitation.expires_at) < new Date()) {
-        setState("expired")
-        setMessage("Esta invitación ha expirado. Pide al dueño del proyecto que te envíe una nueva.")
-        return
-      }
-
-      // Advertencia si el email no coincide (no bloqueante)
-      if (invitation.email.toLowerCase() !== (user.email ?? "").toLowerCase()) {
-        setMessage(
-          `La invitación fue enviada a ${invitation.email}, pero estás autenticado como ${user.email}. Puedes continuar de todas formas.`,
-        )
-        setState("email-mismatch")
-        return
-      }
-
-      await doAccept(invitation.id, invitation.project_id)
-    }
-
-    acceptInvite()
-  }, [authLoading, user, token]) // eslint-disable-line react-hooks/exhaustive-deps
+  const { token } = useParams<{ token: string }>();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [state, setState] = useState<InviteState>("loading");
+  const [message, setMessage] = useState<string>("");
 
   const doAccept = async (invitationId: string, projectId: string) => {
-    setState("accepting")
+    setState("accepting");
 
     // Verificar si ya es miembro (sin .single() para evitar 406 cuando no hay filas)
     const { data: existingRows } = await supabase
       .from("project_members")
       .select("id")
       .eq("project_id", projectId)
-      .eq("user_id", user!.id)
+      .eq("user_id", user!.id);
 
     if (existingRows && existingRows.length > 0) {
       // Ya es miembro — limpiar la invitación si aún quedó pendiente
       await supabase
         .from("project_invitations")
         .update({ status: "accepted" })
-        .eq("id", invitationId)
-      setState("already-member")
-      setTimeout(() => navigate(`/projects/${projectId}`), 1500)
-      return
+        .eq("id", invitationId);
+      setState("already-member");
+      setTimeout(() => navigate(`/projects/${projectId}`), 1500);
+      return;
     }
 
     const [{ error: memberError }, { error: inviteError }] = await Promise.all([
@@ -110,7 +53,7 @@ export default function InviteAcceptPage() {
         .from("project_invitations")
         .update({ status: "accepted" })
         .eq("id", invitationId),
-    ])
+    ]);
 
     if (memberError || inviteError) {
       // 23505 = unique_violation: el usuario ya es miembro (intento duplicado)
@@ -119,22 +62,81 @@ export default function InviteAcceptPage() {
         await supabase
           .from("project_invitations")
           .update({ status: "accepted" })
-          .eq("id", invitationId)
-        setState("already-member")
-        setTimeout(() => navigate(`/projects/${projectId}`), 1500)
-        return
+          .eq("id", invitationId);
+        setState("already-member");
+        setTimeout(() => navigate(`/projects/${projectId}`), 1500);
+        return;
       }
-      setState("error")
-      setMessage("Ocurrió un error al aceptar la invitación. Inténtalo de nuevo.")
-      return
+      setState("error");
+      setMessage(
+        "Ocurrió un error al aceptar la invitación. Inténtalo de nuevo.",
+      );
+      return;
     }
 
-    navigate(`/projects/${projectId}`)
-  }
+    navigate(`/projects/${projectId}`);
+  };
+
+  useEffect(() => {
+    const run = async () => {
+      if (authLoading) return;
+
+      if (!user) {
+        setState("not-authenticated");
+        return;
+      }
+
+      if (!token) {
+        setState("invalid");
+        setMessage("El enlace de invitación no es válido.");
+        return;
+      }
+
+      setState("accepting");
+
+      const { data: invitation, error } = await supabase
+        .from("project_invitations")
+        .select("*")
+        .eq("token", token)
+        .single();
+
+      if (error || !invitation) {
+        setState("invalid");
+        setMessage("El enlace de invitación no existe o ha expirado.");
+        return;
+      }
+
+      if (invitation.status !== "pending") {
+        setState("invalid");
+        setMessage("Esta invitación ya fue utilizada.");
+        return;
+      }
+
+      if (new Date(invitation.expires_at) < new Date()) {
+        setState("expired");
+        setMessage(
+          "Esta invitación ha expirado. Pide al dueño del proyecto que te envíe una nueva.",
+        );
+        return;
+      }
+
+      if (invitation.email.toLowerCase() !== (user.email ?? "").toLowerCase()) {
+        setMessage(
+          `La invitación fue enviada a ${invitation.email}, pero estás autenticado como ${user.email}. Puedes continuar de todas formas.`,
+        );
+        setState("email-mismatch");
+        return;
+      }
+
+      await doAccept(invitation.id, invitation.project_id);
+    };
+
+    run();
+  }, [authLoading, user, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLoginRedirect = () => {
-    navigate(`/login?redirect=/invite/${token}`)
-  }
+    navigate(`/login?redirect=/invite/${token}`);
+  };
 
   // ── Render ──────────────────────────────────────────────────────
   return (
@@ -144,7 +146,9 @@ export default function InviteAcceptPage() {
           <>
             <IconLoader2 size={48} className="animate-spin text-primary" />
             <p className="text-muted-foreground">
-              {state === "loading" ? "Verificando invitación…" : "Aceptando invitación…"}
+              {state === "loading"
+                ? "Verificando invitación…"
+                : "Aceptando invitación…"}
             </p>
           </>
         )}
@@ -181,8 +185,9 @@ export default function InviteAcceptPage() {
                   .from("project_invitations")
                   .select("id, project_id")
                   .eq("token", token!)
-                  .single()
-                if (invitation) await doAccept(invitation.id, invitation.project_id)
+                  .single();
+                if (invitation)
+                  await doAccept(invitation.id, invitation.project_id);
               }}
               className="w-full"
             >
@@ -194,7 +199,9 @@ export default function InviteAcceptPage() {
         {state === "already-member" && (
           <>
             <div className="text-4xl">✅</div>
-            <p className="text-muted-foreground">Ya eres miembro de este proyecto. Redirigiendo…</p>
+            <p className="text-muted-foreground">
+              Ya eres miembro de este proyecto. Redirigiendo…
+            </p>
           </>
         )}
 
@@ -203,16 +210,22 @@ export default function InviteAcceptPage() {
             <div className="text-4xl">{state === "expired" ? "⏰" : "❌"}</div>
             <div>
               <h1 className="text-xl font-semibold text-primary mb-2">
-                {state === "expired" ? "Invitación expirada" : "Invitación no válida"}
+                {state === "expired"
+                  ? "Invitación expirada"
+                  : "Invitación no válida"}
               </h1>
               <p className="text-sm text-muted-foreground">{message}</p>
             </div>
-            <Button variant="outline" onClick={() => navigate("/projects")} className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/projects")}
+              className="w-full"
+            >
               Ir a mis proyectos
             </Button>
           </>
         )}
       </div>
     </div>
-  )
+  );
 }
