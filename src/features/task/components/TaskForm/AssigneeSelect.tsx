@@ -1,4 +1,4 @@
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form"
 import {
   Field,
   FieldLabel,
@@ -7,26 +7,26 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/index";
-import { useKanban } from "@/features/board/index";
+} from "@/shared/index"
+import { useKanban } from "@/features/board/index"
 
 const getInitials = (name: string | null | undefined): string => {
-  if (!name) return "?";
+  if (!name) return "?"
   return name
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2);
-};
+    .slice(0, 2)
+}
 
 interface AssigneeSelectProps {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
-  const { control } = useFormContext();
-  const { members } = useKanban();
+  const { control } = useFormContext()
+  const { members } = useKanban()
 
   return (
     <Controller
@@ -50,7 +50,7 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
               {members.map((m) => (
                 <SelectItem key={m.user_id} value={m.user_id}>
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold shrink-0">
+                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[9px] font-bold text-violet-600">
                       {getInitials(m.profiles?.full_name)}
                     </span>
                     <div className="flex flex-col gap-0">
@@ -58,7 +58,7 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
                         {m.profiles?.full_name ?? m.user_id.slice(0, 8)}
                       </span>
                       {m.profiles?.email && (
-                        <span className="text-[10px] text-muted-foreground leading-tight">
+                        <span className="text-muted-foreground text-[10px] leading-tight">
                           {m.profiles.email}
                         </span>
                       )}
@@ -71,5 +71,5 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
         </Field>
       )}
     />
-  );
+  )
 }

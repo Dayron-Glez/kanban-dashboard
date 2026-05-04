@@ -10,7 +10,11 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const [authError, setAuthError] = useState<string | null>(null)
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
   })
 
@@ -31,9 +35,9 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted px-4">
+    <div className="bg-muted flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-1 pb-4">
+        <CardHeader className="space-y-1 pb-4 text-center">
           <h1 className="text-2xl font-bold">Crear cuenta</h1>
           <p className="text-muted-foreground text-sm">Empieza a gestionar tus proyectos</p>
         </CardHeader>
@@ -41,11 +45,7 @@ export function RegisterPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1">
               <Label htmlFor="full_name">Nombre completo</Label>
-              <Input
-                id="full_name"
-                placeholder="Tu nombre"
-                {...register("full_name")}
-              />
+              <Input id="full_name" placeholder="Tu nombre" {...register("full_name")} />
               {errors.full_name && (
                 <p className="text-destructive text-xs">{errors.full_name.message}</p>
               )}
@@ -53,15 +53,8 @@ export function RegisterPage() {
 
             <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className="text-destructive text-xs">{errors.email.message}</p>
-              )}
+              <Input id="email" type="email" placeholder="tu@email.com" {...register("email")} />
+              {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-1">
@@ -90,16 +83,14 @@ export function RegisterPage() {
               )}
             </div>
 
-            {authError && (
-              <p className="text-destructive text-sm text-center">{authError}</p>
-            )}
+            {authError && <p className="text-destructive text-center text-sm">{authError}</p>}
 
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-center text-sm">
             ¿Ya tienes cuenta?{" "}
             <Link to="/login" className="text-primary font-medium hover:underline">
               Inicia sesión

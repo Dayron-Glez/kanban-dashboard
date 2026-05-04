@@ -1,16 +1,7 @@
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import {
-  Button,
-  Input,
-  Label,
-} from "@/shared"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/dialog"
+import { Button, Input, Label } from "@/shared"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog"
 import { projectSchema, PROJECT_COLORS, type ProjectFormValues } from "../schemas/project.schema"
 
 interface CreateProjectModalProps {
@@ -20,12 +11,19 @@ interface CreateProjectModalProps {
 }
 
 export function CreateProjectModal({ open, onOpenChange, onSubmit }: CreateProjectModalProps) {
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<ProjectFormValues>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: { color: PROJECT_COLORS[0] },
   })
 
-  const selectedColor = watch("color")
+  const selectedColor = useWatch({ control, name: "color" })
 
   const handleClose = () => {
     reset()
@@ -43,18 +41,20 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit }: CreateProje
         <DialogHeader>
           <DialogTitle>Nuevo proyecto</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 mt-2">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="mt-2 space-y-4">
           <div className="space-y-1">
             <Label htmlFor="name">Nombre</Label>
             <Input id="name" placeholder="Mi proyecto" {...register("name")} />
-            {errors.name && (
-              <p className="text-destructive text-xs">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="text-destructive text-xs">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-1">
             <Label htmlFor="description">Descripción (opcional)</Label>
-            <Input id="description" placeholder="¿De qué trata este proyecto?" {...register("description")} />
+            <Input
+              id="description"
+              placeholder="¿De qué trata este proyecto?"
+              {...register("description")}
+            />
           </div>
 
           <div className="space-y-2">

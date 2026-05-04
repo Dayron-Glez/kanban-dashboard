@@ -12,14 +12,14 @@ export function AnalyticsPage() {
   const { velocityData, priorityData, activityItems, stats, loading } = useAnalytics(
     projectId,
     columns,
-    tasks,
+    tasks
   )
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-7xl mx-auto w-full">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <StatsCards stats={stats} loading={loading} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <VelocityChart data={velocityData} loading={loading} />
         </div>

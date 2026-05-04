@@ -1,5 +1,5 @@
-import { useForm, FormProvider } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, FormProvider } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
   Button,
   Sheet,
@@ -9,23 +9,18 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/shared/index";
-import { taskValidationSchema, type TaskFormValues } from "../schemas/task.schema";
-import { TaskForm } from "./TaskForm/TaskForm";
+} from "@/shared/index"
+import { taskValidationSchema, type TaskFormValues } from "../schemas/task.schema"
+import { TaskForm } from "./TaskForm/TaskForm"
 
 interface CreateTaskSheetProps {
-  columnId: string;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  onSave: (id: string, taskData: TaskFormValues) => void;
+  columnId: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onSave: (id: string, taskData: TaskFormValues) => void
 }
 
-export function CreateTaskSheet({
-  columnId,
-  open,
-  onOpenChange,
-  onSave,
-}: CreateTaskSheetProps) {
+export function CreateTaskSheet({ columnId, open, onOpenChange, onSave }: CreateTaskSheetProps) {
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskValidationSchema),
     defaultValues: {
@@ -34,31 +29,29 @@ export function CreateTaskSheet({
       size: "m",
       assignee_id: null,
     },
-  });
+  })
 
   const handleSave = async (): Promise<void> => {
-    const isValid = await form.trigger();
+    const isValid = await form.trigger()
     if (isValid) {
-      const data = form.getValues();
-      onSave(columnId, data);
-      form.reset();
-      onOpenChange?.(false);
+      const data = form.getValues()
+      onSave(columnId, data)
+      form.reset()
+      onOpenChange?.(false)
     }
-  };
+  }
 
   const handleOpenChange = (isOpen: boolean): void => {
-    onOpenChange?.(isOpen);
-    if (!isOpen) form.reset();
-  };
+    onOpenChange?.(isOpen)
+    if (!isOpen) form.reset()
+  }
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="border-transparent flex flex-col justify-between">
+      <SheetContent className="flex flex-col justify-between border-transparent">
         <div className="flex flex-col">
           <SheetHeader>
-            <SheetTitle className="font-semibold text-primary">
-              Crear Tarea
-            </SheetTitle>
+            <SheetTitle className="text-primary font-semibold">Crear Tarea</SheetTitle>
             <SheetDescription>
               Complete los detalles de la tarea y haga clic en Guardar Cambios
             </SheetDescription>
@@ -69,7 +62,7 @@ export function CreateTaskSheet({
             </FormProvider>
           </div>
         </div>
-        <SheetFooter className="grid grid-cols-2 mt-6 gap-2">
+        <SheetFooter className="mt-6 grid grid-cols-2 gap-2">
           <SheetClose asChild>
             <Button type="button" variant="outline">
               Cerrar
@@ -81,5 +74,5 @@ export function CreateTaskSheet({
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

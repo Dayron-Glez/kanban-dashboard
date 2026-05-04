@@ -1,25 +1,15 @@
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/shared/index";
-import { type Task } from "@/features/board/index";
-import { TaskForm } from "./TaskForm/TaskForm";
-import { FormProvider, useForm } from "react-hook-form";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/shared/index"
+import { type Task } from "@/features/board/index"
+import { TaskForm } from "./TaskForm/TaskForm"
+import { FormProvider, useForm } from "react-hook-form"
 
 interface DetailsTaskSheetProps {
-  task: Task;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  task: Task
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function DetailsTaskSheet({
-  task,
-  open,
-  onOpenChange,
-}: DetailsTaskSheetProps) {
+export function DetailsTaskSheet({ task, open, onOpenChange }: DetailsTaskSheetProps) {
   const form = useForm({
     defaultValues: {
       content: task.content,
@@ -27,16 +17,14 @@ export function DetailsTaskSheet({
       size: task.size,
       assignee_id: task.assignee_id,
     },
-  });
+  })
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="border-transparent flex flex-col justify-between">
+      <SheetContent className="flex flex-col justify-between border-transparent">
         <div className="flex flex-col">
           <SheetHeader>
-            <SheetTitle className="font-semibold text-primary">
-              Detalles de la tarea
-            </SheetTitle>
+            <SheetTitle className="text-primary font-semibold">Detalles de la tarea</SheetTitle>
             <SheetDescription />
           </SheetHeader>
           <div className="mt-4 px-2">
@@ -47,5 +35,5 @@ export function DetailsTaskSheet({
         </div>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

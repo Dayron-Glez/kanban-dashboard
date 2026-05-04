@@ -1,12 +1,12 @@
-import { useFormContext, Controller } from "react-hook-form";
-import { Field, FieldError, FieldLabel, Textarea } from "@/shared/index";
+import { useFormContext, Controller } from "react-hook-form"
+import { Field, FieldError, FieldLabel, Textarea } from "@/shared/index"
 
 interface ContentProps {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function ContentTextArea({ disabled = false }: ContentProps) {
-  const { control } = useFormContext();
+  const { control } = useFormContext()
 
   return (
     <Controller
@@ -24,7 +24,7 @@ export function ContentTextArea({ disabled = false }: ContentProps) {
             {...field}
             id="content"
             aria-invalid={fieldState.invalid}
-            className="w-full min-h-32 max-h-96 p-2 border border-gray-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="max-h-96 min-h-32 w-full resize-none rounded border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="Escriba el contenido de la tarea"
             disabled={disabled}
           />
@@ -32,5 +32,5 @@ export function ContentTextArea({ disabled = false }: ContentProps) {
         </Field>
       )}
     />
-  );
+  )
 }

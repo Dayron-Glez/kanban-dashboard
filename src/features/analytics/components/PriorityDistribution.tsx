@@ -1,4 +1,13 @@
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 import { Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/shared"
 import type { PriorityDataPoint } from "../hooks/useAnalytics"
 
@@ -14,7 +23,9 @@ export function PriorityDistribution({ data, loading }: PriorityDistributionProp
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Distribución por prioridad</CardTitle>
-        <p className="text-sm text-muted-foreground">Tareas activas agrupadas por nivel de prioridad</p>
+        <p className="text-muted-foreground text-sm">
+          Tareas activas agrupadas por nivel de prioridad
+        </p>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -25,10 +36,7 @@ export function PriorityDistribution({ data, loading }: PriorityDistributionProp
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="prioridad" tick={{ fontSize: 13 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{ fontSize: 13 }}
-                formatter={(value) => [value, "Tareas"]}
-              />
+              <Tooltip contentStyle={{ fontSize: 13 }} formatter={(value) => [value, "Tareas"]} />
               <Bar dataKey="tareas" radius={[4, 4, 0, 0]}>
                 {data.map((_, i) => (
                   <Cell key={i} fill={PRIORITY_COLORS[i % PRIORITY_COLORS.length]} />

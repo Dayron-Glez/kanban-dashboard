@@ -1,10 +1,10 @@
-import { ContentTextArea } from "./ContentTextArea";
-import { PrioritySelect } from "./PrioritySelect";
-import { SizeSelect } from "./SizeSelect";
-import { AssigneeSelect } from "./AssigneeSelect";
+import { ContentTextArea } from "./ContentTextArea"
+import { PrioritySelect } from "./PrioritySelect"
+import { SizeSelect } from "./SizeSelect"
+import { AssigneeSelect } from "./AssigneeSelect"
 
 interface TaskFormProps {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function TaskForm({ disabled = false }: TaskFormProps) {
@@ -17,5 +17,5 @@ export function TaskForm({ disabled = false }: TaskFormProps) {
       <SizeSelect disabled={disabled} />
       <AssigneeSelect disabled={disabled} />
     </div>
-  );
+  )
 }

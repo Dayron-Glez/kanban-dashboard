@@ -1,12 +1,7 @@
-import { SortableContext, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  IconChevronDown,
-  IconPlus,
-  IconTrash,
-  IconTrashOff,
-} from "@tabler/icons-react";
-import { useContext, useMemo, useState } from "react";
+import { SortableContext, useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { IconChevronDown, IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react"
+import { useContext, useMemo, useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,85 +18,60 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/shared/index";
-import { useKanban, type ColumnType, type Task } from "@/features/board/index";
-import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle";
-import { CreateTaskSheet, TaskCard } from "@/features/task/index";
+} from "@/shared/index"
+import { useKanban, type ColumnType, type Task } from "@/features/board/index"
+import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle"
+import { CreateTaskSheet, TaskCard } from "@/features/task/index"
 
-const COLUMN_ACCENTS = [
-  "#6366f1",
-  "#f97316",
-  "#0ea5e9",
-  "#10b981",
-  "#ec4899",
-  "#8b5cf6",
-];
-const getAccent = (position: number) =>
-  COLUMN_ACCENTS[position % COLUMN_ACCENTS.length];
+const COLUMN_ACCENTS = ["#6366f1", "#f97316", "#0ea5e9", "#10b981", "#ec4899", "#8b5cf6"]
+const getAccent = (position: number) => COLUMN_ACCENTS[position % COLUMN_ACCENTS.length]
 
 interface Props {
-  column: ColumnType;
-  tasks: Task[];
-  hasFilteredTasks?: boolean;
+  column: ColumnType
+  tasks: Task[]
+  hasFilteredTasks?: boolean
 }
 
 function EmptyZone({ onAdd }: { onAdd: () => void }) {
   return (
     <button
       onClick={onAdd}
-      className="group w-full py-5 rounded-[10px] border-[1.5px] border-dashed border-border hover:border-primary text-muted-foreground hover:text-primary flex flex-col items-center justify-center gap-1.5 transition-all hover:bg-primary/5 bg-transparent cursor-pointer"
+      className="group border-border hover:border-primary text-muted-foreground hover:text-primary hover:bg-primary/5 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed bg-transparent py-5 transition-all"
     >
-      <div className="w-7 h-7 rounded-full bg-muted group-hover:bg-primary flex items-center justify-center transition-all text-muted-foreground group-hover:text-primary-foreground">
+      <div className="bg-muted group-hover:bg-primary text-muted-foreground group-hover:text-primary-foreground flex h-7 w-7 items-center justify-center rounded-full transition-all">
         <IconPlus size={12} />
       </div>
       <span className="text-xs font-medium">Agregar primera tarea</span>
     </button>
-  );
+  )
 }
 
-export function ColumnContainer({
-  column,
-  tasks,
-  hasFilteredTasks = false,
-}: Props) {
-  const {
-    updateColumn,
-    deleteColumn,
-    createNewTask,
-    updateTask,
-    deleteTask,
-    userRole,
-  } = useKanban();
+export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Props) {
+  const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask, userRole } =
+    useKanban()
 
-  const isOwner = userRole === "owner";
+  const isOwner = userRole === "owner"
 
-  const searchContext = useContext(SearchContext);
-  const searchValue = searchContext?.searchValue ?? "";
+  const searchContext = useContext(SearchContext)
+  const searchValue = searchContext?.searchValue ?? ""
 
-  const [editMode, setEditMode] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+  const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false)
 
-  const tasksIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
+  const tasksIds = useMemo(() => tasks.map((task) => task.id), [tasks])
 
-  const accent = getAccent(column.position);
-  const p0Count = tasks.filter((t) => t.priority === "p0").length;
-  const progressWidth = Math.min((tasks.length / 5) * 100, 100);
+  const accent = getAccent(column.position)
+  const p0Count = tasks.filter((t) => t.priority === "p0").length
+  const progressWidth = Math.min((tasks.length / 5) * 100, 100)
 
-  const {
-    setNodeRef,
-    attributes,
-    listeners,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
     id: column.id,
     data: { type: "column", column },
     disabled: editMode,
-  });
+  })
 
-  const style = { transition, transform: CSS.Transform.toString(transform) };
+  const style = { transition, transform: CSS.Transform.toString(transform) }
 
   // ── Ghost while dragging ───────────────────────────────────────────────────
   if (isDragging) {
@@ -109,9 +79,9 @@ export function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className="flex-1 min-h-[200px] max-h-[calc(100vh-96px)] opacity-40 border-2 border-primary rounded-[14px] shrink-0"
+        className="border-primary max-h-[calc(100vh-96px)] min-h-[200px] flex-1 shrink-0 rounded-[14px] border-2 opacity-40"
       />
-    );
+    )
   }
 
   // ── Collapsed: slim vertical pill ─────────────────────────────────────────
@@ -123,21 +93,16 @@ export function ColumnContainer({
           style={style}
           onClick={() => setCollapsed(false)}
           title={`${column.title} (${tasks.length} tareas)`}
-          className={`w-10 shrink-0 max-h-[calc(100vh-68px)] flex flex-col items-center bg-card rounded-[14px] border border-border shadow-sm cursor-pointer overflow-hidden pt-3.5 pb-3.5 gap-2.5 ${
-            searchValue.trim().length > 0 && !hasFilteredTasks
-              ? "opacity-35"
-              : ""
+          className={`bg-card border-border flex max-h-[calc(100vh-68px)] w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
+            searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""
           }`}
         >
           {/* Accent dot */}
-          <div
-            className="w-1 h-1 rounded-full shrink-0"
-            style={{ background: accent }}
-          />
+          <div className="h-1 w-1 shrink-0 rounded-full" style={{ background: accent }} />
 
           {/* Rotated title */}
           <span
-            className="text-[11.5px] font-bold text-muted-foreground flex-1 overflow-hidden whitespace-nowrap"
+            className="text-muted-foreground flex-1 overflow-hidden text-[11.5px] font-bold whitespace-nowrap"
             style={{
               writingMode: "vertical-lr",
               textOrientation: "mixed",
@@ -152,7 +117,7 @@ export function ColumnContainer({
 
           {/* Task count badge */}
           <div
-            className="w-[22px] h-[22px] rounded-full text-white text-[10px] font-extrabold flex items-center justify-center shrink-0"
+            className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold text-white"
             style={{ background: accent }}
           >
             {tasks.length}
@@ -161,7 +126,7 @@ export function ColumnContainer({
           {/* P0 urgent dot */}
           {p0Count > 0 && (
             <div
-              className="w-2 h-2 rounded-full shrink-0"
+              className="h-2 w-2 shrink-0 rounded-full"
               style={{
                 background: "#ef4444",
                 boxShadow: "0 0 0 2px rgba(239,68,68,0.2)",
@@ -177,7 +142,7 @@ export function ColumnContainer({
           onSave={createNewTask}
         />
       </>
-    );
+    )
   }
 
   return (
@@ -185,33 +150,28 @@ export function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className={`flex-1 max-h-[calc(100vh-96px)] grid grid-rows-[auto_1fr_auto] bg-card rounded-[14px] border border-border shadow-sm shrink-0 overflow-hidden ${
-          hasFilteredTasks ? "ring-2 ring-primary" : ""
+        className={`bg-card border-border grid max-h-[calc(100vh-96px)] flex-1 shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
+          hasFilteredTasks ? "ring-primary ring-2" : ""
         } ${searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""}`}
       >
         <div>
           <div
             {...attributes}
             {...listeners}
-            className="flex items-center gap-2 px-3.5 py-3 bg-card border-b border-border cursor-grab active:cursor-grabbing"
+            className="bg-card border-border flex cursor-grab items-center gap-2 border-b px-3.5 py-3 active:cursor-grabbing"
           >
             {/* Color dot */}
-            <div
-              className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ background: accent }}
-            />
+            <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: accent }} />
 
             {!editMode && (
               <span
                 onClick={(e) => {
-                  if (!isOwner) return;
-                  e.stopPropagation();
-                  setEditMode(true);
+                  if (!isOwner) return
+                  e.stopPropagation()
+                  setEditMode(true)
                 }}
-                className={`flex-1 text-[13px] font-bold text-foreground truncate ${
-                  isOwner
-                    ? "cursor-pointer hover:text-primary"
-                    : "cursor-default"
+                className={`text-foreground flex-1 truncate text-[13px] font-bold ${
+                  isOwner ? "hover:text-primary cursor-pointer" : "cursor-default"
                 }`}
               >
                 {column.title}
@@ -222,8 +182,8 @@ export function ColumnContainer({
               <EditableColumnTitle
                 title={column.title}
                 onSave={(newTitle) => {
-                  updateColumn(column.id, newTitle);
-                  setEditMode(false);
+                  updateColumn(column.id, newTitle)
+                  setEditMode(false)
                 }}
                 onCancel={() => setEditMode(false)}
               />
@@ -232,7 +192,7 @@ export function ColumnContainer({
             {/* P0 urgency dot */}
             {p0Count > 0 && (
               <div
-                className="w-2 h-2 rounded-full shrink-0"
+                className="h-2 w-2 shrink-0 rounded-full"
                 style={{
                   background: "#ef4444",
                   boxShadow: "0 0 0 2px rgba(239,68,68,0.2)",
@@ -242,16 +202,16 @@ export function ColumnContainer({
             )}
 
             {/* Task count pill */}
-            <div className="flex items-center justify-center bg-primary text-primary-foreground text-[11px] font-bold px-2 py-0.5 rounded-full min-w-6 text-center shrink-0">
+            <div className="bg-primary text-primary-foreground flex min-w-6 shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-center text-[11px] font-bold">
               {tasks.length}
             </div>
 
             <button
               onClick={(e) => {
-                e.stopPropagation();
-                setCollapsed(true);
+                e.stopPropagation()
+                setCollapsed(true)
               }}
-              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 rounded-md p-1 transition-colors"
               title="Colapsar columna"
             >
               <IconChevronDown size={14} className="rotate-90" />
@@ -266,10 +226,8 @@ export function ColumnContainer({
                       <AlertDialogTrigger asChild>
                         <button
                           onClick={(e) => e.stopPropagation()}
-                          disabled={
-                            tasks.length > 0 || searchValue.trim().length > 0
-                          }
-                          className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          disabled={tasks.length > 0 || searchValue.trim().length > 0}
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 rounded-md p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
                         >
                           {tasks.length > 0 || searchValue.trim().length > 0 ? (
                             <IconTrashOff size={14} />
@@ -289,8 +247,8 @@ export function ColumnContainer({
                   <AlertDialogTitle>¿ Eliminar Columna ?</AlertDialogTitle>
                   <AlertDialogHeader>
                     <AlertDialogDescription>
-                      Esta acción no se puede deshacer. La columna y todas sus
-                      tareas serán eliminadas permanentemente.
+                      Esta acción no se puede deshacer. La columna y todas sus tareas serán
+                      eliminadas permanentemente.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -308,7 +266,7 @@ export function ColumnContainer({
           </div>
 
           {tasks.length > 0 && (
-            <div className="h-[3px] bg-border">
+            <div className="bg-border h-[3px]">
               <div
                 className="h-full transition-[width] duration-300 ease-out"
                 style={{
@@ -322,7 +280,7 @@ export function ColumnContainer({
         </div>
 
         <ScrollArea className="h-full min-h-0">
-          <div className="p-2.5 flex flex-col gap-[7px]">
+          <div className="flex flex-col gap-[7px] p-2.5">
             <SortableContext items={tasksIds}>
               {tasks.length === 0 ? (
                 <EmptyZone onAdd={() => setCreateTaskDialogOpen(true)} />
@@ -349,7 +307,7 @@ export function ColumnContainer({
                     <div className="w-full cursor-not-allowed">
                       <button
                         disabled
-                        className="w-full py-2 rounded-[9px] border-[1.5px] border-dashed border-border text-[12.5px] font-medium text-muted-foreground flex items-center justify-center gap-1.5 opacity-40 cursor-not-allowed bg-transparent"
+                        className="border-border text-muted-foreground flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed bg-transparent py-2 text-[12.5px] font-medium opacity-40"
                       >
                         <IconPlus size={12} />
                         Agregar Tarea
@@ -364,7 +322,7 @@ export function ColumnContainer({
             ) : (
               <button
                 onClick={() => setCreateTaskDialogOpen(true)}
-                className="w-full py-2 rounded-[9px] border-[1.5px] border-dashed border-border hover:border-primary text-[12.5px] font-medium text-muted-foreground hover:text-primary flex items-center justify-center gap-1.5 transition-all bg-transparent hover:bg-primary/5 cursor-pointer"
+                className="border-border hover:border-primary text-muted-foreground hover:text-primary hover:bg-primary/5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed bg-transparent py-2 text-[12.5px] font-medium transition-all"
               >
                 <IconPlus size={12} />
                 Agregar Tarea
@@ -381,5 +339,5 @@ export function ColumnContainer({
         onSave={createNewTask}
       />
     </>
-  );
+  )
 }

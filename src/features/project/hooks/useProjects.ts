@@ -61,9 +61,11 @@ export const useProjects = () => {
 
     const defaultColumns = ["Backlog", "Ready", "In Progress", "In Review", "Done"]
     await Promise.all([
-      supabase.from("columns").insert(
-        defaultColumns.map((title, position) => ({ project_id: data.id, title, position })),
-      ),
+      supabase
+        .from("columns")
+        .insert(
+          defaultColumns.map((title, position) => ({ project_id: data.id, title, position }))
+        ),
       supabase.from("project_members").insert({
         project_id: data.id,
         user_id: user.id,

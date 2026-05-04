@@ -28,7 +28,16 @@ export const useProjectMembers = (projectId: string) => {
 
       // Cargar perfiles por separado
       const memberIds = (membersRaw ?? []).map((m) => m.user_id as string)
-      let profilesMap: Record<string, { id: string; full_name: string | null; avatar_url: string | null; email: string | null; updated_at: string }> = {}
+      const profilesMap: Record<
+        string,
+        {
+          id: string
+          full_name: string | null
+          avatar_url: string | null
+          email: string | null
+          updated_at: string
+        }
+      > = {}
       if (memberIds.length > 0) {
         const { data: profilesData } = await supabase
           .from("profiles")
@@ -47,7 +56,7 @@ export const useProjectMembers = (projectId: string) => {
           role: m.role as MemberRole,
           joined_at: m.joined_at,
           profiles: profilesMap[m.user_id] ?? undefined,
-        })),
+        }))
       )
       setInvitations(invitationsData ?? [])
       setLoading(false)

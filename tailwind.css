@@ -1,7 +1,6 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-@config './tailwind.config.js';
-
+@config "./tailwind.config.js";
 
 * {
   -webkit-user-select: none;
@@ -9,142 +8,143 @@
   user-select: none;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   @apply box-border;
 }
 
 :root {
-    --sky: hsl(201 80% 52%);
-    --purple: hsl(281 45% 51%);
-    --green: hsl(170 100% 32%);
-    --gold: hsl(48 100% 35%);
-    --orange: hsl(32 97.7% 62.4%);
-    --yellow: hsl(50 97.8% 63.5%);
+  --sky: hsl(201 80% 52%);
+  --purple: hsl(281 45% 51%);
+  --green: hsl(170 100% 32%);
+  --gold: hsl(48 100% 35%);
+  --orange: hsl(32 97.7% 62.4%);
+  --yellow: hsl(50 97.8% 63.5%);
 
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(240 4% 10%);
-    --card: hsl(0 0% 100%);
-    --card-foreground: hsl(240 4% 15%);
-    --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(240 4% 10%);
-    --primary: hsl(224 71% 40%);
-    --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(240 5% 92%);
-    --secondary-foreground: hsl(240 4% 10%);
-    --muted: hsl(240 5% 96%);
-    --muted-foreground: hsl(240 4% 46%);
-    --accent: hsl(240 5% 96%);
-    --accent-foreground: hsl(240 4% 10%);
-    --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(0 0% 100%);
-    --border: hsl(240 5% 90%);
-    --input: hsl(240 5% 65%);
-    --ring: hsl(224 71% 40%);
-    --row-selected: hsl(224 71% 90%);
-    --radius: 0.5rem;
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(240 4% 10%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(240 4% 15%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(240 4% 10%);
+  --primary: hsl(224 71% 40%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(240 5% 92%);
+  --secondary-foreground: hsl(240 4% 10%);
+  --muted: hsl(240 5% 96%);
+  --muted-foreground: hsl(240 4% 46%);
+  --accent: hsl(240 5% 96%);
+  --accent-foreground: hsl(240 4% 10%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(240 5% 90%);
+  --input: hsl(240 5% 65%);
+  --ring: hsl(224 71% 40%);
+  --row-selected: hsl(224 71% 90%);
+  --radius: 0.5rem;
 
-    --vis-tooltip-background-color: none !important;
-    --vis-tooltip-border-color: none !important;
-    --vis-tooltip-text-color: none !important;
-    --vis-tooltip-shadow-color: none !important;
-    --vis-tooltip-backdrop-filter: none !important;
-    --vis-tooltip-padding: none !important;
+  --vis-tooltip-background-color: none !important;
+  --vis-tooltip-border-color: none !important;
+  --vis-tooltip-text-color: none !important;
+  --vis-tooltip-shadow-color: none !important;
+  --vis-tooltip-backdrop-filter: none !important;
+  --vis-tooltip-padding: none !important;
 
-    --vis-primary-color: var(--primary);
-    --vis-secondary-color: var(--green);
-    --vis-text-color: var(--muted-foreground);
+  --vis-primary-color: var(--primary);
+  --vis-secondary-color: var(--green);
+  --vis-text-color: var(--muted-foreground);
 }
 
 .dark {
-    /* GitHub dark theme — Primer color system */
-    --background: hsl(216 28% 7%);        /* #0d1117 canvas.default */
-    --foreground: hsl(213 15% 83%);       /* #c9d1d9 fg.default */
-    --card: hsl(215 22% 11%);             /* #161b22 canvas.overlay */
-    --card-foreground: hsl(213 15% 83%);
-    --popover: hsl(215 22% 11%);          /* #161b22 */
-    --popover-foreground: hsl(213 15% 83%);
-    --primary: hsl(212 92% 57%);          /* #2f81f7 accent.fg */
-    --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(215 14% 15%);        /* #21262d canvas.subtle */
-    --secondary-foreground: hsl(213 15% 83%);
-    --muted: hsl(215 14% 15%);            /* #21262d */
-    --muted-foreground: hsl(215 8% 57%);  /* #8b949e fg.muted */
-    --accent: hsl(215 14% 15%);           /* #21262d */
-    --accent-foreground: hsl(213 15% 83%);
-    --destructive: hsl(2 92% 63%);        /* #f85149 danger.fg */
-    --destructive-foreground: hsl(0 0% 100%);
-    --border: hsl(216 12% 21%);           /* #30363d border.default */
-    --input: hsl(216 12% 21%);            /* #30363d */
-    --ring: hsl(212 92% 57%);             /* #2f81f7 */
-    --row-selected: hsl(212 92% 15%);
-    --radius: 0.5rem;
+  /* GitHub dark theme — Primer color system */
+  --background: hsl(216 28% 7%); /* #0d1117 canvas.default */
+  --foreground: hsl(213 15% 83%); /* #c9d1d9 fg.default */
+  --card: hsl(215 22% 11%); /* #161b22 canvas.overlay */
+  --card-foreground: hsl(213 15% 83%);
+  --popover: hsl(215 22% 11%); /* #161b22 */
+  --popover-foreground: hsl(213 15% 83%);
+  --primary: hsl(212 92% 57%); /* #2f81f7 accent.fg */
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(215 14% 15%); /* #21262d canvas.subtle */
+  --secondary-foreground: hsl(213 15% 83%);
+  --muted: hsl(215 14% 15%); /* #21262d */
+  --muted-foreground: hsl(215 8% 57%); /* #8b949e fg.muted */
+  --accent: hsl(215 14% 15%); /* #21262d */
+  --accent-foreground: hsl(213 15% 83%);
+  --destructive: hsl(2 92% 63%); /* #f85149 danger.fg */
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(216 12% 21%); /* #30363d border.default */
+  --input: hsl(216 12% 21%); /* #30363d */
+  --ring: hsl(212 92% 57%); /* #2f81f7 */
+  --row-selected: hsl(212 92% 15%);
+  --radius: 0.5rem;
 }
 
 @theme inline {
-    --color-sky: var(--sky);
-    --color-purple: var(--purple);
-    --color-green: var(--green);
-    --color-gold: var(--gold);
-    --color-orange: var(--orange);
-    --color-yellow: var(--yellow);
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-destructive: var(--destructive);
-    --color-destructive-foreground: var(--destructive-foreground);
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
+  --color-sky: var(--sky);
+  --color-purple: var(--purple);
+  --color-green: var(--green);
+  --color-gold: var(--gold);
+  --color-orange: var(--orange);
+  --color-yellow: var(--yellow);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }
 
 @layer utilities {
-    .text-orange {
-        color: var(--color-orange);
-    }
+  .text-orange {
+    color: var(--color-orange);
+  }
 
-    .text-gold {
-        color: var(--color-gold);
-    }
+  .text-gold {
+    color: var(--color-gold);
+  }
 }
 
 @layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 
-    button:not(:disabled),
-    [role="button"]:not(:disabled) {
-        cursor: pointer;
-    }
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
 
-    *,
-    ::after,
-    ::before,
-    ::backdrop,
-    ::file-selector-button {
-        border-color: var(--color-gray-200, currentcolor);
-    }
+  * {
+    @apply border-border;
+  }
 
-    * {
-        @apply border-border;
-    }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", system-ui, sans-serif;
+  }
 
+  @media print {
     body {
-        @apply bg-background text-foreground;
-        font-family: 'Inter', system-ui, sans-serif;
+      background-color: white !important;
     }
-
-    @media print {
-        body {
-            background-color: white !important;
-        }
-    }
+  }
 }

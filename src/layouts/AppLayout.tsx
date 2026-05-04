@@ -8,12 +8,12 @@ export default function AppLayout() {
       <SidebarProvider defaultOpen={true} className="h-screen">
         <Sidebar
           collapsible="icon"
-          className="min-w-16 border-r-transparent shadow-md bg-background"
+          className="bg-background min-w-16 border-r-transparent shadow-md"
         >
           <ProjectSidebarContent />
         </Sidebar>
 
-        <SidebarInset className="h-screen flex flex-col overflow-hidden">
+        <SidebarInset className="flex h-screen flex-col overflow-hidden">
           <Outlet />
         </SidebarInset>
       </SidebarProvider>

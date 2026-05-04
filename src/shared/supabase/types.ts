@@ -74,27 +74,108 @@ export type Database = {
   public: {
     Tables: {
       profiles: {
-        Row: { id: string; full_name: string | null; avatar_url: string | null; email: string | null; updated_at: string }
-        Insert: { id?: string; full_name?: string | null; avatar_url?: string | null; email?: string | null; updated_at?: string }
-        Update: { id?: string; full_name?: string | null; avatar_url?: string | null; email?: string | null; updated_at?: string }
+        Row: {
+          id: string
+          full_name: string | null
+          avatar_url: string | null
+          email: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          email?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          email?: string | null
+          updated_at?: string
+        }
         Relationships: []
       }
       projects: {
-        Row: { id: string; owner_id: string; name: string; description: string | null; color: string; created_at: string }
-        Insert: { id?: string; owner_id: string; name: string; description?: string | null; color: string; created_at?: string }
-        Update: { id?: string; owner_id?: string; name?: string; description?: string | null; color?: string; created_at?: string }
+        Row: {
+          id: string
+          owner_id: string
+          name: string
+          description: string | null
+          color: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          owner_id: string
+          name: string
+          description?: string | null
+          color: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          owner_id?: string
+          name?: string
+          description?: string | null
+          color?: string
+          created_at?: string
+        }
         Relationships: []
       }
       project_members: {
-        Row: { id: string; project_id: string; user_id: string; role: MemberRole; joined_at: string }
-        Insert: { id?: string; project_id: string; user_id: string; role: MemberRole; joined_at?: string }
-        Update: { id?: string; project_id?: string; user_id?: string; role?: MemberRole; joined_at?: string }
+        Row: {
+          id: string
+          project_id: string
+          user_id: string
+          role: MemberRole
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id: string
+          role: MemberRole
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string
+          role?: MemberRole
+          joined_at?: string
+        }
         Relationships: []
       }
       project_invitations: {
-        Row: { id: string; project_id: string; email: string; token: string; status: InvitationStatus; expires_at: string; created_at: string }
-        Insert: { id?: string; project_id: string; email: string; token: string; status?: InvitationStatus; expires_at: string; created_at?: string }
-        Update: { id?: string; project_id?: string; email?: string; token?: string; status?: InvitationStatus; expires_at?: string; created_at?: string }
+        Row: {
+          id: string
+          project_id: string
+          email: string
+          token: string
+          status: InvitationStatus
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          email: string
+          token: string
+          status?: InvitationStatus
+          expires_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          email?: string
+          token?: string
+          status?: InvitationStatus
+          expires_at?: string
+          created_at?: string
+        }
         Relationships: []
       }
       columns: {
@@ -104,15 +185,63 @@ export type Database = {
         Relationships: []
       }
       tasks: {
-        Row: { id: string; column_id: string; project_id: string; assignee_id: string | null; content: string; priority: TaskPriority; size: TaskSize; position: number; created_at: string }
-        Insert: { id?: string; column_id: string; project_id: string; assignee_id?: string | null; content: string; priority: TaskPriority; size: TaskSize; position: number; created_at?: string }
-        Update: { id?: string; column_id?: string; project_id?: string; assignee_id?: string | null; content?: string; priority?: TaskPriority; size?: TaskSize; position?: number; created_at?: string }
+        Row: {
+          id: string
+          column_id: string
+          project_id: string
+          assignee_id: string | null
+          content: string
+          priority: TaskPriority
+          size: TaskSize
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          column_id: string
+          project_id: string
+          assignee_id?: string | null
+          content: string
+          priority: TaskPriority
+          size: TaskSize
+          position: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          column_id?: string
+          project_id?: string
+          assignee_id?: string | null
+          content?: string
+          priority?: TaskPriority
+          size?: TaskSize
+          position?: number
+          created_at?: string
+        }
         Relationships: []
       }
       task_history: {
-        Row: { id: string; task_id: string; from_column_id: string | null; to_column_id: string; moved_at: string }
-        Insert: { id?: string; task_id: string; from_column_id?: string | null; to_column_id: string; moved_at?: string }
-        Update: { id?: string; task_id?: string; from_column_id?: string | null; to_column_id?: string; moved_at?: string }
+        Row: {
+          id: string
+          task_id: string
+          from_column_id: string | null
+          to_column_id: string
+          moved_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          from_column_id?: string | null
+          to_column_id: string
+          moved_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          from_column_id?: string | null
+          to_column_id?: string
+          moved_at?: string
+        }
         Relationships: []
       }
     }
