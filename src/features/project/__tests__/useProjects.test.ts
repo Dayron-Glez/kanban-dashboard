@@ -8,17 +8,27 @@ vi.mock("@/features/auth", () => ({
   useAuth: () => ({ user: mockUser }),
 }))
 
-const mockSelect = vi.fn()
-const mockInsert = vi.fn()
-const mockDelete = vi.fn()
+const mockProjectMembers = {
+  select: vi.fn(),
+  insert: vi.fn(),
+}
+const mockProjects = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  delete: vi.fn(),
+}
+const mockColumns = {
+  insert: vi.fn(),
+}
 
 vi.mock("@/shared/supabase", () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: mockSelect,
-      insert: mockInsert,
-      delete: mockDelete,
-    })),
+    from: vi.fn((table: string) => {
+      if (table === "project_members") return mockProjectMembers
+      if (table === "projects") return mockProjects
+      if (table === "columns") return mockColumns
+      return {}
+    }),
   },
 }))
 
@@ -28,6 +38,7 @@ describe("useProjects", () => {
   })
 
   it("carga proyectos al montar", async () => {
+    const memberRows = [{ project_id: "p1", role: "owner" }]
     const projects = [
       {
         id: "p1",
@@ -37,8 +48,14 @@ describe("useProjects", () => {
         created_at: new Date().toISOString(),
       },
     ]
-    mockSelect.mockReturnValue({
-      order: vi.fn().mockResolvedValue({ data: projects }),
+
+    mockProjectMembers.select.mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ data: memberRows }),
+    })
+    mockProjects.select.mockReturnValue({
+      in: vi.fn().mockReturnValue({
+        order: vi.fn().mockResolvedValue({ data: projects }),
+      }),
     })
 
     const { result } = renderHook(() => useProjects())
@@ -53,6 +70,7 @@ describe("useProjects", () => {
   })
 
   it("createProject agrega el proyecto a la lista", async () => {
+    const memberRows = [{ project_id: "p1", role: "owner" }]
     const existing = [
       {
         id: "p1",
@@ -70,14 +88,21 @@ describe("useProjects", () => {
       created_at: new Date().toISOString(),
     }
 
-    mockSelect.mockReturnValue({
-      order: vi.fn().mockResolvedValue({ data: existing }),
+    mockProjectMembers.select.mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ data: memberRows }),
     })
-    mockInsert.mockReturnValue({
+    mockProjectMembers.insert.mockResolvedValue({ data: null, error: null })
+    mockProjects.select.mockReturnValue({
+      in: vi.fn().mockReturnValue({
+        order: vi.fn().mockResolvedValue({ data: existing }),
+      }),
+    })
+    mockProjects.insert.mockReturnValue({
       select: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue({ data: newProject, error: null }),
       }),
     })
+    mockColumns.insert.mockResolvedValue({ data: null, error: null })
 
     const { result } = renderHook(() => useProjects())
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -91,6 +116,10 @@ describe("useProjects", () => {
   })
 
   it("deleteProject elimina el proyecto de la lista", async () => {
+    const memberRows = [
+      { project_id: "p1", role: "owner" },
+      { project_id: "p2", role: "owner" },
+    ]
     const projects = [
       {
         id: "p1",
@@ -107,10 +136,16 @@ describe("useProjects", () => {
         created_at: new Date().toISOString(),
       },
     ]
-    mockSelect.mockReturnValue({
-      order: vi.fn().mockResolvedValue({ data: projects }),
+
+    mockProjectMembers.select.mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ data: memberRows }),
     })
-    mockDelete.mockReturnValue({
+    mockProjects.select.mockReturnValue({
+      in: vi.fn().mockReturnValue({
+        order: vi.fn().mockResolvedValue({ data: projects }),
+      }),
+    })
+    mockProjects.delete.mockReturnValue({
       eq: vi.fn().mockResolvedValue({ error: null }),
     })
 
