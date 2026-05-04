@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router"
 import { describe, expect, it, vi } from "vitest"
 import { AuthGuard } from "../components/AuthGuard"
 
-vi.mock("../context/AuthContext", () => ({
+vi.mock("../context/useAuth", () => ({
   useAuth: () => ({ user: null, loading: false }),
 }))
 
