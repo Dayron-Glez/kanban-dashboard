@@ -12,26 +12,29 @@ export function ActivityFeed({ items, loading }: ActivityFeedProps) {
     <Card className="flex flex-col">
       <CardHeader>
         <CardTitle className="text-base">Actividad reciente</CardTitle>
-        <p className="text-sm text-muted-foreground">Últimos 15 movimientos de tareas</p>
+        <p className="text-muted-foreground text-sm">Últimos 15 movimientos de tareas</p>
       </CardHeader>
       <CardContent className="flex-1 p-0">
         {loading ? (
-          <div className="px-6 pb-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 px-6 pb-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-12 rounded-lg" />
             ))}
           </div>
         ) : items.length === 0 ? (
-          <p className="px-6 pb-4 text-sm text-muted-foreground">
+          <p className="text-muted-foreground px-6 pb-4 text-sm">
             Aún no hay movimientos registrados. Mueve tareas entre columnas para ver la actividad.
           </p>
         ) : (
           <ScrollArea className="h-[210px]">
-            <ul className="px-6 pb-4 flex flex-col gap-2">
+            <ul className="flex flex-col gap-2 px-6 pb-4">
               {items.map((item) => (
-                <li key={item.id} className="flex flex-col gap-0.5 py-2 border-b border-border last:border-0">
-                  <p className="text-sm font-medium text-primary truncate">{item.taskContent}</p>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <li
+                  key={item.id}
+                  className="border-border flex flex-col gap-0.5 border-b py-2 last:border-0"
+                >
+                  <p className="text-primary truncate text-sm font-medium">{item.taskContent}</p>
+                  <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
                     {item.fromColumnTitle ? (
                       <>
                         <span>{item.fromColumnTitle}</span>

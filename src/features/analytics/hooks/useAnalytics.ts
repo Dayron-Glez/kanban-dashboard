@@ -55,7 +55,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 
 const buildVelocityData = (
   history: TaskHistoryRecord[],
-  doneColumnId: string | undefined,
+  doneColumnId: string | undefined
 ): VelocityDataPoint[] => {
   const now = new Date()
   const last8Weeks = Array.from({ length: 8 }, (_, i) => {
@@ -90,13 +90,15 @@ const buildPriorityData = (tasks: Task[]): PriorityDataPoint[] =>
 
 const buildActivityItems = (
   history: TaskHistoryRecord[],
-  columns: ColumnType[],
+  columns: ColumnType[]
 ): ActivityItem[] => {
   const colMap = new Map(columns.map((c) => [c.id, c.title]))
   return history.slice(0, 15).map((h) => ({
     id: h.id,
     taskContent: h.tasks?.content ?? "Tarea eliminada",
-    fromColumnTitle: h.from_column_id ? (colMap.get(h.from_column_id) ?? "Columna eliminada") : null,
+    fromColumnTitle: h.from_column_id
+      ? (colMap.get(h.from_column_id) ?? "Columna eliminada")
+      : null,
     toColumnTitle: colMap.get(h.to_column_id) ?? "Columna eliminada",
     movedAt: h.moved_at,
     movedAtRelative: formatDistanceToNow(new Date(h.moved_at), { addSuffix: true, locale: es }),
@@ -106,7 +108,7 @@ const buildActivityItems = (
 export const useAnalytics = (
   projectId: string | undefined,
   columns: ColumnType[],
-  tasks: Task[],
+  tasks: Task[]
 ): UseAnalyticsReturn => {
   const [loading, setLoading] = useState(true)
   const [velocityData, setVelocityData] = useState<VelocityDataPoint[]>([])
@@ -131,19 +133,14 @@ export const useAnalytics = (
         if (cancelled) return
 
         const history = ((data ?? []) as TaskHistoryRecord[]).filter(
-          (h) => h.tasks?.project_id === projectId,
+          (h) => h.tasks?.project_id === projectId
         )
 
-        const doneColumnId = columns.find((c) =>
-          c.title.toLowerCase().includes("done"),
-        )?.id
+        const doneColumnId = columns.find((c) => c.title.toLowerCase().includes("done"))?.id
 
-        const doneTasks = doneColumnId
-          ? tasks.filter((t) => t.columnId === doneColumnId).length
-          : 0
+        const doneTasks = doneColumnId ? tasks.filter((t) => t.columnId === doneColumnId).length : 0
         const totalTasks = tasks.length
-        const progressPercent =
-          totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
+        const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
 
         setStats({ totalTasks, doneTasks, progressPercent, totalMoved: history.length })
         setVelocityData(buildVelocityData(history, doneColumnId))

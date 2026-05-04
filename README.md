@@ -24,42 +24,42 @@ El proyecto está diseñado como una SPA (Single Page Application) con enfoque e
 
 ### Core
 
-| Tecnología | Versión | Descripción |
-|---|---|---|
-| [React](https://react.dev/) | 19 | Biblioteca de UI |
-| [TypeScript](https://www.typescriptlang.org/) | 5.9 | Tipado estático |
-| [Vite](https://vite.dev/) | 7 | Build tool y dev server |
-| [Tailwind CSS](https://tailwindcss.com/) | 4 | Framework de estilos utility-first |
+| Tecnología                                    | Versión | Descripción                        |
+| --------------------------------------------- | ------- | ---------------------------------- |
+| [React](https://react.dev/)                   | 19      | Biblioteca de UI                   |
+| [TypeScript](https://www.typescriptlang.org/) | 5.9     | Tipado estático                    |
+| [Vite](https://vite.dev/)                     | 7       | Build tool y dev server            |
+| [Tailwind CSS](https://tailwindcss.com/)      | 4       | Framework de estilos utility-first |
 
 ### UI y Componentes
 
-| Tecnología | Descripción |
-|---|---|
-| [shadcn/ui](https://ui.shadcn.com/) | Componentes reutilizables basados en Radix UI |
-| [Radix UI](https://www.radix-ui.com/) | Primitivas de UI accesibles (Dialog, Select, Tooltip, etc.) |
-| [Lucide React](https://lucide.dev/) | Iconos SVG |
-| [Tabler Icons](https://tabler.io/icons) | Iconos adicionales |
-| [Class Variance Authority](https://cva.style/) | Variantes de componentes |
+| Tecnología                                     | Descripción                                                 |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| [shadcn/ui](https://ui.shadcn.com/)            | Componentes reutilizables basados en Radix UI               |
+| [Radix UI](https://www.radix-ui.com/)          | Primitivas de UI accesibles (Dialog, Select, Tooltip, etc.) |
+| [Lucide React](https://lucide.dev/)            | Iconos SVG                                                  |
+| [Tabler Icons](https://tabler.io/icons)        | Iconos adicionales                                          |
+| [Class Variance Authority](https://cva.style/) | Variantes de componentes                                    |
 
 ### Drag & Drop
 
-| Tecnología | Descripción |
-|---|---|
-| [@dnd-kit/core](https://dndkit.com/) | Motor de drag & drop |
+| Tecnología                               | Descripción                 |
+| ---------------------------------------- | --------------------------- |
+| [@dnd-kit/core](https://dndkit.com/)     | Motor de drag & drop        |
 | [@dnd-kit/sortable](https://dndkit.com/) | Extensión para ordenamiento |
 
 ### Formularios y Validación
 
-| Tecnología | Descripción |
-|---|---|
-| [React Hook Form](https://react-hook-form.com/) | Gestión de formularios |
-| [Zod](https://zod.dev/) | Validación de esquemas y tipos |
+| Tecnología                                                          | Descripción                       |
+| ------------------------------------------------------------------- | --------------------------------- |
+| [React Hook Form](https://react-hook-form.com/)                     | Gestión de formularios            |
+| [Zod](https://zod.dev/)                                             | Validación de esquemas y tipos    |
 | [@hookform/resolvers](https://github.com/react-hook-form/resolvers) | Integración Zod + React Hook Form |
 
 ### Routing
 
-| Tecnología | Descripción |
-|---|---|
+| Tecnología                                  | Descripción                       |
+| ------------------------------------------- | --------------------------------- |
 | [React Router](https://reactrouter.com/) v7 | Enrutamiento del lado del cliente |
 
 ## Requisitos Previos
@@ -97,12 +97,12 @@ La aplicación estará disponible en `http://localhost:5173`.
 
 ## Scripts Disponibles
 
-| Script | Comando | Descripción |
-|---|---|---|
-| `dev` | `npm run dev` | Inicia el servidor de desarrollo con HMR |
-| `build` | `npm run build` | Compila TypeScript y genera el build de producción |
-| `lint` | `npm run lint` | Ejecuta ESLint para análisis estático del código |
-| `preview` | `npm run preview` | Previsualiza el build de producción localmente |
+| Script    | Comando           | Descripción                                        |
+| --------- | ----------------- | -------------------------------------------------- |
+| `dev`     | `npm run dev`     | Inicia el servidor de desarrollo con HMR           |
+| `build`   | `npm run build`   | Compila TypeScript y genera el build de producción |
+| `lint`    | `npm run lint`    | Ejecuta ESLint para análisis estático del código   |
+| `preview` | `npm run preview` | Previsualiza el build de producción localmente     |
 
 ## Estructura del Proyecto
 

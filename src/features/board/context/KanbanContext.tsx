@@ -82,7 +82,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
           title: c.title,
           project_id: c.project_id,
           position: c.position,
-        })),
+        }))
       )
       setTasks(
         (tsksRaw ?? []).map((t) => {
@@ -98,7 +98,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
             assignee_id: raw.assignee_id ?? null,
             assigneeProfile: raw.assignee_id ? (profilesMap[raw.assignee_id] ?? null) : null,
           }
-        }),
+        })
       )
       setMembers(
         (membersRaw ?? []).map((m) => {
@@ -111,7 +111,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
             joined_at: raw.joined_at,
             profiles: profilesMap[raw.user_id],
           }
-        }),
+        })
       )
       setUserRole((memberRow?.role as MemberRole) ?? null)
       setLoading(false)
@@ -122,7 +122,8 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   // ── Columnas ───────────────────────────────────────────────────
   const createNewColumn = async (title?: string): Promise<void> => {
     if (!projectId) return
-    const resolvedTitle = title && title.trim() !== "" ? title.trim() : `Columna ${columns.length + 1}`
+    const resolvedTitle =
+      title && title.trim() !== "" ? title.trim() : `Columna ${columns.length + 1}`
     const position = columns.length
 
     const { data, error } = await supabase
@@ -132,12 +133,20 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
       .single()
 
     if (error || !data) return
-    const newCol: ColumnType = { id: data.id, title: data.title, project_id: data.project_id, position: data.position }
+    const newCol: ColumnType = {
+      id: data.id,
+      title: data.title,
+      project_id: data.project_id,
+      position: data.position,
+    }
     setColumns((prev) => [...prev, newCol])
 
     setTimeout(() => {
       if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({ left: scrollContainerRef.current.scrollWidth, behavior: "smooth" })
+        scrollContainerRef.current.scrollTo({
+          left: scrollContainerRef.current.scrollWidth,
+          behavior: "smooth",
+        })
       }
     }, 50)
   }
@@ -156,7 +165,12 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   // ── Tareas ─────────────────────────────────────────────────────
   const createNewTask = async (
     columnId: string,
-    taskData: { content: string; priority: TaskPriority; size: TaskSize; assignee_id?: string | null },
+    taskData: {
+      content: string
+      priority: TaskPriority
+      size: TaskSize
+      assignee_id?: string | null
+    }
   ): Promise<void> => {
     if (!projectId) return
     const position = tasks.filter((t) => t.columnId === columnId).length
@@ -177,7 +191,9 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
 
     if (error || !data) return
     const raw = data as RawTask
-    const assigneeProfile = raw.assignee_id ? (members.find((m) => m.user_id === raw.assignee_id)?.profiles ?? null) : null
+    const assigneeProfile = raw.assignee_id
+      ? (members.find((m) => m.user_id === raw.assignee_id)?.profiles ?? null)
+      : null
     const newTask: Task = {
       id: raw.id,
       columnId: raw.column_id,
@@ -194,12 +210,16 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
 
   const updateTask = async (
     id: string,
-    taskData: { content: string; priority: TaskPriority; size: TaskSize; assignee_id?: string | null },
+    taskData: {
+      content: string
+      priority: TaskPriority
+      size: TaskSize
+      assignee_id?: string | null
+    }
   ): Promise<void> => {
-    const assigneeProfile =
-      taskData.assignee_id
-        ? members.find((m) => m.user_id === taskData.assignee_id)?.profiles ?? null
-        : null
+    const assigneeProfile = taskData.assignee_id
+      ? (members.find((m) => m.user_id === taskData.assignee_id)?.profiles ?? null)
+      : null
 
     setTasks((prev) =>
       prev.map((t) =>
@@ -212,8 +232,8 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
               assignee_id: taskData.assignee_id ?? null,
               assigneeProfile: assigneeProfile ?? null,
             }
-          : t,
-      ),
+          : t
+      )
     )
     await supabase
       .from("tasks")

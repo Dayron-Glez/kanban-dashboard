@@ -1,8 +1,8 @@
 // src/features/task/components/TaskCard.tsx
-import { useState } from "react";
-import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { useState } from "react"
+import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react"
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -22,41 +22,43 @@ import {
   TooltipProvider,
   TooltipTrigger,
   Button,
-} from "@/shared/index";
-import { type Task } from "@/features/board/index";
-import { type TaskFormValues } from "../schemas/task.schema";
-import { DetailsTaskSheet } from "./DetailsTaskSheet";
-import { EditTaskSheet } from "./EditTaskSheet";
-import { PRIORITY_CONFIG, SIZE_CONFIG } from "./taskChips";
+} from "@/shared/index"
+import { type Task } from "@/features/board/index"
+import { type TaskFormValues } from "../schemas/task.schema"
+import { DetailsTaskSheet } from "./DetailsTaskSheet"
+import { EditTaskSheet } from "./EditTaskSheet"
+import { PRIORITY_CONFIG, SIZE_CONFIG } from "./taskChips"
 
 const getInitials = (name: string | null | undefined): string => {
-  if (!name) return "?";
+  if (!name) return "?"
   return name
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2);
-};
+    .slice(0, 2)
+}
 
 interface Props {
-  task: Task;
-  deleteTask: (id: string) => void;
-  updateTask: (id: string, taskData: TaskFormValues) => void;
+  task: Task
+  deleteTask: (id: string) => void
+  updateTask: (id: string, taskData: TaskFormValues) => void
 }
 
 export function TaskCard({ task, deleteTask, updateTask }: Props) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  const { setNodeRef, attributes, listeners, transform, transition, isDragging } =
-    useSortable({ id: task.id, data: { type: "task", task } });
+  const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
+    id: task.id,
+    data: { type: "task", task },
+  })
 
-  const style = { transition, transform: CSS.Transform.toString(transform) };
+  const style = { transition, transform: CSS.Transform.toString(transform) }
 
-  const priority = PRIORITY_CONFIG[task.priority];
-  const size = SIZE_CONFIG[task.size];
+  const priority = PRIORITY_CONFIG[task.priority]
+  const size = SIZE_CONFIG[task.size]
 
   if (isDragging) {
     return (
@@ -65,9 +67,9 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className={`border border-l-4 border-dashed ${priority.borderClassName} rounded-[10px] min-h-[72px] bg-muted/30 opacity-60`}
+        className={`border border-l-4 border-dashed ${priority.borderClassName} bg-muted/30 min-h-[72px] rounded-[10px] opacity-60`}
       />
-    );
+    )
   }
 
   return (
@@ -77,11 +79,11 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className={`border border-l-4 ${priority.borderClassName} ${priority.bgClassName} rounded-[10px] shadow-sm hover:shadow-md transition-shadow cursor-grab px-3 py-2.5 flex flex-col gap-2`}
+        className={`border border-l-4 ${priority.borderClassName} ${priority.bgClassName} flex cursor-grab flex-col gap-2 rounded-[10px] px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md`}
       >
         {/* Fila superior: título + menú */}
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-sm font-medium text-foreground leading-snug line-clamp-2">
+          <span className="text-foreground line-clamp-2 flex-1 text-sm leading-snug font-medium">
             {task.content}
           </span>
           <DropdownMenu modal={false}>
@@ -89,7 +91,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
                 aria-label="Abrir menú de acciones"
               >
                 <IconDots size={14} />
@@ -105,10 +107,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
                   <IconEdit size={14} />
                   Editar Tarea
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={() => setDeleteDialogOpen(true)}
-                >
+                <DropdownMenuItem variant="destructive" onSelect={() => setDeleteDialogOpen(true)}>
                   <IconTrash size={14} />
                   Eliminar Tarea
                 </DropdownMenuItem>
@@ -119,11 +118,15 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
 
         {/* Fila inferior: badges + avatar */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1.5 flex-wrap">
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${priority.className}`}>
+          <div className="flex flex-wrap gap-1.5">
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${priority.className}`}
+            >
               {priority.label}
             </span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${size.className}`}>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${size.className}`}
+            >
               {size.label}
             </span>
           </div>
@@ -132,7 +135,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="h-6 w-6 rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold flex items-center justify-center shrink-0 cursor-default border border-white shadow-sm">
+                  <div className="flex h-6 w-6 shrink-0 cursor-default items-center justify-center rounded-full border border-white bg-violet-100 text-[9px] font-bold text-violet-600 shadow-sm">
                     {getInitials(task.assigneeProfile.full_name)}
                   </div>
                 </TooltipTrigger>
@@ -173,5 +176,5 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }

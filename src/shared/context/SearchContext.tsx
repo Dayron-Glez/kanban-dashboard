@@ -1,6 +1,6 @@
-import { createContext } from "react";
+import { createContext } from "react"
 
 export const SearchContext = createContext<{
-  searchValue: string;
-  setSearchValue: (value: string) => void;
-} | null>(null);
+  searchValue: string
+  setSearchValue: (value: string) => void
+} | null>(null)

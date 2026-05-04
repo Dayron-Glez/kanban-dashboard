@@ -1,4 +1,4 @@
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form"
 import {
   Field,
   FieldError,
@@ -8,16 +8,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/index";
-import { TASK_SIZES } from "@/features/board/types/board.types";
-import { SIZE_CONFIG } from "../taskChips";
+} from "@/shared/index"
+import { TASK_SIZES } from "@/features/board/types/board.types"
+import { SIZE_CONFIG } from "../taskChips"
 
 interface SelectSizeProps {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function SizeSelect({ disabled = false }: SelectSizeProps) {
-  const { control, formState: { errors } } = useFormContext();
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext()
 
   return (
     <Controller
@@ -34,14 +37,16 @@ export function SizeSelect({ disabled = false }: SelectSizeProps) {
             </SelectTrigger>
             <SelectContent>
               {TASK_SIZES.map((size) => {
-                const cfg = SIZE_CONFIG[size];
+                const cfg = SIZE_CONFIG[size]
                 return (
                   <SelectItem key={size} value={size}>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.className}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.className}`}
+                    >
                       {cfg.label}
                     </span>
                   </SelectItem>
-                );
+                )
               })}
             </SelectContent>
           </Select>
@@ -49,5 +54,5 @@ export function SizeSelect({ disabled = false }: SelectSizeProps) {
         </Field>
       )}
     />
-  );
+  )
 }

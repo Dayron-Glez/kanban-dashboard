@@ -15,11 +15,21 @@ export interface KanbanContextType {
   deleteColumn: (id: string) => void
   createNewTask: (
     columnId: string,
-    taskData: { content: string; priority: TaskPriority; size: TaskSize; assignee_id?: string | null },
+    taskData: {
+      content: string
+      priority: TaskPriority
+      size: TaskSize
+      assignee_id?: string | null
+    }
   ) => void
   updateTask: (
     id: string,
-    taskData: { content: string; priority: TaskPriority; size: TaskSize; assignee_id?: string | null },
+    taskData: {
+      content: string
+      priority: TaskPriority
+      size: TaskSize
+      assignee_id?: string | null
+    }
   ) => void
   deleteTask: (id: string) => void
   setColumns: React.Dispatch<React.SetStateAction<ColumnType[]>>

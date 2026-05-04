@@ -1,12 +1,12 @@
-import { useFormContext, Controller } from "react-hook-form";
-import { Field, FieldError, Textarea } from "@/shared/index";
+import { useFormContext, Controller } from "react-hook-form"
+import { Field, FieldError, Textarea } from "@/shared/index"
 
 interface Props {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function TitleTextArea({ disabled }: Props) {
-  const { control } = useFormContext();
+  const { control } = useFormContext()
 
   return (
     <Controller
@@ -18,7 +18,7 @@ export function TitleTextArea({ disabled }: Props) {
             {...field}
             id="title"
             aria-invalid={fieldState.invalid}
-            className="min-h-32 max-h-96 focus-visible:ring-0"
+            className="max-h-96 min-h-32 focus-visible:ring-0"
             placeholder="Escriba el nombre de la columna"
             disabled={disabled}
           />
@@ -26,5 +26,5 @@ export function TitleTextArea({ disabled }: Props) {
         </Field>
       )}
     />
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form"
 import {
   Field,
   FieldError,
@@ -8,16 +8,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/index";
-import { TASK_PRIORITIES } from "@/features/board/types/board.types";
-import { PRIORITY_CONFIG } from "../taskChips";
+} from "@/shared/index"
+import { TASK_PRIORITIES } from "@/features/board/types/board.types"
+import { PRIORITY_CONFIG } from "../taskChips"
 
 interface SelectPriorityProps {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
-  const { control, formState: { errors } } = useFormContext();
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext()
 
   return (
     <Controller
@@ -34,14 +37,16 @@ export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
             </SelectTrigger>
             <SelectContent>
               {TASK_PRIORITIES.map((priority) => {
-                const cfg = PRIORITY_CONFIG[priority];
+                const cfg = PRIORITY_CONFIG[priority]
                 return (
                   <SelectItem key={priority} value={priority}>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.className}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.className}`}
+                    >
                       {cfg.label}
                     </span>
                   </SelectItem>
-                );
+                )
               })}
             </SelectContent>
           </Select>
@@ -49,5 +54,5 @@ export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
         </Field>
       )}
     />
-  );
+  )
 }

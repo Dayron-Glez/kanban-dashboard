@@ -13,7 +13,11 @@ export interface Task {
   project_id: string
   position: number
   assignee_id: string | null
-  assigneeProfile: { full_name: string | null; avatar_url: string | null; email: string | null } | null
+  assigneeProfile: {
+    full_name: string | null
+    avatar_url: string | null
+    email: string | null
+  } | null
 }
 
 export interface ColumnType {

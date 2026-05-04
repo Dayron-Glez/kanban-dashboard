@@ -77,7 +77,10 @@ export default function KanbanBoard() {
           project_id: col.project_id,
           title: col.title,
         }))
-        supabase.from("columns").upsert(updates).then(() => {})
+        supabase
+          .from("columns")
+          .upsert(updates)
+          .then(() => {})
         return reordered.map((col, i) => ({ ...col, position: i }))
       })
       return
@@ -114,7 +117,7 @@ export default function KanbanBoard() {
             content: t.content,
             priority: t.priority,
             size: t.size,
-          })),
+          }))
         )
         .then(({ error }) => {
           if (error) console.error("[kanban] task positions upsert failed:", error)
@@ -133,7 +136,7 @@ export default function KanbanBoard() {
               content: t.content,
               priority: t.priority,
               size: t.size,
-            })),
+            }))
           )
           .then(({ error }) => {
             if (error) console.error("[kanban] origin column positions upsert failed:", error)
@@ -197,21 +200,26 @@ export default function KanbanBoard() {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragOver={onDragOver}>
-      <div className="flex items-start gap-4 h-full p-4 w-full">
-          <SortableContext items={columnsId}>
-            {columns.map((column) => {
-              const columnFilteredTasks = filteredTasks.filter((t) => t.columnId === column.id)
-              return (
-                <ColumnContainer
-                  key={column.id}
-                  column={column}
-                  tasks={columnFilteredTasks}
-                  hasFilteredTasks={searchValue.trim().length > 0 && columnFilteredTasks.length > 0}
-                />
-              )
-            })}
-          </SortableContext>
+    <DndContext
+      sensors={sensors}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+    >
+      <div className="flex h-full w-full items-start gap-4 p-4">
+        <SortableContext items={columnsId}>
+          {columns.map((column) => {
+            const columnFilteredTasks = filteredTasks.filter((t) => t.columnId === column.id)
+            return (
+              <ColumnContainer
+                key={column.id}
+                column={column}
+                tasks={columnFilteredTasks}
+                hasFilteredTasks={searchValue.trim().length > 0 && columnFilteredTasks.length > 0}
+              />
+            )
+          })}
+        </SortableContext>
       </div>
 
       {createPortal(
@@ -228,7 +236,7 @@ export default function KanbanBoard() {
           )}
           {activeTask && <TaskCard task={activeTask} deleteTask={() => {}} updateTask={() => {}} />}
         </DragOverlay>,
-        document.body,
+        document.body
       )}
     </DndContext>
   )

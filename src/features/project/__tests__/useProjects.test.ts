@@ -28,7 +28,15 @@ describe("useProjects", () => {
   })
 
   it("carga proyectos al montar", async () => {
-    const projects = [{ id: "p1", name: "Proyecto 1", color: "#3b82f6", owner_id: "user-1", created_at: new Date().toISOString() }]
+    const projects = [
+      {
+        id: "p1",
+        name: "Proyecto 1",
+        color: "#3b82f6",
+        owner_id: "user-1",
+        created_at: new Date().toISOString(),
+      },
+    ]
     mockSelect.mockReturnValue({
       order: vi.fn().mockResolvedValue({ data: projects }),
     })
@@ -45,8 +53,22 @@ describe("useProjects", () => {
   })
 
   it("createProject agrega el proyecto a la lista", async () => {
-    const existing = [{ id: "p1", name: "Existente", color: "#3b82f6", owner_id: "user-1", created_at: new Date().toISOString() }]
-    const newProject = { id: "p2", name: "Nuevo", color: "#8b5cf6", owner_id: "user-1", created_at: new Date().toISOString() }
+    const existing = [
+      {
+        id: "p1",
+        name: "Existente",
+        color: "#3b82f6",
+        owner_id: "user-1",
+        created_at: new Date().toISOString(),
+      },
+    ]
+    const newProject = {
+      id: "p2",
+      name: "Nuevo",
+      color: "#8b5cf6",
+      owner_id: "user-1",
+      created_at: new Date().toISOString(),
+    }
 
     mockSelect.mockReturnValue({
       order: vi.fn().mockResolvedValue({ data: existing }),
@@ -70,8 +92,20 @@ describe("useProjects", () => {
 
   it("deleteProject elimina el proyecto de la lista", async () => {
     const projects = [
-      { id: "p1", name: "A", color: "#3b82f6", owner_id: "user-1", created_at: new Date().toISOString() },
-      { id: "p2", name: "B", color: "#8b5cf6", owner_id: "user-1", created_at: new Date().toISOString() },
+      {
+        id: "p1",
+        name: "A",
+        color: "#3b82f6",
+        owner_id: "user-1",
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "p2",
+        name: "B",
+        color: "#8b5cf6",
+        owner_id: "user-1",
+        created_at: new Date().toISOString(),
+      },
     ]
     mockSelect.mockReturnValue({
       order: vi.fn().mockResolvedValue({ data: projects }),

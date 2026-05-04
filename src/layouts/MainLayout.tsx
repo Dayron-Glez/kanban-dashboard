@@ -1,12 +1,6 @@
 import { useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
-import {
-  Header,
-  ScrollArea,
-  SearchContext,
-  Skeleton,
-  useSidebar,
-} from "@/shared/index"
+import { Header, ScrollArea, SearchContext, Skeleton, useSidebar } from "@/shared/index"
 import { KanbanProvider, useKanban } from "@/features/board/index"
 import { useProjectsContext } from "@/features/project"
 import noDataSvg from "@/assets/noData.svg"
@@ -39,8 +33,8 @@ function KanbanContent() {
         ref={!isScrollablePage ? scrollContainerRef : undefined}
         className={
           isScrollablePage
-            ? `flex-1 overflow-hidden bg-muted ${state === "collapsed" ? "pl-4" : ""}`
-            : `flex-1 overflow-hidden flex bg-muted ${state === "collapsed" ? "pl-4" : ""}`
+            ? `bg-muted flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
+            : `bg-muted flex flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
         }
       >
         {isScrollablePage ? (
@@ -48,15 +42,18 @@ function KanbanContent() {
             <Outlet />
           </ScrollArea>
         ) : loading ? (
-          <div className="flex gap-4 h-full p-4">
+          <div className="flex h-full gap-4 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="flex-1 max-h-[calc(100vh-96px)] rounded-[14px] shrink-0" />
+              <Skeleton
+                key={i}
+                className="max-h-[calc(100vh-96px)] flex-1 shrink-0 rounded-[14px]"
+              />
             ))}
           </div>
         ) : columns.length > 0 ? (
           <SearchContext.Provider value={{ searchValue, setSearchValue }}>
             {filteredTasks.length === 0 && searchValue.trim().length > 0 ? (
-              <div className="flex flex-col items-center justify-center w-full h-full">
+              <div className="flex h-full w-full flex-col items-center justify-center">
                 <img src={notFindByFilter} alt="Sin resultados" className="size-[500px]" />
                 <p className="text-primary text-lg font-semibold">
                   No hay tareas que coincidan con el filtro de búsqueda aplicado. Por favor, intente
@@ -68,8 +65,8 @@ function KanbanContent() {
             )}
           </SearchContext.Provider>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center">
-            <img src={noDataSvg} alt="No data" className="size-64 mb-4" />
+          <div className="flex h-full w-full flex-col items-center justify-center">
+            <img src={noDataSvg} alt="No data" className="mb-4 size-64" />
             <p className="text-primary text-lg">
               No hay columnas creadas. Pulse en el botón{" "}
               <span className="font-bold">Agregar Columna</span> para crear una nueva columna

@@ -12,13 +12,13 @@
 
 ## Archivos
 
-| Acción | Ruta |
-|--------|------|
-| Crear | `src/features/task/components/taskChips.ts` |
-| Modificar | `src/features/board/types/board.types.ts` |
-| Modificar | `src/features/task/components/TaskCard.tsx` |
+| Acción    | Ruta                                                       |
+| --------- | ---------------------------------------------------------- |
+| Crear     | `src/features/task/components/taskChips.ts`                |
+| Modificar | `src/features/board/types/board.types.ts`                  |
+| Modificar | `src/features/task/components/TaskCard.tsx`                |
 | Modificar | `src/features/task/components/TaskForm/PrioritySelect.tsx` |
-| Modificar | `src/features/task/components/TaskForm/SizeSelect.tsx` |
+| Modificar | `src/features/task/components/TaskForm/SizeSelect.tsx`     |
 | Modificar | `src/features/task/components/TaskForm/AssigneeSelect.tsx` |
 
 ---
@@ -26,6 +26,7 @@
 ## Task 1: Configuración de colores compartida
 
 **Files:**
+
 - Create: `src/features/task/components/taskChips.ts`
 
 - [ ] **Step 1: Crear el archivo de configuración**
@@ -42,9 +43,9 @@ export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; className: s
 
 export const SIZE_CONFIG: Record<TaskSize, { label: string; className: string }> = {
   xs: { label: "XS", className: "bg-green-50 text-green-600" },
-  s:  { label: "S",  className: "bg-emerald-50 text-emerald-600" },
-  m:  { label: "M",  className: "bg-blue-50 text-blue-500" },
-  l:  { label: "L",  className: "bg-violet-50 text-violet-600" },
+  s: { label: "S", className: "bg-emerald-50 text-emerald-600" },
+  m: { label: "M", className: "bg-blue-50 text-blue-500" },
+  l: { label: "L", className: "bg-violet-50 text-violet-600" },
   xl: { label: "XL", className: "bg-orange-50 text-orange-500" },
 }
 ```
@@ -69,6 +70,7 @@ git commit -m "feat(task): añadir configuración de colores para prioridad y ta
 ## Task 2: Actualizar tipo assigneeProfile para incluir email
 
 **Files:**
+
 - Modify: `src/features/board/types/board.types.ts` (línea 16)
 
 - [ ] **Step 1: Actualizar la interfaz Task**
@@ -105,16 +107,17 @@ git commit -m "feat(task): añadir email al tipo assigneeProfile"
 ## Task 3: Rediseño completo de TaskCard
 
 **Files:**
+
 - Modify: `src/features/task/components/TaskCard.tsx`
 
 - [ ] **Step 1: Reemplazar el contenido completo del archivo**
 
 ```tsx
 // src/features/task/components/TaskCard.tsx
-import { useState } from "react";
-import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { useState } from "react"
+import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react"
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -134,41 +137,43 @@ import {
   TooltipProvider,
   TooltipTrigger,
   Button,
-} from "@/shared/index";
-import { type Task } from "@/features/board/index";
-import { type TaskFormValues } from "../schemas/task.schema";
-import { DetailsTaskSheet } from "./DetailsTaskSheet";
-import { EditTaskSheet } from "./EditTaskSheet";
-import { PRIORITY_CONFIG, SIZE_CONFIG } from "./taskChips";
+} from "@/shared/index"
+import { type Task } from "@/features/board/index"
+import { type TaskFormValues } from "../schemas/task.schema"
+import { DetailsTaskSheet } from "./DetailsTaskSheet"
+import { EditTaskSheet } from "./EditTaskSheet"
+import { PRIORITY_CONFIG, SIZE_CONFIG } from "./taskChips"
 
 const getInitials = (name: string | null | undefined): string => {
-  if (!name) return "?";
+  if (!name) return "?"
   return name
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2);
-};
+    .slice(0, 2)
+}
 
 interface Props {
-  task: Task;
-  deleteTask: (id: string) => void;
-  updateTask: (id: string, taskData: TaskFormValues) => void;
+  task: Task
+  deleteTask: (id: string) => void
+  updateTask: (id: string, taskData: TaskFormValues) => void
 }
 
 export function TaskCard({ task, deleteTask, updateTask }: Props) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  const { setNodeRef, attributes, listeners, transform, transition, isDragging } =
-    useSortable({ id: task.id, data: { type: "task", task } });
+  const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
+    id: task.id,
+    data: { type: "task", task },
+  })
 
-  const style = { transition, transform: CSS.Transform.toString(transform) };
+  const style = { transition, transform: CSS.Transform.toString(transform) }
 
-  const priority = PRIORITY_CONFIG[task.priority];
-  const size = SIZE_CONFIG[task.size];
+  const priority = PRIORITY_CONFIG[task.priority]
+  const size = SIZE_CONFIG[task.size]
 
   if (isDragging) {
     return (
@@ -177,9 +182,9 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className="border border-dashed border-border rounded-lg min-h-[72px] bg-muted/50 my-2 opacity-60"
+        className="border-border bg-muted/50 my-2 min-h-[72px] rounded-lg border border-dashed opacity-60"
       />
-    );
+    )
   }
 
   return (
@@ -189,11 +194,11 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         style={style}
         {...attributes}
         {...listeners}
-        className="bg-card border border-border rounded-lg shadow-sm hover:shadow-md hover:border-muted-foreground/30 transition-all cursor-grab my-2 p-3 flex flex-col gap-2"
+        className="bg-card border-border hover:border-muted-foreground/30 my-2 flex cursor-grab flex-col gap-2 rounded-lg border p-3 shadow-sm transition-all hover:shadow-md"
       >
         {/* Fila superior: título + menú */}
         <div className="flex items-start gap-2">
-          <span className="flex-1 text-sm font-medium text-foreground leading-snug line-clamp-2">
+          <span className="text-foreground line-clamp-2 flex-1 text-sm font-medium leading-snug">
             {task.content}
           </span>
           <DropdownMenu modal={false}>
@@ -201,7 +206,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted mt-0.5 shrink-0"
                 aria-label="Abrir menú de acciones"
               >
                 <IconDots size={14} />
@@ -217,10 +222,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
                   <IconEdit size={14} />
                   Editar Tarea
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={() => setDeleteDialogOpen(true)}
-                >
+                <DropdownMenuItem variant="destructive" onSelect={() => setDeleteDialogOpen(true)}>
                   <IconTrash size={14} />
                   Eliminar Tarea
                 </DropdownMenuItem>
@@ -231,11 +233,15 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
 
         {/* Fila inferior: badges + avatar */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1.5 flex-wrap">
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${priority.className}`}>
+          <div className="flex flex-wrap gap-1.5">
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${priority.className}`}
+            >
               {priority.label}
             </span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${size.className}`}>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${size.className}`}
+            >
               {size.label}
             </span>
           </div>
@@ -244,7 +250,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="h-6 w-6 rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold flex items-center justify-center shrink-0 cursor-default border border-white shadow-sm">
+                  <div className="flex h-6 w-6 shrink-0 cursor-default items-center justify-center rounded-full border border-white bg-violet-100 text-[9px] font-bold text-violet-600 shadow-sm">
                     {getInitials(task.assigneeProfile.full_name)}
                   </div>
                 </TooltipTrigger>
@@ -285,7 +291,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }
 ```
 
@@ -309,13 +315,14 @@ git commit -m "feat(task): rediseñar TaskCard al estilo GitHub"
 ## Task 4: Chips de colores en PrioritySelect
 
 **Files:**
+
 - Modify: `src/features/task/components/TaskForm/PrioritySelect.tsx`
 
 - [ ] **Step 1: Actualizar el componente**
 
 ```tsx
 // src/features/task/components/TaskForm/PrioritySelect.tsx
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form"
 import {
   Field,
   FieldError,
@@ -325,16 +332,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/index";
-import { TASK_PRIORITIES } from "@/features/board/types/board.types";
-import { PRIORITY_CONFIG } from "../taskChips";
+} from "@/shared/index"
+import { TASK_PRIORITIES } from "@/features/board/types/board.types"
+import { PRIORITY_CONFIG } from "../taskChips"
 
 interface SelectPriorityProps {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
-  const { control, formState: { errors } } = useFormContext();
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext()
 
   return (
     <Controller
@@ -351,14 +361,16 @@ export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
             </SelectTrigger>
             <SelectContent>
               {TASK_PRIORITIES.map((priority) => {
-                const cfg = PRIORITY_CONFIG[priority];
+                const cfg = PRIORITY_CONFIG[priority]
                 return (
                   <SelectItem key={priority} value={priority}>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.className}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.className}`}
+                    >
                       {cfg.label}
                     </span>
                   </SelectItem>
-                );
+                )
               })}
             </SelectContent>
           </Select>
@@ -366,7 +378,7 @@ export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
         </Field>
       )}
     />
-  );
+  )
 }
 ```
 
@@ -390,13 +402,14 @@ git commit -m "feat(task): chips de colores en selector de prioridad"
 ## Task 5: Chips de colores en SizeSelect
 
 **Files:**
+
 - Modify: `src/features/task/components/TaskForm/SizeSelect.tsx`
 
 - [ ] **Step 1: Actualizar el componente**
 
 ```tsx
 // src/features/task/components/TaskForm/SizeSelect.tsx
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form"
 import {
   Field,
   FieldError,
@@ -406,16 +419,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/index";
-import { TASK_SIZES } from "@/features/board/types/board.types";
-import { SIZE_CONFIG } from "../taskChips";
+} from "@/shared/index"
+import { TASK_SIZES } from "@/features/board/types/board.types"
+import { SIZE_CONFIG } from "../taskChips"
 
 interface SelectSizeProps {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function SizeSelect({ disabled = false }: SelectSizeProps) {
-  const { control, formState: { errors } } = useFormContext();
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext()
 
   return (
     <Controller
@@ -432,14 +448,16 @@ export function SizeSelect({ disabled = false }: SelectSizeProps) {
             </SelectTrigger>
             <SelectContent>
               {TASK_SIZES.map((size) => {
-                const cfg = SIZE_CONFIG[size];
+                const cfg = SIZE_CONFIG[size]
                 return (
                   <SelectItem key={size} value={size}>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.className}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.className}`}
+                    >
                       {cfg.label}
                     </span>
                   </SelectItem>
-                );
+                )
               })}
             </SelectContent>
           </Select>
@@ -447,7 +465,7 @@ export function SizeSelect({ disabled = false }: SelectSizeProps) {
         </Field>
       )}
     />
-  );
+  )
 }
 ```
 
@@ -471,13 +489,14 @@ git commit -m "feat(task): chips de colores en selector de tamaño"
 ## Task 6: Email en AssigneeSelect
 
 **Files:**
+
 - Modify: `src/features/task/components/TaskForm/AssigneeSelect.tsx`
 
 - [ ] **Step 1: Actualizar el componente para mostrar email**
 
 ```tsx
 // src/features/task/components/TaskForm/AssigneeSelect.tsx
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form"
 import {
   Field,
   FieldLabel,
@@ -486,26 +505,26 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/index";
-import { useKanban } from "@/features/board/index";
+} from "@/shared/index"
+import { useKanban } from "@/features/board/index"
 
 const getInitials = (name: string | null | undefined): string => {
-  if (!name) return "?";
+  if (!name) return "?"
   return name
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2);
-};
+    .slice(0, 2)
+}
 
 interface AssigneeSelectProps {
-  disabled?: boolean;
+  disabled?: boolean
 }
 
 export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
-  const { control } = useFormContext();
-  const { members } = useKanban();
+  const { control } = useFormContext()
+  const { members } = useKanban()
 
   return (
     <Controller
@@ -529,7 +548,7 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
               {members.map((m) => (
                 <SelectItem key={m.user_id} value={m.user_id}>
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold shrink-0">
+                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[9px] font-bold text-violet-600">
                       {getInitials(m.profiles?.full_name)}
                     </span>
                     <div className="flex flex-col gap-0">
@@ -537,7 +556,7 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
                         {m.profiles?.full_name ?? m.user_id.slice(0, 8)}
                       </span>
                       {m.profiles?.email && (
-                        <span className="text-[10px] text-muted-foreground leading-tight">
+                        <span className="text-muted-foreground text-[10px] leading-tight">
                           {m.profiles.email}
                         </span>
                       )}
@@ -550,7 +569,7 @@ export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
         </Field>
       )}
     />
-  );
+  )
 }
 ```
 
