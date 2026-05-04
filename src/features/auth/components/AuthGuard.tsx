@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router"
-import { useAuth } from "../context/AuthContext"
+import { useAuth } from "../context/useAuth"
 
 export function AuthGuard() {
   const { user, loading } = useAuth()

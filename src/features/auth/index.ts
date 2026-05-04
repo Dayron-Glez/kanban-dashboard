@@ -1,4 +1,5 @@
-export { AuthProvider, useAuth } from "./context/AuthContext"
+export { AuthProvider } from "./context/AuthContext"
+export { useAuth } from "./context/useAuth"
 export { AuthGuard } from "./components/AuthGuard"
 export { LoginPage } from "./components/LoginPage"
 export { RegisterPage } from "./components/RegisterPage"
