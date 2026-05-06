@@ -6,6 +6,7 @@ export interface ProjectsContextValue {
   projects: Project[]
   loading: boolean
   userRoles: Record<string, MemberRole>
+  taskCounts: Record<string, number>
   createProject: (values: ProjectFormValues) => Promise<Project | null>
   deleteProject: (id: string) => Promise<void>
   renameProject: (id: string, name: string) => Promise<void>

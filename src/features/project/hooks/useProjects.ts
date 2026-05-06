@@ -8,6 +8,7 @@ export const useProjects = () => {
   const { user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [userRoles, setUserRoles] = useState<Record<string, MemberRole>>({})
+  const [taskCounts, setTaskCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -37,6 +38,19 @@ export const useProjects = () => {
         .order("created_at", { ascending: false })
 
       if (cancelled) return
+
+      // Paso 3: obtener conteo de tareas por proyecto
+      const { data: tasksData } = await supabase
+        .from("tasks")
+        .select("project_id")
+        .in("project_id", projectIds)
+
+      if (cancelled) return
+
+      const counts: Record<string, number> = {}
+      for (const id of projectIds) counts[id] = 0
+      for (const t of tasksData ?? []) counts[t.project_id] = (counts[t.project_id] ?? 0) + 1
+      setTaskCounts(counts)
 
       setProjects(projectsData ?? [])
       const roles: Record<string, MemberRole> = {}
@@ -93,5 +107,5 @@ export const useProjects = () => {
     if (!error) setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)))
   }
 
-  return { projects, loading, createProject, deleteProject, renameProject, userRoles }
+  return { projects, loading, createProject, deleteProject, renameProject, userRoles, taskCounts }
 }

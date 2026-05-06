@@ -20,6 +20,9 @@ const mockProjects = {
 const mockColumns = {
   insert: vi.fn(),
 }
+const mockTasks = {
+  select: vi.fn(),
+}
 
 vi.mock("@/shared/supabase", () => ({
   supabase: {
@@ -27,6 +30,7 @@ vi.mock("@/shared/supabase", () => ({
       if (table === "project_members") return mockProjectMembers
       if (table === "projects") return mockProjects
       if (table === "columns") return mockColumns
+      if (table === "tasks") return mockTasks
       return {}
     }),
   },
@@ -57,6 +61,9 @@ describe("useProjects", () => {
         order: vi.fn().mockResolvedValue({ data: projects }),
       }),
     })
+    mockTasks.select.mockReturnValue({
+      in: vi.fn().mockResolvedValue({ data: [{ project_id: "p1" }, { project_id: "p1" }] }),
+    })
 
     const { result } = renderHook(() => useProjects())
 
@@ -67,6 +74,7 @@ describe("useProjects", () => {
     })
 
     expect(result.current.projects).toEqual(projects)
+    expect(result.current.taskCounts).toEqual({ p1: 2 })
   })
 
   it("createProject agrega el proyecto a la lista", async () => {
@@ -96,6 +104,9 @@ describe("useProjects", () => {
       in: vi.fn().mockReturnValue({
         order: vi.fn().mockResolvedValue({ data: existing }),
       }),
+    })
+    mockTasks.select.mockReturnValue({
+      in: vi.fn().mockResolvedValue({ data: [] }),
     })
     mockProjects.insert.mockReturnValue({
       select: vi.fn().mockReturnValue({
@@ -144,6 +155,9 @@ describe("useProjects", () => {
       in: vi.fn().mockReturnValue({
         order: vi.fn().mockResolvedValue({ data: projects }),
       }),
+    })
+    mockTasks.select.mockReturnValue({
+      in: vi.fn().mockResolvedValue({ data: [] }),
     })
     mockProjects.delete.mockReturnValue({
       eq: vi.fn().mockResolvedValue({ error: null }),
