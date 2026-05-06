@@ -1,17 +1,10 @@
+import { type ReactNode } from "react"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { SidebarProjectCard } from "../components/SidebarProjectCard"
 
 vi.mock("react-router", () => ({
-  Link: ({
-    to,
-    children,
-    className,
-  }: {
-    to: string
-    children: React.ReactNode
-    className?: string
-  }) => (
+  Link: ({ to, children, className }: { to: string; children: ReactNode; className?: string }) => (
     <a href={to} className={className}>
       {children}
     </a>
