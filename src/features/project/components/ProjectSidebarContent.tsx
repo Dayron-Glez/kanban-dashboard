@@ -22,6 +22,11 @@ export function ProjectSidebarContent() {
 
   const activeProject = projects.find((p) => p.id === activeId)
 
+  const handleCreateProject = async (values: Parameters<typeof createProject>[0]) => {
+    await createProject(values)
+    setCreateModalOpen(false)
+  }
+
   return (
     <>
       <SidebarContent className="bg-background py-4">
@@ -83,10 +88,7 @@ export function ProjectSidebarContent() {
       <CreateProjectModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        onSubmit={async (values) => {
-          await createProject(values)
-          setCreateModalOpen(false)
-        }}
+        onSubmit={handleCreateProject}
       />
     </>
   )
