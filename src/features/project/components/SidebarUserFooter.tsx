@@ -1,4 +1,4 @@
-import { IconLogout, IconChevronsLeft } from "@tabler/icons-react"
+import { IconLogout, IconChevronsLeft, IconChevronsRight } from "@tabler/icons-react"
 import { useNavigate } from "react-router"
 import { Button, SidebarFooter, useSidebar } from "@/shared"
 import { useAuth } from "@/features/auth"
@@ -37,7 +37,18 @@ export function SidebarUserFooter() {
   if (!open) {
     return (
       <SidebarFooter className="bg-background pb-4">
-        <div className="flex justify-center px-3">{avatar}</div>
+        <div className="flex flex-col items-center gap-2 px-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-primary h-7 w-7 shrink-0"
+            onClick={toggleSidebar}
+            title="Expandir sidebar"
+          >
+            <IconChevronsRight size={14} />
+          </Button>
+          {avatar}
+        </div>
       </SidebarFooter>
     )
   }

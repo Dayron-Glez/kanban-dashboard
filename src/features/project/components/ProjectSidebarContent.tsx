@@ -104,7 +104,7 @@ export function ProjectSidebarContent() {
             </div>
           </SidebarGroup>
 
-          <Separator className="mb-2" />
+          <Separator />
 
           {/* Proyecto activo — expandido: card con popover / colapsado: avatar cuadrado */}
           {activeProject && (
@@ -126,7 +126,7 @@ export function ProjectSidebarContent() {
                       />
                     </ProjectCommandPopover>
                   ) : (
-                    <div className="flex justify-center px-3 py-1">
+                    <div className="flex justify-center py-1">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span
@@ -143,7 +143,7 @@ export function ProjectSidebarContent() {
                 </SidebarGroupContent>
               </SidebarGroup>
 
-              <Separator className="mt-1 mb-2" />
+              <Separator />
             </>
           )}
 
@@ -174,21 +174,23 @@ export function ProjectSidebarContent() {
                             )}
                           </Link>
                         ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Link
-                                to={href}
-                                className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
-                                  isActive
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-muted hover:text-primary"
-                                }`}
-                              >
-                                <Icon size={18} />
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">{label}</TooltipContent>
-                          </Tooltip>
+                          <div className="flex justify-center">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link
+                                  to={href}
+                                  className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                                    isActive
+                                      ? "bg-primary/10 text-primary"
+                                      : "text-muted-foreground hover:bg-muted hover:text-primary"
+                                  }`}
+                                >
+                                  <Icon size={18} />
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">{label}</TooltipContent>
+                            </Tooltip>
+                          </div>
                         )}
                       </SidebarMenuItem>
                     )

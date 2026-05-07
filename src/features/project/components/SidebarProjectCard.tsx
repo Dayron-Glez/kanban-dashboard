@@ -15,7 +15,7 @@ export const SidebarProjectCard = React.forwardRef<HTMLButtonElement, Props>(
     return (
       <button
         ref={ref}
-        className={`hover:bg-muted flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${className ?? ""}`}
+        className={`bg-muted hover:bg-muted/70 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${className ?? ""}`}
         {...props}
       >
         <span
