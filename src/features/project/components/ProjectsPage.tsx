@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { IconPlus } from "@tabler/icons-react"
-import { SidebarTrigger } from "@/shared"
 import { Button } from "@/shared"
 import { useProjectsContext } from "../context/projectsCtx"
 import { ProjectCard } from "./ProjectCard"
@@ -18,10 +17,7 @@ export function ProjectsPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="bg-background flex items-center justify-between gap-4 border-b border-b-transparent px-6 py-4 shadow-md">
-        <div className="flex items-center gap-4">
-          <SidebarTrigger className="text-primary" />
-          <h1 className="text-primary text-xl font-semibold">Mis proyectos</h1>
-        </div>
+        <h1 className="text-primary text-xl font-semibold">Mis proyectos</h1>
         <Button onClick={() => setModalOpen(true)}>
           <IconPlus className="mr-2 h-4 w-4" />
           Nuevo proyecto

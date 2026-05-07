@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import "../tailwind.css"
 import { AuthProvider, AuthGuard, LoginPage, RegisterPage } from "@/features/auth"
-import { ProjectsPage, ProjectSettingsPage } from "@/features/project"
+import { ProjectsPage, ProjectSettingsPage, ProjectsProvider } from "@/features/project"
 import { AnalyticsPage } from "@/features/analytics"
 import { InviteAcceptPage } from "@/features/invite"
 import AppLayout from "./layouts/AppLayout"
@@ -22,14 +22,29 @@ function App() {
 
           {/* Privadas */}
           <Route element={<AuthGuard />}>
-            <Route element={<AppLayout />}>
-              <Route path="/projects" element={<ProjectsPage />} />
+            <Route
+              element={
+                <ProjectsProvider>
+                  <AppLayout />
+                </ProjectsProvider>
+              }
+            >
               <Route element={<KanbanLayout />}>
                 <Route path="/projects/:id" element={<KanbanBoard />} />
                 <Route path="/projects/:id/analytics" element={<AnalyticsPage />} />
                 <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
               </Route>
             </Route>
+
+            {/* Página de proyectos sin sidebar */}
+            <Route
+              path="/projects"
+              element={
+                <ProjectsProvider>
+                  <ProjectsPage />
+                </ProjectsProvider>
+              }
+            />
           </Route>
 
           <Route path="/" element={<Navigate to="/projects" replace />} />
