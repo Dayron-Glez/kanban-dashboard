@@ -112,16 +112,15 @@ export function ProjectCommandPopover({
           <CommandList className="max-h-80">
             <CommandEmpty>Sin resultados.</CommandEmpty>
 
-            {favorites.length > 0 && (
-              <>
-                <CommandGroup heading={favoritosHeading}>
-                  {favorites.map((project) => (
-                    <ProjectRow key={project.id} project={project} />
-                  ))}
-                </CommandGroup>
-                <CommandSeparator />
-              </>
-            )}
+            <CommandGroup heading={favoritosHeading}>
+              {favorites.length > 0 ? (
+                favorites.map((project) => <ProjectRow key={project.id} project={project} />)
+              ) : (
+                <p className="text-muted-foreground px-2 py-1 text-xs">Sin favoritos aún</p>
+              )}
+            </CommandGroup>
+
+            <CommandSeparator />
 
             <CommandGroup heading="Todos los proyectos">
               {projects.map((project) => (
