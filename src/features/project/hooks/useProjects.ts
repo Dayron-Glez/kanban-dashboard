@@ -9,16 +9,17 @@ export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([])
   const [userRoles, setUserRoles] = useState<Record<string, MemberRole>>({})
   const [taskCounts, setTaskCounts] = useState<Record<string, number>>({})
+  const [favoriteIds, setFavoriteIds] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
     let cancelled = false
     const load = async () => {
-      // Paso 1: obtener membresías del usuario
+      // Paso 1: obtener membresías del usuario (incluye is_favorite)
       const { data: memberRows } = await supabase
         .from("project_members")
-        .select("project_id, role")
+        .select("project_id, role, is_favorite")
         .eq("user_id", user.id)
 
       if (cancelled) return
@@ -26,6 +27,7 @@ export const useProjects = () => {
       if (!memberRows || memberRows.length === 0) {
         setProjects([])
         setTaskCounts({})
+        setFavoriteIds({})
         setLoading(false)
         return
       }
@@ -54,9 +56,15 @@ export const useProjects = () => {
       setTaskCounts(counts)
 
       setProjects(projectsData ?? [])
+
       const roles: Record<string, MemberRole> = {}
-      for (const r of memberRows) roles[r.project_id] = r.role as MemberRole
+      const favorites: Record<string, boolean> = {}
+      for (const r of memberRows) {
+        roles[r.project_id] = r.role as MemberRole
+        favorites[r.project_id] = r.is_favorite ?? false
+      }
       setUserRoles(roles)
+      setFavoriteIds(favorites)
       setLoading(false)
     }
     load()
@@ -90,6 +98,7 @@ export const useProjects = () => {
 
     setProjects((prev) => [data, ...prev])
     setUserRoles((prev) => ({ ...prev, [data.id]: "owner" }))
+    setFavoriteIds((prev) => ({ ...prev, [data.id]: false }))
     return data
   }
 
@@ -101,6 +110,11 @@ export const useProjects = () => {
       delete next[id]
       return next
     })
+    setFavoriteIds((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
   }
 
   const renameProject = async (id: string, name: string) => {
@@ -108,5 +122,30 @@ export const useProjects = () => {
     if (!error) setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)))
   }
 
-  return { projects, loading, createProject, deleteProject, renameProject, userRoles, taskCounts }
+  const toggleFavorite = async (projectId: string) => {
+    if (!user) return
+    const next = !favoriteIds[projectId]
+    setFavoriteIds((prev) => ({ ...prev, [projectId]: next }))
+    const { error } = await supabase
+      .from("project_members")
+      .update({ is_favorite: next })
+      .eq("project_id", projectId)
+      .eq("user_id", user.id)
+    if (error) {
+      // revertir si falla
+      setFavoriteIds((prev) => ({ ...prev, [projectId]: !next }))
+    }
+  }
+
+  return {
+    projects,
+    loading,
+    createProject,
+    deleteProject,
+    renameProject,
+    toggleFavorite,
+    userRoles,
+    taskCounts,
+    favoriteIds,
+  }
 }

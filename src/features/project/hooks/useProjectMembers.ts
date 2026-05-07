@@ -54,6 +54,7 @@ export const useProjectMembers = (projectId: string) => {
           project_id: m.project_id,
           user_id: m.user_id,
           role: m.role as MemberRole,
+          is_favorite: m.is_favorite ?? false,
           joined_at: m.joined_at,
           profiles: profilesMap[m.user_id] ?? undefined,
         }))

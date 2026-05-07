@@ -20,6 +20,8 @@ interface Props {
   onOpenChange: (open: boolean) => void
   projects: Project[]
   taskCounts: Record<string, number>
+  favoriteIds: Record<string, boolean>
+  onToggleFavorite: (projectId: string) => void
   onCreateProject: () => void
   children: ReactNode
 }
@@ -29,10 +31,14 @@ export function ProjectCommandPopover({
   onOpenChange,
   projects,
   taskCounts,
+  favoriteIds,
+  onToggleFavorite,
   onCreateProject,
   children,
 }: Props) {
   const navigate = useNavigate()
+
+  const favorites = projects.filter((p) => favoriteIds[p.id])
 
   const handleSelect = (projectId: string): void => {
     navigate(`/projects/${projectId}`)
@@ -58,6 +64,41 @@ export function ProjectCommandPopover({
     </span>
   )
 
+  const ProjectRow = ({ project }: { project: Project }) => {
+    const isFav = favoriteIds[project.id] ?? false
+    return (
+      <CommandItem
+        value={project.name}
+        onSelect={() => handleSelect(project.id)}
+        className="group cursor-pointer"
+      >
+        <span
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: project.color }}
+        />
+        <span className="flex-1 truncate">{project.name}</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleFavorite(project.id)
+          }}
+          className={`ml-1 shrink-0 transition-opacity ${
+            isFav ? "opacity-100" : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
+          }`}
+          title={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
+        >
+          <IconStar
+            size={13}
+            className={isFav ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}
+          />
+        </button>
+        <span className="text-muted-foreground ml-1 shrink-0 text-xs tabular-nums">
+          {taskCounts[project.id] ?? 0}
+        </span>
+      </CommandItem>
+    )
+  }
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
@@ -71,29 +112,20 @@ export function ProjectCommandPopover({
           <CommandList className="max-h-80">
             <CommandEmpty>Sin resultados.</CommandEmpty>
 
-            <CommandGroup heading={favoritosHeading}>
-              <p className="text-muted-foreground px-2 py-1 text-xs">Sin favoritos aún</p>
-            </CommandGroup>
-
-            <CommandSeparator />
+            {favorites.length > 0 && (
+              <>
+                <CommandGroup heading={favoritosHeading}>
+                  {favorites.map((project) => (
+                    <ProjectRow key={project.id} project={project} />
+                  ))}
+                </CommandGroup>
+                <CommandSeparator />
+              </>
+            )}
 
             <CommandGroup heading="Todos los proyectos">
               {projects.map((project) => (
-                <CommandItem
-                  key={project.id}
-                  value={project.name}
-                  onSelect={() => handleSelect(project.id)}
-                  className="cursor-pointer"
-                >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: project.color }}
-                  />
-                  <span className="flex-1 truncate">{project.name}</span>
-                  <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">
-                    {taskCounts[project.id] ?? 0}
-                  </span>
-                </CommandItem>
+                <ProjectRow key={project.id} project={project} />
               ))}
             </CommandGroup>
           </CommandList>

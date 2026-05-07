@@ -25,6 +25,7 @@ export type ProjectMember = {
   project_id: string
   user_id: string
   role: MemberRole
+  is_favorite: boolean
   joined_at: string
   profiles?: Profile
 }
@@ -130,6 +131,7 @@ export type Database = {
           project_id: string
           user_id: string
           role: MemberRole
+          is_favorite: boolean
           joined_at: string
         }
         Insert: {
@@ -137,6 +139,7 @@ export type Database = {
           project_id: string
           user_id: string
           role: MemberRole
+          is_favorite?: boolean
           joined_at?: string
         }
         Update: {
@@ -144,6 +147,7 @@ export type Database = {
           project_id?: string
           user_id?: string
           role?: MemberRole
+          is_favorite?: boolean
           joined_at?: string
         }
         Relationships: []

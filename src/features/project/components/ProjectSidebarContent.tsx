@@ -57,7 +57,7 @@ const NAV_ITEMS = [
 
 export function ProjectSidebarContent() {
   const { open } = useSidebar()
-  const { projects, taskCounts, createProject } = useProjectsContext()
+  const { projects, taskCounts, favoriteIds, createProject, toggleFavorite } = useProjectsContext()
   const { id: activeId } = useParams()
   const location = useLocation()
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -118,6 +118,8 @@ export function ProjectSidebarContent() {
                       onOpenChange={setCommandOpen}
                       projects={projects}
                       taskCounts={taskCounts}
+                      favoriteIds={favoriteIds}
+                      onToggleFavorite={toggleFavorite}
                       onCreateProject={() => setCreateModalOpen(true)}
                     >
                       <SidebarProjectCard
