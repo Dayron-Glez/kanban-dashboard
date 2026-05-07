@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react"
 import { IconPlus, IconSearch } from "@tabler/icons-react"
 import { Link } from "react-router"
 import {
+  Button,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
 } from "@/shared"
-import { Button } from "@/shared"
 import type { Project } from "@/shared/supabase"
 
 interface Props {

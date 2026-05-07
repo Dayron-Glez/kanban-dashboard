@@ -4,7 +4,11 @@ import { type ReactNode } from "react"
 import { SidebarProjectList } from "../components/SidebarProjectList"
 
 vi.mock("react-router", () => ({
-  Link: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a>,
+  Link: ({ to, children, className }: { to: string; children: ReactNode; className?: string }) => (
+    <a href={to} className={className}>
+      {children}
+    </a>
+  ),
 }))
 
 vi.mock("@/shared", () => ({
@@ -106,5 +110,21 @@ describe("SidebarProjectList", () => {
     )
     expect(screen.getByText("24")).toBeInTheDocument()
     expect(screen.getByText("18")).toBeInTheDocument()
+  })
+
+  it("aplica estilos de activo al proyecto seleccionado", () => {
+    render(
+      <SidebarProjectList
+        projects={projects}
+        taskCounts={taskCounts}
+        activeProjectId="p1"
+        onCreateProject={vi.fn()}
+      />
+    )
+    const alphaLink = screen.getByText("Proyecto Alpha").closest("a")
+    expect(alphaLink?.className).toContain("font-medium")
+    expect(alphaLink?.className).toContain("text-primary")
+    const marketingLink = screen.getByText("Marketing Q2").closest("a")
+    expect(marketingLink?.className).not.toContain("font-medium")
   })
 })
