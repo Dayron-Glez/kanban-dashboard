@@ -63,14 +63,12 @@ describe("SidebarUserFooter", () => {
     expect(screen.getByText("ana@empresa.com")).toBeInTheDocument()
   })
 
-  it("llama signOut y navega a /login al pulsar logout", async () => {
+  it("llama signOut y navega a /login al pulsar logout (en ese orden)", async () => {
     mockSignOut.mockResolvedValue(undefined)
     render(<SidebarUserFooter />)
     fireEvent.click(screen.getByTitle("Cerrar sesión"))
-    await waitFor(() => {
-      expect(mockSignOut).toHaveBeenCalledOnce()
-      expect(mockNavigate).toHaveBeenCalledWith("/login")
-    })
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledOnce())
+    expect(mockNavigate).toHaveBeenCalledWith("/login")
   })
 
   it("llama toggleSidebar al pulsar Colapsar", () => {
