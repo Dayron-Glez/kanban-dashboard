@@ -25,6 +25,7 @@ export const useProjects = () => {
 
       if (!memberRows || memberRows.length === 0) {
         setProjects([])
+        setTaskCounts({})
         setLoading(false)
         return
       }

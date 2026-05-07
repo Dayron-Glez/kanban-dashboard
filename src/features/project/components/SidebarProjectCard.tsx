@@ -1,4 +1,4 @@
-import { IconChevronDown } from "@tabler/icons-react"
+import { IconChevronRight } from "@tabler/icons-react"
 import { Link } from "react-router"
 import type { Project } from "@/shared/supabase"
 
@@ -26,7 +26,7 @@ export function SidebarProjectCard({ project, taskCount }: Props) {
         <p className="text-foreground truncate text-sm font-semibold">{project.name}</p>
         <p className="text-muted-foreground text-xs">{label}</p>
       </div>
-      <IconChevronDown size={14} className="text-muted-foreground shrink-0" />
+      <IconChevronRight size={14} className="text-muted-foreground shrink-0" />
     </Link>
   )
 }
