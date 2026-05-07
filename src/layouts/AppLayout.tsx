@@ -5,7 +5,11 @@ import { ProjectSidebarContent, ProjectsProvider } from "@/features/project"
 export default function AppLayout() {
   return (
     <ProjectsProvider>
-      <SidebarProvider defaultOpen={true} className="h-screen">
+      <SidebarProvider
+        defaultOpen={true}
+        className="h-screen"
+        style={{ "--sidebar-width": "17rem" } as React.CSSProperties}
+      >
         <Sidebar
           collapsible="icon"
           className="bg-background min-w-16 border-r-transparent shadow-md"

@@ -30,7 +30,7 @@ export function ProjectsPage() {
 
       <main className="flex-1 overflow-y-auto p-6">
         {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="bg-muted h-32 animate-pulse rounded-xl" />
             ))}
@@ -44,7 +44,7 @@ export function ProjectsPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {projects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}

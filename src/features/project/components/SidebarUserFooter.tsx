@@ -29,15 +29,16 @@ export function SidebarUserFooter() {
   }
 
   const avatar = (
-    <span className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+    <span className="bg-primary text-primary-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
       {initials}
     </span>
   )
 
   if (!open) {
     return (
-      <SidebarFooter className="bg-background pb-4">
-        <div className="flex flex-col items-center gap-2 px-3">
+      <SidebarFooter className="bg-background pt-4 pb-4">
+        <div className="flex flex-col items-center gap-2">
+          {avatar}
           <Button
             variant="ghost"
             size="icon"
@@ -47,14 +48,13 @@ export function SidebarUserFooter() {
           >
             <IconChevronsRight size={14} />
           </Button>
-          {avatar}
         </div>
       </SidebarFooter>
     )
   }
 
   return (
-    <SidebarFooter className="bg-background pb-4">
+    <SidebarFooter className="bg-background pt-4 pb-4">
       <div className="flex items-center gap-3 px-3">
         {avatar}
         <div className="min-w-0 flex-1">
