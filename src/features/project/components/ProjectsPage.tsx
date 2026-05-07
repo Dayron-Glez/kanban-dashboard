@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { IconPlus } from "@tabler/icons-react"
-import { SidebarTrigger } from "@/shared"
 import { Button } from "@/shared"
 import { useProjectsContext } from "../context/projectsCtx"
 import { ProjectCard } from "./ProjectCard"
@@ -18,10 +17,7 @@ export function ProjectsPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="bg-background flex items-center justify-between gap-4 border-b border-b-transparent px-6 py-4 shadow-md">
-        <div className="flex items-center gap-4">
-          <SidebarTrigger className="text-primary" />
-          <h1 className="text-primary text-xl font-semibold">Mis proyectos</h1>
-        </div>
+        <h1 className="text-primary text-xl font-semibold">Mis proyectos</h1>
         <Button onClick={() => setModalOpen(true)}>
           <IconPlus className="mr-2 h-4 w-4" />
           Nuevo proyecto
@@ -30,7 +26,7 @@ export function ProjectsPage() {
 
       <main className="flex-1 overflow-y-auto p-6">
         {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="bg-muted h-32 animate-pulse rounded-xl" />
             ))}
@@ -44,7 +40,7 @@ export function ProjectsPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {projects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}

@@ -22,6 +22,7 @@ type RawMember = {
   project_id: string
   user_id: string
   role: string
+  is_favorite: boolean
   joined_at: string
 }
 
@@ -108,6 +109,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
             project_id: raw.project_id,
             user_id: raw.user_id,
             role: raw.role as MemberRole,
+            is_favorite: raw.is_favorite ?? false,
             joined_at: raw.joined_at,
             profiles: profilesMap[raw.user_id],
           }
