@@ -83,7 +83,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
       >
         {/* Fila superior: título + menú */}
         <div className="flex items-center gap-2">
-          <span className="text-foreground line-clamp-2 flex-1 text-sm leading-snug font-medium">
+          <span className="text-foreground line-clamp-2 flex-1 text-[13px] leading-snug font-medium">
             {task.content}
           </span>
           <DropdownMenu modal={false}>
@@ -135,7 +135,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex h-6 w-6 shrink-0 cursor-default items-center justify-center rounded-full border border-white bg-violet-100 text-[9px] font-bold text-violet-600 shadow-sm">
+                  <div className="bg-primary/15 text-primary flex h-[22px] w-[22px] shrink-0 cursor-default items-center justify-center rounded-full text-[9px] font-extrabold">
                     {getInitials(task.assigneeProfile.full_name)}
                   </div>
                 </TooltipTrigger>
