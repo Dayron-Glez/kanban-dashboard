@@ -32,7 +32,7 @@ export function SizeSelect({ disabled = false }: SelectSizeProps) {
             Tamaño
           </FieldLabel>
           <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-            <SelectTrigger id="size" disabled={disabled}>
+            <SelectTrigger id="size" disabled={disabled} className="bg-background dark:bg-muted/60">
               <SelectValue placeholder="Selecciona un tamaño" />
             </SelectTrigger>
             <SelectContent>

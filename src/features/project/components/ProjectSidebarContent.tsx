@@ -86,7 +86,7 @@ export function ProjectSidebarContent() {
         <SidebarContent className="bg-background py-0">
           {/* Brand */}
           <SidebarGroup className="border-border border-b">
-            <div className="flex h-[54px] items-center px-3">
+            <div className={`flex h-[54px] items-center ${open ? "px-3" : "justify-center"}`}>
               <Link
                 to="/projects"
                 className="flex items-center gap-2.5 transition-opacity hover:opacity-80"

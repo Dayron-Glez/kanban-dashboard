@@ -35,7 +35,7 @@ export function CauceLogo({
 
   if (unwrapped) {
     return (
-      <span className={cn("inline-flex", className)} aria-label="cauce">
+      <span className={cn("inline-flex", className)} aria-label="Cauce">
         {svg}
       </span>
     )
@@ -46,16 +46,16 @@ export function CauceLogo({
       <span
         className="bg-primary text-primary-foreground inline-flex shrink-0 items-center justify-center"
         style={{ width: size, height: size, borderRadius: size * 0.27 }}
-        aria-label="cauce"
+        aria-label="Cauce"
       >
         {svg}
       </span>
       {showWordmark && (
         <span
-          className="text-primary font-extrabold lowercase"
+          className="text-primary font-extrabold"
           style={{ fontSize: size * 0.6, letterSpacing: "-0.02em", lineHeight: 1 }}
         >
-          cauce
+          Cauce
         </span>
       )}
     </span>

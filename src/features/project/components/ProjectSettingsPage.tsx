@@ -315,7 +315,7 @@ export function ProjectSettingsPage() {
             </Card>
 
             {/* Fila 1 — Renombrar proyecto */}
-            <Card className="hover:ring-yellow/50 gap-4 overflow-hidden py-4 transition-all duration-200 hover:ring-2">
+            <Card className="gap-4 overflow-hidden py-4 transition-all duration-200 hover:ring-2 hover:ring-amber-400/50">
               <CardHead icon={<IconPencil size={14} />} variant="warn" title="Renombrar proyecto" />
               <div className="flex flex-col gap-4 p-4">
                 <div className="flex gap-4">

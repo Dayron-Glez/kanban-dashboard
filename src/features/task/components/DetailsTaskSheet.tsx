@@ -21,13 +21,13 @@ export function DetailsTaskSheet({ task, open, onOpenChange }: DetailsTaskSheetP
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col justify-between border-transparent">
+      <SheetContent className="bg-card flex flex-col justify-between border-transparent">
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-primary font-semibold">Detalles de la tarea</SheetTitle>
             <SheetDescription />
           </SheetHeader>
-          <div className="mt-4 px-2">
+          <div className="mt-4 px-2 [&_[disabled]]:opacity-100">
             <FormProvider {...form}>
               <TaskForm disabled />
             </FormProvider>
