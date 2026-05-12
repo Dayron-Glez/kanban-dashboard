@@ -15,35 +15,62 @@ body,
 }
 
 :root {
-  --sky: hsl(201 80% 52%);
-  --purple: hsl(281 45% 51%);
-  --green: hsl(170 100% 32%);
-  --gold: hsl(48 100% 35%);
-  --orange: hsl(32 97.7% 62.4%);
-  --yellow: hsl(50 97.8% 63.5%);
-
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(240 4% 10%);
+  /* ── shadcn-compatible semantic tokens ───────────────────────── */
+  --background: hsl(214 30% 97%); /* #f3f6fa */
+  --foreground: hsl(212 60% 10%); /* #0a1828 */
   --card: hsl(0 0% 100%);
-  --card-foreground: hsl(240 4% 15%);
+  --card-foreground: hsl(212 60% 10%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(240 4% 10%);
-  --primary: hsl(224 71% 40%);
+  --popover-foreground: hsl(212 60% 10%);
+
+  --primary: hsl(193 80% 31%); /* #0e7490 — río profundo */
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(240 5% 92%);
-  --secondary-foreground: hsl(240 4% 10%);
-  --muted: hsl(240 5% 96%);
-  --muted-foreground: hsl(240 4% 46%);
-  --accent: hsl(240 5% 96%);
-  --accent-foreground: hsl(240 4% 10%);
-  --destructive: hsl(0 84% 60%);
+
+  --secondary: hsl(214 30% 95%);
+  --secondary-foreground: hsl(212 60% 10%);
+
+  --muted: hsl(214 30% 95%);
+  --muted-foreground: hsl(215 16% 47%); /* #64748b */
+
+  --accent: hsl(193 80% 95%); /* #ecfeff */
+  --accent-foreground: hsl(193 80% 31%);
+
+  --destructive: hsl(0 75% 50%); /* #dc2626 */
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(240 5% 90%);
-  --input: hsl(240 5% 65%);
-  --ring: hsl(224 71% 40%);
-  --row-selected: hsl(224 71% 90%);
+
+  --border: hsl(214 30% 90%);
+  --input: hsl(214 30% 88%);
+  --ring: hsl(193 80% 31%);
+
+  --row-selected: hsl(193 80% 93%);
   --radius: 0.5rem;
 
+  /* ── Cauce-specific extras ───────────────────────────────────── */
+  --surface-2: hsl(214 30% 96%);
+  --surface-3: hsl(214 30% 94%);
+  --txt-muted: hsl(215 16% 60%);
+
+  /* status */
+  --success: hsl(160 84% 31%);
+  --success-soft: hsl(160 84% 95%);
+  --warn: hsl(30 86% 36%);
+  --warn-soft: hsl(48 96% 89%);
+
+  /* priority */
+  --p0: hsl(0 84% 60%);
+  --p0-soft: hsl(0 86% 97%);
+  --p1: hsl(20 95% 50%);
+  --p1-soft: hsl(33 100% 96%);
+  --p2: hsl(217 91% 60%);
+  --p2-soft: hsl(214 100% 97%);
+
+  /* shadows */
+  --shadow-sm: 0 1px 3px hsl(212 60% 10% / 0.07), 0 1px 2px hsl(212 60% 10% / 0.04);
+  --shadow-md: 0 4px 12px hsl(212 60% 10% / 0.08), 0 2px 4px hsl(212 60% 10% / 0.04);
+  --shadow-lg: 0 10px 28px hsl(212 60% 10% / 0.12);
+  --shadow-pop: 0 16px 44px hsl(212 60% 10% / 0.16);
+
+  /* vis */
   --vis-tooltip-background-color: none !important;
   --vis-tooltip-border-color: none !important;
   --vis-tooltip-text-color: none !important;
@@ -52,42 +79,62 @@ body,
   --vis-tooltip-padding: none !important;
 
   --vis-primary-color: var(--primary);
-  --vis-secondary-color: var(--green);
+  --vis-secondary-color: var(--success);
   --vis-text-color: var(--muted-foreground);
 }
 
 .dark {
-  /* GitHub dark theme — Primer color system */
-  --background: hsl(216 28% 7%); /* #0d1117 canvas.default */
-  --foreground: hsl(213 15% 83%); /* #c9d1d9 fg.default */
-  --card: hsl(215 22% 11%); /* #161b22 canvas.overlay */
-  --card-foreground: hsl(213 15% 83%);
-  --popover: hsl(215 22% 11%); /* #161b22 */
-  --popover-foreground: hsl(213 15% 83%);
-  --primary: hsl(212 92% 57%); /* #2f81f7 accent.fg */
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(215 14% 15%); /* #21262d canvas.subtle */
-  --secondary-foreground: hsl(213 15% 83%);
-  --muted: hsl(215 14% 15%); /* #21262d */
-  --muted-foreground: hsl(215 8% 57%); /* #8b949e fg.muted */
-  --accent: hsl(215 14% 15%); /* #21262d */
-  --accent-foreground: hsl(213 15% 83%);
-  --destructive: hsl(2 92% 63%); /* #f85149 danger.fg */
+  --background: hsl(210 35% 6%); /* #0a1015 */
+  --foreground: hsl(213 15% 90%); /* #e6edf3 */
+  --card: hsl(213 30% 11%); /* #131a23 */
+  --card-foreground: hsl(213 15% 90%);
+  --popover: hsl(213 30% 11%);
+  --popover-foreground: hsl(213 15% 90%);
+
+  --primary: hsl(187 85% 53%); /* #22d3ee */
+  --primary-foreground: hsl(195 100% 8%);
+
+  --secondary: hsl(213 22% 14%);
+  --secondary-foreground: hsl(213 15% 90%);
+
+  --muted: hsl(213 22% 14%);
+  --muted-foreground: hsl(213 12% 65%);
+
+  --accent: hsl(187 85% 53% / 0.12);
+  --accent-foreground: hsl(187 85% 53%);
+
+  --destructive: hsl(0 87% 71%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(216 12% 21%); /* #30363d border.default */
-  --input: hsl(216 12% 21%); /* #30363d */
-  --ring: hsl(212 92% 57%); /* #2f81f7 */
-  --row-selected: hsl(212 92% 15%);
-  --radius: 0.5rem;
+
+  --border: hsl(213 22% 18%);
+  --input: hsl(213 22% 18%);
+  --ring: hsl(187 85% 53%);
+
+  --row-selected: hsl(187 85% 18%);
+
+  --surface-2: hsl(213 22% 14%);
+  --surface-3: hsl(213 22% 18%);
+  --txt-muted: hsl(213 8% 47%);
+
+  --success: hsl(158 64% 52%);
+  --success-soft: hsl(158 64% 52% / 0.1);
+  --warn: hsl(45 96% 56%);
+  --warn-soft: hsl(45 96% 56% / 0.1);
+
+  --p0: hsl(0 84% 71%);
+  --p0-soft: hsl(0 84% 71% / 0.1);
+  --p1: hsl(20 95% 60%);
+  --p1-soft: hsl(20 95% 60% / 0.1);
+  --p2: hsl(217 91% 70%);
+  --p2-soft: hsl(217 91% 70% / 0.1);
+
+  --shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.45);
+  --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.5);
+  --shadow-lg: 0 10px 28px hsl(0 0% 0% / 0.55);
+  --shadow-pop: 0 16px 44px hsl(0 0% 0% / 0.6);
 }
 
 @theme inline {
-  --color-sky: var(--sky);
-  --color-purple: var(--purple);
-  --color-green: var(--green);
-  --color-gold: var(--gold);
-  --color-orange: var(--orange);
-  --color-yellow: var(--yellow);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -107,16 +154,15 @@ body,
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-}
 
-@layer utilities {
-  .text-orange {
-    color: var(--color-orange);
-  }
-
-  .text-gold {
-    color: var(--color-gold);
-  }
+  /* Cauce extras */
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-p0: var(--p0);
+  --color-p1: var(--p1);
+  --color-p2: var(--p2);
 }
 
 @layer base {
@@ -140,6 +186,16 @@ body,
   body {
     @apply bg-background text-foreground;
     font-family: "Inter", system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   @media print {
