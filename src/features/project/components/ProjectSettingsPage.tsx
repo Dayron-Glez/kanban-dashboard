@@ -156,17 +156,29 @@ export function ProjectSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] w-full flex-col gap-6 p-6">
+    <div className="flex min-h-[calc(100vh-4rem)] w-full flex-col gap-3 p-3">
       {/* ── Header de página ── */}
-      <div className="flex items-center gap-3 pb-2">
+      <div className="flex items-center gap-3 pb-1">
         <div className="bg-primary/10 rounded-lg p-2">
-          <IconSettings size={22} className="text-primary" />
+          <IconSettings size={20} className="text-primary" />
         </div>
-        <div>
-          <h1 className="text-primary text-xl leading-tight font-bold">Ajustes del proyecto</h1>
-          <p className="text-muted-foreground text-sm">
+        <div className="flex-1">
+          <h1 className="text-foreground text-[15px] leading-tight font-bold">
+            Ajustes del proyecto
+          </h1>
+          <p className="text-muted-foreground text-[12px]">
             Miembros · Invitaciones · Configuración general
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-[11.5px] font-bold">
+            {members.length} {members.length === 1 ? "miembro" : "miembros"}
+          </span>
+          {invitations.length > 0 && (
+            <span className="bg-warn/10 text-warn rounded-full px-2.5 py-0.5 text-[11.5px] font-bold">
+              {invitations.length} pendientes
+            </span>
+          )}
         </div>
       </div>
 
