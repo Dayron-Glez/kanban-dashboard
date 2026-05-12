@@ -206,7 +206,7 @@ export default function KanbanBoard() {
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
     >
-      <div className="flex h-full w-full items-start gap-4 p-4">
+      <div className="flex h-full w-full items-start gap-3 p-3">
         <SortableContext items={columnsId}>
           {columns.map((column) => {
             const columnFilteredTasks = filteredTasks.filter((t) => t.columnId === column.id)

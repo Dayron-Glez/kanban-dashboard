@@ -36,7 +36,7 @@ function EmptyZone({ onAdd }: { onAdd: () => void }) {
   return (
     <button
       onClick={onAdd}
-      className="group border-border hover:border-primary text-muted-foreground hover:text-primary hover:bg-primary/5 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed bg-transparent py-5 transition-all"
+      className="group border-border hover:border-primary text-muted-foreground hover:text-accent-foreground hover:bg-accent flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed bg-transparent py-5 transition-all"
     >
       <div className="bg-muted group-hover:bg-primary text-muted-foreground group-hover:text-primary-foreground flex h-7 w-7 items-center justify-center rounded-full transition-all">
         <IconPlus size={12} />
@@ -79,7 +79,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
       <div
         ref={setNodeRef}
         style={style}
-        className="border-primary max-h-[calc(100vh-96px)] min-h-[200px] flex-1 shrink-0 rounded-[14px] border-2 opacity-40"
+        className="border-primary max-h-[calc(100vh-80px)] min-h-[200px] max-w-[380px] min-w-[220px] flex-[1_1_0] shrink-0 rounded-[14px] border-2 opacity-40"
       />
     )
   }
@@ -93,7 +93,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
           style={style}
           onClick={() => setCollapsed(false)}
           title={`${column.title} (${tasks.length} tareas)`}
-          className={`bg-card border-border flex max-h-[calc(100vh-68px)] w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
+          className={`bg-card border-border flex max-h-[calc(100vh-80px)] w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
             searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""
           }`}
         >
@@ -150,7 +150,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-card border-border grid max-h-[calc(100vh-96px)] flex-1 shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
+        className={`bg-card border-border grid max-h-[calc(100vh-80px)] max-w-[380px] min-w-[220px] flex-[1_1_0] shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
           hasFilteredTasks ? "ring-primary ring-2" : ""
         } ${searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""}`}
       >
@@ -265,18 +265,12 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
             )}
           </div>
 
-          {tasks.length > 0 && (
-            <div className="bg-border h-[3px]">
-              <div
-                className="h-full transition-[width] duration-300 ease-out"
-                style={{
-                  width: `${progressWidth}%`,
-                  background: accent,
-                  opacity: 0.6,
-                }}
-              />
-            </div>
-          )}
+          <div className="bg-border h-[2.5px]">
+            <div
+              className="h-full transition-[width] duration-300 ease-out"
+              style={{ width: `${progressWidth}%`, background: accent, opacity: 0.55 }}
+            />
+          </div>
         </div>
 
         <ScrollArea className="h-full min-h-0">
@@ -322,7 +316,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
             ) : (
               <button
                 onClick={() => setCreateTaskDialogOpen(true)}
-                className="border-border hover:border-primary text-muted-foreground hover:text-primary hover:bg-primary/5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed bg-transparent py-2 text-[12.5px] font-medium transition-all"
+                className="border-border hover:border-primary text-muted-foreground hover:text-accent-foreground hover:bg-accent flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed bg-transparent py-2 text-[12.5px] font-medium transition-all"
               >
                 <IconPlus size={12} />
                 Agregar Tarea
