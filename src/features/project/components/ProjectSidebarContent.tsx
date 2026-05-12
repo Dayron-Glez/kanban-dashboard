@@ -8,11 +8,9 @@ import {
 } from "@tabler/icons-react"
 import { Link, useLocation, useParams } from "react-router"
 import {
-  Separator,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   Tooltip,
@@ -22,6 +20,7 @@ import {
   useSidebar,
 } from "@/shared"
 import { useProjectsContext } from "../context/projectsCtx"
+import { CauceLogo } from "@/shared/components/brand/CauceLogo"
 import { CreateProjectModal } from "./CreateProjectModal"
 import { ProjectCommandPopover } from "./ProjectCommandPopover"
 import { SidebarProjectCard } from "./SidebarProjectCard"
@@ -84,34 +83,29 @@ export function ProjectSidebarContent() {
   return (
     <TooltipProvider delayDuration={0}>
       <>
-        <SidebarContent className="bg-background py-4">
-          {/* Logo */}
-          <SidebarGroup>
-            <div className={`mb-2 px-3 ${open ? "" : "flex justify-center"}`}>
-              {open ? (
-                <Link
-                  to="/projects"
-                  className="text-primary flex items-center gap-2 text-lg font-bold transition-opacity hover:opacity-80"
-                >
-                  <IconLayoutKanban size={22} />
-                  <span>Kanban</span>
-                </Link>
-              ) : (
-                <Link to="/projects" className="text-primary transition-opacity hover:opacity-80">
-                  <IconLayoutKanban size={22} />
-                </Link>
-              )}
+        <SidebarContent className="bg-background py-0">
+          {/* Brand */}
+          <SidebarGroup className="border-border border-b">
+            <div className="flex h-[54px] items-center px-3">
+              <Link
+                to="/projects"
+                className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+              >
+                <CauceLogo size={28} showWordmark={open} />
+              </Link>
             </div>
           </SidebarGroup>
-
-          <Separator />
 
           {/* Proyecto activo — expandido: card con popover / colapsado: avatar cuadrado */}
           {activeProject && (
             <>
-              <SidebarGroup>
-                {open && <SidebarGroupLabel>Proyecto</SidebarGroupLabel>}
-                <SidebarGroupContent>
+              <SidebarGroup className="border-border border-b">
+                {open && (
+                  <div className="text-muted-foreground mb-1.5 px-2 text-[9.5px] font-bold tracking-[0.08em] uppercase">
+                    Proyecto
+                  </div>
+                )}
+                <SidebarGroupContent className="px-1 pb-2">
                   {open ? (
                     <ProjectCommandPopover
                       open={commandOpen}
@@ -144,17 +138,19 @@ export function ProjectSidebarContent() {
                   )}
                 </SidebarGroupContent>
               </SidebarGroup>
-
-              <Separator />
             </>
           )}
 
           {/* Navegación del proyecto */}
           {activeId && (
             <SidebarGroup>
-              {open && <SidebarGroupLabel>Navegación</SidebarGroupLabel>}
+              {open && (
+                <div className="text-muted-foreground mb-1.5 px-2 text-[9.5px] font-bold tracking-[0.08em] uppercase">
+                  Navegación
+                </div>
+              )}
               <SidebarGroupContent>
-                <SidebarMenu>
+                <SidebarMenu className="gap-px">
                   {NAV_ITEMS.map(({ label, icon: Icon, path }) => {
                     const href = path(activeId)
                     const isActive = location.pathname === href
@@ -163,17 +159,14 @@ export function ProjectSidebarContent() {
                         {open ? (
                           <Link
                             to={href}
-                            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                            className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] transition-colors ${
                               isActive
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "text-muted-foreground hover:bg-muted hover:text-primary"
+                                ? "bg-accent text-accent-foreground font-bold"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             }`}
                           >
-                            <Icon size={16} />
+                            <Icon size={16} className="shrink-0" />
                             <span className="flex-1">{label}</span>
-                            {isActive && (
-                              <span className="bg-primary h-1.5 w-1.5 shrink-0 rounded-full" />
-                            )}
                           </Link>
                         ) : (
                           <div className="flex justify-center">
@@ -181,13 +174,16 @@ export function ProjectSidebarContent() {
                               <TooltipTrigger asChild>
                                 <Link
                                   to={href}
-                                  className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                                  className={`relative flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
                                     isActive
-                                      ? "bg-primary/10 text-primary"
-                                      : "text-muted-foreground hover:bg-muted hover:text-primary"
+                                      ? "bg-accent text-accent-foreground"
+                                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                   }`}
                                 >
-                                  <Icon size={18} />
+                                  <Icon size={17} />
+                                  {isActive && (
+                                    <span className="bg-primary absolute top-2 bottom-2 left-0 w-0.5 rounded-r-sm" />
+                                  )}
                                 </Link>
                               </TooltipTrigger>
                               <TooltipContent side="right">{label}</TooltipContent>
@@ -203,7 +199,6 @@ export function ProjectSidebarContent() {
           )}
         </SidebarContent>
 
-        <Separator />
         <SidebarUserFooter />
 
         <CreateProjectModal

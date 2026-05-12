@@ -29,20 +29,29 @@ export function SidebarUserFooter() {
   }
 
   const avatar = (
-    <span className="bg-primary text-primary-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+    <span
+      className="bg-primary/15 text-primary flex shrink-0 items-center justify-center rounded-full font-extrabold"
+      style={{ width: 26, height: 26, fontSize: 26 * 0.34 }}
+    >
       {initials}
     </span>
   )
 
   if (!open) {
     return (
-      <SidebarFooter className="bg-background pt-4 pb-4">
-        <div className="flex flex-col items-center gap-2">
-          {avatar}
+      <SidebarFooter className="bg-background border-border border-t pt-2 pb-2">
+        <div className="flex flex-col items-center gap-1">
+          <button
+            onClick={handleLogout}
+            className="hover:bg-muted flex justify-center rounded-md p-1.5"
+            title={`${displayName} · Cerrar sesión`}
+          >
+            {avatar}
+          </button>
           <Button
             variant="ghost"
             size="icon"
-            className="text-muted-foreground hover:text-primary h-7 w-7 shrink-0"
+            className="text-muted-foreground hover:text-foreground h-7 w-7 shrink-0"
             onClick={toggleSidebar}
             title="Expandir sidebar"
           >
@@ -54,28 +63,28 @@ export function SidebarUserFooter() {
   }
 
   return (
-    <SidebarFooter className="bg-background pt-4 pb-4">
-      <div className="flex items-center gap-3 px-3">
-        {avatar}
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground truncate text-sm font-medium">{displayName}</p>
-          {email && <p className="text-muted-foreground truncate text-xs">{email}</p>}
+    <SidebarFooter className="bg-background border-border border-t pt-2 pb-2">
+      <div className="flex flex-col gap-1 px-2">
+        <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
+          {avatar}
+          <div className="min-w-0 flex-1">
+            <p className="text-foreground truncate text-[12.5px] font-semibold">{displayName}</p>
+            {email && <p className="text-muted-foreground truncate text-[10.5px]">{email}</p>}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-destructive h-7 w-7 shrink-0"
+            onClick={handleLogout}
+            title="Cerrar sesión"
+          >
+            <IconLogout size={14} />
+          </Button>
         </div>
         <Button
           variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-destructive h-7 w-7 shrink-0"
-          onClick={handleLogout}
-          title="Cerrar sesión"
-        >
-          <IconLogout size={16} />
-        </Button>
-      </div>
-      <div className="px-3 pt-1">
-        <Button
-          variant="ghost"
           size="sm"
-          className="text-muted-foreground hover:text-primary w-full justify-start gap-1 text-xs"
+          className="text-muted-foreground hover:text-foreground w-full justify-start gap-1 text-[11.5px] font-semibold"
           onClick={toggleSidebar}
         >
           <IconChevronsLeft size={14} />
