@@ -23,20 +23,17 @@ function KanbanContent() {
     return task.content.toLowerCase().includes(searchTerm)
   })
 
+  const mainClass = isScrollablePage
+    ? `bg-muted flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
+    : `bg-muted flex flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
+
   return (
     <>
       <Header
         projectName={projectName}
         {...(!isScrollablePage && { searchValue, onSearchChange: setSearchValue })}
       />
-      <main
-        ref={!isScrollablePage ? scrollContainerRef : undefined}
-        className={
-          isScrollablePage
-            ? `bg-muted flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
-            : `bg-muted flex flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
-        }
-      >
+      <main ref={!isScrollablePage ? scrollContainerRef : undefined} className={mainClass}>
         {isScrollablePage ? (
           <ScrollArea className="h-full">
             <Outlet />

@@ -1,4 +1,5 @@
 import { useParams } from "react-router"
+import { motion } from "framer-motion"
 import { useKanban } from "@/features/board/index"
 import { useAnalytics } from "../hooks/useAnalytics"
 import { StatsCards } from "./StatsCards"
@@ -16,7 +17,12 @@ export function AnalyticsPage() {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.14 }}
+      className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6"
+    >
       <StatsCards stats={stats} loading={loading} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -29,6 +35,6 @@ export function AnalyticsPage() {
       </div>
 
       <PriorityDistribution data={priorityData} loading={loading} />
-    </div>
+    </motion.div>
   )
 }

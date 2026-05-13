@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useParams, useNavigate } from "react-router"
+import { motion } from "framer-motion"
 import {
   IconCheck,
   IconCopy,
@@ -156,7 +157,12 @@ export function ProjectSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] w-full flex-col gap-3 p-3">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.14 }}
+      className="flex min-h-[calc(100vh-4rem)] w-full flex-col gap-3 p-3"
+    >
       {/* ── Header de página ── */}
       <div className="flex items-center gap-3 pb-1">
         <div className="bg-primary/10 rounded-lg p-2">
@@ -457,6 +463,6 @@ export function ProjectSettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   )
 }
