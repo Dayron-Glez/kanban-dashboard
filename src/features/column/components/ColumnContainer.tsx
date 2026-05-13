@@ -1,8 +1,8 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { IconChevronDown, IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react"
-import { useContext, useEffect, useMemo, useState } from "react"
 import { useAutoAnimate } from "@formkit/auto-animate/react"
+import { useContext, useEffect, useMemo, useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,16 +31,14 @@ interface Props {
   column: ColumnType
   tasks: Task[]
   hasFilteredTasks?: boolean
-  collapsed?: boolean
-  onCollapsedChange?: (val: boolean) => void
-  isDragging?: boolean
+  boardDragging?: boolean
 }
 
 function EmptyZone({ onAdd }: { onAdd: () => void }) {
   return (
     <button
       onClick={onAdd}
-      className="group border-border hover:border-primary text-muted-foreground hover:text-accent-foreground hover:bg-accent flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed bg-transparent py-5 transition-all"
+      className="group border-border hover:border-primary text-muted-foreground hover:text-primary hover:bg-primary/5 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed bg-transparent py-5 transition-all"
     >
       <div className="bg-muted group-hover:bg-primary text-muted-foreground group-hover:text-primary-foreground flex h-7 w-7 items-center justify-center rounded-full transition-all">
         <IconPlus size={12} />
@@ -54,9 +52,7 @@ export function ColumnContainer({
   column,
   tasks,
   hasFilteredTasks = false,
-  collapsed = false,
-  onCollapsedChange,
-  isDragging: boardDragging = false,
+  boardDragging = false,
 }: Props) {
   const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask, userRole } =
     useKanban()
@@ -67,12 +63,13 @@ export function ColumnContainer({
   const searchValue = searchContext?.searchValue ?? ""
 
   const [editMode, setEditMode] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+  const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false)
+
   const [tasksRef, enableTasksAnim] = useAutoAnimate()
   useEffect(() => {
     enableTasksAnim(!boardDragging)
   }, [boardDragging, enableTasksAnim])
-  const setCollapsed = (val: boolean) => onCollapsedChange?.(val)
-  const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false)
 
   const tasksIds = useMemo(() => tasks.map((task) => task.id), [tasks])
 
@@ -94,7 +91,7 @@ export function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className="border-primary max-h-[calc(100vh-80px)] min-h-[200px] max-w-[380px] min-w-[220px] flex-[1_1_0] shrink-0 rounded-[14px] border-2 opacity-40"
+        className="border-primary max-h-[calc(100vh-96px)] min-h-[200px] flex-1 shrink-0 rounded-[14px] border-2 opacity-40"
       />
     )
   }
@@ -108,7 +105,7 @@ export function ColumnContainer({
           style={style}
           onClick={() => setCollapsed(false)}
           title={`${column.title} (${tasks.length} tareas)`}
-          className={`bg-card border-border flex max-h-[calc(100vh-80px)] w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
+          className={`bg-card border-border flex max-h-[calc(100vh-68px)] w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
             searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""
           }`}
         >
@@ -165,7 +162,7 @@ export function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-card border-border grid max-h-[calc(100vh-80px)] max-w-[380px] min-w-[220px] flex-[1_1_0] shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
+        className={`bg-card border-border grid max-h-[calc(100vh-96px)] flex-1 shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
           hasFilteredTasks ? "ring-primary ring-2" : ""
         } ${searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""}`}
       >
@@ -280,25 +277,37 @@ export function ColumnContainer({
             )}
           </div>
 
-          <div className="bg-border h-[2.5px]">
-            <div
-              className="h-full transition-[width] duration-300 ease-out"
-              style={{ width: `${progressWidth}%`, background: accent, opacity: 0.55 }}
-            />
-          </div>
+          {tasks.length > 0 && (
+            <div className="bg-border h-[3px]">
+              <div
+                className="h-full transition-[width] duration-300 ease-out"
+                style={{
+                  width: `${progressWidth}%`,
+                  background: accent,
+                  opacity: 0.6,
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <ScrollArea className="h-full min-h-0">
-          <SortableContext items={tasksIds}>
-            <div ref={tasksRef} className="flex flex-col gap-[7px] p-2.5">
-              {tasks.map((task) => (
-                <div key={task.id}>
-                  <TaskCard task={task} updateTask={updateTask} deleteTask={deleteTask} />
-                </div>
-              ))}
-              {tasks.length === 0 && <EmptyZone onAdd={() => setCreateTaskDialogOpen(true)} />}
-            </div>
-          </SortableContext>
+          <div ref={tasksRef} className="flex flex-col gap-[7px] p-2.5">
+            <SortableContext items={tasksIds}>
+              {tasks.length === 0 ? (
+                <EmptyZone onAdd={() => setCreateTaskDialogOpen(true)} />
+              ) : (
+                tasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    updateTask={updateTask}
+                    deleteTask={deleteTask}
+                  />
+                ))
+              )}
+            </SortableContext>
+          </div>
         </ScrollArea>
 
         {tasks.length > 0 && (
@@ -325,7 +334,7 @@ export function ColumnContainer({
             ) : (
               <button
                 onClick={() => setCreateTaskDialogOpen(true)}
-                className="border-border hover:border-primary text-muted-foreground hover:text-accent-foreground hover:bg-accent flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed bg-transparent py-2 text-[12.5px] font-medium transition-all"
+                className="border-border hover:border-primary text-muted-foreground hover:text-primary hover:bg-primary/5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed bg-transparent py-2 text-[12.5px] font-medium transition-all"
               >
                 <IconPlus size={12} />
                 Agregar Tarea
