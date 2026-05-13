@@ -1,8 +1,8 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { IconChevronDown, IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react"
-import { useContext, useMemo, useState } from "react"
-import { AnimatePresence, motion } from "framer-motion"
+import { useContext, useEffect, useMemo, useState } from "react"
+import { useAutoAnimate } from "@formkit/auto-animate/react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,7 @@ interface Props {
   hasFilteredTasks?: boolean
   collapsed?: boolean
   onCollapsedChange?: (val: boolean) => void
+  isDragging?: boolean
 }
 
 function EmptyZone({ onAdd }: { onAdd: () => void }) {
@@ -55,6 +56,7 @@ export function ColumnContainer({
   hasFilteredTasks = false,
   collapsed = false,
   onCollapsedChange,
+  isDragging = false,
 }: Props) {
   const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask, userRole } =
     useKanban()
@@ -65,6 +67,10 @@ export function ColumnContainer({
   const searchValue = searchContext?.searchValue ?? ""
 
   const [editMode, setEditMode] = useState(false)
+  const [tasksRef, enableTasksAnim] = useAutoAnimate()
+  useEffect(() => {
+    enableTasksAnim(!isDragging)
+  }, [isDragging, enableTasksAnim])
   const setCollapsed = (val: boolean) => onCollapsedChange?.(val)
   const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false)
 
@@ -283,24 +289,16 @@ export function ColumnContainer({
         </div>
 
         <ScrollArea className="h-full min-h-0">
-          <div className="flex flex-col gap-[7px] p-2.5">
-            <SortableContext items={tasksIds}>
-              <AnimatePresence mode="popLayout">
-                {tasks.map((task) => (
-                  <motion.div
-                    key={task.id}
-                    initial={{ opacity: 0, scale: 0.92, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.88, y: 6 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                  >
-                    <TaskCard task={task} updateTask={updateTask} deleteTask={deleteTask} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+          <SortableContext items={tasksIds}>
+            <div ref={tasksRef} className="flex flex-col gap-[7px] p-2.5">
+              {tasks.map((task) => (
+                <div key={task.id}>
+                  <TaskCard task={task} updateTask={updateTask} deleteTask={deleteTask} />
+                </div>
+              ))}
               {tasks.length === 0 && <EmptyZone onAdd={() => setCreateTaskDialogOpen(true)} />}
-            </SortableContext>
-          </div>
+            </div>
+          </SortableContext>
         </ScrollArea>
 
         {tasks.length > 0 && (
