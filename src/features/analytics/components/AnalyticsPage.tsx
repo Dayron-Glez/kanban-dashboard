@@ -18,9 +18,9 @@ export function AnalyticsPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.14 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
       className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6"
     >
       <StatsCards stats={stats} loading={loading} />

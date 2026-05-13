@@ -211,9 +211,9 @@ export default function KanbanBoard() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.14 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
       className="flex h-full w-full"
     >
       <DndContext
@@ -230,10 +230,10 @@ export default function KanbanBoard() {
                 return (
                   <motion.div
                     key={column.id}
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -16 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    initial={{ opacity: 0, scale: 0.93, x: -20 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.93, x: -20 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
                     style={
                       collapsedColumns.has(column.id)
                         ? { flexShrink: 0 }

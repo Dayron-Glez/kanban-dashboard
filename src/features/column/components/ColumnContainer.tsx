@@ -289,10 +289,10 @@ export function ColumnContainer({
                 {tasks.map((task) => (
                   <motion.div
                     key={task.id}
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    initial={{ opacity: 0, scale: 0.92, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.88, y: 6 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
                   >
                     <TaskCard task={task} updateTask={updateTask} deleteTask={deleteTask} />
                   </motion.div>

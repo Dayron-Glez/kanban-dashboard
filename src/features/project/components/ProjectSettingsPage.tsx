@@ -158,9 +158,9 @@ export function ProjectSettingsPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.14 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
       className="flex min-h-[calc(100vh-4rem)] w-full flex-col gap-3 p-3"
     >
       {/* ── Header de página ── */}
