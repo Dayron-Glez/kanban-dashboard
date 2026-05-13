@@ -56,7 +56,7 @@ export function ColumnContainer({
   hasFilteredTasks = false,
   collapsed = false,
   onCollapsedChange,
-  isDragging = false,
+  isDragging: boardDragging = false,
 }: Props) {
   const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask, userRole } =
     useKanban()
@@ -69,8 +69,8 @@ export function ColumnContainer({
   const [editMode, setEditMode] = useState(false)
   const [tasksRef, enableTasksAnim] = useAutoAnimate()
   useEffect(() => {
-    enableTasksAnim(!isDragging)
-  }, [isDragging, enableTasksAnim])
+    enableTasksAnim(!boardDragging)
+  }, [boardDragging, enableTasksAnim])
   const setCollapsed = (val: boolean) => onCollapsedChange?.(val)
   const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false)
 
