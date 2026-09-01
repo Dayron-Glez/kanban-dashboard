@@ -98,13 +98,13 @@ export function ProjectSidebarContent({ mode, onModeChange }: Props) {
                                 <Link
                                   to={href}
                                   aria-label={label}
-                                  className={`relative flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                                  className={`relative flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
                                     isActive
                                       ? "bg-accent text-accent-foreground"
                                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                   }`}
                                 >
-                                  <Icon size={17} />
+                                  <Icon size={16} />
                                   {isActive && (
                                     <span className="bg-primary absolute top-2 bottom-2 left-0 w-0.5 rounded-r-sm" />
                                   )}

@@ -30,8 +30,10 @@ interface Props {
  */
 export function SidebarControlFooter({ mode, onModeChange }: Props) {
   return (
-    <SidebarFooter className="bg-card border-border border-t py-2">
-      {/* Slot del ancho del rail: el botón no se mueve al expandir/contraer. */}
+    <SidebarFooter className="bg-card border-border border-t px-0 py-2">
+      {/* Slot del ancho del rail, sin el p-2 por defecto del footer: así el
+          botón queda centrado exactamente sobre los iconos del rail y no se
+          mueve al expandir/contraer. */}
       <div className="flex w-(--sidebar-width-icon) justify-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

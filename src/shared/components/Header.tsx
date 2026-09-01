@@ -56,8 +56,8 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
 
   return (
     <>
-      <header className="bg-card border-border flex h-14 shrink-0 items-center justify-between gap-4 border-b pr-4">
-        <div className="flex min-w-0 items-center gap-1">
+      <header className="bg-card border-border flex h-12 shrink-0 items-center justify-between gap-4 border-b pr-3">
+        <div className="flex min-w-0 items-center gap-2">
           {/* Slot del ancho del rail, para que el logo quede alineado con los
               iconos del sidebar que hay justo debajo. */}
           <Link
@@ -65,8 +65,11 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
             aria-label="cauce — ir a proyectos"
             className="flex w-(--sidebar-width-icon) shrink-0 justify-center transition-opacity hover:opacity-80"
           >
-            <CauceLogo size={26} />
+            <CauceLogo size={24} />
           </Link>
+
+          {/* Barra inclinada de separación, como la de Supabase */}
+          <span aria-hidden="true" className="bg-border h-5 w-px rotate-[18deg]" />
 
           <Breadcrumb>
             <BreadcrumbList className="gap-1.5 text-[13px] sm:gap-1.5">
@@ -121,6 +124,7 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
                         value={searchValue ?? ""}
                         onChange={onSearchChange}
                         disabled={tasks.length === 0}
+                        className="h-8"
                       />
                     </div>
                   </TooltipTrigger>
@@ -134,9 +138,10 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
                   onClick={() => setCreateColumnDialogOpen(true)}
                   className="group hover:border-primary hover:bg-primary/5 hover:text-primary border-2 border-dashed transition-all"
                   variant="outline"
+                  size="sm"
                   disabled={columns.length >= 6}
                 >
-                  <IconPlus className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
+                  <IconPlus className="mr-1 h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
                   Agregar Columna
                 </Button>
               )}
@@ -144,12 +149,12 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
           )}
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-sm"
             onClick={toggleTheme}
             aria-label="Cambiar tema"
             className="text-muted-foreground hover:text-foreground"
           >
-            {theme === "dark" ? <IconSun size={16} /> : <IconMoon size={16} />}
+            {theme === "dark" ? <IconSun size={15} /> : <IconMoon size={15} />}
           </Button>
           <UserMenu />
         </div>

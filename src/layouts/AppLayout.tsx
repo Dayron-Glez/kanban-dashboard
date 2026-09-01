@@ -7,10 +7,11 @@ import { ProjectSidebarContent, useProjectsContext, type SidebarMode } from "@/f
 const SIDEBAR_MODE_KEY = "cauce.sidebar.mode"
 const LEGACY_COLLAPSED_KEY = "cauce.sidebar.collapsed"
 
-/** 192px expandido y 56px de rail. */
+/** 192px expandido y 48px de rail — el rail mide lo mismo que la altura del
+ * navbar, como en Supabase. */
 const SIDEBAR_SIZES = {
   "--sidebar-width": "12rem",
-  "--sidebar-width-icon": "3.5rem",
+  "--sidebar-width-icon": "3rem",
 } as React.CSSProperties
 
 /** Lee el modo guardado, migrando la clave booleana anterior si aún existe. */
