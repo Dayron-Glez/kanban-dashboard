@@ -22,7 +22,7 @@ import {
 } from "@/shared/index"
 import { useKanban, type ColumnType, type Task } from "@/features/board/index"
 import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle"
-import { CreateTaskSheet, TaskCard } from "@/features/task/index"
+import { CreateTaskSheet, TaskCard, sortByPriority } from "@/features/task/index"
 
 const COLUMN_ACCENTS = ["#6366f1", "#f97316", "#0ea5e9", "#10b981", "#ec4899", "#8b5cf6"]
 const getAccent = (position: number) => COLUMN_ACCENTS[position % COLUMN_ACCENTS.length]
@@ -71,7 +71,16 @@ export function ColumnContainer({
     enableTasksAnim(!boardDragging)
   }, [boardDragging, enableTasksAnim])
 
-  const tasksIds = useMemo(() => tasks.map((task) => task.id), [tasks])
+  // §3.2: las P0 van siempre arriba. El sort es estable, así que dentro de
+  // cada prioridad se respeta el orden manual persistido. Se desactiva
+  // mientras hay un arrastre activo para que el placeholder no salte bajo
+  // el cursor; al soltar, la lista se reordena sola.
+  const orderedTasks = useMemo(
+    () => (boardDragging ? tasks : sortByPriority(tasks)),
+    [tasks, boardDragging]
+  )
+
+  const tasksIds = useMemo(() => orderedTasks.map((task) => task.id), [orderedTasks])
 
   const accent = getAccent(column.position)
   const p0Count = tasks.filter((t) => t.priority === "p0").length
@@ -91,7 +100,7 @@ export function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className="border-primary max-h-[calc(100vh-96px)] min-h-[200px] flex-1 shrink-0 rounded-[14px] border-2 opacity-40"
+        className="border-primary max-h-[calc(100vh-96px)] min-h-[200px] max-w-[380px] min-w-[220px] flex-1 basis-0 rounded-[14px] border-2 opacity-40"
       />
     )
   }
@@ -162,7 +171,7 @@ export function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-card border-border grid max-h-[calc(100vh-96px)] flex-1 shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
+        className={`bg-card border-border grid max-h-[calc(100vh-96px)] max-w-[380px] min-w-[220px] flex-1 basis-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
           hasFilteredTasks ? "ring-primary ring-2" : ""
         } ${searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""}`}
       >
@@ -294,10 +303,10 @@ export function ColumnContainer({
         <ScrollArea className="h-full min-h-0">
           <div ref={tasksRef} className="flex flex-col gap-[7px] p-2.5">
             <SortableContext items={tasksIds}>
-              {tasks.length === 0 ? (
+              {orderedTasks.length === 0 ? (
                 <EmptyZone onAdd={() => setCreateTaskDialogOpen(true)} />
               ) : (
-                tasks.map((task) => (
+                orderedTasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}

@@ -39,11 +39,11 @@ function KanbanContent() {
             <Outlet />
           </ScrollArea>
         ) : loading ? (
-          <div className="flex h-full gap-4 p-4">
+          <div className="flex h-full gap-3 p-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton
                 key={i}
-                className="max-h-[calc(100vh-96px)] flex-1 shrink-0 rounded-[14px]"
+                className="max-h-[calc(100vh-96px)] min-w-[220px] flex-1 basis-0 rounded-[14px]"
               />
             ))}
           </div>
