@@ -100,7 +100,7 @@ export function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className="border-primary max-h-[calc(100vh-96px)] min-h-[200px] max-w-[380px] min-w-[220px] flex-1 basis-0 rounded-[14px] border-2 opacity-40"
+        className="border-primary max-h-full min-h-[200px] max-w-[380px] min-w-[220px] flex-1 basis-0 rounded-[14px] border-2 opacity-40"
       />
     )
   }
@@ -114,7 +114,7 @@ export function ColumnContainer({
           style={style}
           onClick={() => setCollapsed(false)}
           title={`${column.title} (${tasks.length} tareas)`}
-          className={`bg-card border-border flex max-h-[calc(100vh-68px)] w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
+          className={`bg-card border-border flex max-h-full w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
             searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""
           }`}
         >
@@ -171,7 +171,7 @@ export function ColumnContainer({
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-card border-border grid max-h-[calc(100vh-96px)] max-w-[380px] min-w-[220px] flex-1 basis-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
+        className={`bg-card border-border grid max-h-full max-w-[380px] min-w-[220px] flex-1 basis-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
           hasFilteredTasks ? "ring-primary ring-2" : ""
         } ${searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""}`}
       >
