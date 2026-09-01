@@ -7,6 +7,9 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/shared"
 import type { Project } from "@/shared/supabase"
 
@@ -73,21 +76,26 @@ export function ProjectCommandList({
           style={{ backgroundColor: project.color }}
         />
         <span className="flex-1 truncate">{project.name}</span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleFavorite(project.id)
-          }}
-          className={`ml-1 shrink-0 transition-opacity ${
-            isFav ? "opacity-100" : "opacity-0 group-hover:opacity-60 hover:opacity-100!"
-          }`}
-          title={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
-        >
-          <IconStar
-            size={13}
-            className={isFav ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}
-          />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleFavorite(project.id)
+              }}
+              aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
+              className={`ml-1 shrink-0 transition-opacity ${
+                isFav ? "opacity-100" : "opacity-0 group-hover:opacity-60 hover:opacity-100!"
+              }`}
+            >
+              <IconStar
+                size={13}
+                className={isFav ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{isFav ? "Quitar de favoritos" : "Añadir a favoritos"}</TooltipContent>
+        </Tooltip>
         <span className="text-muted-foreground ml-1 shrink-0 text-xs tabular-nums">
           {taskCounts[project.id] ?? 0}
         </span>

@@ -8,6 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   SidebarFooter,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/shared"
 
 export type SidebarMode = "expanded" | "collapsed" | "hover"
@@ -36,16 +39,21 @@ export function SidebarControlFooter({ mode, onModeChange }: Props) {
           mueve al expandir/contraer. */}
       <div className="flex w-(--sidebar-width-icon) justify-center">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-foreground h-7 w-7 shrink-0"
-              title="Control del sidebar"
-            >
-              <IconLayoutSidebar size={15} />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Control del sidebar"
+                  className="text-muted-foreground hover:text-foreground h-7 w-7 shrink-0"
+                >
+                  <IconLayoutSidebar size={15} />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right">Control del sidebar</TooltipContent>
+          </Tooltip>
 
           <DropdownMenuContent
             side="top"

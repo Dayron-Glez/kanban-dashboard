@@ -29,6 +29,9 @@ import {
   Card,
   Input,
   Label,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/shared/index"
 import { useKanban } from "@/features/board/index"
 import { useProjectMembers } from "../hooks/useProjectMembers"
@@ -394,24 +397,34 @@ export function ProjectSettingsPage() {
                             month: "short",
                           })}
                         </span>
-                        <button
-                          onClick={() => handleCopy(link)}
-                          className="text-muted-foreground flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors hover:text-emerald-500"
-                          title="Copiar enlace"
-                        >
-                          {isCopied ? (
-                            <IconCheck size={13} className="text-emerald-500" />
-                          ) : (
-                            <IconCopy size={13} />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => cancelInvitation(inv.id)}
-                          className="text-muted-foreground hover:text-destructive flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors"
-                          title="Cancelar invitación"
-                        >
-                          <IconX size={14} />
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCopy(link)}
+                              aria-label="Copiar enlace"
+                              className="text-muted-foreground flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors hover:text-emerald-500"
+                            >
+                              {isCopied ? (
+                                <IconCheck size={13} className="text-emerald-500" />
+                              ) : (
+                                <IconCopy size={13} />
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Copiar enlace</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => cancelInvitation(inv.id)}
+                              aria-label="Cancelar invitación"
+                              className="text-muted-foreground hover:text-destructive flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors"
+                            >
+                              <IconX size={14} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Cancelar invitación</TooltipContent>
+                        </Tooltip>
                       </div>
                     )
                   })}

@@ -212,14 +212,20 @@ export function ColumnContainer({
 
             {/* P0 urgency dot */}
             {p0Count > 0 && (
-              <div
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{
-                  background: "#ef4444",
-                  boxShadow: "0 0 0 2px rgba(239,68,68,0.2)",
-                }}
-                title={`${p0Count} tarea${p0Count > 1 ? "s" : ""} urgente${p0Count > 1 ? "s" : ""}`}
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{
+                      background: "#ef4444",
+                      boxShadow: "0 0 0 2px rgba(239,68,68,0.2)",
+                    }}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  {p0Count} tarea{p0Count > 1 ? "s" : ""} urgente{p0Count > 1 ? "s" : ""}
+                </TooltipContent>
+              </Tooltip>
             )}
 
             {/* Task count pill */}
@@ -227,16 +233,21 @@ export function ColumnContainer({
               {tasks.length}
             </div>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setCollapsed(true)
-              }}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 rounded-md p-1 transition-colors"
-              title="Colapsar columna"
-            >
-              <IconChevronDown size={14} className="rotate-90" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCollapsed(true)
+                  }}
+                  aria-label="Colapsar columna"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 rounded-md p-1 transition-colors"
+                >
+                  <IconChevronDown size={14} className="rotate-90" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Colapsar columna</TooltipContent>
+            </Tooltip>
 
             {/* Delete column button (owner only) */}
             {isOwner && (

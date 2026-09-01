@@ -9,9 +9,16 @@ vi.mock("@/shared", () => ({
   SidebarFooter: ({ children, className }: { children: ReactNode; className?: string }) => (
     <div className={className}>{children}</div>
   ),
-  Button: ({ children, title }: { children: ReactNode; title?: string }) => (
-    <button title={title}>{children}</button>
-  ),
+  Button: ({
+    children,
+    "aria-label": ariaLabel,
+  }: {
+    children: ReactNode
+    "aria-label"?: string
+  }) => <button aria-label={ariaLabel}>{children}</button>,
+  Tooltip: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipContent: () => null,
   DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
   DropdownMenuContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -29,9 +36,9 @@ describe("SidebarControlFooter", () => {
     vi.clearAllMocks()
   })
 
-  it("muestra el disparador con su título", () => {
+  it("muestra el disparador accesible por su etiqueta", () => {
     render(<SidebarControlFooter mode="expanded" onModeChange={onModeChange} />)
-    expect(screen.getByTitle("Control del sidebar")).toBeInTheDocument()
+    expect(screen.getByLabelText("Control del sidebar")).toBeInTheDocument()
   })
 
   it("muestra las tres opciones del control", () => {
