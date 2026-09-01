@@ -7,7 +7,7 @@
     <title>cauce</title>
     <script>
       ;(function () {
-        const saved = localStorage.getItem("theme")
+        const saved = localStorage.getItem("cauce.theme") || localStorage.getItem("theme")
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
         if (saved === "dark" || (!saved && prefersDark)) {
           document.documentElement.classList.add("dark")

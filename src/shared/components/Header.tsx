@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { IconPlus, IconSun, IconMoon } from "@tabler/icons-react"
+import { IconPlus, IconSearch, IconSun, IconMoon } from "@tabler/icons-react"
 import {
   Button,
   CauceLogo,
@@ -13,6 +13,7 @@ import {
 } from "@/shared/index"
 import { useKanban } from "@/features/board/index"
 import { CreateColumnSheet } from "@/features/column/index"
+import { ProjectCommandDialog } from "@/features/project"
 
 interface HeaderProps {
   searchValue?: string
@@ -24,6 +25,7 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
   const { createNewColumn, columns, tasks, userRole } = useKanban()
   const { theme, toggleTheme } = useTheme()
   const [createColumnDialogOpen, setCreateColumnDialogOpen] = useState<boolean>(false)
+  const [commandOpen, setCommandOpen] = useState<boolean>(false)
 
   const isOwner = userRole === "owner"
 
@@ -48,6 +50,19 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setCommandOpen(true)}
+            aria-label="Buscar proyecto"
+            className="text-muted-foreground hover:text-foreground gap-2 font-normal"
+          >
+            <IconSearch size={16} />
+            Buscar
+            <kbd className="border-border bg-muted text-muted-foreground pointer-events-none ml-1 flex shrink-0 items-center gap-0.5 rounded border px-1.5 py-0.5 font-mono text-[10px]">
+              <span>⌘</span>
+              <span>K</span>
+            </kbd>
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -90,6 +105,7 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
           )}
         </div>
       </header>
+      <ProjectCommandDialog open={commandOpen} onOpenChange={setCommandOpen} />
       {onSearchChange && isOwner && (
         <CreateColumnSheet
           open={createColumnDialogOpen}

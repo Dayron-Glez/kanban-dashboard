@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   IconArchive,
   IconChartBar,
@@ -64,16 +64,9 @@ export function ProjectSidebarContent() {
 
   const activeProject = projects.find((p) => p.id === activeId)
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault()
-        if (activeProject && open) setCommandOpen((prev) => !prev)
-      }
-    }
-    document.addEventListener("keydown", handler)
-    return () => document.removeEventListener("keydown", handler)
-  }, [activeProject, open])
+  // El atajo ⌘K lo gestiona ProjectCommandDialog desde el Header, para que
+  // funcione en cualquier página y con el sidebar en cualquier estado.
+  // Aquí el popover solo se abre con click sobre la card del proyecto.
 
   const handleCreateProject = async (values: Parameters<typeof createProject>[0]) => {
     await createProject(values)
