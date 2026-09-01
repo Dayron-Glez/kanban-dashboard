@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useParams, useNavigate } from "react-router"
+import { motion } from "framer-motion"
 import {
   IconCheck,
   IconCopy,
@@ -28,6 +29,9 @@ import {
   Card,
   Input,
   Label,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/shared/index"
 import { useKanban } from "@/features/board/index"
 import { useProjectMembers } from "../hooks/useProjectMembers"
@@ -156,17 +160,34 @@ export function ProjectSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] w-full flex-col gap-6 p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+      className="flex min-h-[calc(100vh-4rem)] w-full flex-col gap-3 p-3"
+    >
       {/* ── Header de página ── */}
-      <div className="flex items-center gap-3 pb-2">
+      <div className="flex items-center gap-3 pb-1">
         <div className="bg-primary/10 rounded-lg p-2">
-          <IconSettings size={22} className="text-primary" />
+          <IconSettings size={20} className="text-primary" />
         </div>
-        <div>
-          <h1 className="text-primary text-xl leading-tight font-bold">Ajustes del proyecto</h1>
-          <p className="text-muted-foreground text-sm">
+        <div className="flex-1">
+          <h1 className="text-foreground text-[15px] leading-tight font-bold">
+            Ajustes del proyecto
+          </h1>
+          <p className="text-muted-foreground text-[12px]">
             Miembros · Invitaciones · Configuración general
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-[11.5px] font-bold">
+            {members.length} {members.length === 1 ? "miembro" : "miembros"}
+          </span>
+          {invitations.length > 0 && (
+            <span className="bg-warn/10 text-warn rounded-full px-2.5 py-0.5 text-[11.5px] font-bold">
+              {invitations.length} pendientes
+            </span>
+          )}
         </div>
       </div>
 
@@ -303,7 +324,7 @@ export function ProjectSettingsPage() {
             </Card>
 
             {/* Fila 1 — Renombrar proyecto */}
-            <Card className="hover:ring-yellow/50 gap-4 overflow-hidden py-4 transition-all duration-200 hover:ring-2">
+            <Card className="gap-4 overflow-hidden py-4 transition-all duration-200 hover:ring-2 hover:ring-amber-400/50">
               <CardHead icon={<IconPencil size={14} />} variant="warn" title="Renombrar proyecto" />
               <div className="flex flex-col gap-4 p-4">
                 <div className="flex gap-4">
@@ -376,24 +397,34 @@ export function ProjectSettingsPage() {
                             month: "short",
                           })}
                         </span>
-                        <button
-                          onClick={() => handleCopy(link)}
-                          className="text-muted-foreground flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors hover:text-emerald-500"
-                          title="Copiar enlace"
-                        >
-                          {isCopied ? (
-                            <IconCheck size={13} className="text-emerald-500" />
-                          ) : (
-                            <IconCopy size={13} />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => cancelInvitation(inv.id)}
-                          className="text-muted-foreground hover:text-destructive flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors"
-                          title="Cancelar invitación"
-                        >
-                          <IconX size={14} />
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCopy(link)}
+                              aria-label="Copiar enlace"
+                              className="text-muted-foreground flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors hover:text-emerald-500"
+                            >
+                              {isCopied ? (
+                                <IconCheck size={13} className="text-emerald-500" />
+                              ) : (
+                                <IconCopy size={13} />
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Copiar enlace</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => cancelInvitation(inv.id)}
+                              aria-label="Cancelar invitación"
+                              className="text-muted-foreground hover:text-destructive flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors"
+                            >
+                              <IconX size={14} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Cancelar invitación</TooltipContent>
+                        </Tooltip>
                       </div>
                     )
                   })}
@@ -445,6 +476,6 @@ export function ProjectSettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   )
 }

@@ -32,7 +32,11 @@ export function PrioritySelect({ disabled = false }: SelectPriorityProps) {
             Prioridad
           </FieldLabel>
           <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-            <SelectTrigger id="priority" disabled={disabled}>
+            <SelectTrigger
+              id="priority"
+              disabled={disabled}
+              className="bg-background dark:bg-muted/60"
+            >
               <SelectValue placeholder="Selecciona una prioridad" />
             </SelectTrigger>
             <SelectContent>

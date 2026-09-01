@@ -120,6 +120,8 @@ function Sidebar({
   side = "left",
   variant = "sidebar",
   collapsible = "offcanvas",
+  overlay = false,
+  anchored = false,
   className,
   children,
   ...props
@@ -127,6 +129,18 @@ function Sidebar({
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
+  /**
+   * Con collapsible="icon": el hueco reservado se queda fijo al ancho del rail
+   * de iconos, así que al expandir el panel se superpone al contenido en vez de
+   * empujarlo (comportamiento "expand on hover" del sidebar de Supabase).
+   */
+  overlay?: boolean
+  /**
+   * Ancla el panel al contenedor del SidebarProvider (que debe ser relative)
+   * en vez de fijarlo a la ventana, para shells con la barra superior a ancho
+   * completo y el sidebar colgando por debajo.
+   */
+  anchored?: boolean
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -183,18 +197,20 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+          "ease-standard relative w-(--sidebar-width) bg-transparent transition-[width] duration-150",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
             ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
+          // Modo superposición: el hueco no crece, así el panel se monta encima.
+          overlay && collapsible === "icon" && "w-(--sidebar-width-icon)"
         )}
       />
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+          "ease-standard fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-150 md:flex",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -202,6 +218,11 @@ function Sidebar({
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+          // Anclado: el panel deja de ser fixed a la ventana y arranca por
+          // debajo de la barra superior en vez de taparla.
+          anchored && "absolute h-full",
+          // Superposición: la sombra despega el panel del contenido que cubre.
+          overlay && "group-data-[state=expanded]:shadow-pop",
           className
         )}
         {...props}

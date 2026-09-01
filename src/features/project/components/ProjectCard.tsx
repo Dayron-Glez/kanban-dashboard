@@ -1,5 +1,6 @@
 import { IconStar } from "@tabler/icons-react"
 import { useNavigate } from "react-router"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared"
 import type { Project } from "@/shared/supabase"
 import { useProjectsContext } from "../context/projectsCtx"
 
@@ -18,22 +19,27 @@ export function ProjectCard({ project }: ProjectCardProps) {
       className="group bg-background border-border hover:border-primary/40 relative w-full rounded-xl border p-5 text-left transition-all duration-200 hover:shadow-md"
     >
       {/* Botón estrella */}
-      <span
-        role="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          toggleFavorite(project.id)
-        }}
-        className={`absolute top-3 right-3 rounded-md p-1 transition-opacity ${
-          isFav ? "opacity-100" : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
-        }`}
-        title={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
-      >
-        <IconStar
-          size={15}
-          className={isFav ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}
-        />
-      </span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            role="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleFavorite(project.id)
+            }}
+            aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
+            className={`absolute top-3 right-3 rounded-md p-1 transition-opacity ${
+              isFav ? "opacity-100" : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
+            }`}
+          >
+            <IconStar
+              size={15}
+              className={isFav ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}
+            />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{isFav ? "Quitar de favoritos" : "Añadir a favoritos"}</TooltipContent>
+      </Tooltip>
 
       <div className="flex items-start gap-3">
         <div

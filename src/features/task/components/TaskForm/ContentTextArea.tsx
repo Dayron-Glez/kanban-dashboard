@@ -24,7 +24,7 @@ export function ContentTextArea({ disabled = false }: ContentProps) {
             {...field}
             id="content"
             aria-invalid={fieldState.invalid}
-            className="max-h-96 min-h-32 w-full resize-none rounded border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="bg-background dark:bg-muted/60 max-h-96 min-h-32 resize-none"
             placeholder="Escriba el contenido de la tarea"
             disabled={disabled}
           />

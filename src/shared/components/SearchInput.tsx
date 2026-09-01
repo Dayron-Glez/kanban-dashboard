@@ -5,12 +5,20 @@ interface SearchInputProps {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  /** Clases extra para el InputGroup (p. ej. altura compacta en el navbar). */
+  className?: string
 }
 
-export function SearchInput({ value, placeholder, onChange, disabled = false }: SearchInputProps) {
+export function SearchInput({
+  value,
+  placeholder,
+  onChange,
+  disabled = false,
+  className,
+}: SearchInputProps) {
   return (
     <Field orientation="horizontal" className={disabled ? "cursor-not-allowed" : ""}>
-      <InputGroup>
+      <InputGroup className={className}>
         <InputGroupInput
           disabled={disabled}
           className="min-w-56"

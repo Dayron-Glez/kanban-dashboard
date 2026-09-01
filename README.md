@@ -1,4 +1,4 @@
-# Kanban Dashboard
+# cauce
 
 Aplicación web de tablero Kanban interactivo construida con React, TypeScript y Tailwind CSS. Permite gestionar tareas organizadas en columnas con soporte completo de drag & drop, búsqueda en tiempo real y validación de formularios.
 
@@ -16,7 +16,7 @@ Aplicación web de tablero Kanban interactivo construida con React, TypeScript y
 
 ## Acerca del Proyecto
 
-Kanban Dashboard es una herramienta de gestión visual de tareas que implementa la metodología Kanban. Permite a los usuarios crear columnas personalizadas, agregar tareas con prioridades y tamaños, y reorganizar el tablero mediante arrastrar y soltar.
+cauce es una herramienta de gestión visual de tareas que implementa la metodología Kanban. Permite a los usuarios crear columnas personalizadas, agregar tareas con prioridades y tamaños, y reorganizar el tablero mediante arrastrar y soltar.
 
 El proyecto está diseñado como una SPA (Single Page Application) con enfoque en la experiencia de usuario, ofreciendo interacciones fluidas, validaciones en tiempo real y una interfaz responsiva.
 
@@ -109,7 +109,7 @@ La aplicación estará disponible en `http://localhost:5173`.
 El proyecto sigue una **Screaming Architecture** organizada por dominios/features. La estructura de carpetas comunica inmediatamente de qué trata la aplicación.
 
 ```
-kanban-dashboard/
+cauce/
 ├── public/                              # Activos estáticos
 ├── src/
 │   ├── features/                        # Dominios de la aplicación

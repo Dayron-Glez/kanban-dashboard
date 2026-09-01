@@ -22,22 +22,17 @@ const project = {
 
 describe("SidebarProjectCard", () => {
   it("muestra la inicial del nombre", () => {
-    render(<SidebarProjectCard project={project} taskCount={5} />)
+    render(<SidebarProjectCard project={project} />)
     expect(screen.getByText("P")).toBeInTheDocument()
   })
 
   it("muestra el nombre del proyecto", () => {
-    render(<SidebarProjectCard project={project} taskCount={5} />)
+    render(<SidebarProjectCard project={project} />)
     expect(screen.getByText("Proyecto Alpha")).toBeInTheDocument()
   })
 
-  it('muestra "N tareas" para taskCount > 1', () => {
-    render(<SidebarProjectCard project={project} taskCount={24} />)
-    expect(screen.getByText("24 tareas")).toBeInTheDocument()
-  })
-
-  it('muestra "1 tarea" para taskCount === 1', () => {
-    render(<SidebarProjectCard project={project} taskCount={1} />)
-    expect(screen.getByText("1 tarea")).toBeInTheDocument()
+  it("no muestra conteo de tareas (eliminado en rediseño Cauce)", () => {
+    render(<SidebarProjectCard project={project} />)
+    expect(screen.queryByText(/tarea/i)).not.toBeInTheDocument()
   })
 })

@@ -67,7 +67,7 @@ export function EditTaskSheet({ task, open, onOpenChange, onSave }: EditTaskShee
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="flex flex-col justify-between border-transparent">
+      <SheetContent className="bg-card flex flex-col justify-between border-transparent">
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-primary font-semibold">Editar Tarea</SheetTitle>

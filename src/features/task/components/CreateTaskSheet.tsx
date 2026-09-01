@@ -48,7 +48,7 @@ export function CreateTaskSheet({ columnId, open, onOpenChange, onSave }: Create
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="flex flex-col justify-between border-transparent">
+      <SheetContent className="bg-card flex flex-col justify-between border-transparent">
         <div className="flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-primary font-semibold">Crear Tarea</SheetTitle>

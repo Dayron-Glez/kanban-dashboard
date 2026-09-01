@@ -1,6 +1,7 @@
 import { useContext, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { arrayMove, SortableContext } from "@dnd-kit/sortable"
+import { motion } from "framer-motion"
 import {
   DndContext,
   DragOverlay,
@@ -200,44 +201,54 @@ export default function KanbanBoard() {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={onDragOver}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+      className="flex min-h-0 w-full flex-1"
     >
-      <div className="flex h-full w-full items-start gap-4 p-4">
-        <SortableContext items={columnsId}>
-          {columns.map((column) => {
-            const columnFilteredTasks = filteredTasks.filter((t) => t.columnId === column.id)
-            return (
-              <ColumnContainer
-                key={column.id}
-                column={column}
-                tasks={columnFilteredTasks}
-                hasFilteredTasks={searchValue.trim().length > 0 && columnFilteredTasks.length > 0}
-              />
-            )
-          })}
-        </SortableContext>
-      </div>
+      <DndContext
+        sensors={sensors}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+      >
+        <div className="flex h-full w-full items-start gap-3 p-3">
+          <SortableContext items={columnsId}>
+            {columns.map((column) => {
+              const columnFilteredTasks = filteredTasks.filter((t) => t.columnId === column.id)
+              return (
+                <ColumnContainer
+                  key={column.id}
+                  column={column}
+                  tasks={columnFilteredTasks}
+                  hasFilteredTasks={searchValue.trim().length > 0 && columnFilteredTasks.length > 0}
+                  boardDragging={activeColumn !== null || activeTask !== null}
+                />
+              )
+            })}
+          </SortableContext>
+        </div>
 
-      {createPortal(
-        <DragOverlay>
-          {activeColumn && (
-            <ColumnContainer
-              column={activeColumn}
-              tasks={filteredTasks.filter((t) => t.columnId === activeColumn.id)}
-              hasFilteredTasks={
-                searchValue.trim().length > 0 &&
-                filteredTasks.filter((t) => t.columnId === activeColumn.id).length > 0
-              }
-            />
-          )}
-          {activeTask && <TaskCard task={activeTask} deleteTask={() => {}} updateTask={() => {}} />}
-        </DragOverlay>,
-        document.body
-      )}
-    </DndContext>
+        {createPortal(
+          <DragOverlay>
+            {activeColumn && (
+              <ColumnContainer
+                column={activeColumn}
+                tasks={filteredTasks.filter((t) => t.columnId === activeColumn.id)}
+                hasFilteredTasks={
+                  searchValue.trim().length > 0 &&
+                  filteredTasks.filter((t) => t.columnId === activeColumn.id).length > 0
+                }
+              />
+            )}
+            {activeTask && (
+              <TaskCard task={activeTask} deleteTask={() => {}} updateTask={() => {}} />
+            )}
+          </DragOverlay>,
+          document.body
+        )}
+      </DndContext>
+    </motion.div>
   )
 }

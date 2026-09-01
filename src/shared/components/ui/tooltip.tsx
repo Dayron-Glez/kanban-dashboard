@@ -16,10 +16,22 @@ function TooltipProvider({
   )
 }
 
-function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+function Tooltip({
+  disableHoverableContent = true,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
   return (
     <TooltipProvider>
-      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+      {/* Sin contenido hoverable por defecto: nuestros tooltips son etiquetas
+          de texto y el "polígono de gracia" de Radix, combinado con que cada
+          Tooltip lleva su propio provider (sin coordinación entre ellos),
+          dejaba tooltips colgados al recorrer disparadores apilados como los
+          del rail del sidebar. */}
+      <TooltipPrimitive.Root
+        data-slot="tooltip"
+        disableHoverableContent={disableHoverableContent}
+        {...props}
+      />
     </TooltipProvider>
   )
 }

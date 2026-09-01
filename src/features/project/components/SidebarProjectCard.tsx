@@ -4,31 +4,29 @@ import type { Project } from "@/shared/supabase"
 
 interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   project: Project
-  taskCount: number
+  taskCount?: number
 }
 
 export const SidebarProjectCard = React.forwardRef<HTMLButtonElement, Props>(
-  ({ project, taskCount, className, ...props }, ref) => {
+  ({ project, className, ...props }, ref) => {
     const initial = project.name.charAt(0).toUpperCase()
-    const label = taskCount === 1 ? "1 tarea" : `${taskCount} tareas`
 
     return (
       <button
         ref={ref}
-        className={`bg-muted hover:bg-muted/70 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${className ?? ""}`}
+        className={`bg-muted hover:bg-accent border-border flex w-full items-center gap-2.5 rounded-md border px-2 py-1.5 text-left transition-colors ${className ?? ""}`}
         {...props}
       >
         <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-white/20 text-sm font-bold text-white shadow-sm"
+          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-[11px] font-extrabold text-white"
           style={{ backgroundColor: project.color }}
         >
           {initial}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-foreground truncate text-sm font-semibold">{project.name}</p>
-          <p className="text-muted-foreground text-xs">{label}</p>
+          <p className="text-foreground truncate text-[12.5px] font-bold">{project.name}</p>
         </div>
-        <IconChevronDown size={14} className="text-muted-foreground shrink-0" />
+        <IconChevronDown size={12} className="text-muted-foreground shrink-0" />
       </button>
     )
   }

@@ -41,7 +41,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="bg-muted flex min-h-screen items-center justify-center px-4">
+    <div className="bg-background flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 pb-4 text-center">
           <h1 className="text-2xl font-bold">Iniciar sesión</h1>

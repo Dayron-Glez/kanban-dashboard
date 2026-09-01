@@ -1,7 +1,8 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { IconChevronDown, IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react"
-import { useContext, useMemo, useState } from "react"
+import { useAutoAnimate } from "@formkit/auto-animate/react"
+import { useContext, useEffect, useMemo, useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +22,7 @@ import {
 } from "@/shared/index"
 import { useKanban, type ColumnType, type Task } from "@/features/board/index"
 import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle"
-import { CreateTaskSheet, TaskCard } from "@/features/task/index"
+import { CreateTaskSheet, TaskCard, sortByPriority } from "@/features/task/index"
 
 const COLUMN_ACCENTS = ["#6366f1", "#f97316", "#0ea5e9", "#10b981", "#ec4899", "#8b5cf6"]
 const getAccent = (position: number) => COLUMN_ACCENTS[position % COLUMN_ACCENTS.length]
@@ -30,6 +31,7 @@ interface Props {
   column: ColumnType
   tasks: Task[]
   hasFilteredTasks?: boolean
+  boardDragging?: boolean
 }
 
 function EmptyZone({ onAdd }: { onAdd: () => void }) {
@@ -46,7 +48,12 @@ function EmptyZone({ onAdd }: { onAdd: () => void }) {
   )
 }
 
-export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Props) {
+export function ColumnContainer({
+  column,
+  tasks,
+  hasFilteredTasks = false,
+  boardDragging = false,
+}: Props) {
   const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask, userRole } =
     useKanban()
 
@@ -59,7 +66,21 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
   const [collapsed, setCollapsed] = useState(false)
   const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false)
 
-  const tasksIds = useMemo(() => tasks.map((task) => task.id), [tasks])
+  const [tasksRef, enableTasksAnim] = useAutoAnimate()
+  useEffect(() => {
+    enableTasksAnim(!boardDragging)
+  }, [boardDragging, enableTasksAnim])
+
+  // §3.2: las P0 van siempre arriba. El sort es estable, así que dentro de
+  // cada prioridad se respeta el orden manual persistido. Se desactiva
+  // mientras hay un arrastre activo para que el placeholder no salte bajo
+  // el cursor; al soltar, la lista se reordena sola.
+  const orderedTasks = useMemo(
+    () => (boardDragging ? tasks : sortByPriority(tasks)),
+    [tasks, boardDragging]
+  )
+
+  const tasksIds = useMemo(() => orderedTasks.map((task) => task.id), [orderedTasks])
 
   const accent = getAccent(column.position)
   const p0Count = tasks.filter((t) => t.priority === "p0").length
@@ -79,7 +100,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
       <div
         ref={setNodeRef}
         style={style}
-        className="border-primary max-h-[calc(100vh-96px)] min-h-[200px] flex-1 shrink-0 rounded-[14px] border-2 opacity-40"
+        className="border-primary max-h-full min-h-[200px] max-w-[380px] min-w-[220px] flex-1 basis-0 rounded-[14px] border-2 opacity-40"
       />
     )
   }
@@ -93,7 +114,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
           style={style}
           onClick={() => setCollapsed(false)}
           title={`${column.title} (${tasks.length} tareas)`}
-          className={`bg-card border-border flex max-h-[calc(100vh-68px)] w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
+          className={`bg-card border-border flex max-h-full w-10 shrink-0 cursor-pointer flex-col items-center gap-2.5 overflow-hidden rounded-[14px] border pt-3.5 pb-3.5 shadow-sm ${
             searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""
           }`}
         >
@@ -150,7 +171,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-card border-border grid max-h-[calc(100vh-96px)] flex-1 shrink-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
+        className={`bg-card border-border grid max-h-full max-w-[380px] min-w-[220px] flex-1 basis-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border shadow-sm ${
           hasFilteredTasks ? "ring-primary ring-2" : ""
         } ${searchValue.trim().length > 0 && !hasFilteredTasks ? "opacity-35" : ""}`}
       >
@@ -191,14 +212,20 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
 
             {/* P0 urgency dot */}
             {p0Count > 0 && (
-              <div
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{
-                  background: "#ef4444",
-                  boxShadow: "0 0 0 2px rgba(239,68,68,0.2)",
-                }}
-                title={`${p0Count} tarea${p0Count > 1 ? "s" : ""} urgente${p0Count > 1 ? "s" : ""}`}
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{
+                      background: "#ef4444",
+                      boxShadow: "0 0 0 2px rgba(239,68,68,0.2)",
+                    }}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  {p0Count} tarea{p0Count > 1 ? "s" : ""} urgente{p0Count > 1 ? "s" : ""}
+                </TooltipContent>
+              </Tooltip>
             )}
 
             {/* Task count pill */}
@@ -206,16 +233,21 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
               {tasks.length}
             </div>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setCollapsed(true)
-              }}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 rounded-md p-1 transition-colors"
-              title="Colapsar columna"
-            >
-              <IconChevronDown size={14} className="rotate-90" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCollapsed(true)
+                  }}
+                  aria-label="Colapsar columna"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 rounded-md p-1 transition-colors"
+                >
+                  <IconChevronDown size={14} className="rotate-90" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Colapsar columna</TooltipContent>
+            </Tooltip>
 
             {/* Delete column button (owner only) */}
             {isOwner && (
@@ -280,12 +312,12 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Pro
         </div>
 
         <ScrollArea className="h-full min-h-0">
-          <div className="flex flex-col gap-[7px] p-2.5">
+          <div ref={tasksRef} className="flex flex-col gap-[7px] p-2.5">
             <SortableContext items={tasksIds}>
-              {tasks.length === 0 ? (
+              {orderedTasks.length === 0 ? (
                 <EmptyZone onAdd={() => setCreateTaskDialogOpen(true)} />
               ) : (
-                tasks.map((task) => (
+                orderedTasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
