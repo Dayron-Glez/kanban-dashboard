@@ -6,6 +6,12 @@ import { ProjectSidebarContent, useProjectsContext } from "@/features/project"
 
 const SIDEBAR_COLLAPSED_KEY = "cauce.sidebar.collapsed"
 
+/** 232px expandido (los 230 del design system) y 56px de rail. */
+const SIDEBAR_SIZES = {
+  "--sidebar-width": "14.5rem",
+  "--sidebar-width-icon": "3.5rem",
+} as React.CSSProperties
+
 const readCollapsed = (): boolean => {
   try {
     return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true"
@@ -43,7 +49,9 @@ function AppShell() {
   }
 
   return (
-    <div className="bg-background flex h-screen flex-col">
+    // Las medidas se declaran aquí y no solo en el SidebarProvider porque el
+    // Header las necesita para alinear el logo con el rail de iconos.
+    <div className="bg-background flex h-screen flex-col" style={SIDEBAR_SIZES}>
       <Header
         projectName={projectName}
         {...(!isScrollablePage && { searchValue, onSearchChange: setSearchValue })}
@@ -53,9 +61,7 @@ function AppShell() {
         open={open}
         onOpenChange={handleOpenChange}
         className="relative min-h-0 flex-1"
-        style={
-          { "--sidebar-width": "17rem", "--sidebar-width-icon": "3.5rem" } as React.CSSProperties
-        }
+        style={SIDEBAR_SIZES}
       >
         <Sidebar collapsible="icon" overlay className="bg-card border-border border-r">
           <ProjectSidebarContent />

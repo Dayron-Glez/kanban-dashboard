@@ -7,7 +7,6 @@ import {
 } from "@tabler/icons-react"
 import { Link, useLocation, useParams } from "react-router"
 import {
-  CauceLogo,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -19,7 +18,7 @@ import {
   TooltipTrigger,
   useSidebar,
 } from "@/shared"
-import { SidebarUserFooter } from "./SidebarUserFooter"
+import { SidebarCollapseFooter } from "./SidebarCollapseFooter"
 
 const NAV_ITEMS = [
   {
@@ -62,19 +61,6 @@ export function ProjectSidebarContent() {
     <TooltipProvider delayDuration={0}>
       <>
         <SidebarContent className="bg-card py-0">
-          {/* Marca */}
-          <SidebarGroup className="border-border border-b">
-            <div className={`flex h-[54px] items-center ${open ? "px-3" : "justify-center"}`}>
-              <Link
-                to="/projects"
-                aria-label="cauce — ir a proyectos"
-                className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
-              >
-                <CauceLogo size={28} showWordmark={open} />
-              </Link>
-            </div>
-          </SidebarGroup>
-
           {/* Navegación del proyecto */}
           {activeId && (
             <SidebarGroup className="pt-2">
@@ -137,7 +123,7 @@ export function ProjectSidebarContent() {
           )}
         </SidebarContent>
 
-        <SidebarUserFooter />
+        <SidebarCollapseFooter />
       </>
     </TooltipProvider>
   )

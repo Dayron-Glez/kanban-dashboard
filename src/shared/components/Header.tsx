@@ -9,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
   Button,
+  CauceLogo,
   SearchInput,
   Tooltip,
   TooltipContent,
@@ -16,6 +17,7 @@ import {
   TooltipTrigger,
   useTheme,
 } from "@/shared/index"
+import { UserMenu } from "@/features/auth"
 import { useKanban } from "@/features/board/index"
 import { CreateColumnSheet } from "@/features/column/index"
 import { ProjectCommandPopover, useProjectsContext } from "@/features/project"
@@ -54,8 +56,18 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
 
   return (
     <>
-      <header className="bg-card border-border flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="bg-card border-border flex h-14 shrink-0 items-center justify-between gap-4 border-b pr-4">
+        <div className="flex min-w-0 items-center gap-1">
+          {/* Slot del ancho del rail, para que el logo quede alineado con los
+              iconos del sidebar que hay justo debajo. */}
+          <Link
+            to="/projects"
+            aria-label="cauce — ir a proyectos"
+            className="flex w-(--sidebar-width-icon) shrink-0 justify-center transition-opacity hover:opacity-80"
+          >
+            <CauceLogo size={26} />
+          </Link>
+
           <Breadcrumb>
             <BreadcrumbList className="gap-1.5 text-[13px] sm:gap-1.5">
               <BreadcrumbItem>
@@ -139,6 +151,7 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
           >
             {theme === "dark" ? <IconSun size={16} /> : <IconMoon size={16} />}
           </Button>
+          <UserMenu />
         </div>
       </header>
 
