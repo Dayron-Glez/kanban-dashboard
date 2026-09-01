@@ -4,22 +4,11 @@ import type { MemberRole, Project } from "@/shared/supabase"
 import { useAuth } from "@/features/auth"
 import type { ProjectFormValues } from "../schemas/project.schema"
 
-/** Conteo de tareas por prioridad de un proyecto. */
-export interface PriorityCounts {
-  p0: number
-  p1: number
-  p2: number
-}
-
-const isPriorityKey = (value: string): value is keyof PriorityCounts =>
-  value === "p0" || value === "p1" || value === "p2"
-
 export const useProjects = () => {
   const { user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [userRoles, setUserRoles] = useState<Record<string, MemberRole>>({})
   const [taskCounts, setTaskCounts] = useState<Record<string, number>>({})
-  const [priorityCounts, setPriorityCounts] = useState<Record<string, PriorityCounts>>({})
   const [favoriteIds, setFavoriteIds] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
 
@@ -38,7 +27,6 @@ export const useProjects = () => {
       if (!memberRows || memberRows.length === 0) {
         setProjects([])
         setTaskCounts({})
-        setPriorityCounts({})
         setFavoriteIds({})
         setLoading(false)
         return
@@ -54,29 +42,18 @@ export const useProjects = () => {
 
       if (cancelled) return
 
-      // Paso 3: obtener conteo de tareas (total y por prioridad) por proyecto
+      // Paso 3: obtener conteo de tareas por proyecto
       const { data: tasksData } = await supabase
         .from("tasks")
-        .select("project_id, priority")
+        .select("project_id")
         .in("project_id", projectIds)
 
       if (cancelled) return
 
       const counts: Record<string, number> = {}
-      const priorities: Record<string, PriorityCounts> = {}
-      for (const id of projectIds) {
-        counts[id] = 0
-        priorities[id] = { p0: 0, p1: 0, p2: 0 }
-      }
-      for (const t of tasksData ?? []) {
-        counts[t.project_id] = (counts[t.project_id] ?? 0) + 1
-        // Prioridad desconocida o ausente: cuenta en el total, no en los chips.
-        if (typeof t.priority === "string" && isPriorityKey(t.priority)) {
-          priorities[t.project_id][t.priority] += 1
-        }
-      }
+      for (const id of projectIds) counts[id] = 0
+      for (const t of tasksData ?? []) counts[t.project_id] = (counts[t.project_id] ?? 0) + 1
       setTaskCounts(counts)
-      setPriorityCounts(priorities)
 
       setProjects(projectsData ?? [])
 
@@ -169,7 +146,6 @@ export const useProjects = () => {
     toggleFavorite,
     userRoles,
     taskCounts,
-    priorityCounts,
     favoriteIds,
   }
 }

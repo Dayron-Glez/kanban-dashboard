@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
 import { Header, SearchContext, Sidebar, SidebarInset, SidebarProvider } from "@/shared"
-import { BoardHeaderActions, KanbanProvider } from "@/features/board"
+import { KanbanProvider } from "@/features/board"
 import { ProjectSidebarContent, useProjectsContext, type SidebarMode } from "@/features/project"
 
 const SIDEBAR_MODE_KEY = "cauce.sidebar.mode"
@@ -76,11 +76,7 @@ function AppShell() {
     <div className="bg-background flex h-screen flex-col" style={SIDEBAR_SIZES}>
       <Header
         projectName={projectName}
-        actions={
-          !isScrollablePage ? (
-            <BoardHeaderActions searchValue={searchValue} onSearchChange={setSearchValue} />
-          ) : undefined
-        }
+        {...(!isScrollablePage && { searchValue, onSearchChange: setSearchValue })}
       />
 
       <SidebarProvider

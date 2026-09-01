@@ -62,14 +62,7 @@ describe("useProjects", () => {
       }),
     })
     mockTasks.select.mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          { project_id: "p1", priority: "p0" },
-          { project_id: "p1", priority: "p1" },
-          // Prioridad desconocida: cuenta en el total, no en los chips.
-          { project_id: "p1", priority: "urgente" },
-        ],
-      }),
+      in: vi.fn().mockResolvedValue({ data: [{ project_id: "p1" }, { project_id: "p1" }] }),
     })
 
     const { result } = renderHook(() => useProjects())
@@ -81,8 +74,7 @@ describe("useProjects", () => {
     })
 
     expect(result.current.projects).toEqual(projects)
-    expect(result.current.taskCounts).toEqual({ p1: 3 })
-    expect(result.current.priorityCounts).toEqual({ p1: { p0: 1, p1: 1, p2: 0 } })
+    expect(result.current.taskCounts).toEqual({ p1: 2 })
   })
 
   it("createProject agrega el proyecto a la lista", async () => {
