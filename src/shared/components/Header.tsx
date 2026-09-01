@@ -1,10 +1,23 @@
 import { useState } from "react"
-import { IconSearch, IconSun, IconMoon } from "@tabler/icons-react"
+import { IconPlus, IconSun, IconMoon } from "@tabler/icons-react"
 import { Link, useLocation, useParams } from "react-router"
-import { Button, SidebarTrigger, useTheme } from "@/shared/index"
+import {
+  Button,
+  SearchInput,
+  SidebarTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  useTheme,
+} from "@/shared/index"
+import { useKanban } from "@/features/board/index"
+import { CreateColumnSheet } from "@/features/column/index"
 import { ProjectCommandDialog } from "@/features/project"
 
 interface HeaderProps {
+  searchValue?: string
+  onSearchChange?: (value: string) => void
   projectName?: string
 }
 
@@ -16,14 +29,22 @@ const VIEW_LABELS: Record<string, string> = {
   settings: "Ajustes",
 }
 
-export function Header({ projectName }: HeaderProps) {
+export function Header({ searchValue, onSearchChange, projectName }: HeaderProps) {
+  const { createNewColumn, columns, tasks, userRole } = useKanban()
   const { theme, toggleTheme } = useTheme()
   const { id: projectId } = useParams()
   const location = useLocation()
+  const [createColumnDialogOpen, setCreateColumnDialogOpen] = useState<boolean>(false)
   const [commandOpen, setCommandOpen] = useState<boolean>(false)
 
   const lastSegment = location.pathname.split("/").filter(Boolean).pop() ?? ""
   const viewLabel = VIEW_LABELS[lastSegment] ?? "Tablero"
+  const isOwner = userRole === "owner"
+
+  const handleCreateColumn = (content: string) => {
+    createNewColumn(content)
+    setCreateColumnDialogOpen(false)
+  }
 
   return (
     <>
@@ -61,20 +82,37 @@ export function Header({ projectName }: HeaderProps) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCommandOpen(true)}
-            aria-label="Buscar proyecto"
-            className="text-muted-foreground hover:text-foreground gap-2 font-semibold"
-          >
-            <IconSearch size={14} />
-            Buscar
-            <kbd className="border-border bg-muted text-muted-foreground pointer-events-none flex shrink-0 items-center gap-0.5 rounded border px-1.5 py-0.5 font-mono text-[10px]">
-              <span>⌘</span>
-              <span>K</span>
-            </kbd>
-          </Button>
+          {onSearchChange && (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <SearchInput
+                        value={searchValue ?? ""}
+                        onChange={onSearchChange}
+                        disabled={tasks.length === 0}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  {tasks.length === 0 && (
+                    <TooltipContent>Crea una tarea para empezar a filtrar</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+              {isOwner && (
+                <Button
+                  onClick={() => setCreateColumnDialogOpen(true)}
+                  className="group hover:border-primary hover:bg-primary/5 hover:text-primary border-2 border-dashed transition-all"
+                  variant="outline"
+                  disabled={columns.length >= 6}
+                >
+                  <IconPlus className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
+                  Agregar Columna
+                </Button>
+              )}
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -87,7 +125,16 @@ export function Header({ projectName }: HeaderProps) {
         </div>
       </header>
 
+      {/* Sin botón visible: solo mantiene vivo el atajo ⌘K para cambiar de proyecto. */}
       <ProjectCommandDialog open={commandOpen} onOpenChange={setCommandOpen} />
+
+      {onSearchChange && isOwner && (
+        <CreateColumnSheet
+          open={createColumnDialogOpen}
+          onOpenChange={setCreateColumnDialogOpen}
+          onSave={handleCreateColumn}
+        />
+      )}
     </>
   )
 }

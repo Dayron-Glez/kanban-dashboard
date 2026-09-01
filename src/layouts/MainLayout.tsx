@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
 import { Header, ScrollArea, SearchContext, Skeleton, useSidebar } from "@/shared/index"
-import { BoardToolbar, KanbanProvider, useKanban } from "@/features/board/index"
+import { KanbanProvider, useKanban } from "@/features/board/index"
 import { useProjectsContext } from "@/features/project"
 import noDataSvg from "@/assets/noData.svg"
 import notFindByFilter from "@/assets/notFindByFilter.svg"
@@ -55,7 +55,10 @@ function KanbanContent() {
 
   return (
     <>
-      <Header projectName={projectName} />
+      <Header
+        projectName={projectName}
+        {...(!isScrollablePage && { searchValue, onSearchChange: setSearchValue })}
+      />
       <main ref={!isScrollablePage ? scrollContainerRef : undefined} className={mainClass}>
         {isScrollablePage ? (
           <ScrollArea className="h-full">
@@ -63,7 +66,6 @@ function KanbanContent() {
           </ScrollArea>
         ) : (
           <SearchContext.Provider value={{ searchValue, setSearchValue }}>
-            <BoardToolbar searchValue={searchValue} onSearchChange={setSearchValue} />
             {boardBody}
           </SearchContext.Provider>
         )}

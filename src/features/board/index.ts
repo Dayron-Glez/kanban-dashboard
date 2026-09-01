@@ -1,4 +1,3 @@
-export * from "./components/BoardToolbar"
 export * from "./components/KanbanBoard"
 export { KanbanProvider } from "./context/KanbanContext"
 export { useKanban } from "./hooks/useKanban"
