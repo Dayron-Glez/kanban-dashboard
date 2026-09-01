@@ -10,7 +10,7 @@ on:
       - '.github/workflows/tests.yml'
   push:
     branches:
-      - main
+      - master
     paths:
       - 'src/**'
       - 'package.json'
