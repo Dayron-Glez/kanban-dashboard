@@ -65,7 +65,11 @@ export function ProjectSidebarContent({ mode, onModeChange }: Props) {
   return (
     <TooltipProvider delayDuration={0}>
       <>
-        <SidebarContent className="bg-card py-0">
+        {/* overflow-x-hidden: durante la transición de ancho el contenido va
+            por delante del panel (open cambia al instante, el ancho anima) y
+            el overflow-auto de SidebarContent pintaba un scroll horizontal
+            fugaz. */}
+        <SidebarContent className="bg-card overflow-x-hidden py-0">
           {/* Navegación del proyecto */}
           {activeId && (
             <SidebarGroup className="pt-2">
@@ -86,7 +90,7 @@ export function ProjectSidebarContent({ mode, onModeChange }: Props) {
                             }`}
                           >
                             <Icon size={16} className="shrink-0" />
-                            <span className="flex-1">{label}</span>
+                            <span className="flex-1 whitespace-nowrap">{label}</span>
                             {isActive && (
                               <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-r-sm" />
                             )}
