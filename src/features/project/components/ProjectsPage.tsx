@@ -13,6 +13,7 @@ import {
 import type { Project } from "@/shared/supabase"
 import { useProjectsContext } from "../context/projectsCtx"
 import { ProjectCard } from "./ProjectCard"
+import { ProjectsSummaryPanel } from "./ProjectsSummaryPanel"
 import { CreateProjectModal } from "./CreateProjectModal"
 import type { ProjectFormValues } from "../schemas/project.schema"
 
@@ -66,7 +67,7 @@ export function ProjectsPage() {
   const noResults = isSearching && favorites.length === 0 && rest.length === 0
 
   const grid = (items: Project[]) => (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {items.map((project) => (
         <ProjectCard key={project.id} project={project} />
       ))}
@@ -110,44 +111,56 @@ export function ProjectsPage() {
             </Button>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-muted h-36 animate-pulse rounded-xl" />
-              ))}
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-24">
-              <p className="text-lg">No tienes proyectos todavía.</p>
-              <Button variant="outline" onClick={() => setModalOpen(true)}>
-                <IconPlus className="mr-2 h-4 w-4" />
-                Crear primer proyecto
-              </Button>
-            </div>
-          ) : noResults ? (
-            <p className="text-muted-foreground py-24 text-center text-sm">
-              Sin resultados para «{query.trim()}»
-            </p>
-          ) : (
-            <>
-              {favorites.length > 0 && (
-                <section className="flex flex-col gap-2.5">
-                  <SectionLabel>
-                    <IconStar size={11} className="fill-amber-400 text-amber-400" />
-                    Favoritos
-                  </SectionLabel>
-                  {grid(favorites)}
-                </section>
-              )}
+          {/* Grid a la izquierda, panel de resumen sticky a la derecha; en
+              pantallas estrechas el panel baja debajo del grid. */}
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            <div className="flex min-w-0 flex-1 flex-col gap-5">
+              {loading ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="bg-muted h-36 animate-pulse rounded-xl" />
+                  ))}
+                </div>
+              ) : projects.length === 0 ? (
+                <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-24">
+                  <p className="text-lg">No tienes proyectos todavía.</p>
+                  <Button variant="outline" onClick={() => setModalOpen(true)}>
+                    <IconPlus className="mr-2 h-4 w-4" />
+                    Crear primer proyecto
+                  </Button>
+                </div>
+              ) : noResults ? (
+                <p className="text-muted-foreground py-24 text-center text-sm">
+                  Sin resultados para «{query.trim()}»
+                </p>
+              ) : (
+                <>
+                  {favorites.length > 0 && (
+                    <section className="flex flex-col gap-2.5">
+                      <SectionLabel>
+                        <IconStar size={11} className="fill-amber-400 text-amber-400" />
+                        Favoritos
+                      </SectionLabel>
+                      {grid(favorites)}
+                    </section>
+                  )}
 
-              {rest.length > 0 && (
-                <section className="flex flex-col gap-2.5">
-                  {favorites.length > 0 && <SectionLabel>Todos los proyectos</SectionLabel>}
-                  {grid(rest)}
-                </section>
+                  {rest.length > 0 && (
+                    <section className="flex flex-col gap-2.5">
+                      {favorites.length > 0 && <SectionLabel>Todos los proyectos</SectionLabel>}
+                      {grid(rest)}
+                    </section>
+                  )}
+                </>
               )}
-            </>
-          )}
+            </div>
+
+            {!loading && projects.length > 0 && (
+              <aside className="w-full shrink-0 lg:sticky lg:top-2 lg:w-72">
+                <ProjectsSummaryPanel />
+              </aside>
+            )}
+          </div>
         </div>
       </main>
 
