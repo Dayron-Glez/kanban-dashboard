@@ -34,7 +34,7 @@ export default function AppLayout() {
       className="h-screen"
       style={{ "--sidebar-width": "17rem" } as React.CSSProperties}
     >
-      <Sidebar collapsible="icon" className="bg-background min-w-16 border-r-transparent shadow-md">
+      <Sidebar collapsible="icon" className="bg-card border-border min-w-16 border-r">
         <ProjectSidebarContent />
       </Sidebar>
 

@@ -76,7 +76,7 @@ export function ProjectSidebarContent() {
   return (
     <TooltipProvider delayDuration={0}>
       <>
-        <SidebarContent className="bg-background py-0">
+        <SidebarContent className="bg-card py-0">
           {/* Brand */}
           <SidebarGroup className="border-border border-b">
             <div className={`flex h-[54px] items-center ${open ? "px-3" : "justify-center"}`}>

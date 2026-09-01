@@ -36,7 +36,7 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
 
   return (
     <>
-      <header className="bg-background flex h-16 shrink-0 items-center justify-between gap-4 border-b border-b-transparent px-6 shadow-md">
+      <header className="bg-card border-border flex h-16 shrink-0 items-center justify-between gap-4 border-b px-6">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-primary" />
           <h1 className="text-primary flex items-center gap-3">

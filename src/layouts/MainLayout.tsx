@@ -24,8 +24,8 @@ function KanbanContent() {
   })
 
   const mainClass = isScrollablePage
-    ? `bg-muted flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
-    : `bg-muted flex flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
+    ? `bg-background flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
+    : `bg-background flex flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
 
   return (
     <>

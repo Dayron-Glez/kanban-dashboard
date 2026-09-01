@@ -135,8 +135,8 @@ export default function InviteAcceptPage() {
 
   // ── Render ──────────────────────────────────────────────────────
   return (
-    <div className="bg-muted flex min-h-screen items-center justify-center p-4">
-      <div className="bg-background flex w-full max-w-md flex-col items-center gap-6 rounded-xl p-8 text-center shadow-lg">
+    <div className="bg-background flex min-h-screen items-center justify-center p-4">
+      <div className="bg-card flex w-full max-w-md flex-col items-center gap-6 rounded-xl p-8 text-center shadow-lg">
         {(state === "loading" || state === "accepting") && (
           <>
             <IconLoader2 size={48} className="text-primary animate-spin" />

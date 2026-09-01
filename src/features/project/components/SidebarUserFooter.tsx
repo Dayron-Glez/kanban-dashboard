@@ -39,7 +39,7 @@ export function SidebarUserFooter() {
 
   if (!open) {
     return (
-      <SidebarFooter className="bg-background border-border border-t pt-2 pb-2">
+      <SidebarFooter className="bg-card border-border border-t pt-2 pb-2">
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={handleLogout}
@@ -63,7 +63,7 @@ export function SidebarUserFooter() {
   }
 
   return (
-    <SidebarFooter className="bg-background border-border border-t pt-2 pb-2">
+    <SidebarFooter className="bg-card border-border border-t pt-2 pb-2">
       <div className="flex flex-col gap-1 px-2">
         <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
           {avatar}
