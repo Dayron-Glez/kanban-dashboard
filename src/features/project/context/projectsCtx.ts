@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react"
 import type { MemberRole, Project } from "@/shared/supabase"
+import type { PriorityCounts } from "../hooks/useProjects"
 import type { ProjectFormValues } from "../schemas/project.schema"
 
 export interface ProjectsContextValue {
@@ -7,6 +8,7 @@ export interface ProjectsContextValue {
   loading: boolean
   userRoles: Record<string, MemberRole>
   taskCounts: Record<string, number>
+  priorityCounts: Record<string, PriorityCounts>
   favoriteIds: Record<string, boolean>
   createProject: (values: ProjectFormValues) => Promise<Project | null>
   deleteProject: (id: string) => Promise<void>
