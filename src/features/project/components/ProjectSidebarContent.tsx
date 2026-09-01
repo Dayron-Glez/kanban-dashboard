@@ -80,44 +80,36 @@ export function ProjectSidebarContent({ mode, onModeChange }: Props) {
                     const isActive = location.pathname === href
                     return (
                       <SidebarMenuItem key={label}>
-                        {open ? (
-                          <Link
-                            to={href}
-                            className={`relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] transition-colors ${
-                              isActive
-                                ? "bg-accent text-accent-foreground font-bold"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                            }`}
-                          >
-                            <Icon size={16} className="shrink-0" />
-                            <span className="flex-1 whitespace-nowrap">{label}</span>
-                            {isActive && (
-                              <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-r-sm" />
-                            )}
-                          </Link>
-                        ) : (
-                          <div className="flex justify-center">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Link
-                                  to={href}
-                                  aria-label={label}
-                                  className={`relative flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-                                    isActive
-                                      ? "bg-accent text-accent-foreground"
-                                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                  }`}
-                                >
-                                  <Icon size={16} />
-                                  {isActive && (
-                                    <span className="bg-primary absolute top-2 bottom-2 left-0 w-0.5 rounded-r-sm" />
-                                  )}
-                                </Link>
-                              </TooltipTrigger>
-                              <TooltipContent side="right">{label}</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        )}
+                        {/* Un solo árbol para ambos estados: el icono vive en un
+                            slot fijo de 32px (el interior del rail), así no se
+                            mueve ni un píxel al expandir; solo aparece la
+                            etiqueta a su derecha. */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              to={href}
+                              aria-label={label}
+                              className={`relative flex h-8 items-center rounded-md transition-colors ${
+                                isActive
+                                  ? "bg-accent text-accent-foreground font-bold"
+                                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                              }`}
+                            >
+                              <span className="flex w-8 shrink-0 items-center justify-center">
+                                <Icon size={16} />
+                              </span>
+                              {open && (
+                                <span className="flex-1 truncate pr-2 text-[12.5px] whitespace-nowrap">
+                                  {label}
+                                </span>
+                              )}
+                              {isActive && (
+                                <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-r-sm" />
+                              )}
+                            </Link>
+                          </TooltipTrigger>
+                          {!open && <TooltipContent side="right">{label}</TooltipContent>}
+                        </Tooltip>
                       </SidebarMenuItem>
                     )
                   })}
