@@ -159,7 +159,7 @@ export function ProjectSidebarContent() {
                         {open ? (
                           <Link
                             to={href}
-                            className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] transition-colors ${
+                            className={`relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] transition-colors ${
                               isActive
                                 ? "bg-accent text-accent-foreground font-bold"
                                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -167,6 +167,9 @@ export function ProjectSidebarContent() {
                           >
                             <Icon size={16} className="shrink-0" />
                             <span className="flex-1">{label}</span>
+                            {isActive && (
+                              <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-r-sm" />
+                            )}
                           </Link>
                         ) : (
                           <div className="flex justify-center">
