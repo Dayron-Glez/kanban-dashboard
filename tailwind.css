@@ -64,11 +64,21 @@ body,
   --p2: hsl(217 91% 60%);
   --p2-soft: hsl(214 100% 97%);
 
-  /* shadows */
-  --shadow-sm: 0 1px 3px hsl(212 60% 10% / 0.07), 0 1px 2px hsl(212 60% 10% / 0.04);
-  --shadow-md: 0 4px 12px hsl(212 60% 10% / 0.08), 0 2px 4px hsl(212 60% 10% / 0.04);
-  --shadow-lg: 0 10px 28px hsl(212 60% 10% / 0.12);
-  --shadow-pop: 0 16px 44px hsl(212 60% 10% / 0.16);
+  /* Sombras (§2.5) — prefijadas para no colisionar con el namespace
+     --shadow-* de Tailwind. Se exponen como utilidades en @theme inline. */
+  --cauce-shadow-xs: 0 1px 2px hsl(212 60% 10% / 0.05);
+  --cauce-shadow-sm: 0 1px 3px hsl(212 60% 10% / 0.07), 0 1px 2px hsl(212 60% 10% / 0.04);
+  --cauce-shadow-md: 0 4px 12px hsl(212 60% 10% / 0.08), 0 2px 4px hsl(212 60% 10% / 0.04);
+  --cauce-shadow-lg: 0 10px 28px hsl(212 60% 10% / 0.12), 0 4px 8px hsl(212 60% 10% / 0.05);
+  --cauce-shadow-pop: 0 16px 44px hsl(212 60% 10% / 0.16);
+
+  /* Motion (§2.7) — Tailwind v4 no expone namespace --duration-*, así que las
+     duraciones viven como vars y se consumen con duration-[var(--dur-*)].
+     Los easings sí tienen namespace y se mapean en @theme. */
+  --dur-fast: 100ms;
+  --dur-base: 150ms;
+  --dur-medium: 220ms;
+  --dur-slow: 320ms;
 
   /* vis */
   --vis-tooltip-background-color: none !important;
@@ -128,10 +138,11 @@ body,
   --p2: hsl(217 91% 70%);
   --p2-soft: hsl(217 91% 70% / 0.1);
 
-  --shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.45);
-  --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.5);
-  --shadow-lg: 0 10px 28px hsl(0 0% 0% / 0.55);
-  --shadow-pop: 0 16px 44px hsl(0 0% 0% / 0.6);
+  --cauce-shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.4);
+  --cauce-shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.45);
+  --cauce-shadow-md: 0 4px 12px hsl(0 0% 0% / 0.5);
+  --cauce-shadow-lg: 0 10px 28px hsl(0 0% 0% / 0.55);
+  --cauce-shadow-pop: 0 16px 44px hsl(0 0% 0% / 0.6);
 }
 
 @theme inline {
@@ -159,10 +170,54 @@ body,
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
   --color-p0: var(--p0);
+  --color-p0-soft: var(--p0-soft);
   --color-p1: var(--p1);
+  --color-p1-soft: var(--p1-soft);
   --color-p2: var(--p2);
+  --color-p2-soft: var(--p2-soft);
+
+  /* Tipografía — escala Cauce v1.0 (§2.4). Los nombres son los de Tailwind;
+     los valores, los del design system. */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --text-xs: 11px;
+  --text-xs--line-height: 1.45;
+  --text-sm: 12.5px;
+  --text-sm--line-height: 1.45;
+  --text-base: 14px;
+  --text-base--line-height: 1.45;
+  --text-lg: 16px;
+  --text-lg--line-height: 1.45;
+  --text-xl: 20px;
+  --text-xl--line-height: 1.2;
+  --text-xl--letter-spacing: -0.01em;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 1.15;
+  --text-2xl--letter-spacing: -0.02em;
+  --text-3xl: 32px;
+  --text-3xl--line-height: 1.1;
+  --text-3xl--letter-spacing: -0.025em;
+  --text-4xl: 40px;
+  --text-4xl--line-height: 1.1;
+  --text-4xl--letter-spacing: -0.03em;
+
+  /* Sombras (§2.5) — todas las utilidades shadow-* del codebase heredan el
+     look de Cauce sin tocar componente por componente. */
+  --shadow-xs: var(--cauce-shadow-xs);
+  --shadow-sm: var(--cauce-shadow-sm);
+  --shadow-md: var(--cauce-shadow-md);
+  --shadow-lg: var(--cauce-shadow-lg);
+  --shadow-pop: var(--cauce-shadow-pop);
+
+  /* Easings (§2.7) */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-entrance: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
 @layer base {
@@ -187,6 +242,12 @@ body,
     @apply bg-background text-foreground;
     font-family: "Inter", system-ui, sans-serif;
     font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Focus visible — outline 2px accent con offset (§8) */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
