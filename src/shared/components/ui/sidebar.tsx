@@ -211,9 +211,11 @@ function Sidebar({
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
-          // Al superponerse, el panel expandido necesita sombra para despegarse
-          // del contenido que tapa.
-          overlay && "group-data-[state=expanded]:shadow-pop",
+          // En modo superposición el panel deja de ser fixed a la ventana y se
+          // ancla al contenedor del SidebarProvider (que debe ser relative), de
+          // forma que arranca por debajo de la barra superior en vez de taparla.
+          // La sombra lo despega del contenido que cubre al expandirse.
+          overlay && "group-data-[state=expanded]:shadow-pop absolute h-full",
           className
         )}
         {...props}

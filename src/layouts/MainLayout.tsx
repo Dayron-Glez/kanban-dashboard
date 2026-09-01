@@ -1,31 +1,27 @@
-import { useState } from "react"
-import { Outlet, useLocation, useParams } from "react-router"
-import { Header, ScrollArea, SearchContext, Skeleton, useSidebar } from "@/shared/index"
-import { KanbanProvider, useKanban } from "@/features/board/index"
-import { useProjectsContext } from "@/features/project"
+import { useContext } from "react"
+import { Outlet, useLocation } from "react-router"
+import { ScrollArea, SearchContext, Skeleton } from "@/shared/index"
+import { useKanban } from "@/features/board/index"
 import noDataSvg from "@/assets/noData.svg"
 import notFindByFilter from "@/assets/notFindByFilter.svg"
 
-function KanbanContent() {
-  const { state } = useSidebar()
+/**
+ * Cuerpo de las vistas de proyecto. La barra superior y el sidebar viven en
+ * AppLayout, que es quien monta el shell.
+ */
+export default function KanbanLayout() {
   const { scrollContainerRef, columns, tasks, loading } = useKanban()
-  const [searchValue, setSearchValue] = useState<string>("")
-  const { id } = useParams()
-  const { projects } = useProjectsContext()
+  const searchValue = useContext(SearchContext)?.searchValue ?? ""
   const location = useLocation()
+
   const isScrollablePage =
     location.pathname.endsWith("/analytics") || location.pathname.endsWith("/settings")
-  const projectName = projects.find((p) => p.id === id)?.name
 
   const filteredTasks = tasks.filter((task) => {
     const searchTerm = searchValue.trim().toLowerCase()
     if (!task.content || !searchTerm) return true
     return task.content.toLowerCase().includes(searchTerm)
   })
-
-  const mainClass = isScrollablePage
-    ? `bg-background flex-1 overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
-    : `bg-background flex flex-1 flex-col overflow-hidden ${state === "collapsed" ? "pl-4" : ""}`
 
   const boardBody = loading ? (
     <div className="flex min-h-0 flex-1 gap-3 p-3">
@@ -54,30 +50,21 @@ function KanbanContent() {
   )
 
   return (
-    <>
-      <Header
-        projectName={projectName}
-        {...(!isScrollablePage && { searchValue, onSearchChange: setSearchValue })}
-      />
-      <main ref={!isScrollablePage ? scrollContainerRef : undefined} className={mainClass}>
-        {isScrollablePage ? (
-          <ScrollArea className="h-full">
-            <Outlet />
-          </ScrollArea>
-        ) : (
-          <SearchContext.Provider value={{ searchValue, setSearchValue }}>
-            {boardBody}
-          </SearchContext.Provider>
-        )}
-      </main>
-    </>
-  )
-}
-
-export default function KanbanLayout() {
-  return (
-    <KanbanProvider>
-      <KanbanContent />
-    </KanbanProvider>
+    <div
+      // Callback ref: el contexto tipa el contenedor como HTMLElement y aquí es
+      // un div, así que asignamos en vez de pasar el RefObject directamente.
+      ref={(el) => {
+        scrollContainerRef.current = isScrollablePage ? null : el
+      }}
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+    >
+      {isScrollablePage ? (
+        <ScrollArea className="h-full">
+          <Outlet />
+        </ScrollArea>
+      ) : (
+        boardBody
+      )}
+    </div>
   )
 }

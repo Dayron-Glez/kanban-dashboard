@@ -10,7 +10,6 @@ import {
   BreadcrumbSeparator,
   Button,
   SearchInput,
-  SidebarTrigger,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -57,8 +56,6 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
     <>
       <header className="bg-card border-border flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-
           <Breadcrumb>
             <BreadcrumbList className="gap-1.5 text-[13px] sm:gap-1.5">
               <BreadcrumbItem>
