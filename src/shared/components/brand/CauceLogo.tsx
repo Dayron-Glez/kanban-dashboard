@@ -1,22 +1,35 @@
 import { cn } from "@/shared/lib/utils"
 
 interface CauceLogoProps {
+  /** Tamaño del contenedor cuadrado en píxeles. Default 28. */
   size?: number
+  /** Mostrar también el wordmark "cauce" a la derecha. */
   showWordmark?: boolean
+  /** Solo el SVG, sin el contenedor de fondo (hereda currentColor). */
   unwrapped?: boolean
   className?: string
 }
 
+/**
+ * Isotipo + wordmark de Cauce — el único icono propio del sistema.
+ * El resto de la iconografía viene de `@tabler/icons-react`.
+ *
+ *   <CauceLogo size={28} />              // solo isotipo
+ *   <CauceLogo size={28} showWordmark /> // lockup completo
+ *   <CauceLogo size={20} unwrapped />    // svg suelto, hereda color
+ */
 export function CauceLogo({
   size = 28,
   showWordmark = false,
   unwrapped = false,
   className,
 }: CauceLogoProps) {
+  const glyphSize = size * (unwrapped ? 1 : 0.6)
+
   const svg = (
     <svg
-      width={size * (unwrapped ? 1 : 0.6)}
-      height={size * (unwrapped ? 1 : 0.6)}
+      width={glyphSize}
+      height={glyphSize}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -35,7 +48,7 @@ export function CauceLogo({
 
   if (unwrapped) {
     return (
-      <span className={cn("inline-flex", className)} aria-label="Cauce">
+      <span className={cn("inline-flex", className)} aria-label="cauce">
         {svg}
       </span>
     )
@@ -46,16 +59,16 @@ export function CauceLogo({
       <span
         className="bg-primary text-primary-foreground inline-flex shrink-0 items-center justify-center"
         style={{ width: size, height: size, borderRadius: size * 0.27 }}
-        aria-label="Cauce"
+        aria-label="cauce"
       >
         {svg}
       </span>
       {showWordmark && (
         <span
-          className="text-primary font-extrabold"
+          className="text-primary font-extrabold lowercase"
           style={{ fontSize: size * 0.6, letterSpacing: "-0.02em", lineHeight: 1 }}
         >
-          Cauce
+          cauce
         </span>
       )}
     </span>

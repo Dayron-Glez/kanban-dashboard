@@ -2,6 +2,7 @@ import { useState } from "react"
 import { IconPlus, IconSun, IconMoon } from "@tabler/icons-react"
 import {
   Button,
+  CauceLogo,
   SearchInput,
   SidebarTrigger,
   Tooltip,
@@ -36,8 +37,8 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
       <header className="bg-background flex h-16 shrink-0 items-center justify-between gap-4 border-b border-b-transparent px-6 shadow-md">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-primary" />
-          <h1 className="text-primary flex items-center gap-2 text-xl font-semibold">
-            Kanban Dashboard
+          <h1 className="text-primary flex items-center gap-3">
+            <CauceLogo size={24} showWordmark />
             {projectName && (
               <>
                 <span className="text-muted-foreground font-normal">|</span>
