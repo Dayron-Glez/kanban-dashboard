@@ -32,9 +32,11 @@ export default function AppLayout() {
       open={open}
       onOpenChange={handleOpenChange}
       className="h-screen"
-      style={{ "--sidebar-width": "17rem" } as React.CSSProperties}
+      style={
+        { "--sidebar-width": "17rem", "--sidebar-width-icon": "3.5rem" } as React.CSSProperties
+      }
     >
-      <Sidebar collapsible="icon" className="bg-card border-border min-w-16 border-r">
+      <Sidebar collapsible="icon" overlay className="bg-card border-border border-r">
         <ProjectSidebarContent />
       </Sidebar>
 

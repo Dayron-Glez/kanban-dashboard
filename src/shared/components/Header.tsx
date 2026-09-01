@@ -1,7 +1,13 @@
 import { useState } from "react"
-import { IconPlus, IconSun, IconMoon } from "@tabler/icons-react"
+import { IconPlus, IconSelector, IconSun, IconMoon } from "@tabler/icons-react"
 import { Link, useLocation, useParams } from "react-router"
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
   Button,
   SearchInput,
   SidebarTrigger,
@@ -13,7 +19,7 @@ import {
 } from "@/shared/index"
 import { useKanban } from "@/features/board/index"
 import { CreateColumnSheet } from "@/features/column/index"
-import { ProjectCommandDialog } from "@/features/project"
+import { ProjectCommandPopover, useProjectsContext } from "@/features/project"
 
 interface HeaderProps {
   searchValue?: string
@@ -31,15 +37,16 @@ const VIEW_LABELS: Record<string, string> = {
 
 export function Header({ searchValue, onSearchChange, projectName }: HeaderProps) {
   const { createNewColumn, columns, tasks, userRole } = useKanban()
+  const { projects } = useProjectsContext()
   const { theme, toggleTheme } = useTheme()
   const { id: projectId } = useParams()
   const location = useLocation()
   const [createColumnDialogOpen, setCreateColumnDialogOpen] = useState<boolean>(false)
-  const [commandOpen, setCommandOpen] = useState<boolean>(false)
 
   const lastSegment = location.pathname.split("/").filter(Boolean).pop() ?? ""
   const viewLabel = VIEW_LABELS[lastSegment] ?? "Tablero"
   const isOwner = userRole === "owner"
+  const activeProject = projects.find((p) => p.id === projectId)
 
   const handleCreateColumn = (content: string) => {
     createNewColumn(content)
@@ -51,34 +58,47 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
       <header className="bg-card border-border flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
         <div className="flex min-w-0 items-center gap-3">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-          {/* Ruta: cauce / Proyecto / Vista */}
-          <nav aria-label="Ruta" className="flex min-w-0 items-center gap-2 text-[13px]">
-            <Link
-              to="/projects"
-              className="text-muted-foreground hover:text-foreground font-semibold transition-colors"
-            >
-              cauce
-            </Link>
-            {projectName && (
-              <>
-                <span className="text-muted-foreground/60" aria-hidden="true">
-                  /
-                </span>
-                <Link
-                  to={`/projects/${projectId}`}
-                  className="text-muted-foreground hover:text-foreground truncate font-semibold transition-colors"
-                >
-                  {projectName}
-                </Link>
-                <span className="text-muted-foreground/60" aria-hidden="true">
-                  /
-                </span>
-                <span aria-current="page" className="text-foreground shrink-0 font-bold">
-                  {viewLabel}
-                </span>
-              </>
-            )}
-          </nav>
+
+          <Breadcrumb>
+            <BreadcrumbList className="gap-1.5 text-[13px] sm:gap-1.5">
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/projects" className="font-semibold">
+                    cauce
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+
+              {projectName && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    {/* Selector de proyecto, como el de Supabase */}
+                    <ProjectCommandPopover>
+                      <button
+                        aria-label="Cambiar de proyecto"
+                        className="text-muted-foreground hover:text-foreground hover:bg-muted flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 font-semibold transition-colors"
+                      >
+                        {activeProject && (
+                          <span
+                            className="size-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: activeProject.color }}
+                          />
+                        )}
+                        <span className="truncate">{projectName}</span>
+                        <IconSelector size={14} className="shrink-0 opacity-60" />
+                      </button>
+                    </ProjectCommandPopover>
+                  </BreadcrumbItem>
+
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage className="font-bold">{viewLabel}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              )}
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -124,9 +144,6 @@ export function Header({ searchValue, onSearchChange, projectName }: HeaderProps
           </Button>
         </div>
       </header>
-
-      {/* Sin botón visible: solo mantiene vivo el atajo ⌘K para cambiar de proyecto. */}
-      <ProjectCommandDialog open={commandOpen} onOpenChange={setCommandOpen} />
 
       {onSearchChange && isOwner && (
         <CreateColumnSheet

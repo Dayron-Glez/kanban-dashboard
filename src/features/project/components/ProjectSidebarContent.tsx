@@ -1,4 +1,3 @@
-import { useState } from "react"
 import {
   IconArchive,
   IconChartBar,
@@ -8,6 +7,7 @@ import {
 } from "@tabler/icons-react"
 import { Link, useLocation, useParams } from "react-router"
 import {
+  CauceLogo,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -19,11 +19,6 @@ import {
   TooltipTrigger,
   useSidebar,
 } from "@/shared"
-import { useProjectsContext } from "../context/projectsCtx"
-import { CauceLogo } from "@/shared/components/brand/CauceLogo"
-import { CreateProjectModal } from "./CreateProjectModal"
-import { ProjectCommandPopover } from "./ProjectCommandPopover"
-import { SidebarProjectCard } from "./SidebarProjectCard"
 import { SidebarUserFooter } from "./SidebarUserFooter"
 
 const NAV_ITEMS = [
@@ -54,34 +49,25 @@ const NAV_ITEMS = [
   },
 ]
 
+/**
+ * Sidebar de navegación pura, al estilo de Supabase: el cambio de proyecto
+ * vive en el selector del breadcrumb, no aquí.
+ */
 export function ProjectSidebarContent() {
   const { open } = useSidebar()
-  const { projects, taskCounts, favoriteIds, createProject, toggleFavorite } = useProjectsContext()
   const { id: activeId } = useParams()
   const location = useLocation()
-  const [createModalOpen, setCreateModalOpen] = useState(false)
-  const [commandOpen, setCommandOpen] = useState(false)
-
-  const activeProject = projects.find((p) => p.id === activeId)
-
-  // El atajo ⌘K lo gestiona ProjectCommandDialog desde el Header, para que
-  // funcione en cualquier página y con el sidebar en cualquier estado.
-  // Aquí el popover solo se abre con click sobre la card del proyecto.
-
-  const handleCreateProject = async (values: Parameters<typeof createProject>[0]) => {
-    await createProject(values)
-    setCreateModalOpen(false)
-  }
 
   return (
     <TooltipProvider delayDuration={0}>
       <>
         <SidebarContent className="bg-card py-0">
-          {/* Brand */}
+          {/* Marca */}
           <SidebarGroup className="border-border border-b">
             <div className={`flex h-[54px] items-center ${open ? "px-3" : "justify-center"}`}>
               <Link
                 to="/projects"
+                aria-label="cauce — ir a proyectos"
                 className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
               >
                 <CauceLogo size={28} showWordmark={open} />
@@ -89,54 +75,9 @@ export function ProjectSidebarContent() {
             </div>
           </SidebarGroup>
 
-          {/* Proyecto activo — expandido: card con popover / colapsado: avatar cuadrado */}
-          {activeProject && (
-            <>
-              <SidebarGroup className="border-border border-b">
-                {open && (
-                  <div className="text-muted-foreground mb-1.5 px-2 text-[9.5px] font-bold tracking-[0.08em] uppercase">
-                    Proyecto
-                  </div>
-                )}
-                <SidebarGroupContent className="px-1 pb-2">
-                  {open ? (
-                    <ProjectCommandPopover
-                      open={commandOpen}
-                      onOpenChange={setCommandOpen}
-                      projects={projects}
-                      taskCounts={taskCounts}
-                      favoriteIds={favoriteIds}
-                      onToggleFavorite={toggleFavorite}
-                      onCreateProject={() => setCreateModalOpen(true)}
-                    >
-                      <SidebarProjectCard
-                        project={activeProject}
-                        taskCount={taskCounts[activeProject.id] ?? 0}
-                      />
-                    </ProjectCommandPopover>
-                  ) : (
-                    <div className="flex justify-center py-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            className="flex h-9 w-9 cursor-default items-center justify-center rounded-lg border-2 border-white/20 text-sm font-bold text-white shadow-sm"
-                            style={{ backgroundColor: activeProject.color }}
-                          >
-                            {activeProject.name.charAt(0).toUpperCase()}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">{activeProject.name}</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  )}
-                </SidebarGroupContent>
-              </SidebarGroup>
-            </>
-          )}
-
           {/* Navegación del proyecto */}
           {activeId && (
-            <SidebarGroup>
+            <SidebarGroup className="pt-2">
               {open && (
                 <div className="text-muted-foreground mb-1.5 px-2 text-[9.5px] font-bold tracking-[0.08em] uppercase">
                   Navegación
@@ -170,6 +111,7 @@ export function ProjectSidebarContent() {
                               <TooltipTrigger asChild>
                                 <Link
                                   to={href}
+                                  aria-label={label}
                                   className={`relative flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
                                     isActive
                                       ? "bg-accent text-accent-foreground"
@@ -196,12 +138,6 @@ export function ProjectSidebarContent() {
         </SidebarContent>
 
         <SidebarUserFooter />
-
-        <CreateProjectModal
-          open={createModalOpen}
-          onOpenChange={setCreateModalOpen}
-          onSubmit={handleCreateProject}
-        />
       </>
     </TooltipProvider>
   )

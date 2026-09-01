@@ -120,6 +120,7 @@ function Sidebar({
   side = "left",
   variant = "sidebar",
   collapsible = "offcanvas",
+  overlay = false,
   className,
   children,
   ...props
@@ -127,6 +128,12 @@ function Sidebar({
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
+  /**
+   * Con collapsible="icon": el hueco reservado se queda fijo al ancho del rail
+   * de iconos, así que al expandir el panel se superpone al contenido en vez de
+   * empujarlo (comportamiento del sidebar de Supabase).
+   */
+  overlay?: boolean
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -188,7 +195,9 @@ function Sidebar({
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
             ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
+          // Modo superposición: el hueco no crece, así el panel se monta encima.
+          overlay && collapsible === "icon" && "w-(--sidebar-width-icon)"
         )}
       />
       <div
@@ -202,6 +211,9 @@ function Sidebar({
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+          // Al superponerse, el panel expandido necesita sombra para despegarse
+          // del contenido que tapa.
+          overlay && "group-data-[state=expanded]:shadow-pop",
           className
         )}
         {...props}
