@@ -2,33 +2,46 @@ import { useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
 import { Header, SearchContext, Sidebar, SidebarInset, SidebarProvider } from "@/shared"
 import { KanbanProvider } from "@/features/board"
-import { ProjectSidebarContent, useProjectsContext } from "@/features/project"
+import { ProjectSidebarContent, useProjectsContext, type SidebarMode } from "@/features/project"
 
-const SIDEBAR_COLLAPSED_KEY = "cauce.sidebar.collapsed"
+const SIDEBAR_MODE_KEY = "cauce.sidebar.mode"
+const LEGACY_COLLAPSED_KEY = "cauce.sidebar.collapsed"
 
-/** 232px expandido (los 230 del design system) y 56px de rail. */
+/** 192px expandido y 56px de rail. */
 const SIDEBAR_SIZES = {
-  "--sidebar-width": "14.5rem",
+  "--sidebar-width": "12rem",
   "--sidebar-width-icon": "3.5rem",
 } as React.CSSProperties
 
-const readCollapsed = (): boolean => {
+/** Lee el modo guardado, migrando la clave booleana anterior si aún existe. */
+const readMode = (): SidebarMode => {
   try {
-    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true"
+    const saved = localStorage.getItem(SIDEBAR_MODE_KEY)
+    if (saved === "expanded" || saved === "collapsed" || saved === "hover") return saved
+
+    const legacy = localStorage.getItem(LEGACY_COLLAPSED_KEY)
+    if (legacy !== null) {
+      const mode: SidebarMode = legacy === "true" ? "collapsed" : "expanded"
+      localStorage.setItem(SIDEBAR_MODE_KEY, mode)
+      localStorage.removeItem(LEGACY_COLLAPSED_KEY)
+      return mode
+    }
   } catch {
-    return false
+    // Storage bloqueado: se usa el modo por defecto sin persistir.
   }
+  return "expanded"
 }
 
 /**
  * Shell del producto, con el reparto de Supabase: la barra superior ocupa todo
- * el ancho y el sidebar cuelga por debajo. Así, al expandirse, el sidebar solo
- * se superpone al contenido y nunca tapa la ruta ni las acciones del header.
+ * el ancho y el sidebar cuelga por debajo. El sidebar tiene tres modos, como
+ * el "Sidebar control" de Supabase: expandido (fijo, empuja el contenido),
+ * contraído (rail con tooltips) y expandir al pasar el cursor (el panel se
+ * superpone al contenido mientras el ratón está encima).
  */
 function AppShell() {
-  // El SidebarProvider delega por completo el estado cuando recibe
-  // onOpenChange, así que lo controlamos aquí para poder persistirlo.
-  const [open, setOpen] = useState<boolean>(() => !readCollapsed())
+  const [mode, setMode] = useState<SidebarMode>(readMode)
+  const [hoverOpen, setHoverOpen] = useState(false)
   const [searchValue, setSearchValue] = useState<string>("")
 
   const { id } = useParams()
@@ -39,13 +52,21 @@ function AppShell() {
     location.pathname.endsWith("/analytics") || location.pathname.endsWith("/settings")
   const projectName = projects.find((p) => p.id === id)?.name
 
-  const handleOpenChange = (next: boolean): void => {
-    setOpen(next)
+  const open = mode === "expanded" || (mode === "hover" && hoverOpen)
+
+  const handleModeChange = (next: SidebarMode): void => {
+    setMode(next)
+    setHoverOpen(false)
     try {
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(!next))
+      localStorage.setItem(SIDEBAR_MODE_KEY, next)
     } catch {
       // Modo privado o storage bloqueado: el sidebar sigue funcionando sin persistir.
     }
+  }
+
+  // El atajo Ctrl/⌘+B del SidebarProvider alterna entre expandido y contraído.
+  const handleOpenChange = (next: boolean): void => {
+    handleModeChange(next ? "expanded" : "collapsed")
   }
 
   return (
@@ -63,8 +84,19 @@ function AppShell() {
         className="relative min-h-0 flex-1"
         style={SIDEBAR_SIZES}
       >
-        <Sidebar collapsible="icon" overlay className="bg-card border-border border-r">
-          <ProjectSidebarContent />
+        <Sidebar
+          collapsible="icon"
+          anchored
+          // Fijado en expandido, el panel empuja el contenido; en hover se
+          // superpone sin mover el tablero.
+          overlay={mode !== "expanded"}
+          className="bg-card border-border border-r"
+          {...(mode === "hover" && {
+            onMouseEnter: () => setHoverOpen(true),
+            onMouseLeave: () => setHoverOpen(false),
+          })}
+        >
+          <ProjectSidebarContent mode={mode} onModeChange={handleModeChange} />
         </Sidebar>
 
         <SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">

@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
   useSidebar,
 } from "@/shared"
-import { SidebarCollapseFooter } from "./SidebarCollapseFooter"
+import { SidebarControlFooter, type SidebarMode } from "./SidebarControlFooter"
 
 const NAV_ITEMS = [
   {
@@ -48,11 +48,16 @@ const NAV_ITEMS = [
   },
 ]
 
+interface Props {
+  mode: SidebarMode
+  onModeChange: (mode: SidebarMode) => void
+}
+
 /**
  * Sidebar de navegación pura, al estilo de Supabase: el cambio de proyecto
  * vive en el selector del breadcrumb, no aquí.
  */
-export function ProjectSidebarContent() {
+export function ProjectSidebarContent({ mode, onModeChange }: Props) {
   const { open } = useSidebar()
   const { id: activeId } = useParams()
   const location = useLocation()
@@ -123,7 +128,7 @@ export function ProjectSidebarContent() {
           )}
         </SidebarContent>
 
-        <SidebarCollapseFooter />
+        <SidebarControlFooter mode={mode} onModeChange={onModeChange} />
       </>
     </TooltipProvider>
   )
