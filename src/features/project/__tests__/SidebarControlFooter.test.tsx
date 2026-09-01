@@ -3,12 +3,9 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import { SidebarControlFooter } from "../components/SidebarControlFooter"
 
-let mockOpen = true
-
 // El menú se renderiza siempre abierto para poder asertar su contenido sin
 // depender del portal ni de la animación de Radix.
 vi.mock("@/shared", () => ({
-  useSidebar: () => ({ open: mockOpen }),
   SidebarFooter: ({ children, className }: { children: ReactNode; className?: string }) => (
     <div className={className}>{children}</div>
   ),
@@ -30,7 +27,11 @@ describe("SidebarControlFooter", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockOpen = true
+  })
+
+  it("muestra el disparador con su título", () => {
+    render(<SidebarControlFooter mode="expanded" onModeChange={onModeChange} />)
+    expect(screen.getByTitle("Control del sidebar")).toBeInTheDocument()
   })
 
   it("muestra las tres opciones del control", () => {
@@ -57,11 +58,5 @@ describe("SidebarControlFooter", () => {
     render(<SidebarControlFooter mode="collapsed" onModeChange={onModeChange} />)
     fireEvent.click(screen.getByText("Expandir al pasar el cursor"))
     expect(onModeChange).toHaveBeenCalledWith("hover")
-  })
-
-  it("colapsado muestra el disparador compacto con título", () => {
-    mockOpen = false
-    render(<SidebarControlFooter mode="collapsed" onModeChange={onModeChange} />)
-    expect(screen.getByTitle("Control del sidebar")).toBeInTheDocument()
   })
 })

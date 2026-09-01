@@ -69,11 +69,6 @@ export function ProjectSidebarContent({ mode, onModeChange }: Props) {
           {/* Navegación del proyecto */}
           {activeId && (
             <SidebarGroup className="pt-2">
-              {open && (
-                <div className="text-muted-foreground mb-1.5 px-2 text-[9.5px] font-bold tracking-[0.08em] uppercase">
-                  Navegación
-                </div>
-              )}
               <SidebarGroupContent>
                 <SidebarMenu className="gap-px">
                   {NAV_ITEMS.map(({ label, icon: Icon, path }) => {

@@ -8,7 +8,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   SidebarFooter,
-  useSidebar,
 } from "@/shared"
 
 export type SidebarMode = "expanded" | "collapsed" | "hover"
@@ -25,39 +24,35 @@ interface Props {
 }
 
 /**
- * Control del sidebar al pie, como el de Supabase: un menú para elegir entre
- * expandido, contraído o expandir al pasar el cursor.
+ * Control del sidebar al pie, como el de Supabase: un icono fijo en la esquina
+ * —siempre en la misma posición, esté el sidebar como esté— que abre el menú
+ * para elegir entre expandido, contraído o expandir al pasar el cursor.
  */
 export function SidebarControlFooter({ mode, onModeChange }: Props) {
-  const { open } = useSidebar()
-
   return (
-    <SidebarFooter className="bg-card border-border border-t pt-2 pb-2">
-      <div className={open ? "px-2" : "flex justify-center"}>
+    <SidebarFooter className="bg-card border-border border-t py-2">
+      {/* Slot del ancho del rail: el botón no se mueve al expandir/contraer. */}
+      <div className="flex w-(--sidebar-width-icon) justify-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {open ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground w-full justify-start gap-2 text-[11.5px] font-semibold"
-              >
-                <IconLayoutSidebar size={15} />
-                Control del sidebar
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground h-7 w-7 shrink-0"
-                title="Control del sidebar"
-              >
-                <IconLayoutSidebar size={15} />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground h-7 w-7 shrink-0"
+              title="Control del sidebar"
+            >
+              <IconLayoutSidebar size={15} />
+            </Button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent side="top" align="start" className="w-56">
+          <DropdownMenuContent
+            side="top"
+            align="start"
+            className="w-56"
+            // Radix devuelve el foco al disparador al cerrar y eso pintaba el
+            // focus ring global tras cada click de ratón.
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
             <DropdownMenuLabel className="text-muted-foreground text-[11px] font-bold tracking-wide uppercase">
               Control del sidebar
             </DropdownMenuLabel>
