@@ -1,11 +1,12 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { IconArrowRight, IconPlus } from "@tabler/icons-react"
 import { Link } from "react-router"
 import { Button, ScrollArea, Skeleton } from "@/shared"
 import { useAuth } from "@/features/auth"
 import { PRIORITY_CONFIG, sortByPriority } from "@/features/task/index"
 import { ProjectCard, useProjectsContext } from "@/features/project"
-import { useMyTasks } from "../hooks/useMyTasks"
+import { useMyTasks, type MyTask } from "../hooks/useMyTasks"
+import { MyTaskSheet } from "./MyTaskSheet"
 
 /** Saludo según la hora local. */
 const greeting = (): string => {
@@ -35,58 +36,75 @@ export function HomePage() {
   // P0 primero; el sort es estable, así que dentro de cada prioridad se
   // conserva el orden que devuelve la consulta.
   const ordered = useMemo(() => sortByPriority(tasks), [tasks])
+  const [selected, setSelected] = useState<MyTask | null>(null)
 
   return (
-    <ScrollArea className="min-h-0 flex-1">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
-        <h1 className="text-foreground text-xl font-bold">
-          {greeting()}
-          {firstName ? `, ${firstName}` : ""}
-        </h1>
+    <>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
+          <h1 className="text-foreground text-xl font-bold">
+            {greeting()}
+            {firstName ? `, ${firstName}` : ""}
+          </h1>
 
-        {/* ── Asignadas a mí ── */}
-        <section className="flex flex-col gap-2.5">
-          <div className="flex items-baseline justify-between gap-2">
-            <SectionLabel>Asignadas a mí</SectionLabel>
-            {!tasksLoading && tasks.length > 0 && (
-              <span className="text-muted-foreground text-[11px] tabular-nums">
-                {tasks.length} {tasks.length === 1 ? "tarea" : "tareas"}
-              </span>
-            )}
-          </div>
+          {/* ── Asignadas a mí ── */}
+          <section className="flex flex-col gap-2.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <SectionLabel>Asignadas a mí</SectionLabel>
+              {!tasksLoading && tasks.length > 0 && (
+                <span className="text-muted-foreground text-[11px] tabular-nums">
+                  {tasks.length} {tasks.length === 1 ? "tarea" : "tareas"}
+                </span>
+              )}
+            </div>
 
-          {tasksLoading ? (
-            <div className="flex flex-col gap-1.5">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-11 rounded-lg" />
-              ))}
-            </div>
-          ) : ordered.length === 0 ? (
-            <div className="border-border text-muted-foreground rounded-xl border border-dashed px-6 py-10 text-center">
-              <p className="text-sm">No tienes tareas asignadas.</p>
-              <p className="mt-1 text-[12.5px]">
-                Asígnate una desde el tablero de cualquier proyecto.
-              </p>
-            </div>
-          ) : (
-            <ul className="border-border divide-border bg-card divide-y overflow-hidden rounded-xl border">
-              {ordered.map((task) => {
-                const priority = PRIORITY_CONFIG[task.priority]
-                return (
-                  <li key={task.id}>
-                    <Link
-                      to={`/projects/${task.projectId}`}
-                      className="hover:bg-muted/60 group flex items-center gap-3 px-3.5 py-2.5 transition-colors"
+            {tasksLoading ? (
+              <div className="flex flex-col gap-1.5">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-11 rounded-lg" />
+                ))}
+              </div>
+            ) : ordered.length === 0 ? (
+              <div className="border-border text-muted-foreground rounded-xl border border-dashed px-6 py-10 text-center">
+                <p className="text-sm">No tienes tareas asignadas.</p>
+                <p className="mt-1 text-[12.5px]">
+                  Asígnate una desde el tablero de cualquier proyecto.
+                </p>
+              </div>
+            ) : (
+              <ul className="border-border divide-border bg-card divide-y overflow-hidden rounded-xl border">
+                {ordered.map((task) => {
+                  const priority = PRIORITY_CONFIG[task.priority]
+                  return (
+                    <li
+                      key={task.id}
+                      className="hover:bg-muted/60 group flex items-center gap-3 pr-3.5 transition-colors"
                     >
-                      <span
-                        className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold ${priority.className}`}
+                      {/* La tarea abre su detalle; el proyecto es un enlace
+                        aparte al tablero. Hermanos, no anidados: un enlace
+                        dentro de un botón no es HTML válido. */}
+                      <button
+                        onClick={() => setSelected(task)}
+                        className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-3.5 text-left"
                       >
-                        {priority.label}
-                      </span>
-                      <span className="text-foreground min-w-0 flex-1 truncate text-[13px] font-medium">
-                        {task.content}
-                      </span>
-                      <span className="text-muted-foreground hidden shrink-0 items-center gap-1.5 text-[11.5px] sm:flex">
+                        <span
+                          className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold ${priority.className}`}
+                        >
+                          {priority.label}
+                        </span>
+                        <span className="text-foreground min-w-0 flex-1 truncate text-[13px] font-medium">
+                          {task.content}
+                        </span>
+                        <IconArrowRight
+                          size={14}
+                          className="text-muted-foreground shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        />
+                      </button>
+                      <Link
+                        to={`/projects/${task.projectId}`}
+                        title={`Ir a ${task.projectName}`}
+                        className="text-muted-foreground hover:text-foreground hidden shrink-0 items-center gap-1.5 text-[11.5px] transition-colors sm:flex"
+                      >
                         <span
                           className="size-2 shrink-0 rounded-full"
                           style={{ backgroundColor: task.projectColor }}
@@ -94,58 +112,60 @@ export function HomePage() {
                         {task.projectName}
                         <span className="text-muted-foreground/50">·</span>
                         {task.columnTitle}
-                      </span>
-                      <IconArrowRight
-                        size={14}
-                        className="text-muted-foreground shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                      />
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </section>
-
-        {/* ── Tus proyectos ── */}
-        <section className="flex flex-col gap-2.5">
-          <div className="flex items-baseline justify-between gap-2">
-            <SectionLabel>Tus proyectos</SectionLabel>
-            {projects.length > 0 && (
-              <Link
-                to="/projects"
-                className="text-muted-foreground hover:text-foreground text-[11.5px] transition-colors"
-              >
-                Ver todos →
-              </Link>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
-          </div>
+          </section>
 
-          {projectsLoading ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-28 rounded-xl" />
-              ))}
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center">
-              <p className="text-sm">Aún no tienes proyectos.</p>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/projects">
-                  <IconPlus className="mr-1 h-4 w-4" />
-                  Crear el primero
+          {/* ── Tus proyectos ── */}
+          <section className="flex flex-col gap-2.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <SectionLabel>Tus proyectos</SectionLabel>
+              {projects.length > 0 && (
+                <Link
+                  to="/projects"
+                  className="text-muted-foreground hover:text-foreground text-[11.5px] transition-colors"
+                >
+                  Ver todos →
                 </Link>
-              </Button>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.slice(0, 6).map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </ScrollArea>
+
+            {projectsLoading ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-28 rounded-xl" />
+                ))}
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center">
+                <p className="text-sm">Aún no tienes proyectos.</p>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/projects">
+                    <IconPlus className="mr-1 h-4 w-4" />
+                    Crear el primero
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {projects.slice(0, 6).map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </ScrollArea>
+
+      <MyTaskSheet
+        task={selected}
+        open={selected !== null}
+        onOpenChange={(next) => !next && setSelected(null)}
+      />
+    </>
   )
 }

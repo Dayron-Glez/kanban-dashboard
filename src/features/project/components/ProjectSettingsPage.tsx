@@ -22,6 +22,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
   Button,
   Card,
   Input,
@@ -265,18 +266,39 @@ export function ProjectSettingsPage() {
                         </TooltipTrigger>
                         <TooltipContent>Copiar enlace</TooltipContent>
                       </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => cancelInvitation(inv.id)}
-                            aria-label="Cancelar invitación"
-                            className="text-muted-foreground hover:text-destructive flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors"
-                          >
-                            <IconX size={14} />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>Cancelar invitación</TooltipContent>
-                      </Tooltip>
+                      <AlertDialog>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                aria-label="Cancelar invitación"
+                                className="text-muted-foreground hover:text-destructive flex cursor-pointer border-0 bg-transparent p-[3px] transition-colors"
+                              >
+                                <IconX size={14} />
+                              </button>
+                            </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>Cancelar invitación</TooltipContent>
+                        </Tooltip>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Cancelar la invitación?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              El enlace enviado a <strong>{inv.email}</strong> dejará de funcionar.
+                              Tendrás que invitar de nuevo si cambias de idea.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Conservar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => cancelInvitation(inv.id)}
+                            >
+                              Cancelar invitación
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   )
                 })}
