@@ -31,7 +31,7 @@ export function RegisterPage() {
       setAuthError(error.message)
       return
     }
-    navigate("/projects")
+    navigate("/home")
   }
 
   return (
