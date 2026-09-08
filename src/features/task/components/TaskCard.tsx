@@ -94,7 +94,10 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+                // -mr-1.5: la caja del boton es de 32px para un icono de 16, asi
+                // que el icono quedaba 8px mas adentro que el avatar de debajo
+                // y la columna derecha no leia como un solo eje.
+                className="text-muted-foreground hover:text-foreground hover:bg-muted -mr-1.5 shrink-0"
                 aria-label="Abrir menú de acciones"
               >
                 <IconDots size={14} />

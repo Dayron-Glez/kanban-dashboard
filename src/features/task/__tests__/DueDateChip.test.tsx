@@ -44,6 +44,6 @@ describe("DueDateChip", () => {
     expect(atrasada.querySelector("span")?.className).toContain("text-destructive")
 
     const { container: lejana } = render(<DueDateChip dueDate="2026-12-01" />)
-    expect(lejana.querySelector("span")?.className).toContain("text-foreground/75")
+    expect(lejana.querySelector("span")?.className).toContain("text-foreground/70")
   })
 })

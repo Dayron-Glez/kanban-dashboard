@@ -16,11 +16,13 @@ export const DUE_STATE_LABELS: Record<DueState, string> = {
 
 /** Clases del chip de fecha, sobre los tokens del design system. */
 export const DUE_STATE_CHIP: Record<DueState, string> = {
-  overdue: "bg-destructive/10 text-destructive",
+  overdue: "bg-destructive/15 text-destructive",
   today: "bg-warn/15 text-warn",
-  soon: "bg-p2/10 text-p2",
-  later: "bg-muted text-foreground/75",
-  none: "bg-muted text-muted-foreground",
+  soon: "bg-p2/15 text-p2",
+  // Translucido y no bg-muted: ese token es opaco y practicamente del mismo
+  // tono que la tarjeta, asi que la pildora desaparecia.
+  later: "bg-foreground/10 text-foreground/70",
+  none: "bg-foreground/10 text-foreground/70",
 }
 
 /**
