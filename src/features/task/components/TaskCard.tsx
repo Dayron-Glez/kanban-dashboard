@@ -55,7 +55,10 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
     data: { type: "task", task },
   })
 
-  const style = { transition, transform: CSS.Transform.toString(transform) }
+  // Solo la traslación: CSS.Transform añade además la escala que devuelve la
+  // estrategia de ordenación, y como las tarjetas tienen alturas distintas
+  // según su título, eso las estiraba y encogía al desplazarse.
+  const style = { transition, transform: CSS.Translate.toString(transform) }
 
   const priority = PRIORITY_CONFIG[task.priority]
   const size = SIZE_CONFIG[task.size]

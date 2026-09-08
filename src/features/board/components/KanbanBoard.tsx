@@ -1,7 +1,7 @@
 import { useContext, useRef, useState } from "react"
 import { useSearchParams } from "react-router"
 import { createPortal, flushSync } from "react-dom"
-import { arrayMove, SortableContext } from "@dnd-kit/sortable"
+import { arrayMove, horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable"
 import { motion } from "framer-motion"
 import {
   DndContext,
@@ -237,7 +237,9 @@ export default function KanbanBoard() {
         onDragOver={onDragOver}
       >
         <div className="flex h-full w-full items-start gap-3 p-3">
-          <SortableContext items={columnsId}>
+          {/* Las columnas son una fila: la estrategia por defecto es para
+              rejillas y calcula una escala que las deformaba. */}
+          <SortableContext items={columnsId} strategy={horizontalListSortingStrategy}>
             {columns.map((column) => {
               const columnFilteredTasks = filteredTasks.filter((t) => t.columnId === column.id)
               return (

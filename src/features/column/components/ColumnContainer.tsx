@@ -1,4 +1,4 @@
-import { SortableContext, useSortable } from "@dnd-kit/sortable"
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { IconChevronDown, IconPlus, IconTrash, IconTrashOff } from "@tabler/icons-react"
 import { useAutoAnimate } from "@formkit/auto-animate/react"
@@ -88,7 +88,10 @@ export function ColumnContainer({
     disabled: editMode,
   })
 
-  const style = { transition, transform: CSS.Transform.toString(transform) }
+  // Solo la traslación: CSS.Transform añade también la escala que devuelve la
+  // estrategia de ordenación, y como las columnas no miden todas lo mismo eso
+  // las deformaba al reordenarlas.
+  const style = { transition, transform: CSS.Translate.toString(transform) }
 
   // ── Ghost while dragging ───────────────────────────────────────────────────
   if (isDragging) {
@@ -309,7 +312,7 @@ export function ColumnContainer({
 
         <ScrollArea className="h-full min-h-0">
           <div ref={tasksRef} className="flex flex-col gap-[7px] p-2.5">
-            <SortableContext items={tasksIds}>
+            <SortableContext items={tasksIds} strategy={verticalListSortingStrategy}>
               {tasks.length === 0 ? (
                 <EmptyZone onAdd={() => setCreateTaskDialogOpen(true)} />
               ) : (
