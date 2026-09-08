@@ -80,7 +80,7 @@ export function MyTaskSheet({ task, open, onOpenChange }: Props) {
 
         <div className="mt-auto px-4 pb-4">
           <Button asChild className="w-full" onClick={() => onOpenChange(false)}>
-            <Link to={`/projects/${task.projectId}`}>
+            <Link to={`/projects/${task.projectId}?task=${task.id}`}>
               Abrir en el tablero
               <IconArrowRight size={15} className="ml-1" />
             </Link>
