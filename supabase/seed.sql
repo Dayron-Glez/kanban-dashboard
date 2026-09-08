@@ -38,10 +38,10 @@ begin
   values (v_user, 'Plataforma Web', 'Rediseño y migración del front ' || v_seed, '#6366f1', now() - interval '62 days')
   returning id into v_proj;
 
-  insert into public.project_members (project_id, user_id, role, is_favorite)
-  values (v_proj, v_user, 'owner', true)
   -- El trigger on_project_created ya inserta esta fila; aquí solo se ajusta
   -- is_favorite, que el trigger no fija.
+  insert into public.project_members (project_id, user_id, role, is_favorite)
+  values (v_proj, v_user, 'owner', true)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
   -- Columnas: se guardan en orden para poder repartir tareas por fase.
@@ -105,10 +105,10 @@ begin
   values (v_user, 'Campaña Q3', 'Lanzamiento y contenidos ' || v_seed, '#ec4899', now() - interval '35 days')
   returning id into v_proj;
 
-  insert into public.project_members (project_id, user_id, role, is_favorite)
-  values (v_proj, v_user, 'owner', false)
   -- El trigger on_project_created ya inserta esta fila; aquí solo se ajusta
   -- is_favorite, que el trigger no fija.
+  insert into public.project_members (project_id, user_id, role, is_favorite)
+  values (v_proj, v_user, 'owner', false)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
   v_cols := '{}'::uuid[];
@@ -136,10 +136,10 @@ begin
   values (v_user, 'API Gateway', 'Servicio de entrada y rate limiting ' || v_seed, '#0ea5e9', now() - interval '12 days')
   returning id into v_proj;
 
-  insert into public.project_members (project_id, user_id, role, is_favorite)
-  values (v_proj, v_user, 'owner', true)
   -- El trigger on_project_created ya inserta esta fila; aquí solo se ajusta
   -- is_favorite, que el trigger no fija.
+  insert into public.project_members (project_id, user_id, role, is_favorite)
+  values (v_proj, v_user, 'owner', true)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
   v_cols := '{}'::uuid[];
@@ -161,10 +161,10 @@ begin
   values (v_user, 'Investigación UX', 'Entrevistas y hallazgos ' || v_seed, '#10b981', now() - interval '2 days')
   returning id into v_proj;
 
-  insert into public.project_members (project_id, user_id, role, is_favorite)
-  values (v_proj, v_user, 'owner', false)
   -- El trigger on_project_created ya inserta esta fila; aquí solo se ajusta
   -- is_favorite, que el trigger no fija.
+  insert into public.project_members (project_id, user_id, role, is_favorite)
+  values (v_proj, v_user, 'owner', false)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
   insert into public.columns (project_id, title, position) values
