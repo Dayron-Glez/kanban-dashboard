@@ -1,5 +1,6 @@
 export * from "./components/CreateTaskSheet"
 export * from "./components/DetailsTaskSheet"
+export * from "./components/DueDateChip"
 export * from "./components/EditTaskSheet"
 export * from "./components/TaskCard"
 export * from "./components/taskChips"
