@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
 import { Header, SearchContext, Sidebar, SidebarInset, SidebarProvider } from "@/shared"
-import { KanbanProvider } from "@/features/board"
+import { BoardHeaderActions, KanbanProvider } from "@/features/board"
 import { ProjectSidebarContent, useProjectsContext, type SidebarMode } from "@/features/project"
 
 const SIDEBAR_MODE_KEY = "cauce.sidebar.mode"
@@ -49,8 +49,8 @@ function AppShell() {
   const { projects } = useProjectsContext()
   const location = useLocation()
 
-  const isScrollablePage =
-    location.pathname.endsWith("/analytics") || location.pathname.endsWith("/settings")
+  // Solo el tablero lleva filtro de tareas y «Agregar Columna» en el navbar.
+  const isBoard = Boolean(id) && location.pathname === `/projects/${id}`
   const projectName = projects.find((p) => p.id === id)?.name
 
   const open = mode === "expanded" || (mode === "hover" && hoverOpen)
@@ -76,7 +76,11 @@ function AppShell() {
     <div className="bg-background flex h-screen flex-col" style={SIDEBAR_SIZES}>
       <Header
         projectName={projectName}
-        {...(!isScrollablePage && { searchValue, onSearchChange: setSearchValue })}
+        actions={
+          isBoard ? (
+            <BoardHeaderActions searchValue={searchValue} onSearchChange={setSearchValue} />
+          ) : undefined
+        }
       />
 
       <SidebarProvider

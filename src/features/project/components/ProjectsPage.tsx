@@ -15,16 +15,16 @@ export function ProjectsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="bg-background flex items-center justify-between gap-4 border-b border-b-transparent px-6 py-4 shadow-md">
-        <h1 className="text-primary text-xl font-semibold">Mis proyectos</h1>
-        <Button onClick={() => setModalOpen(true)}>
-          <IconPlus className="mr-2 h-4 w-4" />
-          Nuevo proyecto
-        </Button>
-      </header>
+    <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-6 py-8">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-foreground text-xl font-bold">Proyectos</h1>
+          <Button size="sm" onClick={() => setModalOpen(true)}>
+            <IconPlus className="mr-1 h-4 w-4" />
+            Nuevo proyecto
+          </Button>
+        </div>
 
-      <main className="flex-1 overflow-y-auto p-6">
         {loading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -32,21 +32,21 @@ export function ProjectsPage() {
             ))}
           </div>
         ) : projects.length === 0 ? (
-          <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3">
-            <p className="text-lg">No tienes proyectos todavía.</p>
-            <Button variant="outline" onClick={() => setModalOpen(true)}>
-              <IconPlus className="mr-2 h-4 w-4" />
+          <div className="border-border text-muted-foreground flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-6 py-16">
+            <p className="text-sm">No tienes proyectos todavía.</p>
+            <Button variant="outline" size="sm" onClick={() => setModalOpen(true)}>
+              <IconPlus className="mr-1 h-4 w-4" />
               Crear primer proyecto
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       <CreateProjectModal open={modalOpen} onOpenChange={setModalOpen} onSubmit={handleCreate} />
     </div>
