@@ -55,6 +55,7 @@ export type Task = {
   content: string
   priority: TaskPriority
   size: TaskSize
+  due_date: string | null
   position: number
   created_at: string
   profiles?: Profile
@@ -197,6 +198,7 @@ export type Database = {
           content: string
           priority: TaskPriority
           size: TaskSize
+          due_date: string | null
           position: number
           created_at: string
         }
@@ -208,6 +210,7 @@ export type Database = {
           content: string
           priority: TaskPriority
           size: TaskSize
+          due_date?: string | null
           position: number
           created_at?: string
         }
@@ -219,6 +222,7 @@ export type Database = {
           content?: string
           priority?: TaskPriority
           size?: TaskSize
+          due_date?: string | null
           position?: number
           created_at?: string
         }

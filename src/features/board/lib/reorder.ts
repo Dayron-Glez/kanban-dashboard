@@ -142,5 +142,6 @@ export function columnPositionRows(tasks: Task[], columnId: string) {
     content: task.content,
     priority: task.priority,
     size: task.size,
+    due_date: task.due_date,
   }))
 }
