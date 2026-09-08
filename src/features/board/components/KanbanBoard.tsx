@@ -1,14 +1,17 @@
 import { useContext, useRef, useState } from "react"
 import { useSearchParams } from "react-router"
-import { createPortal } from "react-dom"
-import { arrayMove, SortableContext } from "@dnd-kit/sortable"
+import { createPortal, flushSync } from "react-dom"
+import { arrayMove, horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable"
 import { motion } from "framer-motion"
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -17,6 +20,7 @@ import { SearchContext } from "@/shared/index"
 import { supabase } from "@/shared/supabase"
 import { ColumnContainer } from "@/features/column/index"
 import { DetailsTaskSheet, TaskCard } from "@/features/task/index"
+import { applyDrop, columnPositionRows, moveTaskToColumn, tasksInColumn } from "../lib/reorder"
 import { useKanban, type ColumnType, type Task } from "../index"
 
 export default function KanbanBoard() {
@@ -41,10 +45,23 @@ export default function KanbanBoard() {
 
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  // Columna de la que salió la tarea, para saber si hubo cambio de columna:
+  // al soltar, su columnId ya es el de destino.
   const dragOriginColumnId = useRef<string | null>(null)
-  const dragTargetColumnId = useRef<string | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 3 } }))
+
+  /**
+   * Para arrastrar tareas se usa la posición del puntero: así entre las
+   * colisiones aparece siempre la columna que lo contiene, que es de donde
+   * onDragOver saca el destino. Las columnas se siguen arrastrando por
+   * intersección de rectángulos, que es como se comportaban antes.
+   */
+  const collisionDetection: CollisionDetection = (args) => {
+    if (args.active.data.current?.type === "column") return rectIntersection(args)
+    const within = pointerWithin(args)
+    return within.length > 0 ? within : rectIntersection(args)
+  }
 
   const filteredTasks = tasks.filter((task) => {
     const searchTerm = searchValue.trim().toLowerCase()
@@ -63,6 +80,18 @@ export default function KanbanBoard() {
     }
   }
 
+  /** Guarda el orden de una columna renumerando `position` de 0 a n-1. */
+  const savePositions = (all: Task[], columnId: string): void => {
+    const rows = columnPositionRows(all, columnId)
+    if (rows.length === 0) return
+    supabase
+      .from("tasks")
+      .upsert(rows)
+      .then(({ error }) => {
+        if (error) console.error("[kanban] no se pudo guardar el orden de la columna:", error)
+      })
+  }
+
   const onDragEnd = (event: DragEndEvent): void => {
     const { active, over } = event
     const wasTask = activeTask !== null
@@ -70,11 +99,10 @@ export default function KanbanBoard() {
     setActiveColumn(null)
     setActiveTask(null)
 
-    if (!over) {
-      dragOriginColumnId.current = null
-      dragTargetColumnId.current = null
-      return
-    }
+    const originColumnId = dragOriginColumnId.current
+    dragOriginColumnId.current = null
+
+    if (!over) return
 
     // ── Reordenar columnas ────────────────────────────────────────
     if (!wasTask) {
@@ -83,132 +111,114 @@ export default function KanbanBoard() {
         const activeIndex = prev.findIndex((c) => c.id === active.id)
         const overIndex = prev.findIndex((c) => c.id === over.id)
         if (activeIndex === -1 || overIndex === -1) return prev
-        const reordered = arrayMove(prev, activeIndex, overIndex)
-        const updates = reordered.map((col, i) => ({
-          id: col.id,
+        const reordered = arrayMove(prev, activeIndex, overIndex).map((col, i) => ({
+          ...col,
           position: i,
-          project_id: col.project_id,
-          title: col.title,
         }))
         supabase
           .from("columns")
-          .upsert(updates)
-          .then(() => {})
-        return reordered.map((col, i) => ({ ...col, position: i }))
+          .upsert(
+            reordered.map((col) => ({
+              id: col.id,
+              position: col.position,
+              project_id: col.project_id,
+              title: col.title,
+            }))
+          )
+          .then(({ error }) => {
+            if (error) console.error("[kanban] no se pudo guardar el orden de las columnas:", error)
+          })
+        return reordered
       })
       return
     }
 
-    // ── Persistir movimiento de tarea ─────────────────────────────
-    // dragTargetColumnId was set synchronously in onDragOver from dnd-kit's
-    // live ref. This avoids stale closures and the active.id === over.id
-    // early-return that prevented persistence when the cursor was over
-    // the task's own ghost after arrayMove repositioned it in the new column.
+    // ── Reordenar y persistir la tarea ────────────────────────────
+    const overType = over.data.current?.type
+    if (!originColumnId || (overType !== "task" && overType !== "column")) return
     const taskId = String(active.id)
-    const originColumnId = dragOriginColumnId.current
-    const newColumnId = dragTargetColumnId.current ?? ""
 
-    dragOriginColumnId.current = null
-    dragTargetColumnId.current = null
-
-    if (!newColumnId || !originColumnId) return
-
-    // Persistir posiciones (y column_id) para las columnas afectadas.
-    // El functional updater recibe el estado YA actualizado por onDragOver
-    // (columnId correcto + orden por arrayMove), así que prev es la fuente
-    // de verdad del orden final — sin dependencia de closures estables.
-    setTasks((prev) => {
-      const tasksInNewColumn = prev.filter((t) => t.columnId === newColumnId)
-      supabase
-        .from("tasks")
-        .upsert(
-          tasksInNewColumn.map((t, i) => ({
-            id: t.id,
-            position: i,
-            column_id: t.columnId,
-            project_id: t.project_id,
-            content: t.content,
-            priority: t.priority,
-            size: t.size,
-          }))
-        )
-        .then(({ error }) => {
-          if (error) console.error("[kanban] task positions upsert failed:", error)
-        })
-
-      if (originColumnId !== newColumnId) {
-        const tasksInOriginColumn = prev.filter((t) => t.columnId === originColumnId)
-        supabase
-          .from("tasks")
-          .upsert(
-            tasksInOriginColumn.map((t, i) => ({
-              id: t.id,
-              position: i,
-              column_id: t.columnId,
-              project_id: t.project_id,
-              content: t.content,
-              priority: t.priority,
-              size: t.size,
-            }))
-          )
-          .then(({ error }) => {
-            if (error) console.error("[kanban] origin column positions upsert failed:", error)
-          })
-      }
-
-      return prev
+    // El reordenamiento dentro de la columna se aplica aquí, no en onDragOver:
+    // durante el arrastre el desplazamiento es solo visual (lo hace el
+    // SortableContext). flushSync fuerza el commit para poder leer el array
+    // definitivo y persistir exactamente el orden que quedó en pantalla.
+    let settled: Task[] = []
+    flushSync(() => {
+      setTasks((prev) => {
+        settled = applyDrop(prev, taskId, String(over.id), overType === "task")
+        return settled
+      })
     })
 
-    // Registrar en task_history solo si cambió de columna
-    if (originColumnId !== newColumnId) {
+    const moved = settled.find((t) => t.id === taskId)
+    if (!moved) return
+
+    savePositions(settled, moved.columnId)
+
+    if (originColumnId !== moved.columnId) {
+      savePositions(settled, originColumnId)
       supabase
         .from("task_history")
-        .insert({ task_id: taskId, from_column_id: originColumnId, to_column_id: newColumnId })
+        .insert({
+          task_id: taskId,
+          from_column_id: originColumnId,
+          to_column_id: moved.columnId,
+        })
         .then(({ error }) => {
-          if (error) console.error("[kanban] task_history insert failed:", error)
+          if (error) console.error("[kanban] no se pudo registrar el historial:", error)
         })
     }
   }
 
+  /**
+   * Durante el arrastre lo único que cambia en el estado es la columna de la
+   * tarea. El reordenamiento dentro de una columna lo resuelve visualmente el
+   * SortableContext y se aplica al soltar: tocar el array en cada movimiento
+   * del puntero reordenaba el DOM, dnd-kit recalculaba las colisiones y volvía
+   * a entrar aquí, un ciclo que agotaba el límite de renders de React.
+   */
   const onDragOver = (event: DragOverEvent): void => {
-    const { active, over } = event
-    if (!over) return
+    const { active, over, collisions } = event
+    if (!over || active.data.current?.type !== "task") return
 
-    const isActiveTask = active.data.current?.type === "task"
-    const isOverTask = over.data.current?.type === "task"
-    const isOverColumn = over.data.current?.type === "column"
+    // La columna de destino se decide por la COLUMNA en la que está el puntero,
+    // nunca por la tarjeta que tiene debajo. Las tarjetas se recolocan al mover
+    // la tarea, así que tomarlas como referencia hacía que el destino cambiara
+    // por efecto del propio movimiento: la tarea rebotaba entre dos columnas en
+    // cada render hasta agotar el límite de React. Los rectángulos de las
+    // columnas no se mueven, así que el destino solo cambia si el puntero cruza
+    // de verdad a otra columna.
+    const columnCollision = collisions?.find(
+      (collision) => collision.data?.droppableContainer?.data?.current?.type === "column"
+    )
+    if (!columnCollision) return
 
-    if (!isActiveTask) return
-
-    // Track destination synchronously from dnd-kit's live ref before setTasks runs.
-    // We read the OVER element's data (never the active task's data) so the value
-    // is always stable — only the active task's columnId changes via setTasks.
-    if (isOverTask) {
-      const overTask = over.data.current?.task as { columnId: string } | undefined
-      if (overTask?.columnId) dragTargetColumnId.current = overTask.columnId
-    } else if (isOverColumn) {
-      dragTargetColumnId.current = String(over.id)
-    }
+    const targetColumnId = String(columnCollision.id)
+    const overTask =
+      over.data.current?.type === "task" ? (over.data.current.task as Task) : undefined
+    const taskId = String(active.id)
 
     setTasks((prev) => {
-      const activeIndex = prev.findIndex((t) => t.id === active.id)
-      if (activeIndex === -1) return prev
+      const dragged = prev.find((t) => t.id === taskId)
+      if (!dragged || dragged.columnId === targetColumnId) return prev
 
-      if (isOverTask) {
-        const overIndex = prev.findIndex((t) => t.id === over.id)
-        if (overIndex === -1) return prev
-        const updated = [...prev]
-        updated[activeIndex] = { ...updated[activeIndex], columnId: updated[overIndex].columnId }
-        return arrayMove(updated, activeIndex, overIndex)
+      const column = tasksInColumn(prev, targetColumnId)
+
+      // Sobre el cuerpo de la columna, al final. Sobre una tarea, en su hueco;
+      // o detrás de ella si el cursor ya pasó de su mitad.
+      let position = column.length
+      if (overTask && overTask.columnId === targetColumnId) {
+        const overIndex = column.findIndex((t) => t.id === overTask.id)
+        if (overIndex !== -1) {
+          const activeRect = active.rect.current.translated
+          const pastMiddle = activeRect
+            ? activeRect.top > over.rect.top + over.rect.height / 2
+            : false
+          position = overIndex + (pastMiddle ? 1 : 0)
+        }
       }
 
-      if (isOverColumn) {
-        const updated = [...prev]
-        updated[activeIndex] = { ...updated[activeIndex], columnId: String(over.id) }
-        return updated
-      }
-
-      return prev
+      return moveTaskToColumn(prev, taskId, targetColumnId, position)
     })
   }
 
@@ -221,12 +231,15 @@ export default function KanbanBoard() {
     >
       <DndContext
         sensors={sensors}
+        collisionDetection={collisionDetection}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
       >
         <div className="flex h-full w-full items-start gap-3 p-3">
-          <SortableContext items={columnsId}>
+          {/* Las columnas son una fila: la estrategia por defecto es para
+              rejillas y calcula una escala que las deformaba. */}
+          <SortableContext items={columnsId} strategy={horizontalListSortingStrategy}>
             {columns.map((column) => {
               const columnFilteredTasks = filteredTasks.filter((t) => t.columnId === column.id)
               return (
