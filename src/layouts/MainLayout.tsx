@@ -14,8 +14,9 @@ export default function KanbanLayout() {
   const searchValue = useContext(SearchContext)?.searchValue ?? ""
   const location = useLocation()
 
-  const isScrollablePage =
-    location.pathname.endsWith("/analytics") || location.pathname.endsWith("/settings")
+  // Todo lo que no es el tablero scrollea con ScrollArea; el tablero maneja su
+  // propia altura y no debe llevar scroll vertical.
+  const isScrollablePage = !/\/projects\/[^/]+$/.test(location.pathname)
 
   const filteredTasks = tasks.filter((task) => {
     const searchTerm = searchValue.trim().toLowerCase()
