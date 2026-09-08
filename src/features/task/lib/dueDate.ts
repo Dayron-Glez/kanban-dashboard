@@ -19,7 +19,7 @@ export const DUE_STATE_CHIP: Record<DueState, string> = {
   overdue: "bg-destructive/10 text-destructive",
   today: "bg-warn/15 text-warn",
   soon: "bg-p2/10 text-p2",
-  later: "bg-muted text-muted-foreground",
+  later: "bg-muted text-foreground/75",
   none: "bg-muted text-muted-foreground",
 }
 

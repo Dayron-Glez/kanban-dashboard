@@ -14,6 +14,16 @@ import {
   PopoverTrigger,
   cn,
 } from "@/shared/index"
+
+/**
+ * Mismo aspecto que el disparador de los Select del formulario. No se usa el
+ * componente Button porque su variante lleva `disabled:pointer-events-none`, y
+ * sin eventos de puntero no se pinta el cursor de "no permitido" que sí
+ * muestran el resto de campos en la vista de solo lectura. Su hover tampoco es
+ * el de un campo, sino el de un boton.
+ */
+const TRIGGER_CLASS =
+  "border-input bg-background dark:bg-muted/60 dark:hover:bg-input/50 focus-visible:border-ring focus-visible:ring-ring/50 flex h-9 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
 import { DUE_STATE_CHIP, getDueState, toISODate } from "../../lib/dueDate"
 
 interface DueDateFieldProps {
@@ -45,17 +55,13 @@ export function DueDateField({ disabled = false }: DueDateFieldProps) {
             <div className="flex items-center gap-2">
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
-                  <Button
+                  <button
                     id="due_date"
                     type="button"
-                    variant="outline"
                     disabled={disabled}
-                    className={cn(
-                      "bg-background dark:bg-muted/60 flex-1 justify-start font-normal",
-                      !value && "text-muted-foreground"
-                    )}
+                    className={cn(TRIGGER_CLASS, "flex-1", !value && "text-muted-foreground")}
                   >
-                    <IconCalendar size={15} className="mr-2 shrink-0" />
+                    <IconCalendar size={15} className="text-muted-foreground shrink-0" />
                     {value ? (
                       <span className="flex items-center gap-2">
                         {format(parseISO(value), "d 'de' MMMM 'de' yyyy", { locale: es })}
@@ -75,7 +81,7 @@ export function DueDateField({ disabled = false }: DueDateFieldProps) {
                     ) : (
                       "Sin fecha"
                     )}
-                  </Button>
+                  </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
