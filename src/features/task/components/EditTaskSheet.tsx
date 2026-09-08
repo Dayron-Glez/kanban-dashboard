@@ -30,6 +30,7 @@ export function EditTaskSheet({ task, open, onOpenChange, onSave }: EditTaskShee
       priority: "p1",
       size: "m",
       assignee_id: null,
+      due_date: null,
     },
   })
 
@@ -40,6 +41,7 @@ export function EditTaskSheet({ task, open, onOpenChange, onSave }: EditTaskShee
         priority: task.priority,
         size: task.size,
         assignee_id: task.assignee_id,
+        due_date: task.due_date,
       })
     }
   }, [task, open, form])
@@ -52,6 +54,7 @@ export function EditTaskSheet({ task, open, onOpenChange, onSave }: EditTaskShee
         priority: task.priority,
         size: task.size,
         assignee_id: task.assignee_id,
+        due_date: task.due_date,
       })
     }
   }
