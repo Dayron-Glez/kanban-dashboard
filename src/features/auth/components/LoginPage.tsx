@@ -9,7 +9,7 @@ import { loginSchema, type LoginFormValues } from "../schemas/auth.schema"
 export function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const redirectTo = searchParams.get("redirect") ?? "/projects"
+  const redirectTo = searchParams.get("redirect") ?? "/home"
   const [authError, setAuthError] = useState<string | null>(null)
 
   const {

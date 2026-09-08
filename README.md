@@ -104,6 +104,22 @@ La aplicación estará disponible en `http://localhost:5173`.
 | `lint`    | `npm run lint`    | Ejecuta ESLint para análisis estático del código   |
 | `preview` | `npm run preview` | Previsualiza el build de producción localmente     |
 
+## Datos de prueba
+
+Una cuenta recién creada no tiene proyectos, y con el tablero vacío es difícil juzgar pantallas como
+el inicio o las analíticas. `supabase/seed.sql` siembra un entorno realista: cuatro proyectos de
+distinto tamaño, unas treinta tareas con prioridades y asignaciones variadas, historial de
+movimientos de las últimas semanas y una invitación pendiente.
+
+1. Regístrate en la app con tu email (el seeder necesita que el usuario exista).
+2. Abre el **SQL Editor** de tu proyecto de Supabase. No sirve ejecutarlo desde la app: la `anon key`
+   está sujeta a RLS y no puede sembrar datos.
+3. Cambia `v_email` al principio del script por tu email y ejecútalo.
+
+Es idempotente: identifica lo que siembra con el marcador `[seed]` en la descripción del proyecto,
+así que lo borra y lo recrea en cada ejecución sin tocar tus proyectos reales. Para revertirlo,
+ejecuta solo el `delete` del bloque LIMPIEZA.
+
 ## Estructura del Proyecto
 
 El proyecto sigue una **Screaming Architecture** organizada por dominios/features. La estructura de carpetas comunica inmediatamente de qué trata la aplicación.
