@@ -10,6 +10,8 @@ export const taskValidationSchema = z.object({
     message: "Selecciona un tamaño válido",
   }),
   assignee_id: z.string().nullable().optional(),
+  // ISO yyyy-MM-dd, que es lo que guarda una columna date de Postgres.
+  due_date: z.string().nullable().optional(),
 })
 
 export type TaskFormValues = z.infer<typeof taskValidationSchema>

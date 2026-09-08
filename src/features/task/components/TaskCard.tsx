@@ -19,13 +19,13 @@ import {
   DropdownMenuTrigger,
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
   Button,
 } from "@/shared/index"
 import { type Task } from "@/features/board/index"
 import { type TaskFormValues } from "../schemas/task.schema"
 import { DetailsTaskSheet } from "./DetailsTaskSheet"
+import { DueDateChip } from "./DueDateChip"
 import { EditTaskSheet } from "./EditTaskSheet"
 import { PRIORITY_CONFIG, SIZE_CONFIG } from "./taskChips"
 
@@ -94,7 +94,10 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+                // -mr-1.5: la caja del boton es de 32px para un icono de 16, asi
+                // que el icono quedaba 8px mas adentro que el avatar de debajo
+                // y la columna derecha no leia como un solo eje.
+                className="text-muted-foreground hover:text-foreground hover:bg-muted -mr-1.5 shrink-0"
                 aria-label="Abrir menú de acciones"
               >
                 <IconDots size={14} />
@@ -132,26 +135,34 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
             >
               {size.label}
             </span>
+            <DueDateChip dueDate={task.due_date} />
           </div>
 
           {task.assigneeProfile && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="bg-primary/15 text-primary flex h-[22px] w-[22px] shrink-0 cursor-default items-center justify-center rounded-full text-[9px] font-extrabold">
-                    {getInitials(task.assigneeProfile.full_name)}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="flex flex-col gap-0.5">
-                  <span className="font-medium">
-                    {task.assigneeProfile.full_name ?? "Sin nombre"}
-                  </span>
-                  {task.assigneeProfile.email && (
-                    <span className="text-xs opacity-75">{task.assigneeProfile.email}</span>
-                  )}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            // Sin TooltipProvider propio: Tooltip ya monta el suyo.
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="bg-primary/15 text-primary flex h-[22px] w-[22px] shrink-0 cursor-default items-center justify-center rounded-full text-[9px] font-extrabold">
+                  {getInitials(task.assigneeProfile.full_name)}
+                </div>
+              </TooltipTrigger>
+              {/* Arriba y con separacion: pegado a la izquierda caia dentro de
+                  la tarjeta, tapando los chips, y sin holgura la flecha no
+                  cabia, asi que parecia un panel suelto en vez de un tooltip. */}
+              <TooltipContent
+                side="top"
+                align="end"
+                sideOffset={6}
+                className="flex flex-col gap-0.5"
+              >
+                <span className="font-medium">
+                  {task.assigneeProfile.full_name ?? "Sin nombre"}
+                </span>
+                {task.assigneeProfile.email && (
+                  <span className="text-xs opacity-75">{task.assigneeProfile.email}</span>
+                )}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>

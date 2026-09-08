@@ -2,6 +2,7 @@ import { ContentTextArea } from "./ContentTextArea"
 import { PrioritySelect } from "./PrioritySelect"
 import { SizeSelect } from "./SizeSelect"
 import { AssigneeSelect } from "./AssigneeSelect"
+import { DueDateField } from "./DueDateField"
 
 interface TaskFormProps {
   disabled?: boolean
@@ -16,6 +17,7 @@ export function TaskForm({ disabled = false }: TaskFormProps) {
       <PrioritySelect disabled={disabled} />
       <SizeSelect disabled={disabled} />
       <AssigneeSelect disabled={disabled} />
+      <DueDateField disabled={disabled} />
     </div>
   )
 }

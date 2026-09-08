@@ -9,6 +9,8 @@ export interface Task {
   content: string
   priority: TaskPriority
   size: TaskSize
+  /** ISO yyyy-MM-dd, o null si la tarea no tiene fecha de vencimiento. */
+  due_date: string | null
   columnId: string
   project_id: string
   position: number

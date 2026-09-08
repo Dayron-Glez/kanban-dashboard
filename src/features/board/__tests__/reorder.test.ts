@@ -14,6 +14,7 @@ const task = (id: string, columnId: string): Task => ({
   content: id,
   priority: "p2",
   size: "m",
+  due_date: null,
   columnId,
   project_id: "proj",
   position: 0,

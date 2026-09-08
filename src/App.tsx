@@ -13,7 +13,7 @@ import { InviteAcceptPage } from "@/features/invite"
 import { NotFoundPage } from "@/shared"
 import AppLayout from "./layouts/AppLayout"
 import KanbanLayout from "./layouts/MainLayout"
-import KanbanBoard from "./features/board/components/KanbanBoard"
+import ProjectTasksView from "./features/board/components/ProjectTasksView"
 
 export default App
 
@@ -42,7 +42,7 @@ function App() {
 
               {/* Nivel de proyecto */}
               <Route element={<KanbanLayout />}>
-                <Route path="/projects/:id" element={<KanbanBoard />} />
+                <Route path="/projects/:id" element={<ProjectTasksView />} />
                 <Route path="/projects/:id/analytics" element={<AnalyticsPage />} />
                 <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
                 <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />

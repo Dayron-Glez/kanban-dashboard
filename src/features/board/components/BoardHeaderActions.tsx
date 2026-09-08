@@ -3,6 +3,7 @@ import { IconPlus } from "@tabler/icons-react"
 import { Button, SearchInput, Tooltip, TooltipContent, TooltipTrigger } from "@/shared/index"
 import { CreateColumnSheet } from "@/features/column/index"
 import { useKanban } from "../hooks/useKanban"
+import { ViewSwitch } from "./ViewSwitch"
 
 interface Props {
   searchValue: string
@@ -28,6 +29,8 @@ export function BoardHeaderActions({ searchValue, onSearchChange }: Props) {
 
   return (
     <>
+      <ViewSwitch />
+
       <Tooltip>
         <TooltipTrigger asChild>
           <div>
