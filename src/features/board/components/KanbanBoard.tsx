@@ -7,8 +7,11 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -47,6 +50,18 @@ export default function KanbanBoard() {
   const dragOriginColumnId = useRef<string | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 3 } }))
+
+  /**
+   * Para arrastrar tareas se usa la posición del puntero: así entre las
+   * colisiones aparece siempre la columna que lo contiene, que es de donde
+   * onDragOver saca el destino. Las columnas se siguen arrastrando por
+   * intersección de rectángulos, que es como se comportaban antes.
+   */
+  const collisionDetection: CollisionDetection = (args) => {
+    if (args.active.data.current?.type === "column") return rectIntersection(args)
+    const within = pointerWithin(args)
+    return within.length > 0 ? within : rectIntersection(args)
+  }
 
   const filteredTasks = tasks.filter((task) => {
     const searchTerm = searchValue.trim().toLowerCase()
@@ -163,16 +178,24 @@ export default function KanbanBoard() {
    * a entrar aquí, un ciclo que agotaba el límite de renders de React.
    */
   const onDragOver = (event: DragOverEvent): void => {
-    const { active, over } = event
+    const { active, over, collisions } = event
     if (!over || active.data.current?.type !== "task") return
 
-    const overType = over.data.current?.type
-    const overTask = over.data.current?.task as Task | undefined
+    // La columna de destino se decide por la COLUMNA en la que está el puntero,
+    // nunca por la tarjeta que tiene debajo. Las tarjetas se recolocan al mover
+    // la tarea, así que tomarlas como referencia hacía que el destino cambiara
+    // por efecto del propio movimiento: la tarea rebotaba entre dos columnas en
+    // cada render hasta agotar el límite de React. Los rectángulos de las
+    // columnas no se mueven, así que el destino solo cambia si el puntero cruza
+    // de verdad a otra columna.
+    const columnCollision = collisions?.find(
+      (collision) => collision.data?.droppableContainer?.data?.current?.type === "column"
+    )
+    if (!columnCollision) return
 
-    const targetColumnId =
-      overType === "task" ? overTask?.columnId : overType === "column" ? String(over.id) : undefined
-    if (!targetColumnId) return
-
+    const targetColumnId = String(columnCollision.id)
+    const overTask =
+      over.data.current?.type === "task" ? (over.data.current.task as Task) : undefined
     const taskId = String(active.id)
 
     setTasks((prev) => {
@@ -184,7 +207,7 @@ export default function KanbanBoard() {
       // Sobre el cuerpo de la columna, al final. Sobre una tarea, en su hueco;
       // o detrás de ella si el cursor ya pasó de su mitad.
       let position = column.length
-      if (overTask) {
+      if (overTask && overTask.columnId === targetColumnId) {
         const overIndex = column.findIndex((t) => t.id === overTask.id)
         if (overIndex !== -1) {
           const activeRect = active.rect.current.translated
@@ -208,6 +231,7 @@ export default function KanbanBoard() {
     >
       <DndContext
         sensors={sensors}
+        collisionDetection={collisionDetection}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
