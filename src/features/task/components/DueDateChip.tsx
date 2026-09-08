@@ -25,7 +25,9 @@ export function DueDateChip({ dueDate, className }: DueDateChipProps) {
       <TooltipTrigger asChild>
         <span
           className={cn(
-            "flex cursor-default items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+            // inline-flex, no flex: dentro de una celda de tabla un span en
+            // display:flex se estira a todo el ancho.
+            "inline-flex cursor-default items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
             DUE_STATE_CHIP[state],
             className
           )}

@@ -1,7 +1,7 @@
 import { useContext } from "react"
-import { Outlet, useLocation } from "react-router"
+import { Outlet, useLocation, useSearchParams } from "react-router"
 import { ScrollArea, SearchContext, Skeleton } from "@/shared/index"
-import { useKanban } from "@/features/board/index"
+import { parseView, useKanban, VIEW_PARAM } from "@/features/board/index"
 import noDataSvg from "@/assets/noData.svg"
 import notFindByFilter from "@/assets/notFindByFilter.svg"
 
@@ -13,10 +13,14 @@ export default function KanbanLayout() {
   const { scrollContainerRef, columns, tasks, loading } = useKanban()
   const searchValue = useContext(SearchContext)?.searchValue ?? ""
   const location = useLocation()
+  const [searchParams] = useSearchParams()
 
   // Todo lo que no es el tablero scrollea con ScrollArea; el tablero maneja su
-  // propia altura y no debe llevar scroll vertical.
-  const isScrollablePage = !/\/projects\/[^/]+$/.test(location.pathname)
+  // propia altura y no debe llevar scroll vertical. La tabla vive en la misma
+  // ruta que el tablero pero sí es una pantalla que scrollea.
+  const isBoardRoute = /\/projects\/[^/]+$/.test(location.pathname)
+  const isTable = parseView(searchParams.get(VIEW_PARAM)) === "table"
+  const isScrollablePage = !isBoardRoute || isTable
 
   const filteredTasks = tasks.filter((task) => {
     const searchTerm = searchValue.trim().toLowerCase()
