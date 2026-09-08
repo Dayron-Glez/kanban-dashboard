@@ -18,5 +18,13 @@ export default defineConfig({
     // node_modules. Sin excluirlas, vitest recoge sus tests ademas de los
     // nuestros y fallan todos: se cargan dos copias de React a la vez.
     exclude: [...configDefaults.exclude, ".claude/**"],
+    // Valores de mentira para el cliente de Supabase, que se construye al
+    // cargar el modulo y lanza "supabaseUrl is required" si faltan. Cualquier
+    // test que renderice un componente acaba importandolo a traves del barrel
+    // de shared, y CI no tiene .env: sin esto solo pasaban en local.
+    env: {
+      VITE_SUPABASE_URL: "http://localhost:54321",
+      VITE_SUPABASE_ANON_KEY: "clave-de-pruebas-no-real",
+    },
   },
 })
