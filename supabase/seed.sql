@@ -98,7 +98,7 @@ begin
 
   -- Invitación pendiente, para poder ver esa card en Ajustes.
   insert into public.project_invitations (project_id, email, token, status, expires_at)
-  values (v_proj, 'nuevo.companero@ejemplo.com', gen_random_uuid()::text, 'pending', now() + interval '7 days');
+  values (v_proj, 'nuevo.companero@ejemplo.com', gen_random_uuid(), 'pending', now() + interval '7 days');
 
   -- ── PROYECTO 2: mediano ───────────────────────────────────────────────────
   insert into public.projects (owner_id, name, description, color, created_at)
