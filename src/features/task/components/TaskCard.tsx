@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
   Button,
 } from "@/shared/index"
@@ -137,23 +136,30 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
           </div>
 
           {task.assigneeProfile && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="bg-primary/15 text-primary flex h-[22px] w-[22px] shrink-0 cursor-default items-center justify-center rounded-full text-[9px] font-extrabold">
-                    {getInitials(task.assigneeProfile.full_name)}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="flex flex-col gap-0.5">
-                  <span className="font-medium">
-                    {task.assigneeProfile.full_name ?? "Sin nombre"}
-                  </span>
-                  {task.assigneeProfile.email && (
-                    <span className="text-xs opacity-75">{task.assigneeProfile.email}</span>
-                  )}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            // Sin TooltipProvider propio: Tooltip ya monta el suyo.
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="bg-primary/15 text-primary flex h-[22px] w-[22px] shrink-0 cursor-default items-center justify-center rounded-full text-[9px] font-extrabold">
+                  {getInitials(task.assigneeProfile.full_name)}
+                </div>
+              </TooltipTrigger>
+              {/* Arriba y con separacion: pegado a la izquierda caia dentro de
+                  la tarjeta, tapando los chips, y sin holgura la flecha no
+                  cabia, asi que parecia un panel suelto en vez de un tooltip. */}
+              <TooltipContent
+                side="top"
+                align="end"
+                sideOffset={6}
+                className="flex flex-col gap-0.5"
+              >
+                <span className="font-medium">
+                  {task.assigneeProfile.full_name ?? "Sin nombre"}
+                </span>
+                {task.assigneeProfile.email && (
+                  <span className="text-xs opacity-75">{task.assigneeProfile.email}</span>
+                )}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>

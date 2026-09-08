@@ -1,4 +1,3 @@
-import { IconCalendar } from "@tabler/icons-react"
 import { Tooltip, TooltipContent, TooltipTrigger, cn } from "@/shared/index"
 import { DUE_STATE_CHIP, formatDueFull, formatDueLabel, getDueState } from "../lib/dueDate"
 
@@ -25,14 +24,15 @@ export function DueDateChip({ dueDate, className }: DueDateChipProps) {
       <TooltipTrigger asChild>
         <span
           className={cn(
-            // inline-flex, no flex: dentro de una celda de tabla un span en
-            // display:flex se estira a todo el ancho.
-            "inline-flex cursor-default items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+            // Mismo pildoreo que los chips de prioridad y tamano, que van al
+            // lado en la tarjeta: si no, canta. inline-block y no flex porque
+            // dentro de una celda de tabla un span en display:flex se estira a
+            // todo el ancho.
+            "inline-block cursor-default rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
             DUE_STATE_CHIP[state],
             className
           )}
         >
-          <IconCalendar size={11} className="shrink-0" />
           {formatDueLabel(dueDate)}
         </span>
       </TooltipTrigger>
