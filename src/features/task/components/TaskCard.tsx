@@ -26,6 +26,7 @@ import {
 import { type Task } from "@/features/board/index"
 import { type TaskFormValues } from "../schemas/task.schema"
 import { DetailsTaskSheet } from "./DetailsTaskSheet"
+import { DueDateChip } from "./DueDateChip"
 import { EditTaskSheet } from "./EditTaskSheet"
 import { PRIORITY_CONFIG, SIZE_CONFIG } from "./taskChips"
 
@@ -132,6 +133,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
             >
               {size.label}
             </span>
+            <DueDateChip dueDate={task.due_date} />
           </div>
 
           {task.assigneeProfile && (
