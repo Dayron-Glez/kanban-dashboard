@@ -28,6 +28,7 @@ export function CreateTaskSheet({ columnId, open, onOpenChange, onSave }: Create
       priority: "p1",
       size: "m",
       assignee_id: null,
+      due_date: null,
     },
   })
 

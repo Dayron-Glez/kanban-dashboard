@@ -3,3 +3,4 @@ dist
 public
 *.lock
 package-lock.json
+.claude
