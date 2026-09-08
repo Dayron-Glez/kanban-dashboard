@@ -12,6 +12,7 @@ type RawTask = {
   content: string
   priority: string
   size: string
+  due_date: string | null
   project_id: string
   position: number
   assignee_id: string | null
@@ -94,6 +95,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
             content: raw.content,
             priority: raw.priority as TaskPriority,
             size: raw.size as TaskSize,
+            due_date: raw.due_date ?? null,
             project_id: raw.project_id,
             position: raw.position,
             assignee_id: raw.assignee_id ?? null,
@@ -171,6 +173,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
       content: string
       priority: TaskPriority
       size: TaskSize
+      due_date?: string | null
       assignee_id?: string | null
     }
   ): Promise<void> => {
@@ -185,6 +188,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         content: taskData.content,
         priority: taskData.priority,
         size: taskData.size,
+        due_date: taskData.due_date || null,
         position,
         assignee_id: taskData.assignee_id ?? null,
       })
@@ -202,6 +206,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
       content: raw.content,
       priority: raw.priority as TaskPriority,
       size: raw.size as TaskSize,
+      due_date: raw.due_date ?? null,
       project_id: raw.project_id,
       position: raw.position,
       assignee_id: raw.assignee_id ?? null,
@@ -216,6 +221,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
       content: string
       priority: TaskPriority
       size: TaskSize
+      due_date?: string | null
       assignee_id?: string | null
     }
   ): Promise<void> => {
@@ -231,6 +237,9 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
               content: taskData.content,
               priority: taskData.priority,
               size: taskData.size,
+              // Mismo criterio que la escritura de abajo, para que el estado
+              // local y la base no puedan divergir.
+              due_date: taskData.due_date || null,
               assignee_id: taskData.assignee_id ?? null,
               assigneeProfile: assigneeProfile ?? null,
             }
@@ -243,6 +252,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         content: taskData.content,
         priority: taskData.priority,
         size: taskData.size,
+        due_date: taskData.due_date || null,
         assignee_id: taskData.assignee_id ?? null,
       })
       .eq("id", id)
