@@ -22,7 +22,7 @@ import {
 } from "@/shared/index"
 import { useKanban, type ColumnType, type Task } from "@/features/board/index"
 import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle"
-import { CreateTaskSheet, TaskCard, sortByPriority } from "@/features/task/index"
+import { CreateTaskSheet, TaskCard } from "@/features/task/index"
 
 const COLUMN_ACCENTS = ["#6366f1", "#f97316", "#0ea5e9", "#10b981", "#ec4899", "#8b5cf6"]
 const getAccent = (position: number) => COLUMN_ACCENTS[position % COLUMN_ACCENTS.length]
@@ -71,16 +71,12 @@ export function ColumnContainer({
     enableTasksAnim(!boardDragging)
   }, [boardDragging, enableTasksAnim])
 
-  // §3.2: las P0 van siempre arriba. El sort es estable, así que dentro de
-  // cada prioridad se respeta el orden manual persistido. Se desactiva
-  // mientras hay un arrastre activo para que el placeholder no salte bajo
-  // el cursor; al soltar, la lista se reordena sola.
-  const orderedTasks = useMemo(
-    () => (boardDragging ? tasks : sortByPriority(tasks)),
-    [tasks, boardDragging]
-  )
-
-  const tasksIds = useMemo(() => orderedTasks.map((task) => task.id), [orderedTasks])
+  // Las tareas se muestran en el orden manual persistido, sin ordenar por
+  // prioridad: ordenar aquí creaba una segunda fuente de verdad para el mismo
+  // orden, así que al soltar una tarea saltaba a otro sitio y lo que se
+  // guardaba no era lo que se veía. La urgencia se comunica con el punto rojo
+  // de la cabecera y la etiqueta de cada tarjeta.
+  const tasksIds = useMemo(() => tasks.map((task) => task.id), [tasks])
 
   const accent = getAccent(column.position)
   const p0Count = tasks.filter((t) => t.priority === "p0").length
@@ -314,10 +310,10 @@ export function ColumnContainer({
         <ScrollArea className="h-full min-h-0">
           <div ref={tasksRef} className="flex flex-col gap-[7px] p-2.5">
             <SortableContext items={tasksIds}>
-              {orderedTasks.length === 0 ? (
+              {tasks.length === 0 ? (
                 <EmptyZone onAdd={() => setCreateTaskDialogOpen(true)} />
               ) : (
-                orderedTasks.map((task) => (
+                tasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
