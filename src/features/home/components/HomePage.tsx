@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { IconArrowRight, IconPlus } from "@tabler/icons-react"
 import { Link } from "react-router"
-import { Button, Skeleton } from "@/shared"
+import { Button, ScrollArea, Skeleton } from "@/shared"
 import { useAuth } from "@/features/auth"
 import { PRIORITY_CONFIG, sortByPriority } from "@/features/task/index"
 import { ProjectCard, useProjectsContext } from "@/features/project"
@@ -37,7 +37,7 @@ export function HomePage() {
   const ordered = useMemo(() => sortByPriority(tasks), [tasks])
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <ScrollArea className="min-h-0 flex-1">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
         <h1 className="text-foreground text-xl font-bold">
           {greeting()}
@@ -146,6 +146,6 @@ export function HomePage() {
           )}
         </section>
       </div>
-    </div>
+    </ScrollArea>
   )
 }
