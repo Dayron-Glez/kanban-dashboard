@@ -39,9 +39,13 @@ begin
   returning id into v_proj;
 
   insert into public.project_members (project_id, user_id, role, is_favorite)
-  values (v_proj, v_user, 'owner', true);
+  values (v_proj, v_user, 'owner', true)
+  on conflict (project_id, user_id) do update set role = excluded.role, is_favorite = excluded.is_favorite;
 
   -- Columnas: se guardan en orden para poder repartir tareas por fase.
+  -- Si la base crea columnas por defecto al insertar el proyecto, se descartan
+  -- para no duplicarlas con las del seed.
+  delete from public.columns where project_id = v_proj;
   v_cols := '{}'::uuid[];
 
   insert into public.columns (project_id, title, position) values (v_proj, 'Backlog', 0) returning id into v_col;
@@ -103,8 +107,12 @@ begin
   returning id into v_proj;
 
   insert into public.project_members (project_id, user_id, role, is_favorite)
-  values (v_proj, v_user, 'owner', false);
+  values (v_proj, v_user, 'owner', false)
+  on conflict (project_id, user_id) do update set role = excluded.role, is_favorite = excluded.is_favorite;
 
+  -- Si la base crea columnas por defecto al insertar el proyecto, se descartan
+  -- para no duplicarlas con las del seed.
+  delete from public.columns where project_id = v_proj;
   v_cols := '{}'::uuid[];
   insert into public.columns (project_id, title, position) values (v_proj, 'Ideas', 0) returning id into v_col;
   v_cols := array_append(v_cols, v_col);
@@ -131,8 +139,12 @@ begin
   returning id into v_proj;
 
   insert into public.project_members (project_id, user_id, role, is_favorite)
-  values (v_proj, v_user, 'owner', true);
+  values (v_proj, v_user, 'owner', true)
+  on conflict (project_id, user_id) do update set role = excluded.role, is_favorite = excluded.is_favorite;
 
+  -- Si la base crea columnas por defecto al insertar el proyecto, se descartan
+  -- para no duplicarlas con las del seed.
+  delete from public.columns where project_id = v_proj;
   v_cols := '{}'::uuid[];
   insert into public.columns (project_id, title, position) values (v_proj, 'Backlog', 0) returning id into v_col;
   v_cols := array_append(v_cols, v_col);
@@ -153,8 +165,10 @@ begin
   returning id into v_proj;
 
   insert into public.project_members (project_id, user_id, role, is_favorite)
-  values (v_proj, v_user, 'owner', false);
+  values (v_proj, v_user, 'owner', false)
+  on conflict (project_id, user_id) do update set role = excluded.role, is_favorite = excluded.is_favorite;
 
+  delete from public.columns where project_id = v_proj;
   insert into public.columns (project_id, title, position) values
     (v_proj, 'Backlog', 0), (v_proj, 'In Progress', 1), (v_proj, 'Done', 2);
 
