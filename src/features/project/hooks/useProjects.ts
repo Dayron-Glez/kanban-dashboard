@@ -82,19 +82,18 @@ export const useProjects = () => {
       .single()
     if (error || !data) return null
 
+    // La membresía de owner NO se inserta aquí: la crea el trigger
+    // on_project_created (handle_new_project) al insertar el proyecto. Hacerlo
+    // también desde el cliente chocaba siempre con el índice único de
+    // (project_id, user_id) y el error se tragaba en silencio.
     const defaultColumns = ["Backlog", "Ready", "In Progress", "In Review", "Done"]
-    await Promise.all([
-      supabase
-        .from("columns")
-        .insert(
-          defaultColumns.map((title, position) => ({ project_id: data.id, title, position }))
-        ),
-      supabase.from("project_members").insert({
-        project_id: data.id,
-        user_id: user.id,
-        role: "owner" as MemberRole,
-      }),
-    ])
+    const { error: columnsError } = await supabase
+      .from("columns")
+      .insert(defaultColumns.map((title, position) => ({ project_id: data.id, title, position })))
+
+    if (columnsError) {
+      console.error("[projects] no se pudieron crear las columnas por defecto:", columnsError)
+    }
 
     setProjects((prev) => [data, ...prev])
     setUserRoles((prev) => ({ ...prev, [data.id]: "owner" }))
