@@ -1,5 +1,6 @@
 export * from "./components/brand/CauceLogo"
 export * from "./components/Header"
+export * from "./components/NotFoundPage"
 export * from "./components/SearchInput"
 export * from "./components/Sidebar/SideBarContent"
 export * from "./components/ui/alert-dialog"
