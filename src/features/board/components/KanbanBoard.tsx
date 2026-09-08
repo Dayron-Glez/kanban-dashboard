@@ -1,4 +1,5 @@
 import { useContext, useRef, useState } from "react"
+import { useSearchParams } from "react-router"
 import { createPortal } from "react-dom"
 import { arrayMove, SortableContext } from "@dnd-kit/sortable"
 import { motion } from "framer-motion"
@@ -15,7 +16,7 @@ import {
 import { SearchContext } from "@/shared/index"
 import { supabase } from "@/shared/supabase"
 import { ColumnContainer } from "@/features/column/index"
-import { TaskCard } from "@/features/task/index"
+import { DetailsTaskSheet, TaskCard } from "@/features/task/index"
 import { useKanban, type ColumnType, type Task } from "../index"
 
 export default function KanbanBoard() {
@@ -26,6 +27,17 @@ export default function KanbanBoard() {
   const searchValue = searchContext?.searchValue ?? ""
 
   const { columns, tasks, columnsId, setColumns, setTasks } = useKanban()
+
+  // Enlace profundo: ?task=<id> abre el detalle de esa tarea. Lo usan las
+  // filas del inicio para no perder de vista la tarea al saltar al tablero.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const deepLinkedTask = tasks.find((t) => t.id === searchParams.get("task")) ?? null
+
+  const closeDeepLink = (): void => {
+    const next = new URLSearchParams(searchParams)
+    next.delete("task")
+    setSearchParams(next, { replace: true })
+  }
 
   const [activeColumn, setActiveColumn] = useState<ColumnType | null>(null)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
@@ -249,6 +261,14 @@ export default function KanbanBoard() {
           document.body
         )}
       </DndContext>
+
+      {deepLinkedTask && (
+        <DetailsTaskSheet
+          task={deepLinkedTask}
+          open
+          onOpenChange={(next) => !next && closeDeepLink()}
+        />
+      )}
     </motion.div>
   )
 }
