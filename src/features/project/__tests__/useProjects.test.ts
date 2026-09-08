@@ -124,6 +124,9 @@ describe("useProjects", () => {
 
     expect(result.current.projects[0]).toEqual(newProject)
     expect(result.current.projects).toHaveLength(2)
+    // La membresía de owner la crea el trigger on_project_created; insertarla
+    // también aquí choca con el índice único de (project_id, user_id).
+    expect(mockProjectMembers.insert).not.toHaveBeenCalled()
   })
 
   it("deleteProject elimina el proyecto de la lista", async () => {
