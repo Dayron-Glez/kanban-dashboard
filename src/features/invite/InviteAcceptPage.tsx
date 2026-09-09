@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { IconLoader2 } from "@tabler/icons-react"
-import { supabase } from "@/shared/supabase"
+import { acceptInvitation, invitationByToken } from "@/shared/supabase"
 import { useAuth } from "@/features/auth"
 import { Button } from "@/shared"
 
@@ -11,7 +11,6 @@ type InviteState =
   | "accepting"
   | "invalid"
   | "expired"
-  | "already-member"
   | "email-mismatch"
   | "error"
 
@@ -21,56 +20,6 @@ export default function InviteAcceptPage() {
   const navigate = useNavigate()
   const [state, setState] = useState<InviteState>("loading")
   const [message, setMessage] = useState<string>("")
-
-  const doAccept = async (invitationId: string, projectId: string) => {
-    setState("accepting")
-
-    // Verificar si ya es miembro (sin .single() para evitar 406 cuando no hay filas)
-    const { data: existingRows } = await supabase
-      .from("project_members")
-      .select("id")
-      .eq("project_id", projectId)
-      .eq("user_id", user!.id)
-
-    if (existingRows && existingRows.length > 0) {
-      // Ya es miembro — limpiar la invitación si aún quedó pendiente
-      await supabase
-        .from("project_invitations")
-        .update({ status: "accepted" })
-        .eq("id", invitationId)
-      setState("already-member")
-      setTimeout(() => navigate(`/projects/${projectId}`), 1500)
-      return
-    }
-
-    const [{ error: memberError }, { error: inviteError }] = await Promise.all([
-      supabase.from("project_members").insert({
-        project_id: projectId,
-        user_id: user!.id,
-        role: "member",
-      }),
-      supabase.from("project_invitations").update({ status: "accepted" }).eq("id", invitationId),
-    ])
-
-    if (memberError || inviteError) {
-      // 23505 = unique_violation: el usuario ya es miembro (intento duplicado)
-      if (memberError?.code === "23505") {
-        // Ya es miembro — limpiar la invitación si aún quedó pendiente
-        await supabase
-          .from("project_invitations")
-          .update({ status: "accepted" })
-          .eq("id", invitationId)
-        setState("already-member")
-        setTimeout(() => navigate(`/projects/${projectId}`), 1500)
-        return
-      }
-      setState("error")
-      setMessage("Ocurrió un error al aceptar la invitación. Inténtalo de nuevo.")
-      return
-    }
-
-    navigate(`/projects/${projectId}`)
-  }
 
   useEffect(() => {
     const run = async () => {
@@ -89,15 +38,15 @@ export default function InviteAcceptPage() {
 
       setState("accepting")
 
-      const { data: invitation, error } = await supabase
-        .from("project_invitations")
-        .select("*")
-        .eq("token", token)
-        .single()
+      // La lectura pasa por una función de Postgres: la tabla de invitaciones
+      // ya no es legible directamente, porque para permitir este caso —quien
+      // abre el enlace aún no es miembro— había que dejarla abierta a
+      // cualquiera, con sus tokens y correos dentro.
+      const { invitation } = await invitationByToken(token)
 
-      if (error || !invitation) {
+      if (!invitation) {
         setState("invalid")
-        setMessage("El enlace de invitación no existe o ha expirado.")
+        setMessage("El enlace de invitación no existe.")
         return
       }
 
@@ -107,7 +56,7 @@ export default function InviteAcceptPage() {
         return
       }
 
-      if (new Date(invitation.expires_at) < new Date()) {
+      if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
         setState("expired")
         setMessage(
           "Esta invitación ha expirado. Pide al dueño del proyecto que te envíe una nueva."
@@ -115,15 +64,25 @@ export default function InviteAcceptPage() {
         return
       }
 
+      // Se avisa antes de intentarlo para dar un mensaje claro, pero quien
+      // decide es la base: aceptar una invitación ajena está denegado ahí.
       if (invitation.email.toLowerCase() !== (user.email ?? "").toLowerCase()) {
-        setMessage(
-          `La invitación fue enviada a ${invitation.email}, pero estás autenticado como ${user.email}. Puedes continuar de todas formas.`
-        )
         setState("email-mismatch")
+        setMessage(
+          `La invitación se envió a ${invitation.email} y has entrado como ${user.email}. Inicia sesión con la cuenta invitada para aceptarla.`
+        )
         return
       }
 
-      await doAccept(invitation.id, invitation.project_id)
+      const { projectId, error } = await acceptInvitation(token)
+
+      if (error || !projectId) {
+        setState("error")
+        setMessage("Ocurrió un error al aceptar la invitación. Inténtalo de nuevo.")
+        return
+      }
+
+      navigate(`/projects/${projectId}`)
     }
 
     run()
@@ -167,29 +126,14 @@ export default function InviteAcceptPage() {
           <>
             <div className="text-4xl">⚠️</div>
             <div>
-              <h1 className="text-primary mb-2 text-xl font-semibold">Email diferente</h1>
+              <h1 className="text-primary mb-2 text-xl font-semibold">
+                La invitación es para otra cuenta
+              </h1>
               <p className="text-muted-foreground text-sm">{message}</p>
             </div>
-            <Button
-              onClick={async () => {
-                const { data: invitation } = await supabase
-                  .from("project_invitations")
-                  .select("id, project_id")
-                  .eq("token", token!)
-                  .single()
-                if (invitation) await doAccept(invitation.id, invitation.project_id)
-              }}
-              className="w-full"
-            >
-              Continuar de todas formas
+            <Button onClick={handleLoginRedirect} className="w-full">
+              Entrar con otra cuenta
             </Button>
-          </>
-        )}
-
-        {state === "already-member" && (
-          <>
-            <div className="text-4xl">✅</div>
-            <p className="text-muted-foreground">Ya eres miembro de este proyecto. Redirigiendo…</p>
           </>
         )}
 
