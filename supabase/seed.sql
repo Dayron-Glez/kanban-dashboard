@@ -25,7 +25,10 @@ declare
 begin
   select id into v_user from auth.users where email = v_email;
   if v_user is null then
-    raise exception 'No existe ningún usuario con el email %. Regístrate primero en la app.', v_email;
+    -- Aviso y salida, no excepción: en una base local recién creada todavía no
+    -- hay usuarios, y abortar aquí haría fallar el `supabase db reset` entero.
+    raise notice 'No existe ningún usuario con el email %. Regístrate en la app y vuelve a sembrar.', v_email;
+    return;
   end if;
 
   -- ── LIMPIEZA ──────────────────────────────────────────────────────────────
