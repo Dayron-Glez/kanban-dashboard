@@ -6,13 +6,7 @@ import { useAuth } from "@/features/auth"
 import { Button } from "@/shared"
 
 type InviteState =
-  | "loading"
-  | "not-authenticated"
-  | "accepting"
-  | "invalid"
-  | "expired"
-  | "email-mismatch"
-  | "error"
+  "loading" | "not-authenticated" | "accepting" | "invalid" | "expired" | "email-mismatch" | "error"
 
 export default function InviteAcceptPage() {
   const { token } = useParams<{ token: string }>()
