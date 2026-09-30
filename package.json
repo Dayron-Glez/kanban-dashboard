@@ -8,6 +8,11 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "test:run": "turbo test:run",
+    "typecheck": "turbo typecheck",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

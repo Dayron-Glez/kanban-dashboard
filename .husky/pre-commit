@@ -1,2 +1,2 @@
-pnpm exec lint-staged 
-pnpm --filter web test:run
+pnpm exec lint-staged
+pnpm test:run

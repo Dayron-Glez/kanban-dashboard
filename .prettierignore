@@ -7,3 +7,4 @@ package-lock.json
 .husky
 pnpm-lock.yaml
 supabase/.temp
+.turbo

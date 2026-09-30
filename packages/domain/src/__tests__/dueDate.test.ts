@@ -5,7 +5,7 @@ import {
   formatDueLabel,
   getDueState,
   groupByDueState,
-} from "../lib/dueDate"
+} from "../dueDate"
 
 /**
  * Todo se mide contra un "hoy" fijo. Sin congelar el reloj, un test que hoy

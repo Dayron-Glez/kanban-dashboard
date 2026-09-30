@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger, cn } from "@/shared/index"
-import { DUE_STATE_CHIP, formatDueFull, formatDueLabel, getDueState } from "../lib/dueDate"
+import { DUE_STATE_CHIP, formatDueFull, formatDueLabel, getDueState } from "@repo/domain"
 
 interface DueDateChipProps {
   dueDate: string | null | undefined
