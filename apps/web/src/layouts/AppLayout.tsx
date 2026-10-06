@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
 import { Header, SearchContext, Sidebar, SidebarInset, SidebarProvider } from "@/shared"
 import { BoardHeaderActions, KanbanProvider } from "@/features/board"
-import { ProjectSidebarContent, useProjectsContext, type SidebarMode } from "@/features/project"
+import { ProjectSidebarContent, useProject, type SidebarMode } from "@/features/project"
 
 const SIDEBAR_MODE_KEY = "cauce.sidebar.mode"
 const LEGACY_COLLAPSED_KEY = "cauce.sidebar.collapsed"
@@ -46,12 +46,11 @@ function AppShell() {
   const [searchValue, setSearchValue] = useState<string>("")
 
   const { id } = useParams()
-  const { projects } = useProjectsContext()
   const location = useLocation()
 
   // Solo el tablero lleva filtro de tareas y «Agregar Columna» en el navbar.
   const isBoard = Boolean(id) && location.pathname === `/projects/${id}`
-  const projectName = projects.find((p) => p.id === id)?.name
+  const projectName = useProject(id).data?.name
 
   const open = mode === "expanded" || (mode === "hover" && hoverOpen)
 

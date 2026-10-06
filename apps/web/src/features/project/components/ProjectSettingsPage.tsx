@@ -33,7 +33,8 @@ import {
 } from "@/shared/index"
 import { useKanban } from "@/features/board/index"
 import { useProjectMembers } from "../hooks/useProjectMembers"
-import { useProjectsContext } from "../context/projectsCtx"
+import { useDeleteProject, useRenameProject } from "../api/projectMutations"
+import { useProject } from "../api/projectQueries"
 import { CardHead } from "./settingsCards"
 
 // ── Página de ajustes ──────────────────────────────────────────────────────
@@ -42,9 +43,9 @@ export function ProjectSettingsPage() {
   const navigate = useNavigate()
   const { userRole } = useKanban()
   const isOwner = userRole === "owner"
-  const { projects, deleteProject, renameProject } = useProjectsContext()
-
-  const currentProject = projects.find((p) => p.id === projectId)
+  const { data: currentProject } = useProject(projectId)
+  const deleteProject = useDeleteProject()
+  const renameProject = useRenameProject()
 
   const { members, invitations, inviteMember, cancelInvitation } = useProjectMembers(
     projectId ?? ""
@@ -56,7 +57,6 @@ export function ProjectSettingsPage() {
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false)
   const [newName, setNewName] = useState(currentProject?.name ?? "")
-  const [renaming, setRenaming] = useState<boolean>(false)
   const [renamed, setRenamed] = useState<boolean>(false)
 
   const handleInvite = async (): Promise<void> => {
@@ -76,19 +76,22 @@ export function ProjectSettingsPage() {
     setTimeout(() => setCopiedToken(null), 2000)
   }
 
-  const handleDeleteProject = async (): Promise<void> => {
+  const handleDeleteProject = (): void => {
     if (!projectId) return
-    await deleteProject(projectId)
-    navigate("/projects")
+    deleteProject.mutate(projectId, { onSuccess: () => navigate("/projects") })
   }
 
-  const handleRename = async (): Promise<void> => {
+  const handleRename = (): void => {
     if (!projectId || !newName.trim() || newName.trim() === currentProject?.name) return
-    setRenaming(true)
-    await renameProject(projectId, newName.trim())
-    setRenaming(false)
-    setRenamed(true)
-    setTimeout(() => setRenamed(false), 2000)
+    renameProject.mutate(
+      { id: projectId, name: newName.trim() },
+      {
+        onSuccess: () => {
+          setRenamed(true)
+          setTimeout(() => setRenamed(false), 2000)
+        },
+      }
+    )
   }
 
   return (
@@ -198,13 +201,17 @@ export function ProjectSettingsPage() {
                     renamed ? "border-emerald-400/60 text-emerald-600" : ""
                   }`}
                   onClick={handleRename}
-                  disabled={renaming || !newName.trim() || newName.trim() === currentProject?.name}
+                  disabled={
+                    renameProject.isPending ||
+                    !newName.trim() ||
+                    newName.trim() === currentProject?.name
+                  }
                 >
                   {renamed ? (
                     <>
                       <IconCheck size={13} /> Guardado
                     </>
-                  ) : renaming ? (
+                  ) : renameProject.isPending ? (
                     "Guardando…"
                   ) : (
                     "Guardar"

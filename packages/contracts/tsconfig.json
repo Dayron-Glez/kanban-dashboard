@@ -8,8 +8,9 @@
     "noEmit": true,
     "skipLibCheck": true,
 
-    /* "DOM" solo por fetch, Request y Response, que Node también implementa. */
-    "lib": ["ES2022", "DOM"],
+    /* Sin "DOM": el dominio no puede tocar window, document ni fetch, y es el
+       compilador quien lo impide en vez de la disciplina de quien escribe. */
+    "lib": ["ES2022"],
 
     /* Linting: mismas reglas que la app, para que mover código entre ambos
        no cambie lo que se considera válido. */

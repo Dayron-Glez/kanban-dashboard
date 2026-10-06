@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from "react-router"
 import { supabase } from "@/shared/supabase"
 import { Button, Card, CardContent, CardHeader, Input, Label } from "@/shared"
 import { loginSchema, type LoginFormValues } from "../schemas/auth.schema"
+import { authErrorMessage } from "../lib/authErrorMessage"
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -27,7 +28,7 @@ export function LoginPage() {
       password: values.password,
     })
     if (error) {
-      setAuthError("Email o contraseña incorrectos")
+      setAuthError(authErrorMessage(error))
       return
     }
     navigate(redirectTo)

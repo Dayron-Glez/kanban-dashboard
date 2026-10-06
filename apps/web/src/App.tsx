@@ -1,12 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import "../tailwind.css"
 import { AuthProvider, AuthGuard, LoginPage, RegisterPage } from "@/features/auth"
-import {
-  ProjectsPage,
-  ProjectMembersPage,
-  ProjectSettingsPage,
-  ProjectsProvider,
-} from "@/features/project"
+import { ProjectsPage, ProjectMembersPage, ProjectSettingsPage } from "@/features/project"
 import { HomePage } from "@/features/home"
 import { AnalyticsPage } from "@/features/analytics"
 import { InviteAcceptPage } from "@/features/invite"
@@ -29,13 +24,7 @@ function App() {
 
           {/* Privadas — todas dentro del mismo shell */}
           <Route element={<AuthGuard />}>
-            <Route
-              element={
-                <ProjectsProvider>
-                  <AppLayout />
-                </ProjectsProvider>
-              }
-            >
+            <Route element={<AppLayout />}>
               {/* Nivel global: sin proyecto activo */}
               <Route path="/home" element={<HomePage />} />
               <Route path="/projects" element={<ProjectsPage />} />
