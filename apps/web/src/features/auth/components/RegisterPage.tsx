@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router"
 import { supabase } from "@/shared/supabase"
 import { Button, Card, CardContent, CardHeader, Input, Label } from "@/shared"
 import { registerSchema, type RegisterFormValues } from "../schemas/auth.schema"
+import { authErrorMessage } from "../lib/authErrorMessage"
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -28,7 +29,7 @@ export function RegisterPage() {
       },
     })
     if (error) {
-      setAuthError(error.message)
+      setAuthError(authErrorMessage(error))
       return
     }
     navigate("/home")

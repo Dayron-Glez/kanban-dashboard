@@ -1,5 +1,5 @@
 {
-  "name": "@repo/api-client",
+  "name": "@repo/contracts",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,17 +7,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vitest",
-    "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/contracts": "workspace:*",
-    "@supabase/supabase-js": "^2.105.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "typescript": "~5.9.3",
-    "vitest": "^4.1.5"
+    "typescript": "~5.9.3"
   }
 }

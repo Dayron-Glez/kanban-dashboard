@@ -31,8 +31,12 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit }: CreateProje
   }
 
   const handleFormSubmit = async (values: ProjectFormValues) => {
-    await onSubmit(values)
-    handleClose()
+    try {
+      await onSubmit(values)
+      handleClose()
+    } catch {
+      // El toast ya avisa; el diálogo sigue abierto para reintentar sin reescribir.
+    }
   }
 
   return (

@@ -11,13 +11,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/shared"
-import type { Project } from "@/shared/supabase"
+import type { ProjectSummary } from "@repo/contracts"
 
 interface Props {
-  projects: Project[]
-  taskCounts: Record<string, number>
-  favoriteIds: Record<string, boolean>
-  onToggleFavorite: (projectId: string) => void
+  projects: ProjectSummary[]
+  onToggleFavorite: (project: ProjectSummary) => void
   onCreateProject: () => void
   /** Cerrar el contenedor (popover o diálogo) que envuelve esta lista. */
   onClose: () => void
@@ -29,15 +27,13 @@ interface Props {
  */
 export function ProjectCommandList({
   projects,
-  taskCounts,
-  favoriteIds,
   onToggleFavorite,
   onCreateProject,
   onClose,
 }: Props) {
   const navigate = useNavigate()
 
-  const favorites = projects.filter((p) => favoriteIds[p.id])
+  const favorites = projects.filter((p) => p.isFavorite)
 
   const handleSelect = (projectId: string): void => {
     navigate(`/projects/${projectId}`)
@@ -63,8 +59,8 @@ export function ProjectCommandList({
     </span>
   )
 
-  const ProjectRow = ({ project }: { project: Project }) => {
-    const isFav = favoriteIds[project.id] ?? false
+  const ProjectRow = ({ project }: { project: ProjectSummary }) => {
+    const isFav = project.isFavorite
     return (
       <CommandItem
         value={project.name}
@@ -81,7 +77,7 @@ export function ProjectCommandList({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onToggleFavorite(project.id)
+                onToggleFavorite(project)
               }}
               aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
               className={`ml-1 shrink-0 transition-opacity ${
@@ -97,7 +93,7 @@ export function ProjectCommandList({
           <TooltipContent>{isFav ? "Quitar de favoritos" : "Añadir a favoritos"}</TooltipContent>
         </Tooltip>
         <span className="text-muted-foreground ml-1 shrink-0 text-xs tabular-nums">
-          {taskCounts[project.id] ?? 0}
+          {project.taskCount}
         </span>
       </CommandItem>
     )

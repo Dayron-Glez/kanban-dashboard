@@ -13,7 +13,7 @@ import {
   useTheme,
 } from "@/shared/index"
 import { UserMenu } from "@/features/auth"
-import { ProjectCommandPopover, useProjectsContext } from "@/features/project"
+import { ProjectCommandPopover, useProject } from "@/features/project"
 
 interface HeaderProps {
   projectName?: string
@@ -30,14 +30,13 @@ const VIEW_LABELS: Record<string, string> = {
 }
 
 export function Header({ projectName, actions }: HeaderProps) {
-  const { projects } = useProjectsContext()
   const { theme, toggleTheme } = useTheme()
   const { id: projectId } = useParams()
   const location = useLocation()
 
   const lastSegment = location.pathname.split("/").filter(Boolean).pop() ?? ""
   const viewLabel = VIEW_LABELS[lastSegment] ?? "Tablero"
-  const activeProject = projects.find((p) => p.id === projectId)
+  const { data: activeProject } = useProject(projectId)
 
   return (
     <header className="bg-card border-border flex h-12 shrink-0 items-center justify-between gap-4 border-b pr-3">

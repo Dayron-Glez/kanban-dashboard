@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react"
 import { IconArrowRight, IconPlus } from "@tabler/icons-react"
 import { Link } from "react-router"
-import { Button, ScrollArea, Skeleton } from "@/shared"
+import { Button, QueryErrorState, ScrollArea, Skeleton } from "@/shared"
 import { useAuth } from "@/features/auth"
 import { PRIORITY_CONFIG, sortByPriority } from "@/features/task/index"
-import { ProjectCard, useProjectsContext } from "@/features/project"
+import { ProjectCard, useProjects } from "@/features/project"
 import { useMyTasks, type MyTask } from "../hooks/useMyTasks"
 import { MyTaskSheet } from "./MyTaskSheet"
 
@@ -28,7 +28,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function HomePage() {
   const { user } = useAuth()
   const { tasks, loading: tasksLoading } = useMyTasks()
-  const { projects, loading: projectsLoading } = useProjectsContext()
+  const {
+    data: projects = [],
+    isPending: projectsLoading,
+    error: projectsError,
+    refetch: refetchProjects,
+  } = useProjects()
 
   const fullName = user?.user_metadata?.full_name as string | undefined
   const firstName = fullName?.trim().split(/\s+/)[0] ?? null
@@ -134,7 +139,9 @@ export function HomePage() {
               )}
             </div>
 
-            {projectsLoading ? (
+            {projectsError ? (
+              <QueryErrorState error={projectsError} onRetry={() => refetchProjects()} />
+            ) : projectsLoading ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="h-28 rounded-xl" />

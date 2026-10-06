@@ -1,17 +1,19 @@
 import { useState } from "react"
 import { IconPlus } from "@tabler/icons-react"
-import { Button, ScrollArea } from "@/shared"
-import { useProjectsContext } from "../context/projectsCtx"
+import { Button, QueryErrorState, ScrollArea } from "@/shared"
+import { useCreateProject } from "../api/projectMutations"
+import { useProjects } from "../api/projectQueries"
 import { ProjectCard } from "./ProjectCard"
 import { CreateProjectModal } from "./CreateProjectModal"
 import type { ProjectFormValues } from "../schemas/project.schema"
 
 export function ProjectsPage() {
-  const { projects, loading, createProject } = useProjectsContext()
+  const { data: projects = [], isPending, error, refetch } = useProjects()
+  const createProject = useCreateProject()
   const [modalOpen, setModalOpen] = useState(false)
 
   const handleCreate = async (values: ProjectFormValues) => {
-    await createProject(values)
+    await createProject.mutateAsync(values)
   }
 
   return (
@@ -26,7 +28,9 @@ export function ProjectsPage() {
             </Button>
           </div>
 
-          {loading ? (
+          {error ? (
+            <QueryErrorState error={error} onRetry={() => refetch()} />
+          ) : isPending ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="bg-muted h-32 animate-pulse rounded-xl" />

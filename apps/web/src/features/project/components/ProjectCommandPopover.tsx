@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { Command, Popover, PopoverContent, PopoverTrigger } from "@/shared"
-import { useProjectsContext } from "../context/projectsCtx"
+import { useCreateProject, useToggleFavorite } from "../api/projectMutations"
+import { useProjects } from "../api/projectQueries"
+import type { ProjectFormValues } from "../schemas/project.schema"
 import { CreateProjectModal } from "./CreateProjectModal"
 import { ProjectCommandList } from "./ProjectCommandList"
 
@@ -17,7 +19,9 @@ interface Props {
  * la miga y al atajo ⌘K desde cualquier parte del producto.
  */
 export function ProjectCommandPopover({ children, side = "bottom", align = "start" }: Props) {
-  const { projects, taskCounts, favoriteIds, createProject, toggleFavorite } = useProjectsContext()
+  const { data: projects = [] } = useProjects()
+  const createProject = useCreateProject()
+  const toggleFavorite = useToggleFavorite()
   const [open, setOpen] = useState(false)
   const [createModalOpen, setCreateModalOpen] = useState(false)
 
@@ -32,8 +36,8 @@ export function ProjectCommandPopover({ children, side = "bottom", align = "star
     return () => document.removeEventListener("keydown", handler)
   }, [])
 
-  const handleCreateProject = async (values: Parameters<typeof createProject>[0]) => {
-    await createProject(values)
+  const handleCreateProject = async (values: ProjectFormValues) => {
+    await createProject.mutateAsync(values)
     setCreateModalOpen(false)
   }
 
@@ -45,9 +49,9 @@ export function ProjectCommandPopover({ children, side = "bottom", align = "star
           <Command>
             <ProjectCommandList
               projects={projects}
-              taskCounts={taskCounts}
-              favoriteIds={favoriteIds}
-              onToggleFavorite={toggleFavorite}
+              onToggleFavorite={(project) =>
+                toggleFavorite.mutate({ projectId: project.id, isFavorite: !project.isFavorite })
+              }
               onCreateProject={() => setCreateModalOpen(true)}
               onClose={() => setOpen(false)}
             />

@@ -3,9 +3,13 @@ export { ProjectCard } from "./components/ProjectCard"
 export { ProjectSidebarContent } from "./components/ProjectSidebarContent"
 export { CreateProjectModal } from "./components/CreateProjectModal"
 export { ProjectSettingsPage } from "./components/ProjectSettingsPage"
-export { ProjectsProvider } from "./context/ProjectsContext"
-export { useProjectsContext } from "./context/projectsCtx"
-export { useProjects } from "./hooks/useProjects"
+export { useProject, useProjects } from "./api/projectQueries"
+export {
+  useCreateProject,
+  useDeleteProject,
+  useRenameProject,
+  useToggleFavorite,
+} from "./api/projectMutations"
 export { useProjectMembers } from "./hooks/useProjectMembers"
 export { projectSchema, PROJECT_COLORS } from "./schemas/project.schema"
 export type { ProjectFormValues } from "./schemas/project.schema"

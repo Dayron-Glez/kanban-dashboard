@@ -1,17 +1,17 @@
 import { IconStar } from "@tabler/icons-react"
 import { useNavigate } from "react-router"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared"
-import type { Project } from "@/shared/supabase"
-import { useProjectsContext } from "../context/projectsCtx"
+import type { ProjectSummary } from "@repo/contracts"
+import { useToggleFavorite } from "../api/projectMutations"
 
 interface ProjectCardProps {
-  project: Project
+  project: ProjectSummary
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project }: Readonly<ProjectCardProps>) {
   const navigate = useNavigate()
-  const { favoriteIds, toggleFavorite } = useProjectsContext()
-  const isFav = favoriteIds[project.id] ?? false
+  const toggleFavorite = useToggleFavorite()
+  const isFav = project.isFavorite
 
   return (
     <button
@@ -25,7 +25,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             role="button"
             onClick={(e) => {
               e.stopPropagation()
-              toggleFavorite(project.id)
+              toggleFavorite.mutate({ projectId: project.id, isFavorite: !isFav })
             }}
             aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
             className={`absolute top-3 right-3 rounded-md p-1 transition-opacity ${
@@ -54,7 +54,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             <p className="text-muted-foreground mt-1 line-clamp-2 text-sm">{project.description}</p>
           )}
           <p className="text-muted-foreground mt-3 text-xs">
-            {new Date(project.created_at).toLocaleDateString("es-ES", {
+            {new Date(project.createdAt).toLocaleDateString("es-ES", {
               day: "numeric",
               month: "short",
               year: "numeric",
