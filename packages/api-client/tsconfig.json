@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    /* Sin "DOM": el dominio no puede tocar window, document ni fetch, y es el
+       compilador quien lo impide en vez de la disciplina de quien escribe. */
+    "lib": ["ES2022"],
+
+    /* Linting: mismas reglas que la app, para que mover código entre ambos
+       no cambie lo que se considera válido. */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}
