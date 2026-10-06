@@ -56,10 +56,9 @@ function insertIntoColumn(rest: Task[], task: Task, columnId: string, posInColum
 /**
  * Mueve una tarea a `columnId`, en la posición `posInColumn` de esa columna.
  *
- * Devuelve el array **sin tocar** si la tarea ya está en esa columna. Eso es
- * lo que corta el bucle de renders: durante el arrastre esto se llama en cada
- * movimiento del puntero, y devolver un array nuevo cada vez reordena el DOM,
- * lo que hace a dnd-kit recalcular colisiones y volver a llamar aquí.
+ * Devuelve el array **sin tocar** si la tarea ya está en esa columna: el
+ * tablero compara por referencia para saber si un soltado cambió algo y, si
+ * no, no escribe nada en la base de datos.
  */
 export function moveTaskToColumn(
   tasks: Task[],
@@ -98,34 +97,52 @@ export function reorderWithinColumn(tasks: Task[], taskId: string, overTaskId: s
   return insertIntoColumn(removeAt(tasks, index), task, task.columnId, to)
 }
 
+export type DropEdge = "top" | "bottom"
+
 /**
- * Estado final al soltar. `overId` es el elemento sobre el que se soltó: otra
- * tarea, y entonces la arrastrada ocupa su hueco, o una columna, y entonces va
- * al final de esa columna.
+ * Estado final al soltar sobre una tarjeta: la arrastrada queda justo encima
+ * o debajo de `targetTaskId`, según el borde por el que se soltó.
  */
-export function applyDrop(
+export function dropNextToTask(
   tasks: Task[],
   taskId: string,
-  overId: string,
-  overIsTask: boolean
+  targetTaskId: string,
+  edge: DropEdge
 ): Task[] {
-  if (!overIsTask) return moveTaskToColumn(tasks, taskId, overId, Number.MAX_SAFE_INTEGER)
+  if (taskId === targetTaskId) return tasks
 
   const dragged = tasks.find((task) => task.id === taskId)
-  const over = tasks.find((task) => task.id === overId)
-  if (!dragged || !over) return tasks
+  const target = tasks.find((task) => task.id === targetTaskId)
+  if (!dragged || !target) return tasks
 
-  if (dragged.columnId === over.columnId) return reorderWithinColumn(tasks, taskId, overId)
+  const column = tasksInColumn(tasks, target.columnId)
+  // Hueco donde se suelta, contado sobre la columna tal como está ahora.
+  const insertAt =
+    column.findIndex((task) => task.id === targetTaskId) + (edge === "bottom" ? 1 : 0)
 
-  // onDragOver no llegó a mover la tarea porque el puntero cambió de columna
-  // justo antes de soltar; se coloca aquí en el hueco de la tarea de destino.
-  const column = tasksInColumn(tasks, over.columnId)
-  return moveTaskToColumn(
-    tasks,
-    taskId,
-    over.columnId,
-    column.findIndex((task) => task.id === overId)
-  )
+  if (dragged.columnId !== target.columnId) {
+    return moveTaskToColumn(tasks, taskId, target.columnId, insertAt)
+  }
+
+  // Dentro de la misma columna, la arrastrada deja de ocupar su sitio: si
+  // estaba por encima del hueco, todo lo de debajo sube una posición.
+  const from = column.findIndex((task) => task.id === taskId)
+  const to = from < insertAt ? insertAt - 1 : insertAt
+  if (to === from) return tasks
+  return reorderWithinColumn(tasks, taskId, column[to].id)
+}
+
+/** Estado final al soltar sobre una columna fuera de cualquier tarjeta: al final. */
+export function dropAtColumnEnd(tasks: Task[], taskId: string, columnId: string): Task[] {
+  const dragged = tasks.find((task) => task.id === taskId)
+  if (!dragged) return tasks
+
+  if (dragged.columnId !== columnId) {
+    return moveTaskToColumn(tasks, taskId, columnId, Number.MAX_SAFE_INTEGER)
+  }
+
+  const column = tasksInColumn(tasks, columnId)
+  return reorderWithinColumn(tasks, taskId, column[column.length - 1].id)
 }
 
 /**

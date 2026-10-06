@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
-  applyDrop,
   columnPositionRows,
+  dropAtColumnEnd,
+  dropNextToTask,
   moveTaskToColumn,
   reorderWithinColumn,
   tasksInColumn,
@@ -101,16 +102,14 @@ describe("moveTaskToColumn", () => {
   })
 
   it("devuelve el mismo array si la tarea ya está en esa columna", () => {
-    // Es lo que corta el bucle de onDragOver: sin cambio, sin render.
+    // Sin cambio, sin array nuevo: el tablero no escribe en la base de datos.
     const tasks = board()
     expect(moveTaskToColumn(tasks, "a1", "A", 2)).toBe(tasks)
   })
 
   it("es idempotente: repetir el movimiento no vuelve a tocar el array", () => {
-    // La invariante que impide el bucle de renders. onDragOver se dispara en
-    // cada movimiento del puntero, y solo el primero, el que cambia de
-    // columna, puede devolver un array nuevo. Si alguno más lo hiciera, el DOM
-    // se reordenaría, dnd-kit recalcularía colisiones y volvería a entrar.
+    // Solo el movimiento que cambia de columna produce un array nuevo; repetirlo
+    // no, y es esa referencia la que dice al tablero si hay algo que guardar.
     const first = moveTaskToColumn(board(), "a1", "B", 1)
     expect(moveTaskToColumn(first, "a1", "B", 1)).toBe(first)
     expect(moveTaskToColumn(first, "a1", "B", 99)).toBe(first)
@@ -128,30 +127,69 @@ describe("moveTaskToColumn", () => {
   })
 })
 
-describe("applyDrop", () => {
-  it("reordena cuando se suelta sobre una tarea de la misma columna", () => {
-    expect(ids(applyDrop(board(), "a1", "a3", true), "A")).toEqual(["a2", "a3", "a1"])
+describe("dropNextToTask", () => {
+  it("coloca encima de la tarjeta al soltar por su borde superior", () => {
+    expect(ids(dropNextToTask(board(), "a3", "a1", "top"), "A")).toEqual(["a3", "a1", "a2"])
   })
 
-  it("coloca en el hueco cuando se suelta sobre una tarea de otra columna", () => {
-    // onDragOver no llegó a mover la tarea antes del pointerup.
-    const next = applyDrop(board(), "a1", "b2", true)
-    expect(ids(next, "B")).toEqual(["b1", "a1", "b2", "b3"])
-    expect(ids(next, "A")).toEqual(["a2", "a3"])
+  it("coloca debajo de la tarjeta al soltar por su borde inferior", () => {
+    expect(ids(dropNextToTask(board(), "a1", "a2", "bottom"), "A")).toEqual(["a2", "a1", "a3"])
   })
 
-  it("añade al final cuando se suelta sobre el cuerpo de una columna", () => {
-    expect(ids(applyDrop(board(), "a1", "B", false), "B")).toEqual(["b1", "b2", "b3", "a1"])
+  it("baja hasta el final al soltar bajo la última tarjeta", () => {
+    expect(ids(dropNextToTask(board(), "a1", "a3", "bottom"), "A")).toEqual(["a2", "a3", "a1"])
   })
 
-  it("no cambia nada al soltar sobre la propia columna", () => {
+  it("no cambia nada al soltar en el hueco que ya ocupa", () => {
+    // Bajo la tarjeta anterior y sobre la siguiente es el mismo sitio.
     const tasks = board()
-    expect(applyDrop(tasks, "a1", "A", false)).toBe(tasks)
+    expect(dropNextToTask(tasks, "a2", "a1", "bottom")).toBe(tasks)
+    expect(dropNextToTask(tasks, "a2", "a3", "top")).toBe(tasks)
   })
 
   it("no cambia nada al soltar una tarea sobre sí misma", () => {
     const tasks = board()
-    expect(applyDrop(tasks, "a1", "a1", true)).toBe(tasks)
+    expect(dropNextToTask(tasks, "a1", "a1", "top")).toBe(tasks)
+  })
+
+  it("inserta encima en otra columna", () => {
+    const next = dropNextToTask(board(), "a1", "b2", "top")
+    expect(ids(next, "B")).toEqual(["b1", "a1", "b2", "b3"])
+    expect(ids(next, "A")).toEqual(["a2", "a3"])
+  })
+
+  it("inserta debajo en otra columna", () => {
+    expect(ids(dropNextToTask(board(), "a1", "b3", "bottom"), "B")).toEqual([
+      "b1",
+      "b2",
+      "b3",
+      "a1",
+    ])
+  })
+
+  it("ignora ids inexistentes", () => {
+    const tasks = board()
+    expect(dropNextToTask(tasks, "nope", "a1", "top")).toBe(tasks)
+    expect(dropNextToTask(tasks, "a1", "nope", "top")).toBe(tasks)
+  })
+})
+
+describe("dropAtColumnEnd", () => {
+  it("añade al final de otra columna", () => {
+    expect(ids(dropAtColumnEnd(board(), "a1", "B"), "B")).toEqual(["b1", "b2", "b3", "a1"])
+  })
+
+  it("lleva al final dentro de la propia columna", () => {
+    expect(ids(dropAtColumnEnd(board(), "a1", "A"), "A")).toEqual(["a2", "a3", "a1"])
+  })
+
+  it("no cambia nada si ya es la última de su columna", () => {
+    const tasks = board()
+    expect(dropAtColumnEnd(tasks, "a3", "A")).toBe(tasks)
+  })
+
+  it("acepta una columna vacía", () => {
+    expect(ids(dropAtColumnEnd(board(), "a1", "C"), "C")).toEqual(["a1"])
   })
 })
 

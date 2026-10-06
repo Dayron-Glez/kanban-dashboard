@@ -1,8 +1,14 @@
 // src/features/task/components/TaskCard.tsx
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { IconDots, IconTrash, IconEye, IconEdit } from "@tabler/icons-react"
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+import {
+  draggable,
+  dropTargetForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter"
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine"
+import { attachClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/attach-closest-edge"
+import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/extract-closest-edge"
+import type { Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/types"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -22,7 +28,7 @@ import {
   TooltipTrigger,
   Button,
 } from "@/shared/index"
-import { type Task } from "@/features/board/index"
+import { isTaskDragData, taskDragData, type Task } from "@/features/board/index"
 import { type TaskFormValues } from "../schemas/task.schema"
 import { DetailsTaskSheet } from "./DetailsTaskSheet"
 import { DueDateChip } from "./DueDateChip"
@@ -39,131 +45,149 @@ const getInitials = (name: string | null | undefined): string => {
     .slice(0, 2)
 }
 
-interface Props {
+interface TaskCardProps {
   task: Task
   deleteTask: (id: string) => void
   updateTask: (id: string, taskData: TaskFormValues) => void
 }
 
-export function TaskCard({ task, deleteTask, updateTask }: Props) {
-  const [detailsOpen, setDetailsOpen] = useState(false)
-  const [editOpen, setEditOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+export function TaskCard({ task, deleteTask, updateTask }: Readonly<TaskCardProps>) {
+  const [detailsOpen, setDetailsOpen] = useState<boolean>(false)
+  const [editOpen, setEditOpen] = useState<boolean>(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false)
+  const [isDragging, setIsDragging] = useState<boolean>(false)
+  const [dropEdge, setDropEdge] = useState<Edge | null>(null)
 
-  const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
-    id: task.id,
-    data: { type: "task", task },
-  })
+  // La tarjeta es a la vez lo que se arrastra y un sitio donde soltar otra.
+  // El borde más cercano al puntero decide si la soltada queda encima o debajo.
+  //
+  // Ref callback y no efecto: el registro va atado al elemento, así que React
+  // lo hace al montarlo y deshace con la limpieza al desmontarlo. useCallback
+  // es imprescindible: cada arrastre provoca renders (el hueco, la línea), y un
+  // callback nuevo en cada uno desregistraría la tarjeta en mitad del arrastre.
+  const dragRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element) return
 
-  // Solo la traslación: CSS.Transform añade además la escala que devuelve la
-  // estrategia de ordenación, y como las tarjetas tienen alturas distintas
-  // según su título, eso las estiraba y encogía al desplazarse.
-  const style = { transition, transform: CSS.Translate.toString(transform) }
+      return combine(
+        draggable({
+          element,
+          getInitialData: () => taskDragData(task.id, task.columnId),
+          onDragStart: () => setIsDragging(true),
+          onDrop: () => setIsDragging(false),
+        }),
+        dropTargetForElements({
+          element,
+          canDrop: ({ source }) => isTaskDragData(source.data) && source.data.taskId !== task.id,
+          getData: ({ input }) =>
+            attachClosestEdge(taskDragData(task.id, task.columnId), {
+              element,
+              input,
+              allowedEdges: ["top", "bottom"],
+            }),
+          onDrag: ({ self }) => setDropEdge(extractClosestEdge(self.data)),
+          onDragLeave: () => setDropEdge(null),
+          onDrop: () => setDropEdge(null),
+        })
+      )
+    },
+    [task.id, task.columnId]
+  )
 
   const priority = PRIORITY_CONFIG[task.priority]
   const size = SIZE_CONFIG[task.size]
 
-  if (isDragging) {
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
-        className={`border border-l-4 border-dashed ${priority.borderClassName} bg-muted/30 min-h-[72px] rounded-[10px] opacity-60`}
-      />
-    )
-  }
-
   return (
     <>
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
-        className={`border border-l-4 ${priority.borderClassName} ${priority.bgClassName} flex cursor-grab flex-col gap-2 rounded-[10px] px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md`}
-      >
-        {/* Fila superior: título + menú */}
-        <div className="flex items-center gap-2">
-          <span className="text-foreground line-clamp-2 flex-1 text-[13px] leading-snug font-medium">
-            {task.content}
-          </span>
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                // -mr-1.5: la caja del boton es de 32px para un icono de 16, asi
-                // que el icono quedaba 8px mas adentro que el avatar de debajo
-                // y la columna derecha no leia como un solo eje.
-                className="text-muted-foreground hover:text-foreground hover:bg-muted -mr-1.5 shrink-0"
-                aria-label="Abrir menú de acciones"
-              >
-                <IconDots size={14} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-40" align="end">
-              <DropdownMenuGroup>
-                <DropdownMenuItem onSelect={() => setDetailsOpen(true)}>
-                  <IconEye size={14} />
-                  Ver Detalles
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setEditOpen(true)}>
-                  <IconEdit size={14} />
-                  Editar Tarea
-                </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onSelect={() => setDeleteDialogOpen(true)}>
-                  <IconTrash size={14} />
-                  Eliminar Tarea
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Fila inferior: badges + avatar */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-1.5">
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${priority.className}`}
-            >
-              {priority.label}
+      <div ref={dragRef} className="relative py-[3.5px]">
+        {dropEdge && (
+          <div
+            className={`bg-primary pointer-events-none absolute inset-x-0 h-0.5 rounded-full ${
+              dropEdge === "top" ? "top-0 -translate-y-1/2" : "bottom-0 translate-y-1/2"
+            }`}
+          />
+        )}
+        <div
+          className={`border border-l-4 ${priority.borderClassName} ${priority.bgClassName} flex cursor-grab flex-col gap-2 rounded-[10px] px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md ${
+            isDragging ? "opacity-40" : ""
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-foreground line-clamp-2 flex-1 text-[13px] leading-snug font-medium">
+              {task.content}
             </span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${size.className}`}
-            >
-              {size.label}
-            </span>
-            <DueDateChip dueDate={task.due_date} />
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted -mr-1.5 shrink-0"
+                  aria-label="Abrir menú de acciones"
+                >
+                  <IconDots size={14} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-40" align="end">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onSelect={() => setDetailsOpen(true)}>
+                    <IconEye size={14} />
+                    Ver Detalles
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                    <IconEdit size={14} />
+                    Editar Tarea
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => setDeleteDialogOpen(true)}
+                  >
+                    <IconTrash size={14} />
+                    Eliminar Tarea
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
-          {task.assigneeProfile && (
-            // Sin TooltipProvider propio: Tooltip ya monta el suyo.
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="bg-primary/15 text-primary flex h-[22px] w-[22px] shrink-0 cursor-default items-center justify-center rounded-full text-[9px] font-extrabold">
-                  {getInitials(task.assigneeProfile.full_name)}
-                </div>
-              </TooltipTrigger>
-              {/* Arriba y con separacion: pegado a la izquierda caia dentro de
-                  la tarjeta, tapando los chips, y sin holgura la flecha no
-                  cabia, asi que parecia un panel suelto en vez de un tooltip. */}
-              <TooltipContent
-                side="top"
-                align="end"
-                sideOffset={6}
-                className="flex flex-col gap-0.5"
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${priority.className}`}
               >
-                <span className="font-medium">
-                  {task.assigneeProfile.full_name ?? "Sin nombre"}
-                </span>
-                {task.assigneeProfile.email && (
-                  <span className="text-xs opacity-75">{task.assigneeProfile.email}</span>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          )}
+                {priority.label}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${size.className}`}
+              >
+                {size.label}
+              </span>
+              <DueDateChip dueDate={task.due_date} />
+            </div>
+
+            {task.assigneeProfile && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="bg-primary/15 text-primary flex h-5.5 w-5.5 shrink-0 cursor-default items-center justify-center rounded-full text-[9px] font-extrabold">
+                    {getInitials(task.assigneeProfile.full_name)}
+                  </div>
+                </TooltipTrigger>
+
+                <TooltipContent
+                  side="top"
+                  align="end"
+                  sideOffset={6}
+                  className="flex flex-col gap-0.5"
+                >
+                  <span className="font-medium">
+                    {task.assigneeProfile.full_name ?? "Sin nombre"}
+                  </span>
+                  {task.assigneeProfile.email && (
+                    <span className="text-xs opacity-75">{task.assigneeProfile.email}</span>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
       </div>
 
