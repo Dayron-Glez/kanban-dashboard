@@ -23,7 +23,8 @@
     "db:reset": "supabase db reset",
     "db:pull": "supabase db pull",
     "db:push": "supabase db push",
-    "db:diff": "supabase db diff -f"
+    "db:diff": "supabase db diff -f",
+    "db:types": "supabase gen types typescript --local --schema public > packages/api-client/src/supabase/database.types.ts && prettier --write packages/api-client/src/supabase/database.types.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

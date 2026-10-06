@@ -137,6 +137,7 @@ Herramientas que quedan disponibles mientras la pila está arriba:
 1. Haz el cambio en local, desde Studio o con SQL.
 2. Genera la migración a partir de la diferencia y revísala: `pnpm db:diff nombre_descriptivo`.
 3. Comprueba que se aplica limpia desde cero: `pnpm db:reset`. Ojo: también **borra los usuarios**.
+4. Regenera los tipos de TypeScript de la base: `pnpm db:types`. Lánzalo siempre con pnpm y no redirigiendo la salida a mano desde PowerShell, que escribiría el fichero en UTF-16.
 
 > ⚠️ `pnpm db:push` y `pnpm db:pull` **no son locales**: actúan sobre el proyecto remoto de Supabase, que es la base de datos de producción.
 
