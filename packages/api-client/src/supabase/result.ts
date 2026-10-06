@@ -4,6 +4,7 @@ import { ApiError, type ApiErrorCode } from "../errors"
 
 const CODE_BY_POSTGREST: Partial<Record<string, ApiErrorCode>> = {
   PGRST116: "not_found",
+  P0002: "not_found",
   PGRST301: "unauthorized",
   "23505": "conflict",
   "42501": "forbidden",

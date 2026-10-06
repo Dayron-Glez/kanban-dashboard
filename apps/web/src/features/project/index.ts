@@ -10,7 +10,8 @@ export {
   useRenameProject,
   useToggleFavorite,
 } from "./api/projectMutations"
-export { useProjectMembers } from "./hooks/useProjectMembers"
+export { useMembers, useRemoveMember } from "./api/members"
+export { useCancelInvitation, useInviteMember, usePendingInvitations } from "./api/invitations"
 export { projectSchema, PROJECT_COLORS } from "./schemas/project.schema"
 export type { ProjectFormValues } from "./schemas/project.schema"
 export { SidebarProjectCard } from "./components/SidebarProjectCard"

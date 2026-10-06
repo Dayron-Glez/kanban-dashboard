@@ -11,5 +11,3 @@ export type ProjectMember = Omit<Tables<"project_members">, "role"> & {
   role: MemberRole
   profiles?: Profile
 }
-
-export type ProjectInvitation = Tables<"project_invitations">
