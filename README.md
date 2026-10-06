@@ -1,6 +1,6 @@
 # cauce
 
-Aplicación web de tablero Kanban interactivo construida con React, TypeScript y Tailwind CSS. Permite gestionar tareas organizadas en columnas con soporte completo de drag & drop, búsqueda en tiempo real y validación de formularios.
+Aplicación web de tablero Kanban interactivo construida con React, TypeScript, Tailwind CSS y Supabase. Permite gestionar tareas organizadas en columnas con drag & drop, búsqueda en tiempo real, proyectos compartidos con invitaciones y validación de formularios.
 
 ## Tabla de Contenidos
 
@@ -8,7 +8,9 @@ Aplicación web de tablero Kanban interactivo construida con React, TypeScript y
 - [Tecnologías](#tecnologías)
 - [Requisitos Previos](#requisitos-previos)
 - [Instalación](#instalación)
+- [Base de datos local](#base-de-datos-local)
 - [Scripts Disponibles](#scripts-disponibles)
+- [Datos de prueba](#datos-de-prueba)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Arquitectura](#arquitectura)
 - [Funcionalidades](#funcionalidades)
@@ -30,6 +32,14 @@ El proyecto está diseñado como una SPA (Single Page Application) con enfoque e
 | [TypeScript](https://www.typescriptlang.org/) | 5.9     | Tipado estático                    |
 | [Vite](https://vite.dev/)                     | 7       | Build tool y dev server            |
 | [Tailwind CSS](https://tailwindcss.com/)      | 4       | Framework de estilos utility-first |
+| [Supabase](https://supabase.com/)             | —       | Base de datos, autenticación y API |
+
+### Monorepo
+
+| Tecnología                          | Descripción                                      |
+| ----------------------------------- | ------------------------------------------------ |
+| [pnpm](https://pnpm.io/) 12         | Gestor de paquetes y workspaces                  |
+| [Turborepo](https://turborepo.com/) | Orquestación de tareas entre paquetes, con caché |
 
 ### UI y Componentes
 
@@ -43,10 +53,11 @@ El proyecto está diseñado como una SPA (Single Page Application) con enfoque e
 
 ### Drag & Drop
 
-| Tecnología                               | Descripción                 |
-| ---------------------------------------- | --------------------------- |
-| [@dnd-kit/core](https://dndkit.com/)     | Motor de drag & drop        |
-| [@dnd-kit/sortable](https://dndkit.com/) | Extensión para ordenamiento |
+| Tecnología                                                                                   | Descripción                                      |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| [pragmatic-drag-and-drop](https://atlassian.design/components/pragmatic-drag-and-drop/about) | Motor de drag & drop sobre el arrastre nativo    |
+| `pragmatic-drag-and-drop-hitbox`                                                             | Borde más cercano para colocar encima o debajo   |
+| `pragmatic-drag-and-drop-auto-scroll`                                                        | Desplazamiento automático de las columnas largas |
 
 ### Formularios y Validación
 
@@ -56,166 +67,172 @@ El proyecto está diseñado como una SPA (Single Page Application) con enfoque e
 | [Zod](https://zod.dev/)                                             | Validación de esquemas y tipos    |
 | [@hookform/resolvers](https://github.com/react-hook-form/resolvers) | Integración Zod + React Hook Form |
 
-### Routing
+### Routing y Testing
 
-| Tecnología                                  | Descripción                       |
-| ------------------------------------------- | --------------------------------- |
-| [React Router](https://reactrouter.com/) v7 | Enrutamiento del lado del cliente |
+| Tecnología                                      | Descripción                       |
+| ----------------------------------------------- | --------------------------------- |
+| [React Router](https://reactrouter.com/) v7     | Enrutamiento del lado del cliente |
+| [Vitest](https://vitest.dev/)                   | Tests unitarios y de componentes  |
+| [Testing Library](https://testing-library.com/) | Tests de componentes React        |
 
 ## Requisitos Previos
 
-- [Node.js](https://nodejs.org/) (v18 o superior)
-- [npm](https://www.npmjs.com/) (incluido con Node.js)
+- [Node.js](https://nodejs.org/) 22.13 o superior (lo exige ESLint 10).
+- [pnpm](https://pnpm.io/installation). La versión está fijada en `packageManager` del `package.json` raíz: cualquier pnpm 10 o superior descarga y usa automáticamente la correcta.
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/), para la base de datos local.
 
 ## Instalación
 
-1. Clona el repositorio:
+1. Clona el repositorio y entra en él:
 
 ```bash
 git clone https://github.com/Dayron-Glez/kanban-dashboard.git
-```
-
-2. Navega al directorio del proyecto:
-
-```bash
 cd kanban-dashboard
 ```
 
-3. Instala las dependencias:
+2. Instala las dependencias de todo el monorepo:
 
 ```bash
-npm install
+pnpm install
 ```
 
-4. Inicia el servidor de desarrollo:
+3. Levanta la base de datos local (ver [Base de datos local](#base-de-datos-local)):
 
 ```bash
-npm run dev
+pnpm db:start
 ```
 
-La aplicación estará disponible en `http://localhost:5173`.
+4. Crea el fichero de entorno de la app a partir del ejemplo y pega en `VITE_SUPABASE_ANON_KEY` el valor de `PUBLISHABLE_KEY` que muestra `pnpm db:status`:
+
+```bash
+cp apps/web/.env.example apps/web/.env.development.local
+```
+
+5. Inicia el servidor de desarrollo:
+
+```bash
+pnpm dev
+```
+
+La aplicación estará disponible en `http://localhost:5173`. Regístrate con cualquier email: en local no se envían correos de confirmación.
+
+## Base de datos local
+
+La CLI de Supabase levanta en Docker toda la pila (Postgres, autenticación, API y Studio) y aplica las migraciones de `supabase/migrations/`. Son una docena de contenedores que dependen entre sí: gestiónalos siempre con los scripts `db:*`, no desde Docker Desktop.
+
+| Cuándo                        | Comando                    | Qué hace                                                    |
+| ----------------------------- | -------------------------- | ----------------------------------------------------------- |
+| Empiezas a trabajar           | `pnpm db:start`            | Arranca la pila; los datos de la sesión anterior siguen ahí |
+| Quieres ver las URLs y claves | `pnpm db:status`           |                                                             |
+| Terminas                      | `pnpm db:stop`             | Para los contenedores y **conserva los datos**              |
+| Quieres empezar desde cero    | `pnpm db:stop --no-backup` | Borra los contenedores **y los datos**                      |
+
+Herramientas que quedan disponibles mientras la pila está arriba:
+
+- **Supabase Studio**, para ver y editar tablas: `http://127.0.0.1:54323`
+- **Mailpit**, que recoge los correos (recuperación de contraseña, invitaciones): `http://127.0.0.1:54324`
+
+### Cambiar el esquema
+
+1. Haz el cambio en local, desde Studio o con SQL.
+2. Genera la migración a partir de la diferencia y revísala: `pnpm db:diff nombre_descriptivo`.
+3. Comprueba que se aplica limpia desde cero: `pnpm db:reset`. Ojo: también **borra los usuarios**.
+
+> ⚠️ `pnpm db:push` y `pnpm db:pull` **no son locales**: actúan sobre el proyecto remoto de Supabase, que es la base de datos de producción.
 
 ## Scripts Disponibles
 
-| Script    | Comando           | Descripción                                        |
-| --------- | ----------------- | -------------------------------------------------- |
-| `dev`     | `npm run dev`     | Inicia el servidor de desarrollo con HMR           |
-| `build`   | `npm run build`   | Compila TypeScript y genera el build de producción |
-| `lint`    | `npm run lint`    | Ejecuta ESLint para análisis estático del código   |
-| `preview` | `npm run preview` | Previsualiza el build de producción localmente     |
+Todos se ejecutan desde la raíz del repositorio.
+
+| Script         | Descripción                                                                 |
+| -------------- | --------------------------------------------------------------------------- |
+| `dev`          | Servidor de desarrollo con HMR                                              |
+| `build`        | Comprueba los tipos y genera el build de producción                         |
+| `test`         | Tests en modo observación                                                   |
+| `test:run`     | Ejecuta todos los tests una vez (con la caché de Turborepo)                 |
+| `typecheck`    | Comprueba los tipos de todos los paquetes                                   |
+| `lint`         | Análisis estático con ESLint, sin advertencias permitidas                   |
+| `format`       | Formatea el código con Prettier                                             |
+| `format:check` | Comprueba el formato sin modificar nada                                     |
+| `db:*`         | Base de datos de Supabase (ver [Base de datos local](#base-de-datos-local)) |
+
+Para ejecutar un script de un solo paquete: `pnpm --filter web <script>`. Por ejemplo, `pnpm --filter web dev:prod` arranca la app contra producción usando `apps/web/.env.prod.local`.
 
 ## Datos de prueba
 
-Una cuenta recién creada no tiene proyectos, y con el tablero vacío es difícil juzgar pantallas como
-el inicio o las analíticas. `supabase/seed.sql` siembra un entorno realista: cuatro proyectos de
-distinto tamaño, unas treinta tareas con prioridades y asignaciones variadas, historial de
-movimientos de las últimas semanas y una invitación pendiente.
+Una cuenta recién creada no tiene proyectos, y con el tablero vacío es difícil juzgar pantallas como el inicio o las analíticas. `supabase/seed.sql` siembra un entorno realista: cuatro proyectos de distinto tamaño, unas treinta tareas con prioridades y asignaciones variadas, historial de movimientos de las últimas semanas y una invitación pendiente.
 
-1. Regístrate en la app con tu email (el seeder necesita que el usuario exista).
-2. Abre el **SQL Editor** de tu proyecto de Supabase. No sirve ejecutarlo desde la app: la `anon key`
-   está sujeta a RLS y no puede sembrar datos.
-3. Cambia `v_email` al principio del script por tu email y ejecútalo.
+1. Regístrate en la app (el seeder necesita que el usuario exista).
+2. Cambia `v_email` al principio de `supabase/seed.sql` por tu email.
+3. Ejecútalo contra la base local:
 
-Es idempotente: identifica lo que siembra con el marcador `[seed]` en la descripción del proyecto,
-así que lo borra y lo recrea en cada ejecución sin tocar tus proyectos reales. Para revertirlo,
-ejecuta solo el `delete` del bloque LIMPIEZA.
+```bash
+docker exec -i supabase_db_kanban-dashboard psql -U postgres -d postgres < supabase/seed.sql
+```
+
+Para sembrar el proyecto remoto, pega el script en el **SQL Editor** de Supabase. No sirve ejecutarlo desde la app: la clave pública está sujeta a RLS y no puede sembrar datos.
+
+Es idempotente: identifica lo que siembra con el marcador `[seed]` en la descripción del proyecto, así que lo borra y lo recrea en cada ejecución sin tocar tus proyectos reales. Para revertirlo, ejecuta solo el `delete` del bloque LIMPIEZA.
 
 ## Estructura del Proyecto
 
-El proyecto sigue una **Screaming Architecture** organizada por dominios/features. La estructura de carpetas comunica inmediatamente de qué trata la aplicación.
+Monorepo con pnpm workspaces. Dentro de la app, el código sigue una **Screaming Architecture** organizada por features: la estructura de carpetas comunica de qué trata la aplicación.
 
 ```
-cauce/
-├── public/                              # Activos estáticos
-├── src/
-│   ├── features/                        # Dominios de la aplicación
-│   │   ├── board/                       # Feature: Tablero Kanban
-│   │   │   ├── components/
-│   │   │   │   └── KanbanBoard.tsx      # Orquestación del tablero con drag & drop
-│   │   │   ├── context/
-│   │   │   │   └── KanbanContext.tsx     # Estado global (columnas + tareas + CRUD)
-│   │   │   ├── hooks/
-│   │   │   │   └── useKanban.ts         # Hook para consumir el contexto
-│   │   │   ├── types/
-│   │   │   │   └── board.types.ts       # Tipos del dominio (Task, ColumnType, enums)
-│   │   │   └── index.ts                 # API pública del feature
-│   │   │
-│   │   ├── column/                      # Feature: Columnas
-│   │   │   ├── components/
-│   │   │   │   ├── ColumnContainer.tsx   # Contenedor de columna con drag & drop
-│   │   │   │   ├── CreateColumnSheet.tsx # Panel lateral para crear columna
-│   │   │   │   └── EditableColumnTitle/  # Edición inline del título
-│   │   │   ├── schemas/
-│   │   │   │   └── column.schema.ts     # Validación Zod para columnas
-│   │   │   └── index.ts
-│   │   │
-│   │   └── task/                        # Feature: Tareas
-│   │       ├── components/
-│   │       │   ├── TaskCard.tsx          # Tarjeta de tarea con menú de acciones
-│   │       │   ├── CreateTaskSheet.tsx   # Panel lateral para crear tarea
-│   │       │   ├── EditTaskSheet.tsx     # Panel lateral para editar tarea
-│   │       │   ├── DetailsTaskSheet.tsx  # Panel lateral de detalles (solo lectura)
-│   │       │   └── TaskForm/            # Formulario reutilizable de tarea
-│   │       │       ├── TaskForm.tsx
-│   │       │       ├── ContentTextArea.tsx
-│   │       │       ├── PrioritySelect.tsx
-│   │       │       └── SizeSelect.tsx
-│   │       ├── schemas/
-│   │       │   └── task.schema.ts       # Validación Zod para tareas
-│   │       └── index.ts
-│   │
-│   ├── shared/                          # Infraestructura compartida
-│   │   ├── components/
-│   │   │   ├── ui/                      # Componentes shadcn/ui (Button, Card, Input, etc.)
-│   │   │   ├── Header.tsx               # Barra superior (título, búsqueda, agregar columna)
-│   │   │   ├── SearchInput.tsx          # Input de búsqueda con filtrado
-│   │   │   └── Sidebar/
-│   │   │       └── SideBarContent.tsx   # Contenido de la barra lateral
-│   │   ├── context/
-│   │   │   └── SearchContext.tsx         # Contexto de búsqueda (cross-cutting)
-│   │   ├── hooks/
-│   │   │   └── use-mobile.ts            # Hook para detectar dispositivos móviles
-│   │   ├── lib/
-│   │   │   └── utils.ts                 # Utilidad cn() para clases CSS
-│   │   └── index.ts                     # API pública de shared
-│   │
-│   ├── layouts/
-│   │   └── MainLayout.tsx               # Layout principal (sidebar + contenido)
-│   ├── assets/                          # SVGs e imágenes
-│   ├── App.tsx                          # Configuración de rutas
-│   └── main.tsx                         # Punto de entrada de la aplicación
-│
-├── tailwind.css                         # Variables CSS y tema personalizado
-├── tailwind.config.js                   # Configuración de Tailwind (colores, animaciones)
-├── vite.config.ts                       # Configuración de Vite (alias @, plugins)
-├── tsconfig.json                        # Configuración base de TypeScript
-├── tsconfig.app.json                    # Configuración TS para la aplicación
-├── eslint.config.js                     # Configuración de ESLint
-├── components.json                      # Configuración de shadcn/ui
-└── package.json
+kanban-dashboard/
+├── apps/
+│   └── web/                             # La aplicación React
+│       ├── src/
+│       │   ├── features/                # Dominios de la aplicación
+│       │   │   ├── analytics/           # Métricas del proyecto (velocidad, prioridades, actividad)
+│       │   │   ├── auth/                # Login, registro, sesión y guarda de rutas
+│       │   │   ├── board/               # Tablero: contexto, vistas kanban y tabla, lógica de reordenación
+│       │   │   ├── column/              # Columnas, su arrastre y la vista previa al moverlas
+│       │   │   ├── home/                # Inicio con las tareas asignadas al usuario
+│       │   │   ├── invite/              # Aceptación de invitaciones a proyectos
+│       │   │   ├── project/             # Proyectos, miembros y ajustes
+│       │   │   └── task/                # Tarjetas, formularios y paneles de tareas
+│       │   ├── shared/                  # Infraestructura compartida
+│       │   │   ├── components/ui/       # Componentes shadcn/ui
+│       │   │   ├── supabase/            # Cliente y tipos de la base de datos
+│       │   │   └── index.ts             # API pública de shared
+│       │   ├── layouts/                 # Estructura de páginas
+│       │   ├── App.tsx                  # Configuración de rutas
+│       │   └── main.tsx                 # Punto de entrada
+│       ├── .env.example                 # Variables de entorno necesarias
+│       ├── tailwind.css                 # Variables CSS y tema
+│       ├── vite.config.ts               # Vite y Vitest
+│       └── components.json              # Configuración de shadcn/ui
+├── packages/
+│   └── domain/                          # Lógica de dominio pura, sin framework ni DOM
+├── supabase/
+│   ├── migrations/                      # Esquema de la base de datos
+│   └── seed.sql                         # Datos de prueba
+├── eslint.config.js                     # ESLint para todo el monorepo
+├── pnpm-workspace.yaml                  # Paquetes del workspace
+└── turbo.json                           # Tareas de Turborepo
 ```
 
 ## Arquitectura
 
+### Monorepo
+
+- **`apps/web`** es la aplicación.
+- **`packages/domain`** guarda la lógica de dominio pura, que no depende de React ni del navegador. Su `tsconfig` excluye la librería `DOM`, así que el compilador impide que ese código toque `window` o `document`. La app lo consume como `@repo/domain`.
+- ESLint, Prettier y husky se configuran una vez en la raíz y aplican a todos los paquetes.
+
 ### Screaming Architecture
 
-El proyecto sigue una **Screaming Architecture** donde la estructura de carpetas comunica el dominio de la aplicación. Cada feature es autocontenida con sus propios componentes, hooks, tipos y esquemas de validación.
-
-**Jerarquía de dependencias:**
-
-```
-shared ← board ← { column, task }
-```
-
-- `shared/` no importa de ninguna feature.
-- `board/` importa de `column/` y `task/` para orquestar el tablero.
-- `column/` y `task/` importan de `board/` (tipos) y `shared/` (UI), pero no entre sí directamente.
+Cada feature de `apps/web` es autocontenida, con sus propios componentes, hooks, tipos y esquemas de validación, y expone su API pública en `index.ts`.
 
 **Reglas de imports:**
 
-- Dentro de la misma feature: imports relativos (`./`, `../`)
-- Entre features: `@/features/board`, `@/features/column`, `@/features/task`
-- Infraestructura compartida: `@/shared`
+- Dentro de la misma feature: imports relativos (`./`, `../`).
+- Entre features: `@/features/<feature>`.
+- Infraestructura compartida: `@/shared`.
+- Lógica de dominio: `@repo/domain`.
+
+`shared/` no importa de ninguna feature.
 
 ### Gestión de Estado
 
@@ -225,29 +242,22 @@ El proyecto utiliza **React Context API** para manejar el estado global:
 
 - **`SearchContext`** (`shared/context/`) — Contexto cross-cutting para la funcionalidad de filtrado. Almacena el valor del input de búsqueda y lo comparte entre el `Header` y el `KanbanBoard` para filtrar tareas en tiempo real.
 
-### Patrones de Componentes
-
-Los componentes se organizan por dominio dentro de cada feature:
-
-- **Board** (`features/board/`) — Orquestación del tablero con drag & drop.
-- **Column** (`features/column/`) — Contenedor de columna, creacion y edicion inline del titulo.
-- **Task** (`features/task/`) — Tarjeta de tarea, paneles laterales CRUD y formulario reutilizable.
-- **Shared** (`shared/components/`) — Header, SearchInput, Sidebar y componentes shadcn/ui.
-
 ### Validación
 
 Se utiliza **Zod** para definir esquemas de validación integrados con **React Hook Form**, co-localizados con cada feature:
 
-- `features/task/schemas/task.schema.ts` — Contenido (min. 5 caracteres), prioridad (`P0`, `P1`, `P2`) y tamano (`XS`, `S`, `M`, `L`, `XL`).
-- `features/column/schemas/column.schema.ts` — Titulo no vacio con minimo de 5 caracteres.
+- `features/task/schemas/task.schema.ts` — Contenido (mín. 5 caracteres), prioridad (`P0`, `P1`, `P2`) y tamaño (`XS`, `S`, `M`, `L`, `XL`).
+- `features/column/schemas/column.schema.ts` — Título no vacío con mínimo de 5 caracteres.
 
 ### Drag & Drop
 
-Implementado con **@dnd-kit** en `features/board/components/KanbanBoard.tsx`:
+Implementado con **pragmatic-drag-and-drop**, que usa el arrastre nativo del navegador:
 
-- Reordenar columnas horizontalmente.
-- Mover tareas entre columnas.
-- Los eventos `onDragStart`, `onDragOver` y `onDragEnd` actualizan el estado global del contexto.
+- **Nada se mueve durante el arrastre.** Solo se muestra dónde caerá el elemento, y el estado se actualiza una única vez al soltar.
+- Las tarjetas (`features/task/hooks/useTaskDrag.ts`) y las columnas (`ColumnContainer`) se registran con **ref callbacks**, de modo que el registro sigue al ciclo de vida del elemento.
+- `KanbanBoard` escucha el soltado con un monitor global y aplica el cambio.
+- La lógica de reordenación es pura y está cubierta por tests: `features/board/lib/reorder.ts`.
+- Los datos que viajan con cada arrastre se validan con las guardas de `features/board/lib/dragData.ts`.
 
 ## Funcionalidades
 
@@ -261,7 +271,7 @@ Implementado con **@dnd-kit** en `features/board/components/KanbanBoard.tsx`:
 
 ### Gestión de Tareas
 
-- Crear tareas con contenido, prioridad y tamaño.
+- Crear tareas con contenido, prioridad, tamaño, fecha de vencimiento y asignado.
 - Editar tareas existentes desde un panel lateral.
 - Ver detalles de una tarea en modo solo lectura.
 - Eliminar tareas con diálogo de confirmación.
@@ -275,9 +285,11 @@ Cada tarea tiene dos propiedades clasificatorias:
 
 ### Drag & Drop
 
-- Arrastrar columnas para reordenarlas.
-- Arrastrar tareas entre columnas para moverlas.
-- Scroll automático al crear nuevas columnas.
+- Reordenar tareas dentro de una columna, soltándolas encima o debajo de otra tarjeta.
+- Mover tareas entre columnas; al soltarlas fuera de cualquier tarjeta, van al final.
+- Reordenar columnas arrastrándolas por la cabecera, con vista previa propia y un indicador en el hueco de destino.
+- Desplazamiento automático al acercarse al borde de una columna larga.
+- El orden se persiste en la base de datos al soltar.
 
 ### Búsqueda y Filtrado
 
@@ -290,22 +302,24 @@ Cada tarea tiene dos propiedades clasificatorias:
 ## Contribución
 
 1. Haz fork del repositorio.
-2. Crea una rama para tu feature:
+2. Crea una rama con el formato `tipo/descripcion-en-kebab`:
 
 ```bash
-git checkout -b feature/nueva-funcionalidad
+git switch -c feat/nueva-funcionalidad
 ```
 
-3. Realiza tus cambios y haz commit:
+3. Realiza tus cambios y haz commit siguiendo [Conventional Commits](https://www.conventionalcommits.org/) en español:
 
 ```bash
-git commit -m "feat: descripción del cambio"
+git commit -m "feat(tablero): descripción del cambio"
 ```
+
+El hook de pre-commit ejecuta ESLint y Prettier sobre los ficheros modificados y lanza los tests.
 
 4. Sube tu rama:
 
 ```bash
-git push origin feature/nueva-funcionalidad
+git push origin feat/nueva-funcionalidad
 ```
 
 5. Abre un Pull Request siguiendo el template del repositorio.
