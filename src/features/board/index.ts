@@ -1,8 +1,0 @@
-export * from "./components/BoardHeaderActions"
-export * from "./components/KanbanBoard"
-export * from "./components/TaskTable"
-export * from "./components/ViewSwitch"
-export * from "./lib/taskTable"
-export { KanbanProvider } from "./context/KanbanContext"
-export { useKanban } from "./hooks/useKanban"
-export * from "./types/board.types"

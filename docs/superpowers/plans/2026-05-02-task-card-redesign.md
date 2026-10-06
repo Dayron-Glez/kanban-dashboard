@@ -198,7 +198,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Props) {
       >
         {/* Fila superior: título + menú */}
         <div className="flex items-start gap-2">
-          <span className="text-foreground line-clamp-2 flex-1 text-sm font-medium leading-snug">
+          <span className="text-foreground line-clamp-2 flex-1 text-sm leading-snug font-medium">
             {task.content}
           </span>
           <DropdownMenu modal={false}>
