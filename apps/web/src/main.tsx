@@ -1,4 +1,7 @@
 import { StrictMode } from "react"
+import "@fontsource-variable/inter/opsz.css"
+import "@fontsource/jetbrains-mono/500.css"
+import "@fontsource/jetbrains-mono/600.css"
 import { createRoot } from "react-dom/client"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { createSupabaseApi } from "@repo/api-client"

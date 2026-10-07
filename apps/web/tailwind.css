@@ -182,7 +182,7 @@ body,
 
   /* Tipografía — escala Cauce v1.0 (§2.4). Los nombres son los de Tailwind;
      los valores, los del design system. */
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Inter Variable", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   --text-xs: 11px;
@@ -240,7 +240,7 @@ body,
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
   }
 
