@@ -9,13 +9,14 @@ import { reorder } from "@atlaskit/pragmatic-drag-and-drop/utils/reorder"
 import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/extract-closest-edge"
 import { getReorderDestinationIndex } from "@atlaskit/pragmatic-drag-and-drop-hitbox/util/get-reorder-destination-index"
 import { SearchContext } from "@/shared/index"
-import { supabase } from "@/shared/supabase"
 import { ColumnContainer } from "@/features/column/index"
 import { DetailsTaskSheet } from "@/features/task/index"
 import { isColumnDragData, isTaskDragData } from "../lib/dragData"
-import type { Column } from "@repo/contracts"
-import { columnPositions, dropAtColumnEnd, dropNextToTask } from "@repo/domain"
-import { useKanban, type BoardTask } from "../index"
+import { dropAtColumnEnd, dropNextToTask, tasksInColumn } from "@repo/domain"
+import { useColumns, useReorderColumns } from "../api/columns"
+import { useBoardTasks, useMoveTask } from "../api/tasks"
+import { useProjectId } from "../hooks/useProjectId"
+import type { BoardTask } from "../types/board.types"
 
 export default function KanbanBoard() {
   const searchContext = useContext<{
@@ -24,7 +25,11 @@ export default function KanbanBoard() {
   } | null>(SearchContext)
   const searchValue = searchContext?.searchValue ?? ""
 
-  const { columns, tasks, setColumns, setTasks } = useKanban()
+  const projectId = useProjectId()
+  const { data: columns = [] } = useColumns(projectId)
+  const { data: tasks = [] } = useBoardTasks(projectId)
+  const reorderColumns = useReorderColumns(projectId)
+  const moveTask = useMoveTask(projectId)
 
   const [searchParams, setSearchParams] = useSearchParams()
   const deepLinkedTask = tasks.find((t) => t.id === searchParams.get("task")) ?? null
@@ -40,42 +45,6 @@ export default function KanbanBoard() {
     if (!task.content || !searchTerm) return true
     return task.content.toLowerCase().includes(searchTerm)
   })
-
-  const savePositions = (all: BoardTask[], columnId: string): void => {
-    const rows = columnPositions(all, columnId).map(({ task, position }) => ({
-      id: task.id,
-      position,
-      column_id: task.columnId,
-      project_id: task.projectId,
-      content: task.content,
-      priority: task.priority,
-      size: task.size,
-      due_date: task.dueDate,
-    }))
-    if (rows.length === 0) return
-    supabase
-      .from("tasks")
-      .upsert(rows)
-      .then(({ error }) => {
-        if (error) console.error("[kanban] no se pudo guardar el orden de la columna:", error)
-      })
-  }
-
-  const saveColumnOrder = (ordered: Column[]): void => {
-    supabase
-      .from("columns")
-      .upsert(
-        ordered.map((col) => ({
-          id: col.id,
-          position: col.position,
-          project_id: col.projectId,
-          title: col.title,
-        }))
-      )
-      .then(({ error }) => {
-        if (error) console.error("[kanban] no se pudo guardar el orden de las columnas:", error)
-      })
-  }
 
   const dropColumn = (columnId: string, target: ElementEventBasePayload["location"]): void => {
     const record = target.current.dropTargets[0]
@@ -93,19 +62,11 @@ export default function KanbanBoard() {
     })
     if (finishIndex === startIndex) return
 
-    const reordered = reorder({ list: columns, startIndex, finishIndex }).map((col, i) => ({
-      ...col,
-      position: i,
-    }))
-    setColumns(reordered)
-    saveColumnOrder(reordered)
+    const reordered = reorder({ list: columns, startIndex, finishIndex })
+    reorderColumns.mutate(reordered.map((column) => column.id))
   }
 
-  const dropTask = (
-    taskId: string,
-    originColumnId: string,
-    target: ElementEventBasePayload["location"]
-  ): void => {
+  const dropTask = (taskId: string, target: ElementEventBasePayload["location"]): void => {
     const record = target.current.dropTargets[0]
     if (!record) return
 
@@ -125,22 +86,11 @@ export default function KanbanBoard() {
     const moved = settled.find((task) => task.id === taskId)
     if (!moved) return
 
-    setTasks(settled)
-    savePositions(settled, moved.columnId)
-
-    if (originColumnId !== moved.columnId) {
-      savePositions(settled, originColumnId)
-      supabase
-        .from("task_history")
-        .insert({
-          task_id: taskId,
-          from_column_id: originColumnId,
-          to_column_id: moved.columnId,
-        })
-        .then(({ error }) => {
-          if (error) console.error("[kanban] no se pudo registrar el historial:", error)
-        })
-    }
+    moveTask.mutate({
+      taskId,
+      toColumnId: moved.columnId,
+      orderedTaskIds: tasksInColumn(settled, moved.columnId).map((task) => task.id),
+    })
   }
 
   // El monitor se registra una sola vez, pero al soltar tiene que trabajar
@@ -150,7 +100,7 @@ export default function KanbanBoard() {
     if (isColumnDragData(source.data)) {
       dropColumn(source.data.columnId, location)
     } else if (isTaskDragData(source.data)) {
-      dropTask(source.data.taskId, source.data.columnId, location)
+      dropTask(source.data.taskId, location)
     }
   })
 

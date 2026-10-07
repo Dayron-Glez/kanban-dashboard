@@ -2,7 +2,11 @@ import { useState } from "react"
 import { IconPlus } from "@tabler/icons-react"
 import { Button, SearchInput, Tooltip, TooltipContent, TooltipTrigger } from "@/shared/index"
 import { CreateColumnSheet } from "@/features/column/index"
-import { useKanban } from "../hooks/useKanban"
+import { useProject } from "@/features/project"
+import { useCreateColumn, useColumns } from "../api/columns"
+import { useTasks } from "../api/tasks"
+import { useBoardScroll } from "../context/boardScrollCtx"
+import { useProjectId } from "../hooks/useProjectId"
 import { ViewSwitch } from "./ViewSwitch"
 
 interface Props {
@@ -17,13 +21,25 @@ interface Props {
  * sin proyecto activo (Home, /projects, 404).
  */
 export function BoardHeaderActions({ searchValue, onSearchChange }: Props) {
-  const { createNewColumn, columns, tasks, userRole } = useKanban()
+  const projectId = useProjectId()
+  const { data: columns = [] } = useColumns(projectId)
+  const { data: tasks = [] } = useTasks(projectId)
+  const isOwner = useProject(projectId).data?.role === "owner"
+  const createColumn = useCreateColumn(projectId)
+  const scrollContainerRef = useBoardScroll()
   const [createColumnOpen, setCreateColumnOpen] = useState<boolean>(false)
 
-  const isOwner = userRole === "owner"
-
   const handleCreateColumn = (content: string) => {
-    createNewColumn(content)
+    const title = content.trim() || `Columna ${columns.length + 1}`
+    createColumn.mutate(title, {
+      onSuccess: () => {
+        // Tras pintar la columna nueva, para que el ancho ya la incluya.
+        requestAnimationFrame(() => {
+          const container = scrollContainerRef.current
+          container?.scrollTo({ left: container.scrollWidth, behavior: "smooth" })
+        })
+      },
+    })
     setCreateColumnOpen(false)
   }
 

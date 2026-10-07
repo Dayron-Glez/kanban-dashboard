@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/index"
-import { useKanban } from "@/features/board/index"
+import { useProjectId } from "@/features/board/index"
+import { useMembers } from "@/features/project"
 
 const getInitials = (name: string | null | undefined): string => {
   if (!name) return "?"
@@ -26,7 +27,7 @@ interface AssigneeSelectProps {
 
 export function AssigneeSelect({ disabled = false }: AssigneeSelectProps) {
   const { control } = useFormContext()
-  const { members } = useKanban()
+  const { data: members = [] } = useMembers(useProjectId())
 
   return (
     <Controller

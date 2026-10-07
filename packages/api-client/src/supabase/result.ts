@@ -9,6 +9,7 @@ const CODE_BY_POSTGREST: Partial<Record<string, ApiErrorCode>> = {
   "23505": "conflict",
   "42501": "forbidden",
   "23514": "invalid_input",
+  "22023": "invalid_input",
   "22P02": "invalid_input",
 }
 
@@ -37,6 +38,11 @@ export const unwrap = <R extends PostgrestResult>({
     throw new ApiError("not_found", "La respuesta no trajo datos")
   }
   return data
+}
+
+/** Para respuestas sin datos, como las RPC que devuelven void. */
+export const check = ({ error, status }: PostgrestResult): void => {
+  if (error) throw toApiError(error, status)
 }
 
 // Un UPDATE o DELETE que la RLS bloquea no da error: afecta a 0 filas.

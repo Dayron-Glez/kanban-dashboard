@@ -34,9 +34,15 @@ import {
   columnDragData,
   isColumnDragData,
   isTaskDragData,
-  useKanban,
+  useCreateTask,
+  useDeleteColumn,
+  useDeleteTask,
+  useRenameColumn,
+  useUpdateTask,
   type BoardTask,
+  type TaskDraft,
 } from "@/features/board/index"
+import { useProject } from "@/features/project"
 import { ColumnDragPreview } from "./ColumnDragPreview"
 import { ColumnDropIndicator } from "./ColumnDropIndicator"
 import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle"
@@ -67,10 +73,18 @@ function EmptyZone({ onAdd }: Readonly<{ onAdd: () => void }>) {
 }
 
 export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Readonly<Props>) {
-  const { updateColumn, deleteColumn, createNewTask, updateTask, deleteTask, userRole } =
-    useKanban()
+  const projectId = column.projectId
+  const isOwner = useProject(projectId).data?.role === "owner"
+  const renameColumn = useRenameColumn(projectId)
+  const removeColumn = useDeleteColumn(projectId)
+  const createTask = useCreateTask(projectId)
+  const editTask = useUpdateTask(projectId)
+  const removeTask = useDeleteTask(projectId)
 
-  const isOwner = userRole === "owner"
+  const createNewTask = (columnId: string, draft: TaskDraft) =>
+    createTask.mutate({ columnId, draft })
+  const updateTask = (id: string, draft: TaskDraft) => editTask.mutate({ id, draft })
+  const deleteTask = (id: string) => removeTask.mutate(id)
 
   const searchContext = useContext(SearchContext)
   const searchValue = searchContext?.searchValue ?? ""
@@ -297,7 +311,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Rea
                 <EditableColumnTitle
                   title={column.title}
                   onSave={(newTitle) => {
-                    updateColumn(column.id, newTitle)
+                    renameColumn.mutate({ id: column.id, title: newTitle })
                     setEditMode(false)
                   }}
                   onCancel={() => setEditMode(false)}
@@ -381,7 +395,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Rea
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                       <AlertDialogAction
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/60"
-                        onClick={() => deleteColumn(column.id)}
+                        onClick={() => removeColumn.mutate(column.id)}
                       >
                         Eliminar
                       </AlertDialogAction>

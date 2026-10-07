@@ -1,6 +1,6 @@
 import { useParams } from "react-router"
 import { motion } from "framer-motion"
-import { useKanban } from "@/features/board/index"
+import { useColumns, useTasks } from "@/features/board/index"
 import { useAnalytics } from "../hooks/useAnalytics"
 import { StatsCards } from "./StatsCards"
 import { VelocityChart } from "./VelocityChart"
@@ -8,8 +8,9 @@ import { PriorityDistribution } from "./PriorityDistribution"
 import { ActivityFeed } from "./ActivityFeed"
 
 export function AnalyticsPage() {
-  const { id: projectId } = useParams<{ id: string }>()
-  const { columns, tasks } = useKanban()
+  const { id: projectId = "" } = useParams<{ id: string }>()
+  const { data: columns = [] } = useColumns(projectId)
+  const { data: tasks = [] } = useTasks(projectId)
   const { velocityData, priorityData, activityItems, stats, loading } = useAnalytics(
     projectId,
     columns,

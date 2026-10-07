@@ -1,12 +1,10 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import type { BoardTask } from "@/features/board/types/board.types"
+import { createFakeApi, createWrapper } from "@/shared/api/testing"
+import { DetailsTaskSheet } from "../components/DetailsTaskSheet"
 
-// TaskForm arrastra AssigneeSelect, que lee los miembros de useKanban. Aquí no
-// hay tablero, y los miembros no son lo que se está probando.
-vi.mock("@/features/board/index", () => ({ useKanban: () => ({ members: [] }) }))
-
-const { DetailsTaskSheet } = await import("../components/DetailsTaskSheet")
+const wrapper = createWrapper(createFakeApi())
 
 const tarea = (over: Partial<BoardTask> = {}): BoardTask => ({
   id: "t1",
@@ -26,12 +24,12 @@ const campoFecha = () => screen.getByRole("button", { name: "Fecha de vencimient
 
 describe("DetailsTaskSheet", () => {
   it("muestra la fecha de vencimiento de la tarea", () => {
-    render(<DetailsTaskSheet task={tarea({ dueDate: "2026-09-20" })} open />)
+    render(<DetailsTaskSheet task={tarea({ dueDate: "2026-09-20" })} open />, { wrapper })
     expect(campoFecha()).toHaveTextContent("20 de septiembre de 2026")
   })
 
   it("dice «Sin fecha» cuando la tarea no tiene", () => {
-    render(<DetailsTaskSheet task={tarea()} open />)
+    render(<DetailsTaskSheet task={tarea()} open />, { wrapper })
     expect(campoFecha()).toHaveTextContent("Sin fecha")
   })
 
@@ -39,7 +37,7 @@ describe("DetailsTaskSheet", () => {
     // La regresión: el sheet vive siempre montado dentro de la tarjeta y
     // useForm solo lee defaultValues al montar, así que tras editar una tarea
     // el detalle seguía mostrando los valores viejos.
-    const { rerender } = render(<DetailsTaskSheet task={tarea()} open />)
+    const { rerender } = render(<DetailsTaskSheet task={tarea()} open />, { wrapper })
     expect(campoFecha()).toHaveTextContent("Sin fecha")
 
     rerender(<DetailsTaskSheet task={tarea({ dueDate: "2026-09-20" })} open />)
@@ -47,7 +45,7 @@ describe("DetailsTaskSheet", () => {
   })
 
   it("también resincroniza el resto de campos", () => {
-    const { rerender } = render(<DetailsTaskSheet task={tarea()} open />)
+    const { rerender } = render(<DetailsTaskSheet task={tarea()} open />, { wrapper })
     expect(screen.getByDisplayValue("Brief para la agencia")).toBeInTheDocument()
 
     rerender(<DetailsTaskSheet task={tarea({ content: "Brief revisado" })} open />)

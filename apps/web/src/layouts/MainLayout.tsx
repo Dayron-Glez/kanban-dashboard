@@ -1,7 +1,14 @@
 import { useContext } from "react"
 import { Outlet, useLocation, useSearchParams } from "react-router"
-import { ScrollArea, SearchContext, Skeleton } from "@/shared/index"
-import { parseView, useKanban, VIEW_PARAM } from "@/features/board/index"
+import { QueryErrorState, ScrollArea, SearchContext, Skeleton } from "@/shared/index"
+import {
+  parseView,
+  useBoardScroll,
+  useBoardTasks,
+  useColumns,
+  useProjectId,
+  VIEW_PARAM,
+} from "@/features/board/index"
 import noDataSvg from "@/assets/noData.svg"
 import notFindByFilter from "@/assets/notFindByFilter.svg"
 
@@ -10,7 +17,14 @@ import notFindByFilter from "@/assets/notFindByFilter.svg"
  * AppLayout, que es quien monta el shell.
  */
 export default function KanbanLayout() {
-  const { scrollContainerRef, columns, tasks, loading } = useKanban()
+  const projectId = useProjectId()
+  const scrollContainerRef = useBoardScroll()
+  const columnsQuery = useColumns(projectId)
+  const tasksQuery = useBoardTasks(projectId)
+  const columns = columnsQuery.data ?? []
+  const tasks = tasksQuery.data ?? []
+  const loading = columnsQuery.isPending || tasksQuery.isPending
+  const error = columnsQuery.error ?? tasksQuery.error
   const searchValue = useContext(SearchContext)?.searchValue ?? ""
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -28,7 +42,16 @@ export default function KanbanLayout() {
     return task.content.toLowerCase().includes(searchTerm)
   })
 
-  const boardBody = loading ? (
+  const retry = () => {
+    if (columnsQuery.error) columnsQuery.refetch()
+    if (tasksQuery.error) tasksQuery.refetch()
+  }
+
+  const boardBody = error ? (
+    <div className="p-3">
+      <QueryErrorState error={error} onRetry={retry} />
+    </div>
+  ) : loading ? (
     <div className="flex min-h-0 flex-1 gap-3 p-3">
       {Array.from({ length: 3 }).map((_, i) => (
         <Skeleton key={i} className="min-w-[220px] flex-1 basis-0 rounded-[14px]" />

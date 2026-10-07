@@ -2,13 +2,8 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import type { BoardTask } from "@/features/board/types/board.types"
-
-// Los sheets de edición y detalle montan TaskForm, cuyo AssigneeSelect lee los
-// miembros del tablero. Se simula el fichero del hook y no el barril: el barril
-// se importa en ciclo desde TaskCard y recibiría el original.
-vi.mock("@/features/board/hooks/useKanban", () => ({ useKanban: () => ({ members: [] }) }))
-
-const { TaskCard } = await import("../components/TaskCard/TaskCard")
+import { createFakeApi, createWrapper } from "@/shared/api/testing"
+import { TaskCard } from "../components/TaskCard/TaskCard"
 
 // El menú de Radix se posiciona con APIs que jsdom no implementa.
 beforeAll(() => {
@@ -39,7 +34,9 @@ const tarea = (over: Partial<BoardTask> = {}): BoardTask => ({
 const renderCard = (task = tarea()) => {
   const deleteTask = vi.fn()
   const updateTask = vi.fn()
-  render(<TaskCard task={task} deleteTask={deleteTask} updateTask={updateTask} />)
+  render(<TaskCard task={task} deleteTask={deleteTask} updateTask={updateTask} />, {
+    wrapper: createWrapper(createFakeApi()),
+  })
   return { deleteTask, updateTask, user: userEvent.setup() }
 }
 
