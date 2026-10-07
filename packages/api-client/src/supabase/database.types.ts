@@ -5,18 +5,21 @@ export type Database = {
     Tables: {
       columns: {
         Row: {
+          category: string
           id: string
           position: number
           project_id: string
           title: string
         }
         Insert: {
+          category?: string
           id?: string
           position?: number
           project_id: string
           title: string
         }
         Update: {
+          category?: string
           id?: string
           position?: number
           project_id?: string
@@ -291,6 +294,7 @@ export type Database = {
         Args: { p_ordered_column_ids: string[]; p_project_id: string }
         Returns: undefined
       }
+      set_column_category: { Args: { p_category: string; p_column_id: string }; Returns: undefined }
       shares_project_with: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {

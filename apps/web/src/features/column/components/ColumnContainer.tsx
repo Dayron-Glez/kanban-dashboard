@@ -43,14 +43,13 @@ import {
   type TaskDraft,
 } from "@/features/board/index"
 import { useProject } from "@/features/project"
+import { CATEGORY_CONFIG } from "../lib/columnCategories"
+import { ColumnCategoryMenu } from "./ColumnCategoryMenu"
 import { ColumnDragPreview } from "./ColumnDragPreview"
 import { ColumnDropIndicator } from "./ColumnDropIndicator"
 import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle"
 import { CreateTaskSheet, TaskCard } from "@/features/task/index"
 import type { Column } from "@repo/contracts"
-
-const COLUMN_ACCENTS = ["#6366f1", "#f97316", "#0ea5e9", "#10b981", "#ec4899", "#8b5cf6"]
-const getAccent = (position: number) => COLUMN_ACCENTS[position % COLUMN_ACCENTS.length]
 
 interface Props {
   column: Column
@@ -100,7 +99,8 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Rea
   // de la cabecera y la etiqueta de cada tarjeta.
   const [tasksRef] = useAutoAnimate()
 
-  const accent = getAccent(column.position)
+  const accent = CATEGORY_CONFIG[column.category].color
+  const isDone = column.category === "done"
   const p0Count = tasks.filter((t) => t.priority === "p0").length
   const progressWidth = Math.min((tasks.length / 5) * 100, 100)
 
@@ -289,8 +289,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Rea
               ref={handleRef}
               className="bg-card border-border flex cursor-grab items-center gap-2 border-b px-3.5 py-3 active:cursor-grabbing"
             >
-              {/* Color dot */}
-              <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: accent }} />
+              <ColumnCategoryMenu column={column} isOwner={isOwner} />
 
               {!editMode && (
                 <span
@@ -430,6 +429,7 @@ export function ColumnContainer({ column, tasks, hasFilteredTasks = false }: Rea
                   <TaskCard
                     key={task.id}
                     task={task}
+                    isDone={isDone}
                     updateTask={updateTask}
                     deleteTask={deleteTask}
                   />

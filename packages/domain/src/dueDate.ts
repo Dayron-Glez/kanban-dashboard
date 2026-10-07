@@ -51,6 +51,10 @@ export const formatDueLabel = (dueDate: string | null | undefined): string => {
   return format(parseISO(dueDate), "d MMM", { locale: es })
 }
 
+/** Fecha corta sin referencia a hoy («20 sep»), para tareas ya terminadas. */
+export const formatDueShort = (dueDate: string): string =>
+  format(parseISO(dueDate), "d MMM", { locale: es })
+
 /**
  * Date -> ISO yyyy-MM-dd, que es lo que guarda una columna `date` de Postgres.
  * Se formatea con los componentes LOCALES a propósito: toISOString() pasa por

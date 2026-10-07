@@ -41,9 +41,10 @@ export const createTasksRepository = (client: SupabaseClient<Database>): TasksRe
       await client
         .from("tasks")
         .select(
-          "id, project_id, content, priority, size, project:projects(name, color), column:columns(title)"
+          "id, project_id, content, priority, size, project:projects(name, color), column:columns!inner(title, category)"
         )
         .eq("assignee_id", userId)
+        .neq("column.category", "done")
     )
     return rows.map((row) =>
       parseWith(AssignedTaskSchema, {

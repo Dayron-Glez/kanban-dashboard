@@ -15,3 +15,7 @@ export type TaskPriority = z.infer<typeof TaskPrioritySchema>
 export const TASK_SIZES = ["xs", "s", "m", "l", "xl"] as const
 export const TaskSizeSchema = z.enum(TASK_SIZES)
 export type TaskSize = z.infer<typeof TaskSizeSchema>
+
+export const COLUMN_CATEGORIES = ["todo", "doing", "blocked", "done"] as const
+export const ColumnCategorySchema = z.enum(COLUMN_CATEGORIES)
+export type ColumnCategory = z.infer<typeof ColumnCategorySchema>

@@ -6,11 +6,17 @@ import { useAnalytics } from "../hooks/useAnalytics"
 
 const PROJECT_ID = "p1"
 
-const column = (id: string, title: string, position: number): Column => ({
+const column = (
+  id: string,
+  title: string,
+  position: number,
+  category: Column["category"] = "todo"
+): Column => ({
   id,
   projectId: PROJECT_ID,
   title,
   position,
+  category,
 })
 
 const task = (id: string, columnId: string, priority: Task["priority"]): Task => ({
@@ -40,7 +46,7 @@ beforeEach(() => {
   api = createFakeApi()
   api.columns.listByProject.mockResolvedValue([
     column("todo", "Backlog", 0),
-    column("done", "Done", 1),
+    column("done", "Publicado", 1, "done"),
   ])
   api.tasks.listByProject.mockResolvedValue([
     task("t1", "done", "p0"),
@@ -83,7 +89,7 @@ describe("useAnalytics", () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.activityItems.map((a) => [a.fromColumnTitle, a.toColumnTitle])).toEqual([
-      ["Backlog", "Done"],
+      ["Backlog", "Publicado"],
       [null, "Backlog"],
     ])
   })

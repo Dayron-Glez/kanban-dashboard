@@ -4,7 +4,7 @@ import type { Column, Task } from "@repo/contracts"
 import { beforeEach, describe, expect, it } from "vitest"
 import { queryKeys } from "@/shared/api"
 import { createFakeApi, createTestQueryClient, createWrapper } from "@/shared/api/testing"
-import { useDeleteColumn, useReorderColumns } from "../api/columns"
+import { useDeleteColumn, useReorderColumns, useSetColumnCategory } from "../api/columns"
 import { useMoveTask, useUpdateTask } from "../api/tasks"
 
 const PROJECT_ID = "p1"
@@ -21,11 +21,12 @@ const task = (id: string, columnId: string, position: number): Task => ({
   assigneeId: null,
 })
 
-const column = (id: string, position: number): Column => ({
+const column = (id: string, position: number, category: Column["category"] = "todo"): Column => ({
   id,
   projectId: PROJECT_ID,
   title: id,
   position,
+  category,
 })
 
 const deferred = () => {
@@ -165,5 +166,35 @@ describe("useReorderColumns", () => {
 
     expect(api.columns.reorder).toHaveBeenCalledWith(PROJECT_ID, ["B", "A"])
     expect(queryClient.getQueryData<Column[]>(columnsKey)).toEqual([column("B", 0), column("A", 1)])
+  })
+})
+
+describe("useSetColumnCategory", () => {
+  const categories = () =>
+    queryClient.getQueryData<Column[]>(columnsKey)?.map((c) => `${c.id}:${c.category}`)
+
+  beforeEach(() => {
+    queryClient.setQueryData(columnsKey, [column("A", 0, "doing"), column("B", 1, "done")])
+  })
+
+  it("al marcar otra como hecha, la anterior pasa a en curso antes de que responda el servidor", async () => {
+    const request = deferred()
+    api.columns.setCategory.mockReturnValue(request.promise)
+    const { result } = renderHook(() => useSetColumnCategory(PROJECT_ID), { wrapper })
+
+    act(() => result.current.mutate({ id: "A", category: "done" }))
+
+    await waitFor(() => expect(categories()).toEqual(["A:done", "B:doing"]))
+    expect(api.columns.setCategory).toHaveBeenCalledWith("A", "done")
+    request.resolve()
+  })
+
+  it("si el servidor falla, vuelve a la categoría anterior", async () => {
+    api.columns.setCategory.mockRejectedValue(new ApiError("forbidden", "Solo el propietario"))
+    const { result } = renderHook(() => useSetColumnCategory(PROJECT_ID), { wrapper })
+
+    await act(() => result.current.mutateAsync({ id: "A", category: "done" }).catch(() => {}))
+
+    expect(categories()).toEqual(["A:doing", "B:done"])
   })
 })

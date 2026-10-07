@@ -1,12 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { Column, Task } from "@repo/contracts"
-import { applyColumnOrder } from "@repo/domain"
+import type { Column, ColumnCategory, Task } from "@repo/contracts"
+import { applyCategory, applyColumnOrder } from "@repo/domain"
 import { queryKeys, useApi } from "@/shared/api"
 import { useBoardSync } from "./boardSync"
+
+interface CreateColumnVariables {
+  title: string
+  category: ColumnCategory
+}
 
 interface RenameColumnVariables {
   id: string
   title: string
+}
+
+interface SetCategoryVariables {
+  id: string
+  category: ColumnCategory
 }
 
 export const useColumns = (projectId: string) => {
@@ -24,10 +34,12 @@ export const useCreateColumn = (projectId: string) => {
   const { mutationKey } = useBoardSync(projectId)
   return useMutation({
     mutationKey,
-    mutationFn: (title: string) => api.columns.create({ projectId, title }),
+    mutationFn: ({ title, category }: CreateColumnVariables) =>
+      api.columns.create({ projectId, title, category }),
+    // Si nace como hecha, la que lo era pasa a «en curso», igual que en la base.
     onSuccess: (column) =>
-      queryClient.setQueryData<Column[]>(queryKeys.projects.columns(projectId), (columns) =>
-        columns ? [...columns, column] : [column]
+      queryClient.setQueryData<Column[]>(queryKeys.projects.columns(projectId), (columns = []) =>
+        applyCategory([...columns, column], column.id, column.category)
       ),
     meta: { errorMessage: "No se pudo crear la columna" },
   })
@@ -123,5 +135,29 @@ export const useReorderColumns = (projectId: string) => {
     },
     onSettled: refetchWhenIdle,
     meta: { errorMessage: "No se pudo guardar el orden de las columnas" },
+  })
+}
+
+export const useSetColumnCategory = (projectId: string) => {
+  const api = useApi()
+  const queryClient = useQueryClient()
+  const { mutationKey, isLastInFlight, refetchWhenIdle } = useBoardSync(projectId)
+  const queryKey = queryKeys.projects.columns(projectId)
+  return useMutation({
+    mutationKey,
+    mutationFn: ({ id, category }: SetCategoryVariables) => api.columns.setCategory(id, category),
+    onMutate: async ({ id, category }) => {
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<Column[]>(queryKey)
+      queryClient.setQueryData<Column[]>(queryKey, (columns) =>
+        columns ? applyCategory(columns, id, category) : columns
+      )
+      return { previous }
+    },
+    onError: (_error, _variables, context) => {
+      if (isLastInFlight()) queryClient.setQueryData(queryKey, context?.previous)
+    },
+    onSettled: refetchWhenIdle,
+    meta: { errorMessage: "No se pudo cambiar la categoría" },
   })
 }

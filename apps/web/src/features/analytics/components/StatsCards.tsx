@@ -8,7 +8,7 @@ interface StatsCardsProps {
 
 const cards = (stats: AnalyticsStats) => [
   { title: "Total de tareas", value: stats.totalTasks, suffix: "tareas" },
-  { title: "Tareas completadas", value: stats.doneTasks, suffix: "en Done" },
+  { title: "Tareas completadas", value: stats.doneTasks, suffix: "en la columna hecha" },
   { title: "Progreso", value: stats.progressPercent, suffix: "%" },
   { title: "Movimientos", value: stats.totalMoved, suffix: "en historial" },
 ]

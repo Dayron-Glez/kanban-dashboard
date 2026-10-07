@@ -39,6 +39,7 @@ export const createFakeApi = () =>
       rename: vi.fn<ColumnsRepository["rename"]>(),
       remove: vi.fn<ColumnsRepository["remove"]>(),
       reorder: vi.fn<ColumnsRepository["reorder"]>(),
+      setCategory: vi.fn<ColumnsRepository["setCategory"]>(),
     },
     tasks: {
       listByProject: vi.fn<TasksRepository["listByProject"]>(),

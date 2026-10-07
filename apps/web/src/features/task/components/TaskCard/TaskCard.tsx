@@ -13,11 +13,18 @@ import { TaskDropIndicator } from "./TaskDropIndicator"
 
 interface TaskCardProps {
   task: BoardTask
+  /** Su columna es la terminada: la fecha deja de avisar. */
+  isDone?: boolean
   deleteTask: (id: string) => void
   updateTask: (id: string, taskData: TaskFormValues) => void
 }
 
-export function TaskCard({ task, deleteTask, updateTask }: Readonly<TaskCardProps>) {
+export function TaskCard({
+  task,
+  isDone = false,
+  deleteTask,
+  updateTask,
+}: Readonly<TaskCardProps>) {
   const [detailsOpen, setDetailsOpen] = useState<boolean>(false)
   const [editOpen, setEditOpen] = useState<boolean>(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false)
@@ -58,7 +65,7 @@ export function TaskCard({ task, deleteTask, updateTask }: Readonly<TaskCardProp
               >
                 {size.label}
               </span>
-              <DueDateChip dueDate={task.dueDate} />
+              <DueDateChip dueDate={task.dueDate} done={isDone} />
             </div>
 
             {task.assignee && <TaskAssigneeAvatar profile={task.assignee} />}
