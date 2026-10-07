@@ -31,43 +31,41 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/shared/index"
-import { useKanban } from "@/features/board/index"
-import { useProjectMembers } from "../hooks/useProjectMembers"
+import { useCancelInvitation, useInviteMember, usePendingInvitations } from "../api/invitations"
+import { useMembers } from "../api/members"
 import { useDeleteProject, useRenameProject } from "../api/projectMutations"
 import { useProject } from "../api/projectQueries"
 import { CardHead } from "./settingsCards"
 
 // ── Página de ajustes ──────────────────────────────────────────────────────
 export function ProjectSettingsPage() {
-  const { id: projectId } = useParams<{ id: string }>()
+  const { id: projectId = "" } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { userRole } = useKanban()
-  const isOwner = userRole === "owner"
   const { data: currentProject } = useProject(projectId)
+  const isOwner = currentProject?.role === "owner"
   const deleteProject = useDeleteProject()
   const renameProject = useRenameProject()
 
-  const { members, invitations, inviteMember, cancelInvitation } = useProjectMembers(
-    projectId ?? ""
-  )
+  const { data: members = [] } = useMembers(projectId)
+  const { data: invitations = [] } = usePendingInvitations(projectId)
+  const inviteMember = useInviteMember(projectId)
+  const cancelInvitation = useCancelInvitation(projectId)
 
   const [email, setEmail] = useState<string>("")
-  const [inviting, setInviting] = useState<boolean>(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false)
   const [newName, setNewName] = useState(currentProject?.name ?? "")
   const [renamed, setRenamed] = useState<boolean>(false)
 
-  const handleInvite = async (): Promise<void> => {
+  const handleInvite = (): void => {
     if (!email.trim()) return
-    setInviting(true)
-    const result = await inviteMember(email.trim())
-    setInviting(false)
-    if (result) {
-      setInviteLink(`${window.location.origin}/invite/${result.token}`)
-      setEmail("")
-    }
+    inviteMember.mutate(email.trim(), {
+      onSuccess: (invitation) => {
+        setInviteLink(`${window.location.origin}/invite/${invitation.token}`)
+        setEmail("")
+      },
+    })
   }
 
   const handleCopy = (link: string): void => {
@@ -154,10 +152,10 @@ export function ProjectSettingsPage() {
                 />
                 <Button
                   onClick={handleInvite}
-                  disabled={inviting || !email.trim()}
+                  disabled={inviteMember.isPending || !email.trim()}
                   className="shrink-0 transition-colors"
                 >
-                  {inviting ? "Enviando…" : "Invitar"}
+                  {inviteMember.isPending ? "Enviando…" : "Invitar"}
                 </Button>
               </div>
               {inviteLink && (
@@ -252,7 +250,7 @@ export function ProjectSettingsPage() {
                       </span>
                       <span className="text-muted-foreground shrink-0 text-[11px]">
                         exp.{" "}
-                        {new Date(inv.expires_at).toLocaleDateString("es-ES", {
+                        {new Date(inv.expiresAt).toLocaleDateString("es-ES", {
                           day: "numeric",
                           month: "short",
                         })}
@@ -299,7 +297,7 @@ export function ProjectSettingsPage() {
                             <AlertDialogCancel>Conservar</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              onClick={() => cancelInvitation(inv.id)}
+                              onClick={() => cancelInvitation.mutate(inv.id)}
                             >
                               Cancelar invitación
                             </AlertDialogAction>

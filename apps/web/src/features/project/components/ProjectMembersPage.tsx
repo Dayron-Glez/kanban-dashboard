@@ -12,12 +12,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
   Card,
+  QueryErrorState,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/shared/index"
-import { useKanban } from "@/features/board/index"
-import { useProjectMembers } from "../hooks/useProjectMembers"
+import { useMembers, useRemoveMember } from "../api/members"
+import { useProject } from "../api/projectQueries"
 import { CardHead, RoleBadge } from "./settingsCards"
 import { getAvatarColor, getInitials } from "../lib/avatars"
 
@@ -26,10 +27,10 @@ import { getAvatarColor, getInitials } from "../lib/avatars"
  * de Ajustes, pero el sidebar ya prometía esta entrada y la ruta no existía.
  */
 export function ProjectMembersPage() {
-  const { id: projectId } = useParams<{ id: string }>()
-  const { userRole } = useKanban()
-  const isOwner = userRole === "owner"
-  const { members, loading, removeMember } = useProjectMembers(projectId ?? "")
+  const { id: projectId = "" } = useParams<{ id: string }>()
+  const isOwner = useProject(projectId).data?.role === "owner"
+  const { data: members = [], isPending, error, refetch } = useMembers(projectId)
+  const removeMember = useRemoveMember(projectId)
 
   return (
     <motion.div
@@ -54,7 +55,9 @@ export function ProjectMembersPage() {
       <Card className="gap-4 overflow-hidden py-4">
         <CardHead icon={<IconUsers size={15} />} title="Miembros" count={members.length} />
         <div className="px-4">
-          {loading ? (
+          {error ? (
+            <QueryErrorState error={error} onRetry={() => refetch()} />
+          ) : isPending ? (
             <div className="flex flex-col gap-2">
               {[1, 2].map((i) => (
                 <div key={i} className="bg-muted h-12 animate-pulse rounded-lg" />
@@ -64,7 +67,7 @@ export function ProjectMembersPage() {
             <p className="text-muted-foreground text-center text-sm">Sin miembros aún.</p>
           ) : (
             members.map((m) => {
-              const av = getAvatarColor(m.user_id)
+              const av = getAvatarColor(m.userId)
               return (
                 <div
                   key={m.id}
@@ -74,18 +77,18 @@ export function ProjectMembersPage() {
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold"
                     style={{ background: av.bg, color: av.txt }}
                   >
-                    {getInitials(m.profiles?.full_name)}
+                    {getInitials(m.profile.fullName)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-foreground truncate text-[13px] font-semibold">
-                        {m.profiles?.full_name ?? "Sin nombre"}
+                        {m.profile.fullName ?? "Sin nombre"}
                       </span>
                       <RoleBadge role={m.role} />
                     </div>
-                    {m.profiles?.email && (
+                    {m.profile.email && (
                       <span className="text-muted-foreground truncate text-[11.5px]">
-                        {m.profiles.email}
+                        {m.profile.email}
                       </span>
                     )}
                   </div>
@@ -109,7 +112,7 @@ export function ProjectMembersPage() {
                           <AlertDialogTitle>¿Eliminar miembro?</AlertDialogTitle>
                           <AlertDialogDescription>
                             <strong>
-                              {m.profiles?.full_name ?? m.profiles?.email ?? "Este miembro"}
+                              {m.profile.fullName ?? m.profile.email ?? "Este miembro"}
                             </strong>{" "}
                             perderá el acceso al proyecto. Esta acción no se puede deshacer.
                           </AlertDialogDescription>
@@ -118,7 +121,7 @@ export function ProjectMembersPage() {
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => removeMember(m.id)}
+                            onClick={() => removeMember.mutate(m.id)}
                           >
                             Eliminar
                           </AlertDialogAction>

@@ -1,4 +1,4 @@
-import type { MemberRole } from "@/shared/supabase"
+import type { MemberRole } from "@repo/contracts"
 
 /**
  * Piezas compartidas entre la página de Ajustes y la de Miembros, que antes
