@@ -32,7 +32,7 @@
       "eslint --max-warnings=0",
       "prettier --write"
     ],
-    "*.{js,mjs,json,md,css}": [
+    "*.{js,mjs,json,md,css,yml,yaml}": [
       "prettier --write"
     ]
   },
