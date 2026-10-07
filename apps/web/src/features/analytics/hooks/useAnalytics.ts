@@ -1,17 +1,9 @@
-import { useEffect, useState } from "react"
+import { useMemo } from "react"
 import { getISOWeek, getISOWeekYear, subWeeks, formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
-import { supabase } from "@/shared/supabase"
-import type { Column, Task } from "@repo/contracts"
-
-interface TaskHistoryRecord {
-  id: string
-  task_id: string
-  from_column_id: string | null
-  to_column_id: string
-  moved_at: string
-  tasks: { id: string; content: string; project_id: string } | null
-}
+import type { Column, Task, TaskHistoryEntry } from "@repo/contracts"
+import { useColumns, useTasks } from "@/features/board/index"
+import { useTaskHistory } from "../api/history"
 
 export interface VelocityDataPoint {
   week: string
@@ -53,31 +45,27 @@ const PRIORITY_LABELS: Record<string, string> = {
   p2: "Baja",
 }
 
+const weekKey = (date: Date) =>
+  `${getISOWeekYear(date)}-${String(getISOWeek(date)).padStart(2, "0")}`
+
 const buildVelocityData = (
-  history: TaskHistoryRecord[],
+  history: TaskHistoryEntry[],
   doneColumnId: string | undefined
 ): VelocityDataPoint[] => {
   const now = new Date()
   const last8Weeks = Array.from({ length: 8 }, (_, i) => {
-    const d = subWeeks(now, 7 - i)
-    const week = getISOWeek(d)
-    const year = getISOWeekYear(d)
-    return {
-      key: `${year}-${String(week).padStart(2, "0")}`,
-      label: `Sem ${week}`,
-    }
+    const date = subWeeks(now, 7 - i)
+    return { key: weekKey(date), label: `Sem ${getISOWeek(date)}` }
   })
 
   if (!doneColumnId) return last8Weeks.map(({ label }) => ({ week: label, tareas: 0 }))
 
   const countByWeek: Record<string, number> = {}
-  history
-    .filter((h) => h.to_column_id === doneColumnId)
-    .forEach((h) => {
-      const d = new Date(h.moved_at)
-      const key = `${getISOWeekYear(d)}-${String(getISOWeek(d)).padStart(2, "0")}`
-      countByWeek[key] = (countByWeek[key] ?? 0) + 1
-    })
+  for (const entry of history) {
+    if (entry.toColumnId !== doneColumnId) continue
+    const key = weekKey(new Date(entry.movedAt))
+    countByWeek[key] = (countByWeek[key] ?? 0) + 1
+  }
 
   return last8Weeks.map(({ key, label }) => ({ week: label, tareas: countByWeek[key] ?? 0 }))
 }
@@ -88,68 +76,50 @@ const buildPriorityData = (tasks: Task[]): PriorityDataPoint[] =>
     tareas: tasks.filter((t) => t.priority === p).length,
   }))
 
-const buildActivityItems = (history: TaskHistoryRecord[], columns: Column[]): ActivityItem[] => {
-  const colMap = new Map(columns.map((c) => [c.id, c.title]))
-  return history.slice(0, 15).map((h) => ({
-    id: h.id,
-    taskContent: h.tasks?.content ?? "Tarea eliminada",
-    fromColumnTitle: h.from_column_id
-      ? (colMap.get(h.from_column_id) ?? "Columna eliminada")
+const buildActivityItems = (history: TaskHistoryEntry[], columns: Column[]): ActivityItem[] => {
+  const titles = new Map(columns.map((c) => [c.id, c.title]))
+  return history.slice(0, 15).map((entry) => ({
+    id: entry.id,
+    taskContent: entry.taskContent,
+    fromColumnTitle: entry.fromColumnId
+      ? (titles.get(entry.fromColumnId) ?? "Columna eliminada")
       : null,
-    toColumnTitle: colMap.get(h.to_column_id) ?? "Columna eliminada",
-    movedAt: h.moved_at,
-    movedAtRelative: formatDistanceToNow(new Date(h.moved_at), { addSuffix: true, locale: es }),
+    toColumnTitle: titles.get(entry.toColumnId) ?? "Columna eliminada",
+    movedAt: entry.movedAt,
+    movedAtRelative: formatDistanceToNow(new Date(entry.movedAt), { addSuffix: true, locale: es }),
   }))
 }
 
-export const useAnalytics = (
-  projectId: string | undefined,
-  columns: Column[],
-  tasks: Task[]
-): UseAnalyticsReturn => {
-  const [loading, setLoading] = useState(true)
-  const [velocityData, setVelocityData] = useState<VelocityDataPoint[]>([])
-  const [priorityData, setPriorityData] = useState<PriorityDataPoint[]>([])
-  const [activityItems, setActivityItems] = useState<ActivityItem[]>([])
-  const [stats, setStats] = useState<AnalyticsStats>({
-    totalTasks: 0,
-    doneTasks: 0,
-    progressPercent: 0,
-    totalMoved: 0,
-  })
+export const useAnalytics = (projectId: string): UseAnalyticsReturn => {
+  const columnsQuery = useColumns(projectId)
+  const tasksQuery = useTasks(projectId)
+  const historyQuery = useTaskHistory(projectId)
 
-  useEffect(() => {
-    if (!projectId || columns.length === 0) return
-    let cancelled = false
+  const loading = columnsQuery.isPending || tasksQuery.isPending || historyQuery.isPending
 
-    supabase
-      .from("task_history")
-      .select("id, task_id, from_column_id, to_column_id, moved_at, tasks(id, content, project_id)")
-      .order("moved_at", { ascending: false })
-      .then(({ data }) => {
-        if (cancelled) return
+  const derived = useMemo(() => {
+    const columns = columnsQuery.data ?? []
+    const tasks = tasksQuery.data ?? []
+    const history = historyQuery.data ?? []
 
-        const history = ((data ?? []) as TaskHistoryRecord[]).filter(
-          (h) => h.tasks?.project_id === projectId
-        )
+    // Bug conocido, anterior a este cambio: la columna terminal se detecta por
+    // el texto «done». Se corrige en el PR 2 con la categoría de estado.
+    const doneColumnId = columns.find((c) => c.title.toLowerCase().includes("done"))?.id
+    const doneTasks = doneColumnId ? tasks.filter((t) => t.columnId === doneColumnId).length : 0
+    const totalTasks = tasks.length
 
-        const doneColumnId = columns.find((c) => c.title.toLowerCase().includes("done"))?.id
-
-        const doneTasks = doneColumnId ? tasks.filter((t) => t.columnId === doneColumnId).length : 0
-        const totalTasks = tasks.length
-        const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
-
-        setStats({ totalTasks, doneTasks, progressPercent, totalMoved: history.length })
-        setVelocityData(buildVelocityData(history, doneColumnId))
-        setPriorityData(buildPriorityData(tasks))
-        setActivityItems(buildActivityItems(history, columns))
-        setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
+    return {
+      stats: {
+        totalTasks,
+        doneTasks,
+        progressPercent: totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0,
+        totalMoved: history.length,
+      },
+      velocityData: buildVelocityData(history, doneColumnId),
+      priorityData: buildPriorityData(tasks),
+      activityItems: buildActivityItems(history, columns),
     }
-  }, [projectId, columns, tasks])
+  }, [columnsQuery.data, tasksQuery.data, historyQuery.data])
 
-  return { velocityData, priorityData, activityItems, stats, loading }
+  return { ...derived, loading }
 }

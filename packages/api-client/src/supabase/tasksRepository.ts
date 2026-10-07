@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { TaskSchema, type TaskInput } from "@repo/contracts"
+import { AssignedTaskSchema, TaskSchema, type TaskInput } from "@repo/contracts"
 import type { TasksRepository } from "../ApiClient"
 import type { Database, Tables } from "./database.types"
 import { check, parseWith, requireRows, unwrap } from "./result"
+import { currentUserId } from "./session"
 
 const toTask = (row: Tables<"tasks">) =>
   parseWith(TaskSchema, {
@@ -32,6 +33,30 @@ export const createTasksRepository = (client: SupabaseClient<Database>): TasksRe
       await client.from("tasks").select().eq("project_id", projectId).order("position")
     )
     return rows.map(toTask)
+  },
+
+  listAssignedToMe: async () => {
+    const userId = await currentUserId(client)
+    const rows = unwrap(
+      await client
+        .from("tasks")
+        .select(
+          "id, project_id, content, priority, size, project:projects(name, color), column:columns(title)"
+        )
+        .eq("assignee_id", userId)
+    )
+    return rows.map((row) =>
+      parseWith(AssignedTaskSchema, {
+        id: row.id,
+        projectId: row.project_id,
+        content: row.content,
+        priority: row.priority,
+        size: row.size,
+        projectName: row.project.name,
+        projectColor: row.project.color,
+        columnTitle: row.column.title,
+      })
+    )
   },
 
   create: async ({ projectId, columnId, ...input }) => {
