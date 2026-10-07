@@ -1,5 +1,5 @@
 import { TASK_SIZES, type Column, type TaskPriority, type TaskSize } from "@repo/contracts"
-import type { TaskWithAssignee } from "./withAssignees"
+import type { TaskWithAssignee } from "./withAssignees.js"
 
 /** Columnas por las que se puede ordenar la tabla. */
 export type SortKey = "content" | "column" | "priority" | "size" | "assignee" | "dueDate"

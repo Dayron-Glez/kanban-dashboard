@@ -1,7 +1,7 @@
 import { formatDistance, getISOWeek, getISOWeekYear, subWeeks } from "date-fns"
 import { es } from "date-fns/locale"
 import type { Column, Task, TaskHistoryEntry, TaskPriority } from "@repo/contracts"
-import { doneColumnId } from "./columnCategory"
+import { doneColumnId } from "./columnCategory.js"
 
 export interface VelocityDataPoint {
   week: string

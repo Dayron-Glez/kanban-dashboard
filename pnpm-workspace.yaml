@@ -3,4 +3,7 @@ packages:
   - packages/*
 
 allowBuilds:
+  # La CLI de Nest trae SWC para su compilador opcional; aquí se compila con
+  # tsc, así que su binario nativo no hace falta.
+  "@swc/core": false
   esbuild: true

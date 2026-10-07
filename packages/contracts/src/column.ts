@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { ColumnCategorySchema } from "./enums"
+import { ColumnCategorySchema } from "./enums.js"
 
 export const ColumnSchema = z.object({
   id: z.uuid(),

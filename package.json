@@ -24,14 +24,15 @@
     "db:pull": "supabase db pull",
     "db:push": "supabase db push",
     "db:diff": "supabase db diff -f",
-    "db:types": "supabase gen types typescript --local --schema public > packages/api-client/src/supabase/database.types.ts && prettier --write packages/api-client/src/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --local --schema public > packages/api-client/src/supabase/database.types.ts && prettier --write packages/api-client/src/supabase/database.types.ts",
+    "db:schema": "pnpm --filter api db:schema"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --max-warnings=0",
       "prettier --write"
     ],
-    "*.{js,mjs,json,md,css}": [
+    "*.{js,mjs,json,md,css,yml,yaml}": [
       "prettier --write"
     ]
   },

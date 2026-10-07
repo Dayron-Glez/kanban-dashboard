@@ -37,3 +37,8 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      # Vercel construye la web, pero nadie construía la API antes de que
+      # Railway la desplegara: un fallo de compilación se vería al desplegar.
+      - name: Build
+        run: pnpm build

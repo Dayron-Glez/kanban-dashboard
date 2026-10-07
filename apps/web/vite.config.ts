@@ -1,6 +1,7 @@
 import path from "path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
+import { defaultClientConditions } from "vite"
 import { configDefaults, defineConfig } from "vitest/config"
 
 export default defineConfig({
@@ -9,6 +10,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Los paquetes del monorepo exportan su código fuente bajo "source": la web
+    // lo compila ella misma (con HMR) y solo la API usa el dist compilado.
+    conditions: ["source", ...defaultClientConditions],
   },
   test: {
     environment: "jsdom",
