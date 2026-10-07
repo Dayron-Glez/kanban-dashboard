@@ -7,7 +7,13 @@ const PROJECT_ID = "7c9e6679-7425-40de-944b-e07fc1f90ae7"
 const COLUMN_ID = "550e8400-e29b-41d4-a716-446655440000"
 const TASK_ID = "9b2f4c1e-3d5a-4b6c-8d7e-0f1a2b3c4d5e"
 
-const columnRow = { id: COLUMN_ID, project_id: PROJECT_ID, title: "Backlog", position: 2 }
+const columnRow = {
+  id: COLUMN_ID,
+  project_id: PROJECT_ID,
+  title: "Pendiente",
+  position: 2,
+  category: "todo",
+}
 
 const taskRow = (overrides: Record<string, unknown> = {}) => ({
   id: TASK_ID,
@@ -37,19 +43,30 @@ describe("columnsRepository", () => {
     const { repo } = setup(json([columnRow]))
 
     await expect(repo.listByProject(PROJECT_ID)).resolves.toEqual([
-      { id: COLUMN_ID, projectId: PROJECT_ID, title: "Backlog", position: 2 },
+      { id: COLUMN_ID, projectId: PROJECT_ID, title: "Pendiente", position: 2, category: "todo" },
     ])
   })
 
   it("create la coloca al final del tablero", async () => {
     const { repo, requests } = setup(counted(2), json(columnRow, 201))
 
-    await repo.create({ projectId: PROJECT_ID, title: "Backlog" })
+    await repo.create({ projectId: PROJECT_ID, title: "Pendiente" })
 
     expect(requests[1]).toMatchObject({
       method: "POST",
-      body: { project_id: PROJECT_ID, title: "Backlog", position: 2 },
+      body: { project_id: PROJECT_ID, title: "Pendiente", category: "todo", position: 2 },
     })
+  })
+
+  it("create como hecha la inserta por hacer y hace el intercambio con la RPC", async () => {
+    const { repo, requests } = setup(counted(2), json(columnRow, 201), noContent())
+
+    const column = await repo.create({ projectId: PROJECT_ID, title: "Archivo", category: "done" })
+
+    expect(requests[1]!.body).toMatchObject({ category: "todo" })
+    expect(requests[2]!.url.pathname).toBe("/rest/v1/rpc/set_column_category")
+    expect(requests[2]!.body).toEqual({ p_column_id: COLUMN_ID, p_category: "done" })
+    expect(column.category).toBe("done")
   })
 
   it("reorder llama a la RPC con el orden completo", async () => {
@@ -68,6 +85,23 @@ describe("columnsRepository", () => {
     const { repo } = setup(json({ code: "42501", message: "Solo el propietario" }, 403))
 
     await expect(repo.reorder(PROJECT_ID, [])).rejects.toMatchObject({ code: "forbidden" })
+  })
+
+  it("setCategory llama a la RPC que mantiene una sola columna hecha", async () => {
+    const { repo, requests } = setup(noContent())
+
+    await repo.setCategory(COLUMN_ID, "done")
+
+    expect(requests[0]!.url.pathname).toBe("/rest/v1/rpc/set_column_category")
+    expect(requests[0]!.body).toEqual({ p_column_id: COLUMN_ID, p_category: "done" })
+  })
+
+  it("rechaza una categoría que no está en el contrato", async () => {
+    const { repo } = setup(json([{ ...columnRow, category: "archivada" }]))
+
+    await expect(repo.listByProject(PROJECT_ID)).rejects.toMatchObject({
+      code: "invalid_response",
+    })
   })
 
   it("rename lanza forbidden si la RLS no deja actualizar", async () => {

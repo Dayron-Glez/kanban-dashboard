@@ -4,8 +4,8 @@ import { buildRows, filterRows, sortRows, type TaskRow } from "../taskTable"
 import type { TaskWithAssignee } from "../withAssignees"
 
 const columns: Column[] = [
-  { id: "c1", title: "En curso", projectId: "p", position: 0 },
-  { id: "c2", title: "Aprobado", projectId: "p", position: 1 },
+  { id: "c1", title: "En curso", projectId: "p", position: 0, category: "doing" },
+  { id: "c2", title: "Aprobado", projectId: "p", position: 1, category: "done" },
 ]
 
 const task = (over: Partial<TaskWithAssignee> = {}): TaskWithAssignee => ({

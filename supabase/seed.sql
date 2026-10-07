@@ -50,15 +50,15 @@ begin
   -- Columnas: se guardan en orden para poder repartir tareas por fase.
   v_cols := '{}'::uuid[];
 
-  insert into public.columns (project_id, title, position) values (v_proj, 'Backlog', 0) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'Pendiente', 0, 'todo') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
-  insert into public.columns (project_id, title, position) values (v_proj, 'Ready', 1) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'Listo', 1, 'todo') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
-  insert into public.columns (project_id, title, position) values (v_proj, 'In Progress', 2) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'En curso', 2, 'doing') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
-  insert into public.columns (project_id, title, position) values (v_proj, 'In Review', 3) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'En revisión', 3, 'doing') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
-  insert into public.columns (project_id, title, position) values (v_proj, 'Done', 4) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'Hecho', 4, 'done') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
 
   -- Tareas: mezcla de prioridades, tamaños y asignación (unas mías, otras no).
@@ -115,11 +115,11 @@ begin
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
   v_cols := '{}'::uuid[];
-  insert into public.columns (project_id, title, position) values (v_proj, 'Ideas', 0) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'Ideas', 0, 'todo') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
-  insert into public.columns (project_id, title, position) values (v_proj, 'En curso', 1) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'En curso', 1, 'doing') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
-  insert into public.columns (project_id, title, position) values (v_proj, 'Publicado', 2) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'Publicado', 2, 'done') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
 
   insert into public.tasks (project_id, column_id, content, priority, size, position, assignee_id, created_at) values
@@ -146,11 +146,11 @@ begin
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
   v_cols := '{}'::uuid[];
-  insert into public.columns (project_id, title, position) values (v_proj, 'Backlog', 0) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'Pendiente', 0, 'todo') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
-  insert into public.columns (project_id, title, position) values (v_proj, 'In Progress', 1) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'En curso', 1, 'doing') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
-  insert into public.columns (project_id, title, position) values (v_proj, 'Done', 2) returning id into v_col;
+  insert into public.columns (project_id, title, position, category) values (v_proj, 'Hecho', 2, 'done') returning id into v_col;
   v_cols := array_append(v_cols, v_col);
 
   insert into public.tasks (project_id, column_id, content, priority, size, position, assignee_id, created_at) values
@@ -170,8 +170,8 @@ begin
   values (v_proj, v_user, 'owner', false)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
-  insert into public.columns (project_id, title, position) values
-    (v_proj, 'Backlog', 0), (v_proj, 'In Progress', 1), (v_proj, 'Done', 2);
+  insert into public.columns (project_id, title, position, category) values
+    (v_proj, 'Pendiente', 0, 'todo'), (v_proj, 'En curso', 1, 'doing'), (v_proj, 'Hecho', 2, 'done');
 
   raise notice 'Seed completado para %', v_email;
 end $$;

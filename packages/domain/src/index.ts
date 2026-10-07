@@ -1,4 +1,6 @@
+export * from "./analytics"
 export * from "./applyMove"
+export * from "./columnCategory"
 export * from "./dueDate"
 export * from "./reorder"
 export * from "./taskTable"

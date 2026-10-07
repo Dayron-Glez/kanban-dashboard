@@ -10,21 +10,22 @@ import {
 } from "@/shared/index"
 import { FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import type z from "zod"
-import { columnValidationSchema } from "../schemas/column.schema"
+import { createColumnSchema, type CreateColumnValues } from "../schemas/column.schema"
+import { CategorySelect } from "./CategorySelect"
 import { TitleTextArea } from "./EditableColumnTitle/TitleTextArea"
 
 interface CreateColumnSheetProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  onSave: (content: string) => void
+  onSave: (values: CreateColumnValues) => void
 }
 
 export function CreateColumnSheet({ open, onOpenChange, onSave }: CreateColumnSheetProps) {
-  const form = useForm<z.infer<typeof columnValidationSchema>>({
-    resolver: zodResolver(columnValidationSchema),
+  const form = useForm<CreateColumnValues>({
+    resolver: zodResolver(createColumnSchema),
     defaultValues: {
       title: "",
+      category: "todo",
     },
   })
 
@@ -32,8 +33,7 @@ export function CreateColumnSheet({ open, onOpenChange, onSave }: CreateColumnSh
     const isValid = await form.trigger()
 
     if (isValid) {
-      const { title } = form.getValues()
-      onSave(title)
+      onSave(form.getValues())
       form.reset()
       onOpenChange?.(false)
     }
@@ -57,7 +57,10 @@ export function CreateColumnSheet({ open, onOpenChange, onSave }: CreateColumnSh
           </SheetHeader>
           <div className="mt-4 px-2">
             <FormProvider {...form}>
-              <TitleTextArea />
+              <div className="flex flex-col gap-4">
+                <TitleTextArea />
+                <CategorySelect />
+              </div>
             </FormProvider>
           </div>
         </div>

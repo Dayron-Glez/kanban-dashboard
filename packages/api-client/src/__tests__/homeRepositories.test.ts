@@ -9,7 +9,7 @@ const FROM_ID = "550e8400-e29b-41d4-a716-446655440000"
 const TO_ID = "2b7e1c4a-9f3d-4e8a-b5c6-1d2e3f4a5b6d"
 
 describe("tasksRepository.listAssignedToMe", () => {
-  it("pide las tareas asignadas al usuario con su proyecto y su columna", async () => {
+  it("pide las tareas asignadas al usuario sin las terminadas, con su proyecto y su columna", async () => {
     const { client, requests } = createFakeSupabase(
       json([
         {
@@ -19,7 +19,7 @@ describe("tasksRepository.listAssignedToMe", () => {
           priority: "p0",
           size: "l",
           project: { name: "Largometraje", color: "#6366f1" },
-          column: { title: "En curso" },
+          column: { title: "En curso", category: "doing" },
         },
       ])
     )
@@ -29,8 +29,9 @@ describe("tasksRepository.listAssignedToMe", () => {
     const { url } = requests[0]!
     expect(url.searchParams.get("assignee_id")).toBe(`eq.${USER_ID}`)
     expect(url.searchParams.get("select")).toBe(
-      "id,project_id,content,priority,size,project:projects(name,color),column:columns(title)"
+      "id,project_id,content,priority,size,project:projects(name,color),column:columns!inner(title,category)"
     )
+    expect(url.searchParams.get("column.category")).toBe("neq.done")
     expect(tasks).toEqual([
       {
         id: TASK_ID,

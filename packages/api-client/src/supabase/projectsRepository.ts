@@ -1,11 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { ProjectSchema, ProjectSummarySchema } from "@repo/contracts"
+import { ProjectSchema, ProjectSummarySchema, type ColumnCategory } from "@repo/contracts"
 import type { ProjectsRepository } from "../ApiClient"
 import type { Database, Tables } from "./database.types"
 import { parseWith, requireRows, unwrap } from "./result"
 import { currentUserId } from "./session"
 
-const DEFAULT_COLUMNS = ["Backlog", "Ready", "In Progress", "In Review", "Done"]
+const DEFAULT_COLUMNS: { title: string; category: ColumnCategory }[] = [
+  { title: "Pendiente", category: "todo" },
+  { title: "Listo", category: "todo" },
+  { title: "En curso", category: "doing" },
+  { title: "En revisión", category: "doing" },
+  { title: "Hecho", category: "done" },
+]
 
 const toProjectShape = (row: Tables<"projects">) => ({
   id: row.id,
@@ -57,7 +63,9 @@ export const createProjectsRepository = (client: SupabaseClient<Database>): Proj
 
     const columns = await client
       .from("columns")
-      .insert(DEFAULT_COLUMNS.map((title, position) => ({ project_id: row.id, title, position })))
+      .insert(
+        DEFAULT_COLUMNS.map((column, position) => ({ ...column, project_id: row.id, position }))
+      )
       .select("id")
 
     if (columns.error) {

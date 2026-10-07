@@ -16,6 +16,7 @@ import { useBoardTasks } from "../api/tasks"
 import { useProjectId } from "../hooks/useProjectId"
 import {
   buildRows,
+  doneColumnId,
   filterRows,
   sortRows,
   type SortDirection,
@@ -83,6 +84,7 @@ export function TaskTable() {
   const projectId = useProjectId()
   const { data: tasks = [] } = useBoardTasks(projectId)
   const { data: columns = [] } = useColumns(projectId)
+  const doneId = doneColumnId(columns)
   const searchValue = useContext(SearchContext)?.searchValue ?? ""
 
   const [sortKey, setSortKey] = useState<SortKey>("column")
@@ -179,7 +181,7 @@ export function TaskTable() {
                     </TableCell>
                     <TableCell>
                       {row.dueDate ? (
-                        <DueDateChip dueDate={row.dueDate} />
+                        <DueDateChip dueDate={row.dueDate} done={row.columnId === doneId} />
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}

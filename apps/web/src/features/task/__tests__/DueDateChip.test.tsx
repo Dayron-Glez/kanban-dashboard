@@ -46,4 +46,10 @@ describe("DueDateChip", () => {
     const { container: lejana } = render(<DueDateChip dueDate="2026-12-01" />)
     expect(lejana.querySelector("span")?.className).toContain("text-foreground/70")
   })
+
+  it("en una tarea terminada muestra la fecha sin avisar de que venció", () => {
+    render(<DueDateChip dueDate="2026-09-01" done />)
+    expect(screen.getByText("1 sep")).toBeInTheDocument()
+    expect(screen.queryByText("Hace 7 días")).not.toBeInTheDocument()
+  })
 })

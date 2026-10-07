@@ -1,8 +1,16 @@
 import { Tooltip, TooltipContent, TooltipTrigger, cn } from "@/shared/index"
-import { DUE_STATE_CHIP, formatDueFull, formatDueLabel, getDueState } from "@repo/domain"
+import {
+  DUE_STATE_CHIP,
+  formatDueFull,
+  formatDueLabel,
+  formatDueShort,
+  getDueState,
+} from "@repo/domain"
 
 interface DueDateChipProps {
   dueDate: string | null | undefined
+  /** Tarea terminada: la fecha se muestra sin avisos de vencimiento. */
+  done?: boolean
   className?: string
 }
 
@@ -14,10 +22,10 @@ interface DueDateChipProps {
  * No pinta nada si la tarea no tiene fecha: una píldora «Sin fecha» en cada
  * tarjeta sería ruido en un tablero donde la mayoría no la tendrá.
  */
-export function DueDateChip({ dueDate, className }: DueDateChipProps) {
+export function DueDateChip({ dueDate, done = false, className }: DueDateChipProps) {
   if (!dueDate) return null
 
-  const state = getDueState(dueDate)
+  const state = done ? "none" : getDueState(dueDate)
 
   return (
     <Tooltip>
@@ -33,7 +41,7 @@ export function DueDateChip({ dueDate, className }: DueDateChipProps) {
             className
           )}
         >
-          {formatDueLabel(dueDate)}
+          {done ? formatDueShort(dueDate) : formatDueLabel(dueDate)}
         </span>
       </TooltipTrigger>
       <TooltipContent>{formatDueFull(dueDate)}</TooltipContent>

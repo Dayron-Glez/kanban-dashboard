@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { IconPlus } from "@tabler/icons-react"
 import { Button, SearchInput, Tooltip, TooltipContent, TooltipTrigger } from "@/shared/index"
-import { CreateColumnSheet } from "@/features/column/index"
+import { CreateColumnSheet, type CreateColumnValues } from "@/features/column/index"
 import { useProject } from "@/features/project"
 import { useCreateColumn, useColumns } from "../api/columns"
 import { useTasks } from "../api/tasks"
@@ -29,17 +29,19 @@ export function BoardHeaderActions({ searchValue, onSearchChange }: Props) {
   const scrollContainerRef = useBoardScroll()
   const [createColumnOpen, setCreateColumnOpen] = useState<boolean>(false)
 
-  const handleCreateColumn = (content: string) => {
-    const title = content.trim() || `Columna ${columns.length + 1}`
-    createColumn.mutate(title, {
-      onSuccess: () => {
-        // Tras pintar la columna nueva, para que el ancho ya la incluya.
-        requestAnimationFrame(() => {
-          const container = scrollContainerRef.current
-          container?.scrollTo({ left: container.scrollWidth, behavior: "smooth" })
-        })
-      },
-    })
+  const handleCreateColumn = ({ title, category }: CreateColumnValues) => {
+    createColumn.mutate(
+      { title: title.trim() || `Columna ${columns.length + 1}`, category },
+      {
+        onSuccess: () => {
+          // Tras pintar la columna nueva, para que el ancho ya la incluya.
+          requestAnimationFrame(() => {
+            const container = scrollContainerRef.current
+            container?.scrollTo({ left: container.scrollWidth, behavior: "smooth" })
+          })
+        },
+      }
+    )
     setCreateColumnOpen(false)
   }
 

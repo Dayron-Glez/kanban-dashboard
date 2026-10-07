@@ -1,6 +1,7 @@
 import type {
   AssignedTask,
   Column,
+  ColumnCategory,
   CreateColumnInput,
   CreateInvitationInput,
   CreateProjectInput,
@@ -46,6 +47,8 @@ export interface ColumnsRepository {
   rename(id: string, title: string): Promise<void>
   remove(id: string): Promise<void>
   reorder(projectId: string, orderedColumnIds: string[]): Promise<void>
+  /** Si es «done», la que lo era pasa a «doing». */
+  setCategory(id: string, category: ColumnCategory): Promise<void>
 }
 
 export interface TasksRepository {

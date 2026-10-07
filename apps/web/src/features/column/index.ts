@@ -1,4 +1,5 @@
 export * from "./components/ColumnContainer"
+export { CATEGORY_CONFIG } from "./lib/columnCategories"
 export * from "./components/CreateColumnSheet"
 export * from "./components/EditableColumnTitle/EditableColumnTitle"
 export * from "./components/EditableColumnTitle/TitleTextArea"

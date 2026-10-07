@@ -98,11 +98,11 @@ describe("projectsRepository.create", () => {
     })
     expect(requests[1]!.url.pathname).toBe("/rest/v1/columns")
     expect(requests[1]!.body).toEqual([
-      { project_id: PROJECT_ID, title: "Backlog", position: 0 },
-      { project_id: PROJECT_ID, title: "Ready", position: 1 },
-      { project_id: PROJECT_ID, title: "In Progress", position: 2 },
-      { project_id: PROJECT_ID, title: "In Review", position: 3 },
-      { project_id: PROJECT_ID, title: "Done", position: 4 },
+      { project_id: PROJECT_ID, title: "Pendiente", category: "todo", position: 0 },
+      { project_id: PROJECT_ID, title: "Listo", category: "todo", position: 1 },
+      { project_id: PROJECT_ID, title: "En curso", category: "doing", position: 2 },
+      { project_id: PROJECT_ID, title: "En revisión", category: "doing", position: 3 },
+      { project_id: PROJECT_ID, title: "Hecho", category: "done", position: 4 },
     ])
   })
 

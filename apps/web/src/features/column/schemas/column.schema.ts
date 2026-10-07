@@ -1,4 +1,5 @@
 import * as z from "zod"
+import { ColumnCategorySchema } from "@repo/contracts"
 
 export const columnValidationSchema = z.object({
   title: z
@@ -9,3 +10,9 @@ export const columnValidationSchema = z.object({
       "El nombre de la columna no puede contener solo espacios."
     ),
 })
+
+export const createColumnSchema = columnValidationSchema.extend({
+  category: ColumnCategorySchema,
+})
+
+export type CreateColumnValues = z.infer<typeof createColumnSchema>
