@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/index"
-import { TASK_SIZES } from "@/features/board/types/board.types"
+import { TASK_SIZES } from "@repo/contracts"
 import { SIZE_CONFIG } from "../taskChips"
 
 interface SelectSizeProps {

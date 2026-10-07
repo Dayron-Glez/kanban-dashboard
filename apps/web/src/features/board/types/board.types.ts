@@ -1,30 +1,9 @@
-export const TASK_PRIORITIES = ["p0", "p1", "p2"] as const
-export const TASK_SIZES = ["xs", "s", "m", "l", "xl"] as const
+import type { TaskInput } from "@repo/contracts"
+import type { TaskWithAssignee } from "@repo/domain"
 
-export type TaskPriority = (typeof TASK_PRIORITIES)[number]
-export type TaskSize = (typeof TASK_SIZES)[number]
+/** Tarea tal como la pinta el tablero: con el perfil de quien la tiene asignada. */
+export type BoardTask = TaskWithAssignee
 
-export interface Task {
-  id: string
-  content: string
-  priority: TaskPriority
-  size: TaskSize
-  /** ISO yyyy-MM-dd, o null si la tarea no tiene fecha de vencimiento. */
-  due_date: string | null
-  columnId: string
-  project_id: string
-  position: number
-  assignee_id: string | null
-  assigneeProfile: {
-    full_name: string | null
-    avatar_url: string | null
-    email: string | null
-  } | null
-}
-
-export interface ColumnType {
-  id: string
-  title: string
-  project_id: string
-  position: number
-}
+/** Lo que llega de los formularios de crear y editar tarea. */
+export type TaskDraft = Pick<TaskInput, "content" | "priority" | "size"> &
+  Partial<Pick<TaskInput, "dueDate" | "assigneeId">>

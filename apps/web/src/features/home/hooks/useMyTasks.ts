@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/shared/supabase"
-import type { TaskPriority, TaskSize } from "@/features/board/index"
+import type { TaskPriority, TaskSize } from "@repo/contracts"
 import { useAuth } from "@/features/auth"
 
 /** Tarea asignada al usuario, con el contexto de dónde vive. */

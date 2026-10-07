@@ -39,7 +39,7 @@ export function DueDateField({ disabled = false }: DueDateFieldProps) {
 
   return (
     <Controller
-      name="due_date"
+      name="dueDate"
       control={control}
       render={({ field }) => {
         const value: string | null = field.value ?? null
@@ -47,8 +47,8 @@ export function DueDateField({ disabled = false }: DueDateFieldProps) {
         const state = getDueState(value)
 
         return (
-          <Field data-invalid={!!errors.due_date} className="col-span-2">
-            <FieldLabel htmlFor="due_date" className="text-primary">
+          <Field data-invalid={!!errors.dueDate} className="col-span-2">
+            <FieldLabel htmlFor="dueDate" className="text-primary">
               Fecha de vencimiento
             </FieldLabel>
 
@@ -56,7 +56,7 @@ export function DueDateField({ disabled = false }: DueDateFieldProps) {
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                   <button
-                    id="due_date"
+                    id="dueDate"
                     type="button"
                     disabled={disabled}
                     className={cn(TRIGGER_CLASS, "flex-1", !value && "text-muted-foreground")}
@@ -114,7 +114,7 @@ export function DueDateField({ disabled = false }: DueDateFieldProps) {
               )}
             </div>
 
-            {errors.due_date && <FieldError errors={[errors.due_date]} />}
+            {errors.dueDate && <FieldError errors={[errors.dueDate]} />}
           </Field>
         )
       }}

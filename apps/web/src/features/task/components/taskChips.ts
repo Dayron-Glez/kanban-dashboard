@@ -1,4 +1,4 @@
-import type { TaskPriority, TaskSize } from "@/features/board/types/board.types"
+import type { TaskPriority, TaskSize } from "@repo/contracts"
 
 interface PriorityChipCfg {
   label: string

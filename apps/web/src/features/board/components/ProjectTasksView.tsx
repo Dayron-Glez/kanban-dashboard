@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router"
 import KanbanBoard from "./KanbanBoard"
 import { TaskTable } from "./TaskTable"
-import { parseView, VIEW_PARAM } from "../lib/taskTable"
+import { parseView, VIEW_PARAM } from "../lib/projectView"
 
 /**
  * Punto de entrada de /projects/:id. Tablero y tabla son dos lecturas de las

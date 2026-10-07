@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import type { Task } from "@/features/board/types/board.types"
+import type { BoardTask } from "@/features/board/types/board.types"
 
 // TaskForm arrastra AssigneeSelect, que lee los miembros de useKanban. Aquí no
 // hay tablero, y los miembros no son lo que se está probando.
@@ -8,17 +8,17 @@ vi.mock("@/features/board/index", () => ({ useKanban: () => ({ members: [] }) })
 
 const { DetailsTaskSheet } = await import("../components/DetailsTaskSheet")
 
-const tarea = (over: Partial<Task> = {}): Task => ({
+const tarea = (over: Partial<BoardTask> = {}): BoardTask => ({
   id: "t1",
   content: "Brief para la agencia",
   priority: "p2",
   size: "s",
-  due_date: null,
+  dueDate: null,
   columnId: "c1",
-  project_id: "p1",
+  projectId: "p1",
   position: 0,
-  assignee_id: null,
-  assigneeProfile: null,
+  assigneeId: null,
+  assignee: null,
   ...over,
 })
 
@@ -26,7 +26,7 @@ const campoFecha = () => screen.getByRole("button", { name: "Fecha de vencimient
 
 describe("DetailsTaskSheet", () => {
   it("muestra la fecha de vencimiento de la tarea", () => {
-    render(<DetailsTaskSheet task={tarea({ due_date: "2026-09-20" })} open />)
+    render(<DetailsTaskSheet task={tarea({ dueDate: "2026-09-20" })} open />)
     expect(campoFecha()).toHaveTextContent("20 de septiembre de 2026")
   })
 
@@ -42,7 +42,7 @@ describe("DetailsTaskSheet", () => {
     const { rerender } = render(<DetailsTaskSheet task={tarea()} open />)
     expect(campoFecha()).toHaveTextContent("Sin fecha")
 
-    rerender(<DetailsTaskSheet task={tarea({ due_date: "2026-09-20" })} open />)
+    rerender(<DetailsTaskSheet task={tarea({ dueDate: "2026-09-20" })} open />)
     expect(campoFecha()).toHaveTextContent("20 de septiembre de 2026")
   })
 

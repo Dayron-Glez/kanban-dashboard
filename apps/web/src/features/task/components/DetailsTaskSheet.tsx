@@ -1,22 +1,22 @@
 import { useEffect } from "react"
 import { FormProvider, useForm } from "react-hook-form"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/shared/index"
-import { type Task } from "@/features/board/index"
+import { type BoardTask } from "@/features/board/index"
 import { TaskForm } from "./TaskForm/TaskForm"
 
 interface DetailsTaskSheetProps {
-  task: Task
+  task: BoardTask
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }
 
 /** Los valores del formulario a partir de la tarea, en un solo sitio. */
-const valuesOf = (task: Task) => ({
+const valuesOf = (task: BoardTask) => ({
   content: task.content,
   priority: task.priority,
   size: task.size,
-  assignee_id: task.assignee_id,
-  due_date: task.due_date,
+  assigneeId: task.assigneeId,
+  dueDate: task.dueDate,
 })
 
 export function DetailsTaskSheet({ task, open, onOpenChange }: DetailsTaskSheetProps) {

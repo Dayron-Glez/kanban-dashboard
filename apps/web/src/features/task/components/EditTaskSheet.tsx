@@ -11,12 +11,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/shared/index"
-import { type Task } from "@/features/board/index"
+import { type BoardTask } from "@/features/board/index"
 import { taskValidationSchema, type TaskFormValues } from "../schemas/task.schema"
 import { TaskForm } from "./TaskForm/TaskForm"
 
 interface EditTaskSheetProps {
-  task: Task | null
+  task: BoardTask | null
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSave: (id: string, taskData: TaskFormValues) => void
@@ -29,8 +29,8 @@ export function EditTaskSheet({ task, open, onOpenChange, onSave }: EditTaskShee
       content: "",
       priority: "p1",
       size: "m",
-      assignee_id: null,
-      due_date: null,
+      assigneeId: null,
+      dueDate: null,
     },
   })
 
@@ -40,8 +40,8 @@ export function EditTaskSheet({ task, open, onOpenChange, onSave }: EditTaskShee
         content: task.content,
         priority: task.priority,
         size: task.size,
-        assignee_id: task.assignee_id,
-        due_date: task.due_date,
+        assigneeId: task.assigneeId,
+        dueDate: task.dueDate,
       })
     }
   }, [task, open, form])
@@ -53,8 +53,8 @@ export function EditTaskSheet({ task, open, onOpenChange, onSave }: EditTaskShee
         content: task.content,
         priority: task.priority,
         size: task.size,
-        assignee_id: task.assignee_id,
-        due_date: task.due_date,
+        assigneeId: task.assigneeId,
+        dueDate: task.dueDate,
       })
     }
   }

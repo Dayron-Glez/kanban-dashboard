@@ -1,24 +1,32 @@
 import { describe, expect, it } from "vitest"
-import { buildRows, filterRows, sortRows, type TaskRow } from "../lib/taskTable"
-import type { ColumnType, Task } from "../types/board.types"
+import type { Column } from "@repo/contracts"
+import { buildRows, filterRows, sortRows, type TaskRow } from "../taskTable"
+import type { TaskWithAssignee } from "../withAssignees"
 
-const columns: ColumnType[] = [
-  { id: "c1", title: "En curso", project_id: "p", position: 0 },
-  { id: "c2", title: "Aprobado", project_id: "p", position: 1 },
+const columns: Column[] = [
+  { id: "c1", title: "En curso", projectId: "p", position: 0 },
+  { id: "c2", title: "Aprobado", projectId: "p", position: 1 },
 ]
 
-const task = (over: Partial<Task> = {}): Task => ({
+const task = (over: Partial<TaskWithAssignee> = {}): TaskWithAssignee => ({
   id: "t",
   content: "Tarea",
   priority: "p2",
   size: "m",
-  due_date: null,
+  dueDate: null,
   columnId: "c1",
-  project_id: "p",
+  projectId: "p",
   position: 0,
-  assignee_id: null,
-  assigneeProfile: null,
+  assigneeId: null,
+  assignee: null,
   ...over,
+})
+
+const profile = (fullName: string | null) => ({
+  id: "u",
+  fullName,
+  email: "a@b.c",
+  avatarUrl: null,
 })
 
 const row = (over: Partial<TaskRow> = {}): TaskRow => ({
@@ -43,16 +51,10 @@ describe("buildRows", () => {
   })
 
   it("prefiere el nombre del asignado y cae al email", () => {
-    const conNombre = buildRows(
-      [task({ assigneeProfile: { full_name: "Ana Ruiz", email: "a@b.c", avatar_url: null } })],
-      columns
-    )
+    const conNombre = buildRows([task({ assignee: profile("Ana Ruiz") })], columns)
     expect(conNombre[0].assignee).toBe("Ana Ruiz")
 
-    const soloEmail = buildRows(
-      [task({ assigneeProfile: { full_name: null, email: "a@b.c", avatar_url: null } })],
-      columns
-    )
+    const soloEmail = buildRows([task({ assignee: profile(null) })], columns)
     expect(soloEmail[0].assignee).toBe("a@b.c")
   })
 

@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { TASK_PRIORITIES, TASK_SIZES } from "@/features/board/types/board.types"
+import { TASK_PRIORITIES, TASK_SIZES } from "@repo/contracts"
 
 export const taskValidationSchema = z.object({
   content: z.string().trim().min(5, "El contenido debe tener al menos 5 caracteres."),
@@ -9,9 +9,9 @@ export const taskValidationSchema = z.object({
   size: z.enum(TASK_SIZES, {
     message: "Selecciona un tamaño válido",
   }),
-  assignee_id: z.string().nullable().optional(),
+  assigneeId: z.string().nullable().optional(),
   // ISO yyyy-MM-dd, que es lo que guarda una columna date de Postgres.
-  due_date: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
 })
 
 export type TaskFormValues = z.infer<typeof taskValidationSchema>
