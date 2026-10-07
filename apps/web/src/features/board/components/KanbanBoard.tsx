@@ -13,8 +13,9 @@ import { supabase } from "@/shared/supabase"
 import { ColumnContainer } from "@/features/column/index"
 import { DetailsTaskSheet } from "@/features/task/index"
 import { isColumnDragData, isTaskDragData } from "../lib/dragData"
-import { columnPositionRows, dropAtColumnEnd, dropNextToTask } from "../lib/reorder"
-import { useKanban, type ColumnType, type Task } from "../index"
+import type { Column } from "@repo/contracts"
+import { columnPositions, dropAtColumnEnd, dropNextToTask } from "@repo/domain"
+import { useKanban, type BoardTask } from "../index"
 
 export default function KanbanBoard() {
   const searchContext = useContext<{
@@ -40,8 +41,17 @@ export default function KanbanBoard() {
     return task.content.toLowerCase().includes(searchTerm)
   })
 
-  const savePositions = (all: Task[], columnId: string): void => {
-    const rows = columnPositionRows(all, columnId)
+  const savePositions = (all: BoardTask[], columnId: string): void => {
+    const rows = columnPositions(all, columnId).map(({ task, position }) => ({
+      id: task.id,
+      position,
+      column_id: task.columnId,
+      project_id: task.projectId,
+      content: task.content,
+      priority: task.priority,
+      size: task.size,
+      due_date: task.dueDate,
+    }))
     if (rows.length === 0) return
     supabase
       .from("tasks")
@@ -51,14 +61,14 @@ export default function KanbanBoard() {
       })
   }
 
-  const saveColumnOrder = (ordered: ColumnType[]): void => {
+  const saveColumnOrder = (ordered: Column[]): void => {
     supabase
       .from("columns")
       .upsert(
         ordered.map((col) => ({
           id: col.id,
           position: col.position,
-          project_id: col.project_id,
+          project_id: col.projectId,
           title: col.title,
         }))
       )
@@ -99,7 +109,7 @@ export default function KanbanBoard() {
     const record = target.current.dropTargets[0]
     if (!record) return
 
-    let settled: Task[]
+    let settled: BoardTask[]
     if (isTaskDragData(record.data)) {
       const edge = extractClosestEdge(record.data)
       if (edge !== "top" && edge !== "bottom") return

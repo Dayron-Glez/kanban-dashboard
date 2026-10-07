@@ -1,11 +1,11 @@
 import { createContext } from "react"
 import type { RefObject } from "react"
-import type { ColumnType, Task, TaskPriority, TaskSize } from "../types/board.types"
-import type { MemberRole, ProjectMember } from "@/shared/supabase"
+import type { Column, MemberRole, ProjectMember, Task } from "@repo/contracts"
+import type { BoardTask, TaskDraft } from "../types/board.types"
 
 export interface KanbanContextType {
-  columns: ColumnType[]
-  tasks: Task[]
+  columns: Column[]
+  tasks: BoardTask[]
   columnsId: string[]
   loading: boolean
   userRole: MemberRole | null
@@ -13,26 +13,10 @@ export interface KanbanContextType {
   createNewColumn: (title?: string) => void
   updateColumn: (id: string, title: string) => void
   deleteColumn: (id: string) => void
-  createNewTask: (
-    columnId: string,
-    taskData: {
-      content: string
-      priority: TaskPriority
-      size: TaskSize
-      assignee_id?: string | null
-    }
-  ) => void
-  updateTask: (
-    id: string,
-    taskData: {
-      content: string
-      priority: TaskPriority
-      size: TaskSize
-      assignee_id?: string | null
-    }
-  ) => void
+  createNewTask: (columnId: string, draft: TaskDraft) => void
+  updateTask: (id: string, draft: TaskDraft) => void
   deleteTask: (id: string) => void
-  setColumns: React.Dispatch<React.SetStateAction<ColumnType[]>>
+  setColumns: React.Dispatch<React.SetStateAction<Column[]>>
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
   scrollContainerRef: RefObject<HTMLElement | null>
 }

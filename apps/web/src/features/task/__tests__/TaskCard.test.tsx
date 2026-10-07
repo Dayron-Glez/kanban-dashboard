@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeAll, describe, expect, it, vi } from "vitest"
-import type { Task } from "@/features/board/types/board.types"
+import type { BoardTask } from "@/features/board/types/board.types"
 
 // Los sheets de edición y detalle montan TaskForm, cuyo AssigneeSelect lee los
 // miembros del tablero. Se simula el fichero del hook y no el barril: el barril
@@ -22,17 +22,17 @@ beforeAll(() => {
   Element.prototype.scrollIntoView ??= () => {}
 })
 
-const tarea = (over: Partial<Task> = {}): Task => ({
+const tarea = (over: Partial<BoardTask> = {}): BoardTask => ({
   id: "t1",
   content: "Brief para la agencia",
   priority: "p0",
   size: "m",
-  due_date: null,
+  dueDate: null,
   columnId: "c1",
-  project_id: "p1",
+  projectId: "p1",
   position: 0,
-  assignee_id: null,
-  assigneeProfile: null,
+  assigneeId: null,
+  assignee: null,
   ...over,
 })
 
@@ -58,13 +58,13 @@ describe("TaskCard", () => {
 
   it("muestra las iniciales del asignado", () => {
     renderCard(
-      tarea({ assigneeProfile: { full_name: "Ana García", avatar_url: null, email: "ana@x.com" } })
+      tarea({ assignee: { id: "u1", fullName: "Ana García", avatarUrl: null, email: "ana@x.com" } })
     )
     expect(screen.getByText("AG")).toBeInTheDocument()
   })
 
   it("usa una interrogación si el asignado no tiene nombre", () => {
-    renderCard(tarea({ assigneeProfile: { full_name: null, avatar_url: null, email: null } }))
+    renderCard(tarea({ assignee: { id: "u1", fullName: null, avatarUrl: null, email: null } }))
     expect(screen.getByText("?")).toBeInTheDocument()
   })
 

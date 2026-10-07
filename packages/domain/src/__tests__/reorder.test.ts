@@ -1,27 +1,17 @@
 import { describe, expect, it } from "vitest"
 import {
-  columnPositionRows,
+  columnPositions,
   dropAtColumnEnd,
   dropNextToTask,
   moveTaskToColumn,
   reorderWithinColumn,
   tasksInColumn,
-} from "../lib/reorder"
-import type { Task } from "../types/board.types"
+  type Placeable,
+} from "../reorder"
 
-/** Tarea mínima: la reordenación solo mira `id` y `columnId`. */
-const task = (id: string, columnId: string): Task => ({
-  id,
-  content: id,
-  priority: "p2",
-  size: "m",
-  due_date: null,
-  columnId,
-  project_id: "proj",
-  position: 0,
-  assignee_id: null,
-  assigneeProfile: null,
-})
+type Task = Placeable
+
+const task = (id: string, columnId: string): Task => ({ id, columnId })
 
 /** Tablero de dos columnas: A con tres tareas, B con tres. */
 const board = (): Task[] => [
@@ -193,10 +183,10 @@ describe("dropAtColumnEnd", () => {
   })
 })
 
-describe("columnPositionRows", () => {
+describe("columnPositions", () => {
   it("numera las posiciones densamente en el orden visible", () => {
     const next = moveTaskToColumn(board(), "a1", "B", 1)
-    expect(columnPositionRows(next, "B").map((row) => [row.id, row.position])).toEqual([
+    expect(columnPositions(next, "B").map(({ task, position }) => [task.id, position])).toEqual([
       ["b1", 0],
       ["a1", 1],
       ["b2", 2],
@@ -204,8 +194,11 @@ describe("columnPositionRows", () => {
     ])
   })
 
-  it("persiste la columna de destino en las filas movidas", () => {
+  it("lleva la columna de destino en las tareas movidas", () => {
     const next = moveTaskToColumn(board(), "a1", "B", 0)
-    expect(columnPositionRows(next, "B")[0]).toMatchObject({ id: "a1", column_id: "B" })
+    expect(columnPositions(next, "B")[0]).toEqual({
+      task: { id: "a1", columnId: "B" },
+      position: 0,
+    })
   })
 })

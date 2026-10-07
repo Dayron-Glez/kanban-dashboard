@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { type Task } from "@/features/board/index"
+import { type BoardTask } from "@/features/board/index"
 import { useTaskDrag } from "../../hooks/useTaskDrag"
 import { type TaskFormValues } from "../../schemas/task.schema"
 import { DetailsTaskSheet } from "../DetailsTaskSheet"
@@ -12,7 +12,7 @@ import { TaskAssigneeAvatar } from "./TaskAssigneeAvatar"
 import { TaskDropIndicator } from "./TaskDropIndicator"
 
 interface TaskCardProps {
-  task: Task
+  task: BoardTask
   deleteTask: (id: string) => void
   updateTask: (id: string, taskData: TaskFormValues) => void
 }
@@ -58,10 +58,10 @@ export function TaskCard({ task, deleteTask, updateTask }: Readonly<TaskCardProp
               >
                 {size.label}
               </span>
-              <DueDateChip dueDate={task.due_date} />
+              <DueDateChip dueDate={task.dueDate} />
             </div>
 
-            {task.assigneeProfile && <TaskAssigneeAvatar profile={task.assigneeProfile} />}
+            {task.assignee && <TaskAssigneeAvatar profile={task.assignee} />}
           </div>
         </div>
       </div>

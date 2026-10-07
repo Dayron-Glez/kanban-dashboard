@@ -19,8 +19,8 @@ import {
   type SortDirection,
   type SortKey,
   type TaskRow,
-} from "../lib/taskTable"
-import type { Task } from "../types/board.types"
+} from "@repo/domain"
+import type { BoardTask } from "../types/board.types"
 
 const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
   { key: "content", label: "Tarea" },
@@ -83,7 +83,7 @@ export function TaskTable() {
 
   const [sortKey, setSortKey] = useState<SortKey>("column")
   const [direction, setDirection] = useState<SortDirection>("asc")
-  const [selected, setSelected] = useState<Task | null>(null)
+  const [selected, setSelected] = useState<BoardTask | null>(null)
 
   const rows = useMemo(
     () => sortRows(filterRows(buildRows(tasks, columns), searchValue), sortKey, direction),

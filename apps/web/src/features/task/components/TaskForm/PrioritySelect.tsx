@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/index"
-import { TASK_PRIORITIES } from "@/features/board/types/board.types"
+import { TASK_PRIORITIES } from "@repo/contracts"
 import { PRIORITY_CONFIG } from "../taskChips"
 
 interface SelectPriorityProps {

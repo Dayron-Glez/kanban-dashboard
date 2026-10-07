@@ -1,7 +1,7 @@
 import { IconLayoutKanban, IconTable } from "@tabler/icons-react"
 import { useSearchParams } from "react-router"
 import { Tooltip, TooltipContent, TooltipTrigger, cn } from "@/shared/index"
-import { parseView, VIEW_PARAM, type ProjectView } from "../lib/taskTable"
+import { parseView, VIEW_PARAM, type ProjectView } from "../lib/projectView"
 
 const OPTIONS: { value: ProjectView; label: string; Icon: typeof IconTable }[] = [
   { value: "board", label: "Vista de tablero", Icon: IconLayoutKanban },

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { getISOWeek, getISOWeekYear, subWeeks, formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { supabase } from "@/shared/supabase"
-import type { ColumnType, Task } from "@/features/board/index"
+import type { Column, Task } from "@repo/contracts"
 
 interface TaskHistoryRecord {
   id: string
@@ -88,10 +88,7 @@ const buildPriorityData = (tasks: Task[]): PriorityDataPoint[] =>
     tareas: tasks.filter((t) => t.priority === p).length,
   }))
 
-const buildActivityItems = (
-  history: TaskHistoryRecord[],
-  columns: ColumnType[]
-): ActivityItem[] => {
+const buildActivityItems = (history: TaskHistoryRecord[], columns: Column[]): ActivityItem[] => {
   const colMap = new Map(columns.map((c) => [c.id, c.title]))
   return history.slice(0, 15).map((h) => ({
     id: h.id,
@@ -107,7 +104,7 @@ const buildActivityItems = (
 
 export const useAnalytics = (
   projectId: string | undefined,
-  columns: ColumnType[],
+  columns: Column[],
   tasks: Task[]
 ): UseAnalyticsReturn => {
   const [loading, setLoading] = useState(true)

@@ -7,6 +7,7 @@ export const useMembers = (projectId: string) => {
   return useQuery({
     queryKey: queryKeys.projects.members(projectId),
     queryFn: () => api.members.listByProject(projectId),
+    enabled: projectId !== "",
   })
 }
 

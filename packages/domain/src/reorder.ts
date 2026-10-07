@@ -1,5 +1,3 @@
-import type { Task } from "../types/board.types"
-
 /**
  * Reordenación del tablero.
  *
@@ -14,13 +12,19 @@ import type { Task } from "../types/board.types"
  * recolocan una única tarea, de modo que el orden del resto queda intacto.
  */
 
+/** Lo único que la reordenación necesita saber de una tarea. */
+export interface Placeable {
+  id: string
+  columnId: string
+}
+
 /** Tareas de una columna, en el orden en que se ven. */
-export function tasksInColumn(tasks: Task[], columnId: string): Task[] {
+export function tasksInColumn<T extends Placeable>(tasks: T[], columnId: string): T[] {
   return tasks.filter((task) => task.columnId === columnId)
 }
 
 /** Array sin el elemento que está en `index`. */
-function removeAt(tasks: Task[], index: number): Task[] {
+function removeAt<T>(tasks: T[], index: number): T[] {
   return [...tasks.slice(0, index), ...tasks.slice(index + 1)]
 }
 
@@ -28,7 +32,12 @@ function removeAt(tasks: Task[], index: number): Task[] {
  * Inserta `task` de forma que ocupe la posición `posInColumn` de `columnId`.
  * `rest` no debe contener ya a `task`.
  */
-function insertIntoColumn(rest: Task[], task: Task, columnId: string, posInColumn: number): Task[] {
+function insertIntoColumn<T extends Placeable>(
+  rest: T[],
+  task: T,
+  columnId: string,
+  posInColumn: number
+): T[] {
   // Índices GLOBALES de los miembros de la columna destino, en orden.
   const memberIndexes: number[] = []
   for (let i = 0; i < rest.length; i++) {
@@ -60,12 +69,12 @@ function insertIntoColumn(rest: Task[], task: Task, columnId: string, posInColum
  * tablero compara por referencia para saber si un soltado cambió algo y, si
  * no, no escribe nada en la base de datos.
  */
-export function moveTaskToColumn(
-  tasks: Task[],
+export function moveTaskToColumn<T extends Placeable>(
+  tasks: T[],
   taskId: string,
   columnId: string,
   posInColumn: number
-): Task[] {
+): T[] {
   const index = tasks.findIndex((task) => task.id === taskId)
   if (index === -1) return tasks
 
@@ -79,7 +88,11 @@ export function moveTaskToColumn(
  * Coloca `taskId` en el hueco de `overTaskId` dentro de su columna, con la
  * misma semántica que `arrayMove` pero aplicada solo a esa columna.
  */
-export function reorderWithinColumn(tasks: Task[], taskId: string, overTaskId: string): Task[] {
+export function reorderWithinColumn<T extends Placeable>(
+  tasks: T[],
+  taskId: string,
+  overTaskId: string
+): T[] {
   if (taskId === overTaskId) return tasks
 
   const index = tasks.findIndex((task) => task.id === taskId)
@@ -103,12 +116,12 @@ export type DropEdge = "top" | "bottom"
  * Estado final al soltar sobre una tarjeta: la arrastrada queda justo encima
  * o debajo de `targetTaskId`, según el borde por el que se soltó.
  */
-export function dropNextToTask(
-  tasks: Task[],
+export function dropNextToTask<T extends Placeable>(
+  tasks: T[],
   taskId: string,
   targetTaskId: string,
   edge: DropEdge
-): Task[] {
+): T[] {
   if (taskId === targetTaskId) return tasks
 
   const dragged = tasks.find((task) => task.id === taskId)
@@ -133,7 +146,11 @@ export function dropNextToTask(
 }
 
 /** Estado final al soltar sobre una columna fuera de cualquier tarjeta: al final. */
-export function dropAtColumnEnd(tasks: Task[], taskId: string, columnId: string): Task[] {
+export function dropAtColumnEnd<T extends Placeable>(
+  tasks: T[],
+  taskId: string,
+  columnId: string
+): T[] {
   const dragged = tasks.find((task) => task.id === taskId)
   if (!dragged) return tasks
 
@@ -146,19 +163,9 @@ export function dropAtColumnEnd(tasks: Task[], taskId: string, columnId: string)
 }
 
 /**
- * Filas para persistir el orden de una columna. La `position` se reasigna
- * densamente (0..n-1) sobre el orden real del array, que es justo lo que ve el
- * usuario.
+ * Posiciones densas (0..n-1) de una columna, sobre el orden real del array,
+ * que es justo lo que ve el usuario.
  */
-export function columnPositionRows(tasks: Task[], columnId: string) {
-  return tasksInColumn(tasks, columnId).map((task, position) => ({
-    id: task.id,
-    position,
-    column_id: task.columnId,
-    project_id: task.project_id,
-    content: task.content,
-    priority: task.priority,
-    size: task.size,
-    due_date: task.due_date,
-  }))
+export function columnPositions<T extends Placeable>(tasks: T[], columnId: string) {
+  return tasksInColumn(tasks, columnId).map((task, position) => ({ task, position }))
 }

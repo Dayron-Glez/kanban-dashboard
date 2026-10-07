@@ -35,20 +35,20 @@ import {
   isColumnDragData,
   isTaskDragData,
   useKanban,
-  type ColumnType,
-  type Task,
+  type BoardTask,
 } from "@/features/board/index"
 import { ColumnDragPreview } from "./ColumnDragPreview"
 import { ColumnDropIndicator } from "./ColumnDropIndicator"
 import { EditableColumnTitle } from "./EditableColumnTitle/EditableColumnTitle"
 import { CreateTaskSheet, TaskCard } from "@/features/task/index"
+import type { Column } from "@repo/contracts"
 
 const COLUMN_ACCENTS = ["#6366f1", "#f97316", "#0ea5e9", "#10b981", "#ec4899", "#8b5cf6"]
 const getAccent = (position: number) => COLUMN_ACCENTS[position % COLUMN_ACCENTS.length]
 
 interface Props {
-  column: ColumnType
-  tasks: Task[]
+  column: Column
+  tasks: BoardTask[]
   hasFilteredTasks?: boolean
 }
 

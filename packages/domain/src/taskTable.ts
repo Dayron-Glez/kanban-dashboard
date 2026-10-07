@@ -1,19 +1,5 @@
-import {
-  TASK_SIZES,
-  type ColumnType,
-  type Task,
-  type TaskPriority,
-  type TaskSize,
-} from "../types/board.types"
-
-/** Vista activa del proyecto. Viaja en la URL para poder compartir el enlace. */
-export type ProjectView = "board" | "table"
-
-export const VIEW_PARAM = "view"
-
-/** Cualquier valor que no sea "table" cae al tablero, que es la vista por defecto. */
-export const parseView = (value: string | null | undefined): ProjectView =>
-  value === "table" ? "table" : "board"
+import { TASK_SIZES, type Column, type TaskPriority, type TaskSize } from "@repo/contracts"
+import type { TaskWithAssignee } from "./withAssignees"
 
 /** Columnas por las que se puede ordenar la tabla. */
 export type SortKey = "content" | "column" | "priority" | "size" | "assignee" | "dueDate"
@@ -38,10 +24,10 @@ const SIZE_RANK: Record<TaskSize, number> = Object.fromEntries(
 ) as Record<TaskSize, number>
 
 /** Nombre visible de quien tiene asignada la tarea, o null si no hay nadie. */
-const assigneeOf = (task: Task): string | null =>
-  task.assigneeProfile?.full_name?.trim() || task.assigneeProfile?.email || null
+const assigneeOf = (task: TaskWithAssignee): string | null =>
+  task.assignee?.fullName?.trim() || task.assignee?.email || null
 
-export function buildRows(tasks: Task[], columns: ColumnType[]): TaskRow[] {
+export function buildRows(tasks: TaskWithAssignee[], columns: Column[]): TaskRow[] {
   const byId = new Map(columns.map((column) => [column.id, column]))
   return tasks.map((task) => {
     const column = byId.get(task.columnId)
@@ -54,7 +40,7 @@ export function buildRows(tasks: Task[], columns: ColumnType[]): TaskRow[] {
       priority: task.priority,
       size: task.size,
       assignee: assigneeOf(task),
-      dueDate: task.due_date,
+      dueDate: task.dueDate,
     }
   })
 }

@@ -7,3 +7,11 @@ export type MemberRole = z.infer<typeof MemberRoleSchema>
 export const INVITATION_STATUSES = ["pending", "accepted"] as const
 export const InvitationStatusSchema = z.enum(INVITATION_STATUSES)
 export type InvitationStatus = z.infer<typeof InvitationStatusSchema>
+
+export const TASK_PRIORITIES = ["p0", "p1", "p2"] as const
+export const TaskPrioritySchema = z.enum(TASK_PRIORITIES)
+export type TaskPriority = z.infer<typeof TaskPrioritySchema>
+
+export const TASK_SIZES = ["xs", "s", "m", "l", "xl"] as const
+export const TaskSizeSchema = z.enum(TASK_SIZES)
+export type TaskSize = z.infer<typeof TaskSizeSchema>

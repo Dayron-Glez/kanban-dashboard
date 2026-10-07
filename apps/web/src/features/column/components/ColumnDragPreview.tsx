@@ -1,11 +1,11 @@
-import type { Task } from "@/features/board/index"
+import type { BoardTask } from "@/features/board/index"
 
 const VISIBLE_TASKS = 3
 
 interface ColumnDragPreviewProps {
   title: string
   accent: string
-  tasks: Task[]
+  tasks: BoardTask[]
 }
 
 export function ColumnDragPreview({ title, accent, tasks }: Readonly<ColumnDragPreviewProps>) {
