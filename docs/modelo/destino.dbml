@@ -1,0 +1,355 @@
+// Modelo de destino de Cauce, con la API en NestJS y la base en Neon.
+// Es un diseño, no el DDL definitivo: lo implementa el esquema de Drizzle.
+// Para verlo, pega este fichero en https://dbdiagram.io/d
+//
+// Reglas:
+// - Un esquema de Postgres por módulo de la API; cada módulo solo escribe en el suyo.
+// - FK libres hacia identity y core (usuario y proyecto son el núcleo compartido).
+// - work puede apuntar a planning (un elemento se crea dentro de un nodo del plan),
+//   nunca al revés: no hay ciclos entre módulos.
+// - Identificadores en inglés; todo lo que ve el usuario, en español.
+
+Project cauce_destino {
+  database_type: 'PostgreSQL'
+  Note: 'Base en Neon. Autorización en los guards de Nest; autenticación con better-auth.'
+}
+
+// ── identity ─────────────────────────────────────────────────────────────
+// Tablas de better-auth. Los ids son los mismos uuid de auth.users: al importar
+// los usuarios, todas las FK siguen apuntando a la misma persona.
+
+Enum identity.provider {
+  credential [note: 'Email y contraseña']
+  google
+}
+
+Table identity.users {
+  id uuid [pk, note: 'Mismo id que en auth.users']
+  name text [not null, note: 'Antes profiles.full_name']
+  email text [not null, unique]
+  email_verified boolean [not null, default: false]
+  image text [note: 'Antes profiles.avatar_url']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Sustituye a auth.users y a public.profiles.'
+}
+
+Table identity.accounts {
+  id uuid [pk]
+  user_id uuid [not null, ref: > identity.users.id]
+  provider_id identity.provider [not null]
+  account_id text [not null, note: 'Id en el proveedor; para credential, el propio user_id']
+  password text [note: 'Hash bcrypt importado de auth.users.encrypted_password']
+  access_token text
+  refresh_token text
+  id_token text
+  access_token_expires_at timestamptz
+  refresh_token_expires_at timestamptz
+  scope text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (provider_id, account_id) [unique]
+  }
+}
+
+Table identity.sessions {
+  id uuid [pk]
+  user_id uuid [not null, ref: > identity.users.id]
+  token text [not null, unique]
+  expires_at timestamptz [not null]
+  ip_address text
+  user_agent text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table identity.verifications {
+  id uuid [pk]
+  identifier text [not null, note: 'Email o usuario al que va el código']
+  value text [not null]
+  expires_at timestamptz [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Verificación de email y recuperación de contraseña.'
+}
+
+// ── core ─────────────────────────────────────────────────────────────────
+
+Enum core.member_role {
+  owner [note: 'Propietario']
+  member [note: 'Miembro']
+}
+
+Enum core.invitation_status {
+  pending [note: 'Pendiente']
+  accepted [note: 'Aceptada']
+}
+
+Table core.projects {
+  id uuid [pk]
+  owner_id uuid [not null, ref: > identity.users.id]
+  name text [not null]
+  description text
+  color text [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Una producción. Su plan vive en planning; su trabajo, en work.'
+}
+
+Table core.project_members {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  user_id uuid [not null, ref: > identity.users.id]
+  role core.member_role [not null, default: 'member']
+  is_favorite boolean [not null, default: false]
+  joined_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (project_id, user_id) [unique]
+  }
+
+  Note: 'Quién tiene cuenta y acceso. El equipo de rodaje sin cuenta va en work.crew_members.'
+}
+
+Table core.project_invitations {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  email text [not null]
+  token uuid [not null, unique]
+  status core.invitation_status [not null, default: 'pending']
+  expires_at timestamptz [not null]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// ── work ─────────────────────────────────────────────────────────────────
+
+Enum work.status_category {
+  todo [note: 'Por hacer']
+  doing [note: 'En curso']
+  blocked [note: 'Bloqueada']
+  done [note: 'Hecha']
+}
+
+Enum work.item_kind {
+  task [note: 'Tarea']
+  event [note: 'Evento']
+  meeting [note: 'Reunión']
+  reminder [note: 'Recordatorio']
+  hiring [note: 'Contratación']
+}
+
+Enum work.item_priority {
+  p0 [note: 'Urgente']
+  p1 [note: 'Normal']
+  p2 [note: 'Baja']
+}
+
+Enum work.item_size {
+  xs
+  s
+  m
+  l
+  xl
+}
+
+Enum work.alert_channel {
+  app [note: 'Aviso dentro de la app']
+  email [note: 'Correo']
+  push [note: 'Notificación en el móvil']
+}
+
+Table work.statuses {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  title text [not null]
+  category work.status_category [not null, default: 'todo']
+  position integer [not null]
+
+  indexes {
+    project_id [unique, name: 'statuses_one_done_per_project', note: 'Parcial: WHERE category = done']
+  }
+
+  Note: 'Antes public.columns. Son los estados del tablero.'
+}
+
+Table work.items {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  kind work.item_kind [not null, default: 'task']
+  schedule_node_id uuid [ref: > planning.schedule_nodes.id, note: 'Fase, subfase o proceso donde se creó. Vacío si no pertenece a ninguno']
+  status_id uuid [ref: > work.statuses.id, note: 'Solo los elementos que pasan por el tablero (pendiente de decidir qué tipos)']
+  parent_id uuid [ref: > work.items.id, note: 'Subelementos: árbol de hasta 4 niveles']
+  depth smallint [not null, default: 0, note: '0 a 3 (CHECK)']
+  ancestors uuid[] [not null, default: '{}', note: 'Ids de los antecesores, de la raíz al padre. Índice GIN']
+  title text [not null, note: 'Antes tasks.content']
+  description text
+  location text [note: 'Para reuniones y eventos']
+  priority work.item_priority [not null, default: 'p2']
+  size work.item_size [not null, default: 'm']
+  position integer [not null]
+  starts_at timestamptz [note: 'Con hora para reuniones y eventos']
+  ends_at timestamptz [note: 'Antes due_date']
+  all_day boolean [not null, default: true, note: 'Tareas y contrataciones suelen ser de día completo']
+  created_by uuid [ref: > identity.users.id]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    ancestors [type: gin]
+    (status_id, position)
+    schedule_node_id
+  }
+
+  Note: 'Antes public.tasks. Tarea, evento, reunión, recordatorio o contratación, creado dentro de un nodo del plan o suelto.'
+}
+
+Table work.item_alerts {
+  id uuid [pk]
+  item_id uuid [not null, ref: > work.items.id]
+  minutes_before integer [not null, default: 1440, note: 'Cuánto antes del inicio avisar. 1440 = un día']
+  channel work.alert_channel [not null, default: 'app']
+  sent_at timestamptz [note: 'Vacío hasta que se envía']
+
+  Note: 'Avisos de cada elemento. Un elemento puede tener varios (un día antes por email, una hora antes en el móvil).'
+}
+
+Table work.crew_members {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  user_id uuid [ref: > identity.users.id, note: 'Opcional: la mayoría del equipo no tiene cuenta']
+  full_name text [not null]
+  department text [note: 'Producción, Dirección, Fotografía, Sonido…']
+  role text [note: 'Ayudante de dirección, foquista…']
+  email text [note: 'Para enviarle avisos aunque no tenga cuenta']
+
+  Note: 'Equipo del proyecto, con o sin cuenta. PR 9.'
+}
+
+Table work.item_assignees {
+  item_id uuid [not null, ref: > work.items.id]
+  crew_member_id uuid [not null, ref: > work.crew_members.id]
+
+  indexes {
+    (item_id, crew_member_id) [pk]
+  }
+
+  Note: 'Responsables o asistentes de cada elemento. Sustituye a tasks.assignee_id.'
+}
+
+Table work.item_history {
+  id uuid [pk]
+  item_id uuid [not null, ref: > work.items.id]
+  from_status_id uuid [ref: > work.statuses.id]
+  to_status_id uuid [not null, ref: > work.statuses.id]
+  moved_by uuid [ref: > identity.users.id, note: 'Nuevo: quién lo movió']
+  moved_at timestamptz [not null, default: `now()`]
+
+  Note: 'Antes public.task_history. Movimientos entre estados del tablero.'
+}
+
+// ── planning ─────────────────────────────────────────────────────────────
+// Diseño para el PR 5. El ancla suele ser el inicio de rodaje, aunque puede ser
+// otro nodo (un estreno ya cerrado): el resto del plan se calcula a partir de
+// ella y del grafo de dependencias.
+
+Enum planning.duration_unit {
+  days [note: 'Días: base laborable por defecto']
+  weeks [note: 'Semanas: base natural por defecto']
+  months [note: 'Meses: base natural por defecto']
+}
+
+Enum planning.day_basis {
+  working [note: 'Laborables: los días laborables de la semana del proyecto, sin festivos']
+  calendar [note: 'Naturales: los siete días, de lunes a domingo']
+}
+
+Enum planning.dependency_type {
+  FS [note: 'Fin → inicio']
+  FF [note: 'Fin → fin']
+  SS [note: 'Inicio → inicio']
+}
+
+Enum planning.calendar_day_kind {
+  holiday [note: 'Festivo']
+  special [note: 'F.Especial: Artículo 23 del Convenio. Trabajable, con más penalización que un festivo']
+  weekend_worked [note: 'Día no laborable habitual (normalmente sábado o domingo) que se trabaja']
+}
+
+Enum planning.holiday_scope {
+  national [note: 'Estatal']
+  regional [note: 'Autonómico']
+  provincial
+  local
+}
+
+Table planning.schedule_nodes {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  parent_id uuid [ref: > planning.schedule_nodes.id, note: 'Fase → subfase → proceso: hasta 3 niveles']
+  depth smallint [not null, default: 0, note: '0 fase, 1 subfase, 2 proceso (CHECK)']
+  ancestors uuid[] [not null, default: '{}', note: 'La fase de un nodo es ancestors[1]']
+  position integer [not null]
+  name text [not null, note: 'Rodaje, Rodaje 2 (Almería), Edición de Sonido, Foley…']
+  color text
+  duration_amount numeric
+  duration_unit planning.duration_unit
+  duration_basis planning.day_basis [note: 'Por defecto según la unidad, sobreescribible']
+  start_date date [note: 'Calculada por el resolutor, salvo en el ancla']
+  end_date date
+  is_anchor boolean [not null, default: false, note: 'La única fecha que se escribe a mano. Normalmente el inicio de rodaje']
+  is_pinned boolean [not null, default: false, note: 'Fijado: no se mueve y corta la propagación']
+
+  indexes {
+    project_id [unique, name: 'schedule_nodes_one_anchor_per_project', note: 'Parcial: WHERE is_anchor']
+    ancestors [type: gin]
+  }
+
+  Note: 'Un solo árbol para fases, subfases y procesos. El padre abarca a sus hijos con los huecos incluidos. Dentro de cualquier nodo se crean elementos (work.items).'
+}
+
+Table planning.node_dependencies {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  predecessor_id uuid [not null, ref: > planning.schedule_nodes.id]
+  successor_id uuid [not null, ref: > planning.schedule_nodes.id]
+  type planning.dependency_type [not null, default: 'FS']
+  lag_days integer [not null, default: 0, note: 'Puede ser negativo: Foley empieza 14 días antes de que acabe Edición']
+  lag_basis planning.day_basis [not null, default: 'working']
+
+  indexes {
+    (predecessor_id, successor_id) [unique]
+  }
+
+  Note: 'Grafo de dependencias. Los ciclos los rechaza la API al crearlas (CHECK predecessor <> successor en la base).'
+}
+
+Table planning.project_calendars {
+  project_id uuid [pk, ref: - core.projects.id]
+  country text [not null, default: 'ES']
+  region text [note: 'Código de comunidad autónoma, p. ej. ES-MD']
+  province text
+  locality text
+  working_weekdays smallint[] [not null, default: '{1,2,3,4,5}', note: 'Días laborables habituales, ISO: 1 lunes … 7 domingo. Por defecto, de lunes a viernes']
+
+  Note: 'Dónde se rueda y qué días se trabaja habitualmente. El lugar decide qué festivos se siembran con date-holidays.'
+}
+
+Table planning.calendar_days {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  date date [not null]
+  kind planning.calendar_day_kind [not null]
+  name text [note: 'Conmemoración: Navidad, San Isidro…']
+  scope planning.holiday_scope
+  is_worked boolean [not null, default: false, note: 'Festivo o F.Especial que se trabaja: sigue contando como tal para la penalización']
+  is_seeded boolean [not null, default: true, note: 'false si lo añadió o cambió el usuario']
+
+  indexes {
+    (project_id, date) [unique]
+  }
+
+  Note: 'El calendario tiene los siete días; aquí solo van las excepciones a la semana laborable: festivos, días F.Especial y días no laborables que se trabajan.'
+}
