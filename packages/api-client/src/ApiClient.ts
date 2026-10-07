@@ -1,4 +1,5 @@
 import type {
+  AssignedTask,
   Column,
   CreateColumnInput,
   CreateInvitationInput,
@@ -11,6 +12,7 @@ import type {
   MoveTaskInput,
   ProjectSummary,
   Task,
+  TaskHistoryEntry,
   TaskInput,
 } from "@repo/contracts"
 
@@ -48,11 +50,18 @@ export interface ColumnsRepository {
 
 export interface TasksRepository {
   listByProject(projectId: string): Promise<Task[]>
+  /** Las del usuario autenticado en todos sus proyectos. */
+  listAssignedToMe(): Promise<AssignedTask[]>
   /** Se crea al final de su columna. */
   create(input: CreateTaskInput): Promise<Task>
   update(id: string, input: TaskInput): Promise<void>
   remove(id: string): Promise<void>
   move(input: MoveTaskInput): Promise<void>
+}
+
+export interface HistoryRepository {
+  /** Movimientos entre columnas, del más reciente al más antiguo. */
+  listByProject(projectId: string): Promise<TaskHistoryEntry[]>
 }
 
 export interface ApiClient {
@@ -61,4 +70,5 @@ export interface ApiClient {
   invitations: InvitationsRepository
   columns: ColumnsRepository
   tasks: TasksRepository
+  history: HistoryRepository
 }

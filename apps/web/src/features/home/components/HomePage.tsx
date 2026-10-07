@@ -5,7 +5,8 @@ import { Button, QueryErrorState, ScrollArea, Skeleton } from "@/shared"
 import { useAuth } from "@/features/auth"
 import { PRIORITY_CONFIG, sortByPriority } from "@/features/task/index"
 import { ProjectCard, useProjects } from "@/features/project"
-import { useMyTasks, type MyTask } from "../hooks/useMyTasks"
+import type { AssignedTask } from "@repo/contracts"
+import { useAssignedTasks } from "../api/assignedTasks"
 import { MyTaskSheet } from "./MyTaskSheet"
 
 /** Saludo según la hora local. */
@@ -27,7 +28,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function HomePage() {
   const { user } = useAuth()
-  const { tasks, loading: tasksLoading } = useMyTasks()
+  const {
+    data: tasks = [],
+    isPending: tasksLoading,
+    error: tasksError,
+    refetch: refetchTasks,
+  } = useAssignedTasks()
   const {
     data: projects = [],
     isPending: projectsLoading,
@@ -41,7 +47,7 @@ export function HomePage() {
   // P0 primero; el sort es estable, así que dentro de cada prioridad se
   // conserva el orden que devuelve la consulta.
   const ordered = useMemo(() => sortByPriority(tasks), [tasks])
-  const [selected, setSelected] = useState<MyTask | null>(null)
+  const [selected, setSelected] = useState<AssignedTask | null>(null)
 
   return (
     <>
@@ -63,7 +69,9 @@ export function HomePage() {
               )}
             </div>
 
-            {tasksLoading ? (
+            {tasksError ? (
+              <QueryErrorState error={tasksError} onRetry={() => refetchTasks()} />
+            ) : tasksLoading ? (
               <div className="flex flex-col gap-1.5">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="h-11 rounded-lg" />

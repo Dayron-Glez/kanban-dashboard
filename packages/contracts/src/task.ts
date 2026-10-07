@@ -36,3 +36,27 @@ export const MoveTaskInputSchema = z.object({
   orderedTaskIds: z.array(z.uuid()),
 })
 export type MoveTaskInput = z.infer<typeof MoveTaskInputSchema>
+
+/** Tarea asignada al usuario, con el contexto de dónde vive: la vista transversal del inicio. */
+export const AssignedTaskSchema = TaskSchema.pick({
+  id: true,
+  projectId: true,
+  content: true,
+  priority: true,
+  size: true,
+}).extend({
+  projectName: z.string(),
+  projectColor: z.string(),
+  columnTitle: z.string(),
+})
+export type AssignedTask = z.infer<typeof AssignedTaskSchema>
+
+export const TaskHistoryEntrySchema = z.object({
+  id: z.uuid(),
+  taskId: z.uuid(),
+  taskContent: z.string(),
+  fromColumnId: z.uuid().nullable(),
+  toColumnId: z.uuid(),
+  movedAt: z.iso.datetime({ offset: true }),
+})
+export type TaskHistoryEntry = z.infer<typeof TaskHistoryEntrySchema>

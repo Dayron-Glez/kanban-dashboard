@@ -9,10 +9,10 @@ import {
   SheetTitle,
 } from "@/shared/index"
 import { PRIORITY_CONFIG, SIZE_CONFIG } from "@/features/task/index"
-import type { MyTask } from "../hooks/useMyTasks"
+import type { AssignedTask } from "@repo/contracts"
 
 interface Props {
-  task: MyTask | null
+  task: AssignedTask | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }

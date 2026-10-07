@@ -12,6 +12,8 @@ export const useBoardSync = (projectId: string) => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.columns(projectId) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.tasks(projectId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.history(projectId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.assignedToMe() }),
     ])
   }
 

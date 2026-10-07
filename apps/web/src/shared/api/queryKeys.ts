@@ -8,10 +8,14 @@ export const queryKeys = {
     invitations: (id: string) => [...queryKeys.projects.detail(id), "invitations"] as const,
     columns: (id: string) => [...queryKeys.projects.detail(id), "columns"] as const,
     tasks: (id: string) => [...queryKeys.projects.detail(id), "tasks"] as const,
+    history: (id: string) => [...queryKeys.projects.detail(id), "history"] as const,
     /** Clave común de las mutaciones del tablero, no de una consulta. */
     board: (id: string) => [...queryKeys.projects.detail(id), "board"] as const,
   },
   invitations: {
     byToken: (token: string) => ["invitations", token] as const,
+  },
+  tasks: {
+    assignedToMe: () => ["tasks", "assigned-to-me"] as const,
   },
 }
