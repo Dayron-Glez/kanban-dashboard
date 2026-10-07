@@ -20,7 +20,7 @@ export const TaskInputSchema = TaskSchema.pick({
   size: true,
   dueDate: true,
   assigneeId: true,
-})
+}).extend({ content: z.string().trim().min(1) })
 export type TaskInput = z.infer<typeof TaskInputSchema>
 
 export const CreateTaskInputSchema = TaskInputSchema.extend({

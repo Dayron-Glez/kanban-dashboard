@@ -10,5 +10,7 @@ import { ProjectsService } from "./projects.service.js"
 @Module({
   controllers: [ProjectsController, MembersController, InvitationsController],
   providers: [ProjectAccess, ProjectsService, MembersService, InvitationsService],
+  // El tablero comprueba el acceso con las mismas reglas.
+  exports: [ProjectAccess],
 })
 export class ProjectsModule {}

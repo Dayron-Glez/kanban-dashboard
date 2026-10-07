@@ -11,7 +11,7 @@ import { authUsers } from "drizzle-orm/supabase"
 import { DB, type Database } from "../db/db.module.js"
 import { projectInvitations, projectMembers, projects } from "../db/generated/schema.js"
 import { ProjectAccess } from "./project-access.js"
-import { toIso } from "./timestamps.js"
+import { toIso } from "../db/timestamps.js"
 
 const toInvitation = (row: typeof projectInvitations.$inferSelect): Invitation =>
   InvitationSchema.parse({
