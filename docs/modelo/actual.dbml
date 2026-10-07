@@ -1,0 +1,102 @@
+// Modelo actual de Cauce, tal como está en Supabase tras el PR 2 (octubre de 2026).
+// Fuente: supabase/migrations. Para verlo, pega este fichero en https://dbdiagram.io/d
+
+Project cauce_actual {
+  database_type: 'PostgreSQL'
+  Note: 'Base actual en Supabase. Autorización por RLS; autenticación con Supabase Auth.'
+}
+
+// Esquema gestionado por Supabase Auth. Solo se muestra lo que referencian las tablas de la app.
+Table auth.users {
+  id uuid [pk]
+  email text
+  encrypted_password text [note: 'Hash bcrypt: se puede importar a better-auth sin restablecer contraseñas']
+  raw_user_meta_data jsonb [note: 'Incluye full_name, que el trigger handle_new_user copia a profiles']
+
+  Note: 'Gestionada por Supabase Auth. Desaparece con better-auth (sub-PR 4.2).'
+}
+
+Table public.profiles {
+  id uuid [pk, ref: - auth.users.id]
+  full_name text
+  avatar_url text
+  email text
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Datos visibles del usuario. La crea el trigger handle_new_user al registrarse.'
+}
+
+Table public.projects {
+  id uuid [pk, default: `uuid_generate_v4()`]
+  owner_id uuid [not null, ref: > auth.users.id]
+  name text [not null]
+  description text
+  color text [not null, default: '#3b82f6']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'El trigger on_project_created inserta al propietario en project_members.'
+}
+
+Table public.project_members {
+  id uuid [pk, default: `uuid_generate_v4()`]
+  project_id uuid [not null, ref: > public.projects.id]
+  user_id uuid [not null, ref: > public.profiles.id]
+  role text [not null, default: 'member', note: 'owner | member (CHECK)']
+  is_favorite boolean [not null, default: false]
+  joined_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (project_id, user_id) [unique]
+  }
+}
+
+Table public.project_invitations {
+  id uuid [pk, default: `uuid_generate_v4()`]
+  project_id uuid [not null, ref: > public.projects.id]
+  email text [not null]
+  token uuid [not null, unique, default: `uuid_generate_v4()`]
+  status text [not null, default: 'pending', note: 'pending | accepted (CHECK)']
+  expires_at timestamptz [not null, default: `now() + interval '7 days'`]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Se leen y aceptan con las RPC invitation_by_token y accept_invitation (SECURITY DEFINER).'
+}
+
+Table public.columns {
+  id uuid [pk, default: `uuid_generate_v4()`]
+  project_id uuid [not null, ref: > public.projects.id]
+  title text [not null]
+  position integer [not null, default: 0]
+  category text [not null, default: 'todo', note: 'todo | doing | blocked | done (CHECK)']
+
+  indexes {
+    project_id [unique, name: 'columns_one_done_per_project', note: 'Parcial: WHERE category = done. Como mucho una hecha por proyecto']
+  }
+
+  Note: 'Estados del tablero. Se reordenan con reorder_columns y cambian de categoría con set_column_category.'
+}
+
+Table public.tasks {
+  id uuid [pk, default: `uuid_generate_v4()`]
+  project_id uuid [not null, ref: > public.projects.id]
+  column_id uuid [not null, ref: > public.columns.id]
+  assignee_id uuid [ref: > auth.users.id, note: 'ON DELETE SET NULL']
+  content text [not null]
+  priority text [not null, default: 'p2', note: 'p0 | p1 | p2 (CHECK)']
+  size text [not null, default: 'm', note: 'xs | s | m | l | xl (CHECK)']
+  position integer [not null, default: 0]
+  due_date date
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Se mueven con la RPC move_task, que también escribe task_history.'
+}
+
+Table public.task_history {
+  id uuid [pk, default: `uuid_generate_v4()`]
+  task_id uuid [not null, ref: > public.tasks.id]
+  from_column_id uuid [ref: > public.columns.id, note: 'ON DELETE SET NULL']
+  to_column_id uuid [not null, ref: > public.columns.id]
+  moved_at timestamptz [not null, default: `now()`]
+
+  Note: 'Movimientos entre columnas. Alimenta la velocidad y la actividad de analytics.'
+}
