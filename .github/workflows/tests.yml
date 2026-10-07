@@ -47,10 +47,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Solo Postgres, con las migraciones aplicadas: los tests de integración
+      # de la API no necesitan el resto de servicios de Supabase.
+      - name: Start Supabase database
+        run: pnpm exec supabase db start
+
       - name: Run tests
         id: tests
         continue-on-error: true
-        run: pnpm test:run
+        run: pnpm test:run && pnpm test:int
 
       - name: Mark PR as tests passed
         if: github.event_name == 'pull_request' && steps.tests.outcome == 'success'

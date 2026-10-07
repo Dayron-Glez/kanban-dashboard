@@ -16,6 +16,7 @@ pnpm --filter api dev      # http://localhost:3000/health
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `pnpm --filter api dev`   | Arranca con recarga al guardar                                                                                                 |
 | `pnpm --filter api test`  | Tests con Vitest                                                                                                               |
+| `pnpm test:int`           | Tests de integración contra la base local (`pnpm db:start` antes). Se niegan a correr contra una base que no sea local         |
 | `pnpm --filter api build` | Compila a `dist/`                                                                                                              |
 | `pnpm db:schema`          | Regenera `src/db/generated` a partir de la base local. Ejecútalo tras cambiar `supabase/migrations`, igual que `pnpm db:types` |
 
@@ -24,6 +25,8 @@ pnpm --filter api dev      # http://localhost:3000/health
 - **Inyección siempre con token explícito**: `@Inject(DB)`, nunca por el tipo del parámetro. Los tests corren con esbuild, que no emite los metadatos de los decoradores, y así un `@Inject` olvidado falla en los tests y no solo en producción.
 - **Todas las rutas exigen sesión** por defecto (`AuthGuard` global). Una ruta pública se marca con `@Public()`, como `/health`. El usuario de la sesión se lee con `@CurrentUser()`.
 - **Autenticación puente**: hasta better-auth (sub-PR 4.2), la API acepta los tokens de Supabase Auth. Los verifica con las claves públicas del proyecto (`SUPABASE_URL/auth/v1/.well-known/jwks.json`), sin ningún secreto.
+- **La autorización es de la API, no de la base**: la API se conecta con un rol que se salta la RLS, así que cada servicio comprueba el acceso con `ProjectAccess` (`requireMember`, `requireOwner`). A quien no es miembro se le responde 404, para no confirmarle que el proyecto existe. Toda ruta nueva de un proyecto necesita su test de «usuario ajeno» en un `*.int.spec.ts`.
+- **Los cuerpos se validan con los esquemas de `@repo/contracts`**: `@Body({ schema })`, con el `StandardSchemaValidationPipe` global. Las respuestas salen ya con la forma del contrato.
 - **ESM**: los imports relativos llevan la extensión `.js`.
 - **El esquema de `src/db/generated` no se edita a mano**: lo escribe `pnpm db:schema`. Las migraciones siguen en `supabase/migrations` hasta el paso a Neon.
 

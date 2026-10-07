@@ -1,5 +1,6 @@
 export { ApiProvider } from "./ApiProvider"
 export { useApi } from "./apiCtx"
+export { createApi } from "./createApi"
 export { errorMessage } from "./errorMessage"
 export { removeOptimistically, restoreRemoved } from "./optimisticList"
 export { createQueryClient } from "./queryClient"

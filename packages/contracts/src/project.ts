@@ -18,9 +18,17 @@ export const ProjectSummarySchema = ProjectSchema.extend({
 })
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>
 
+const ProjectNameSchema = z.string().trim().min(1)
+
 export const CreateProjectInputSchema = z.object({
-  name: z.string(),
+  name: ProjectNameSchema,
   description: z.string().nullish(),
   color: z.string(),
 })
 export type CreateProjectInput = z.infer<typeof CreateProjectInputSchema>
+
+export const RenameProjectInputSchema = z.object({ name: ProjectNameSchema })
+export type RenameProjectInput = z.infer<typeof RenameProjectInputSchema>
+
+export const SetFavoriteInputSchema = z.object({ isFavorite: z.boolean() })
+export type SetFavoriteInput = z.infer<typeof SetFavoriteInputSchema>

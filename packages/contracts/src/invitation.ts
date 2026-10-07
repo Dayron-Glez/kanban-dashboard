@@ -30,3 +30,6 @@ export const CreateInvitationInputSchema = z.object({
   email: z.email(),
 })
 export type CreateInvitationInput = z.infer<typeof CreateInvitationInputSchema>
+
+export const AcceptedInvitationSchema = z.object({ projectId: z.uuid() })
+export type AcceptedInvitation = z.infer<typeof AcceptedInvitationSchema>
