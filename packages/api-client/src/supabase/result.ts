@@ -1,5 +1,4 @@
 import type { PostgrestError } from "@supabase/supabase-js"
-import * as z from "zod"
 import { ApiError, type ApiErrorCode } from "../errors"
 
 const CODE_BY_POSTGREST: Partial<Record<string, ApiErrorCode>> = {
@@ -51,10 +50,4 @@ export const requireRows = <T>(rows: T[]): T[] => {
   return rows
 }
 
-export const parseWith = <S extends z.ZodType>(schema: S, value: unknown): z.infer<S> => {
-  const result = schema.safeParse(value)
-  if (!result.success) {
-    throw new ApiError("invalid_response", z.prettifyError(result.error), { cause: result.error })
-  }
-  return result.data
-}
+export { parseWith } from "../parse"
