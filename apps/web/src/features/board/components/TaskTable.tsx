@@ -11,7 +11,9 @@ import {
   cn,
 } from "@/shared/index"
 import { DetailsTaskSheet, DueDateChip, PRIORITY_CONFIG, SIZE_CONFIG } from "@/features/task/index"
-import { useKanban } from "../hooks/useKanban"
+import { useColumns } from "../api/columns"
+import { useBoardTasks } from "../api/tasks"
+import { useProjectId } from "../hooks/useProjectId"
 import {
   buildRows,
   filterRows,
@@ -78,7 +80,9 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
  * vista con un filtro puesto mantiene lo que se está mirando.
  */
 export function TaskTable() {
-  const { tasks, columns } = useKanban()
+  const projectId = useProjectId()
+  const { data: tasks = [] } = useBoardTasks(projectId)
+  const { data: columns = [] } = useColumns(projectId)
   const searchValue = useContext(SearchContext)?.searchValue ?? ""
 
   const [sortKey, setSortKey] = useState<SortKey>("column")

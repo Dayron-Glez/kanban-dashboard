@@ -7,3 +7,9 @@ export const ColumnSchema = z.object({
   position: z.number().int().nonnegative(),
 })
 export type Column = z.infer<typeof ColumnSchema>
+
+export const CreateColumnInputSchema = z.object({
+  projectId: z.uuid(),
+  title: z.string(),
+})
+export type CreateColumnInput = z.infer<typeof CreateColumnInputSchema>

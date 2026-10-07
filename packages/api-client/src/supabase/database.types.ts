@@ -283,6 +283,14 @@ export type Database = {
       }
       is_project_member: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
+      move_task: {
+        Args: { p_ordered_task_ids: string[]; p_task_id: string; p_to_column_id: string }
+        Returns: undefined
+      }
+      reorder_columns: {
+        Args: { p_ordered_column_ids: string[]; p_project_id: string }
+        Returns: undefined
+      }
       shares_project_with: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {

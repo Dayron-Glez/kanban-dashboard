@@ -1,3 +1,4 @@
+export * from "./applyMove"
 export * from "./dueDate"
 export * from "./reorder"
 export * from "./taskTable"

@@ -22,3 +22,17 @@ export const TaskInputSchema = TaskSchema.pick({
   assigneeId: true,
 })
 export type TaskInput = z.infer<typeof TaskInputSchema>
+
+export const CreateTaskInputSchema = TaskInputSchema.extend({
+  projectId: z.uuid(),
+  columnId: z.uuid(),
+})
+export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>
+
+/** El orden final de la columna de destino, con la tarea movida incluida. */
+export const MoveTaskInputSchema = z.object({
+  taskId: z.uuid(),
+  toColumnId: z.uuid(),
+  orderedTaskIds: z.array(z.uuid()),
+})
+export type MoveTaskInput = z.infer<typeof MoveTaskInputSchema>

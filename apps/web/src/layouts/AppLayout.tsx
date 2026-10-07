@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Outlet, useLocation, useParams } from "react-router"
 import { Header, SearchContext, Sidebar, SidebarInset, SidebarProvider } from "@/shared"
-import { BoardHeaderActions, KanbanProvider } from "@/features/board"
+import { BoardHeaderActions, BoardScrollProvider } from "@/features/board"
 import { ProjectSidebarContent, useProject, type SidebarMode } from "@/features/project"
 
 const SIDEBAR_MODE_KEY = "cauce.sidebar.mode"
@@ -115,8 +115,8 @@ function AppShell() {
 
 export default function AppLayout() {
   return (
-    <KanbanProvider>
+    <BoardScrollProvider>
       <AppShell />
-    </KanbanProvider>
+    </BoardScrollProvider>
   )
 }

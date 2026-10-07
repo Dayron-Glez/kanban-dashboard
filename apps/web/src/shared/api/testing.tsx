@@ -2,9 +2,11 @@ import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type {
   ApiClient,
+  ColumnsRepository,
   InvitationsRepository,
   MembersRepository,
   ProjectsRepository,
+  TasksRepository,
 } from "@repo/api-client"
 import { vi } from "vitest"
 import { ApiProvider } from "./ApiProvider"
@@ -29,6 +31,20 @@ export const createFakeApi = () =>
       cancel: vi.fn<InvitationsRepository["cancel"]>(),
       findByToken: vi.fn<InvitationsRepository["findByToken"]>(),
       accept: vi.fn<InvitationsRepository["accept"]>(),
+    },
+    columns: {
+      listByProject: vi.fn<ColumnsRepository["listByProject"]>(),
+      create: vi.fn<ColumnsRepository["create"]>(),
+      rename: vi.fn<ColumnsRepository["rename"]>(),
+      remove: vi.fn<ColumnsRepository["remove"]>(),
+      reorder: vi.fn<ColumnsRepository["reorder"]>(),
+    },
+    tasks: {
+      listByProject: vi.fn<TasksRepository["listByProject"]>(),
+      create: vi.fn<TasksRepository["create"]>(),
+      update: vi.fn<TasksRepository["update"]>(),
+      remove: vi.fn<TasksRepository["remove"]>(),
+      move: vi.fn<TasksRepository["move"]>(),
     },
   }) satisfies ApiClient
 
