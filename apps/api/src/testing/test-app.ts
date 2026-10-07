@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import type { INestApplication } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
 import postgres from "postgres"
+import request from "supertest"
 import { AppModule } from "../app.module.js"
 import { TOKEN_VERIFIER, type AuthUser, type TokenVerifier } from "../auth/token-verifier.js"
 
@@ -54,5 +55,18 @@ export const createTestApp = async () => {
     await sql.end()
   }
 
-  return { app, sql, createUser, close }
+  // Peticiones con la sesión de `user`.
+  const as = (user: TestUser) => {
+    const server = app.getHttpServer()
+    const auth = { Authorization: `Bearer ${user.token}` }
+    return {
+      get: (path: string) => request(server).get(path).set(auth),
+      post: (path: string, body?: object) => request(server).post(path).set(auth).send(body),
+      patch: (path: string, body: object) => request(server).patch(path).set(auth).send(body),
+      put: (path: string, body: object) => request(server).put(path).set(auth).send(body),
+      delete: (path: string) => request(server).delete(path).set(auth),
+    }
+  }
+
+  return { app, sql, createUser, as, close }
 }

@@ -11,7 +11,7 @@ import { and, desc, eq, sql } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
 import { columns, projectMembers, projects, tasks } from "../db/generated/schema.js"
 import { ProjectAccess } from "./project-access.js"
-import { toIso } from "./timestamps.js"
+import { toIso } from "../db/timestamps.js"
 
 const toProject = (row: typeof projects.$inferSelect): Project =>
   ProjectSchema.parse({

@@ -13,17 +13,7 @@ let luis: TestUser
 let project: Project
 let invitation: Invitation
 
-const as = (user: TestUser) => {
-  const server = ctx.app.getHttpServer()
-  const auth = { Authorization: `Bearer ${user.token}` }
-  return {
-    get: (path: string) => request(server).get(path).set(auth),
-    post: (path: string, body?: object) => request(server).post(path).set(auth).send(body),
-    patch: (path: string, body: object) => request(server).patch(path).set(auth).send(body),
-    put: (path: string, body: object) => request(server).put(path).set(auth).send(body),
-    delete: (path: string) => request(server).delete(path).set(auth),
-  }
-}
+const as = (user: TestUser) => ctx.as(user)
 
 beforeAll(async () => {
   ctx = await createTestApp()

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
 import { profiles, projectMembers } from "../db/generated/schema.js"
 import { ProjectAccess } from "./project-access.js"
-import { toIso } from "./timestamps.js"
+import { toIso } from "../db/timestamps.js"
 
 @Injectable()
 export class MembersService {

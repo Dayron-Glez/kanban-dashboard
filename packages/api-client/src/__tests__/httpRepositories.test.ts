@@ -125,4 +125,87 @@ describe("createHttpApi", () => {
 
     await expect(api.invitations.findByToken(TOKEN)).rejects.toMatchObject({ code: "unknown" })
   })
+
+  it("columnas: el proyecto va en la ruta y cada cambio a su recurso", async () => {
+    const column = {
+      id: "c1",
+      projectId: PROJECT_ID,
+      title: "Rodaje",
+      position: 0,
+      category: "todo",
+    }
+    const { api, sent } = setup((url) =>
+      url.endsWith("/columns")
+        ? json({ ...column, id: PROJECT_ID }, 201)
+        : new Response(null, { status: 204 })
+    )
+
+    await api.columns.create({ projectId: PROJECT_ID, title: "Rodaje", category: "done" })
+    await api.columns.rename("c1", "Montaje")
+    await api.columns.setCategory("c1", "blocked")
+    await api.columns.reorder(PROJECT_ID, ["c2", "c1"])
+    await api.columns.remove("c1")
+
+    expect(sent()).toEqual([
+      {
+        method: "POST",
+        path: `/projects/${PROJECT_ID}/columns`,
+        body: { title: "Rodaje", category: "done" },
+      },
+      { method: "PATCH", path: "/columns/c1", body: { title: "Montaje" } },
+      { method: "PUT", path: "/columns/c1/category", body: { category: "blocked" } },
+      {
+        method: "PUT",
+        path: `/projects/${PROJECT_ID}/columns/order`,
+        body: { orderedColumnIds: ["c2", "c1"] },
+      },
+      { method: "DELETE", path: "/columns/c1", body: undefined },
+    ])
+  })
+
+  it("tareas: crear, editar, mover y borrar", async () => {
+    const input = {
+      content: "Casting",
+      priority: "p0",
+      size: "s",
+      dueDate: null,
+      assigneeId: null,
+    } as const
+    const task = { ...input, id: TOKEN, projectId: PROJECT_ID, columnId: PROJECT_ID, position: 0 }
+    const { api, sent } = setup((url) =>
+      url.endsWith("/tasks") ? json(task, 201) : new Response(null, { status: 204 })
+    )
+
+    await api.tasks.create({ ...input, projectId: PROJECT_ID, columnId: "c1" })
+    await api.tasks.update("t1", input)
+    await api.tasks.move({ taskId: "t1", toColumnId: "c2", orderedTaskIds: ["t1"] })
+    await api.tasks.remove("t1")
+
+    expect(sent()).toEqual([
+      { method: "POST", path: `/projects/${PROJECT_ID}/tasks`, body: { ...input, columnId: "c1" } },
+      { method: "PUT", path: "/tasks/t1", body: input },
+      {
+        method: "POST",
+        path: "/tasks/t1/move",
+        body: { toColumnId: "c2", orderedTaskIds: ["t1"] },
+      },
+      { method: "DELETE", path: "/tasks/t1", body: undefined },
+    ])
+  })
+
+  it("lecturas del tablero y del inicio", async () => {
+    const { api, sent } = setup(() => json([]))
+
+    await api.columns.listByProject(PROJECT_ID)
+    await api.tasks.listByProject(PROJECT_ID)
+    await api.tasks.listAssignedToMe()
+    await api.history.listByProject(PROJECT_ID)
+
+    expect(sent().map(({ method, path }) => `${method} ${path}`)).toEqual([
+      `GET /projects/${PROJECT_ID}/columns`,
+      `GET /projects/${PROJECT_ID}/tasks`,
+      "GET /me/tasks",
+      `GET /projects/${PROJECT_ID}/history`,
+    ])
+  })
 })
