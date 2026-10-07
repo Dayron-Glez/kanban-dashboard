@@ -1,4 +1,4 @@
-import type { Placeable } from "./reorder"
+import type { Placeable } from "./reorder.js"
 
 export interface Positioned extends Placeable {
   position: number

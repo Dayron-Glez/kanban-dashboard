@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { MemberRoleSchema } from "./enums"
+import { MemberRoleSchema } from "./enums.js"
 
 export const ProjectSchema = z.object({
   id: z.uuid(),

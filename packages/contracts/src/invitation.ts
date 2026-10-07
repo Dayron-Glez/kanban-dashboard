@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { InvitationStatusSchema } from "./enums"
+import { InvitationStatusSchema } from "./enums.js"
 
 // El email de lectura es string a secas: si alguna fila antigua no fuera un
 // email válido, rechazarla dejaría sin cargar la lista entera.

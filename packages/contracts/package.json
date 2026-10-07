@@ -4,9 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -14,5 +19,9 @@
   },
   "devDependencies": {
     "typescript": "~5.9.3"
-  }
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
 }

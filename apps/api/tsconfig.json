@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "types": ["node"],
+
+    /* Nest puede inyectar por el tipo del parámetro gracias a estos metadatos,
+       pero aquí toda inyección lleva su token explícito, @Inject(DB): los
+       tests corren con esbuild, que no emite metadatos, y así fallan igual que
+       fallaría producción si faltara un @Inject. */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "skipLibCheck": true,
+
+    /* Mismas reglas que el resto del monorepo, salvo erasableSyntaxOnly:
+       la inyección de Nest usa propiedades de parámetro en los constructores. */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  /* También los ficheros de configuración: si no, el editor los analiza sin
+     los tipos de Node y marca process como desconocido. */
+  "include": ["src", "*.config.ts"]
+}

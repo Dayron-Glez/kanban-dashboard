@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { TaskPrioritySchema, TaskSizeSchema } from "./enums"
+import { TaskPrioritySchema, TaskSizeSchema } from "./enums.js"
 
 export const TaskSchema = z.object({
   id: z.uuid(),
