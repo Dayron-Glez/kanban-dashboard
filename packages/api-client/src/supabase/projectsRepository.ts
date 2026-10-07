@@ -1,17 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { ProjectSchema, ProjectSummarySchema, type ColumnCategory } from "@repo/contracts"
+import { DEFAULT_COLUMNS, ProjectSchema, ProjectSummarySchema } from "@repo/contracts"
 import type { ProjectsRepository } from "../ApiClient"
 import type { Database, Tables } from "./database.types"
 import { parseWith, requireRows, unwrap } from "./result"
 import { currentUserId } from "./session"
-
-const DEFAULT_COLUMNS: { title: string; category: ColumnCategory }[] = [
-  { title: "Pendiente", category: "todo" },
-  { title: "Listo", category: "todo" },
-  { title: "En curso", category: "doing" },
-  { title: "En revisión", category: "doing" },
-  { title: "Hecho", category: "done" },
-]
 
 const toProjectShape = (row: Tables<"projects">) => ({
   id: row.id,

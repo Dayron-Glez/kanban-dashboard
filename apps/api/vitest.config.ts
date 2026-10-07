@@ -6,5 +6,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.spec.ts"],
+    // Los de integración van aparte (pnpm test:int): necesitan una base.
+    exclude: ["src/**/*.int.spec.ts"],
   },
 })

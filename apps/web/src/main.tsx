@@ -4,13 +4,11 @@ import "@fontsource/jetbrains-mono/500.css"
 import "@fontsource/jetbrains-mono/600.css"
 import { createRoot } from "react-dom/client"
 import { QueryClientProvider } from "@tanstack/react-query"
-import { createSupabaseApi } from "@repo/api-client"
 import App from "./App.tsx"
 import { ErrorBoundary, ThemeProvider, Toaster } from "@/shared/index"
-import { ApiProvider, createQueryClient, QueryDevtools } from "@/shared/api"
-import { supabase } from "@/shared/supabase"
+import { ApiProvider, createApi, createQueryClient, QueryDevtools } from "@/shared/api"
 
-const api = createSupabaseApi(supabase)
+const api = createApi()
 const queryClient = createQueryClient()
 
 createRoot(document.getElementById("root")!).render(
