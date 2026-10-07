@@ -226,6 +226,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(postgres@3.4.9)
+      jose:
+        specifier: ^6.2.12
+        version: 6.2.12
       postgres:
         specifier: ^3.4.9
         version: 3.4.9

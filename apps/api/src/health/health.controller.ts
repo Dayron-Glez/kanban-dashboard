@@ -1,5 +1,6 @@
 import { Controller, Get, Inject, ServiceUnavailableException } from "@nestjs/common"
 import { sql } from "drizzle-orm"
+import { Public } from "../auth/public.decorator.js"
 import { DB, type Database } from "../db/db.module.js"
 
 export interface HealthStatus {
@@ -9,6 +10,7 @@ export interface HealthStatus {
 
 // Railway llama aquí antes de dar por bueno un despliegue y mientras corre:
 // si la base no responde, devuelve 503 y la versión nueva no entra en servicio.
+@Public()
 @Controller("health")
 export class HealthController {
   constructor(@Inject(DB) private readonly db: Database) {}

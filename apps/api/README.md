@@ -22,6 +22,8 @@ pnpm --filter api dev      # http://localhost:3000/health
 ### Convenciones
 
 - **Inyección siempre con token explícito**: `@Inject(DB)`, nunca por el tipo del parámetro. Los tests corren con esbuild, que no emite los metadatos de los decoradores, y así un `@Inject` olvidado falla en los tests y no solo en producción.
+- **Todas las rutas exigen sesión** por defecto (`AuthGuard` global). Una ruta pública se marca con `@Public()`, como `/health`. El usuario de la sesión se lee con `@CurrentUser()`.
+- **Autenticación puente**: hasta better-auth (sub-PR 4.2), la API acepta los tokens de Supabase Auth. Los verifica con las claves públicas del proyecto (`SUPABASE_URL/auth/v1/.well-known/jwks.json`), sin ningún secreto.
 - **ESM**: los imports relativos llevan la extensión `.js`.
 - **El esquema de `src/db/generated` no se edita a mano**: lo escribe `pnpm db:schema`. Las migraciones siguen en `supabase/migrations` hasta el paso a Neon.
 
@@ -49,10 +51,12 @@ La configuración vive en el panel de Railway. Su fichero `railway.json` está o
    | Variable       | Valor                                                                                   |
    | -------------- | --------------------------------------------------------------------------------------- |
    | `DATABASE_URL` | Supabase → **Connect → Transaction pooler** (puerto 6543), con la contraseña de la base |
-   | `CORS_ORIGINS` | la URL de la web en Vercel; varias, separadas por comas                                 |
-   | `NODE_ENV`     | `production`                                                                            |
 
-   `PORT` lo pone Railway.
+| `SUPABASE_URL` | `https://<ref>.supabase.co`, sin barra final. Es pública |
+| `CORS_ORIGINS` | la URL de la web en Vercel; varias, separadas por comas |
+| `NODE_ENV` | `production` |
+
+`PORT` lo pone Railway.
 
 5. **Settings → Networking → Generate Domain**, y comprueba que `https://<dominio>/health` responde `{"status":"ok","database":"ok"}`.
 6. En la configuración de uso del workspace, fija un **límite de gasto** para que un error no dispare la factura.
