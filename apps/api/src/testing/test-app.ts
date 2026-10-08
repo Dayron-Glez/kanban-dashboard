@@ -5,6 +5,8 @@ import postgres from "postgres"
 import request from "supertest"
 import { AppModule } from "../app.module.js"
 import { TOKEN_VERIFIER, type AuthUser, type TokenVerifier } from "../auth/token-verifier.js"
+import { ENV, type Env } from "../config/env.js"
+import { API_PREFIX, configureApp } from "../configure-app.js"
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"])
 
@@ -35,6 +37,7 @@ export const createTestApp = async () => {
     .useValue(verify)
     .compile()
   const app: INestApplication = moduleRef.createNestApplication()
+  configureApp(app, app.get<Env>(ENV))
   await app.init()
 
   // El trigger on_auth_user_created le crea el perfil, como al registrarse.
@@ -55,16 +58,17 @@ export const createTestApp = async () => {
     await sql.end()
   }
 
-  // Peticiones con la sesión de `user`.
+  // Peticiones con la sesión de `user`, a rutas sin el prefijo /api.
   const as = (user: TestUser) => {
     const server = app.getHttpServer()
     const auth = { Authorization: `Bearer ${user.token}` }
+    const url = (path: string) => `${API_PREFIX}${path}`
     return {
-      get: (path: string) => request(server).get(path).set(auth),
-      post: (path: string, body?: object) => request(server).post(path).set(auth).send(body),
-      patch: (path: string, body: object) => request(server).patch(path).set(auth).send(body),
-      put: (path: string, body: object) => request(server).put(path).set(auth).send(body),
-      delete: (path: string) => request(server).delete(path).set(auth),
+      get: (path: string) => request(server).get(url(path)).set(auth),
+      post: (path: string, body?: object) => request(server).post(url(path)).set(auth).send(body),
+      patch: (path: string, body: object) => request(server).patch(url(path)).set(auth).send(body),
+      put: (path: string, body: object) => request(server).put(url(path)).set(auth).send(body),
+      delete: (path: string) => request(server).delete(url(path)).set(auth),
     }
   }
 

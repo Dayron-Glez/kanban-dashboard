@@ -23,6 +23,7 @@ pnpm --filter api dev      # http://localhost:3000/health
 ### Convenciones
 
 - **Inyección siempre con token explícito**: `@Inject(DB)`, nunca por el tipo del parámetro. Los tests corren con esbuild, que no emite los metadatos de los decoradores, y así un `@Inject` olvidado falla en los tests y no solo en producción.
+- **Todas las rutas van bajo `/api`** (`/api/projects`…), salvo `/health`, que es la que comprueba Railway. La web nunca llama a Railway directamente: en producción Vercel reenvía `/api/*` a la API y en local lo hace el proxy de Vite. Así la web y la API comparten dominio, y la cookie de sesión de better-auth (4.2b) será de primera parte.
 - **Todas las rutas exigen sesión** por defecto (`AuthGuard` global). Una ruta pública se marca con `@Public()`, como `/health`. El usuario de la sesión se lee con `@CurrentUser()`.
 - **Autenticación puente**: hasta better-auth (sub-PR 4.2), la API acepta los tokens de Supabase Auth. Los verifica con las claves públicas del proyecto (`SUPABASE_URL/auth/v1/.well-known/jwks.json`), sin ningún secreto.
 - **La autorización es de la API, no de la base**: la API se conecta con un rol que se salta la RLS, así que cada servicio comprueba el acceso con `ProjectAccess` (`requireMember`, `requireOwner`). A quien no es miembro se le responde 404, para no confirmarle que el proyecto existe. Toda ruta nueva de un proyecto necesita su test de «usuario ajeno» en un `*.int.spec.ts`.
