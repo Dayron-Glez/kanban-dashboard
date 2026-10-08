@@ -48,4 +48,19 @@ describe("parseEnv", () => {
     expect(env.GOOGLE_CLIENT_ID).toBe("id")
     expect(parseEnv(required).GOOGLE_CLIENT_ID).toBeUndefined()
   })
+
+  it("en producción exige el secreto del proxy", () => {
+    expect(() => parseEnv({ ...required, NODE_ENV: "production" })).toThrow(/PROXY_SECRET/)
+    expect(() => parseEnv({ ...required, NODE_ENV: "production", PROXY_SECRET: "corto" })).toThrow(
+      /PROXY_SECRET/
+    )
+    const secret = "un-secreto-del-proxy-con-mas-de-32-caracteres"
+    expect(
+      parseEnv({ ...required, NODE_ENV: "production", PROXY_SECRET: secret }).PROXY_SECRET
+    ).toBe(secret)
+  })
+
+  it("fuera de producción el secreto del proxy es opcional", () => {
+    expect(parseEnv(required).PROXY_SECRET).toBeUndefined()
+  })
 })
