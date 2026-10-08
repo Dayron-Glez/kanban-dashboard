@@ -41,29 +41,29 @@ La configuración vive en el panel de Railway. Su fichero `railway.json` está o
 2. **New Project → Deploy from GitHub repo** y elige `kanban-dashboard`. Railway pedirá permiso para leer el repositorio.
 3. En el servicio, **Settings**:
 
-   | Campo            | Valor                                                                          |
-   | ---------------- | ------------------------------------------------------------------------------ |
-   | Root Directory   | vacío: la raíz del repo, para que pnpm vea el workspace entero                 |
-   | Build Command    | `pnpm turbo build --filter=api`                                                |
-   | Start Command    | `node apps/api/dist/main.js`                                                   |
-   | Watch Paths      | `apps/api/**`, `packages/contracts/**`, `packages/domain/**`, `pnpm-lock.yaml` |
-   | Healthcheck Path | `/health`                                                                      |
-   | Region           | la misma que el proyecto de Supabase                                           |
+   | Campo                        | Valor                                                                          |
+   | ---------------------------- | ------------------------------------------------------------------------------ |
+   | Root Directory               | vacío: la raíz del repo, que es el contexto del `Dockerfile`                   |
+   | Build Command, Start Command | vacíos: los pone `apps/api/Dockerfile`                                         |
+   | Watch Paths                  | `apps/api/**`, `packages/contracts/**`, `packages/domain/**`, `pnpm-lock.yaml` |
+   | Healthcheck Path             | `/health`                                                                      |
+   | Region                       | la misma que la base de datos                                                  |
 
 4. En **Variables**:
 
-   | Variable               | Valor                                                                                   |
-   | ---------------------- | --------------------------------------------------------------------------------------- |
-   | `DATABASE_URL`         | Supabase → **Connect → Transaction pooler** (puerto 6543), con la contraseña de la base |
-   | `BETTER_AUTH_URL`      | la URL de la **web** en Vercel, sin barra final (la API se sirve bajo su `/api`)        |
-   | `BETTER_AUTH_SECRET`   | `openssl rand -base64 32`. Cambiarlo cierra todas las sesiones                          |
-   | `GOOGLE_CLIENT_ID`     | Google Cloud → Credenciales → cliente OAuth. Opcional: sin él no se ofrece Google       |
-   | `GOOGLE_CLIENT_SECRET` | el secreto de ese cliente                                                               |
-   | `NODE_ENV`             | `production`                                                                            |
+   | Variable                  | Valor                                                                                   |
+   | ------------------------- | --------------------------------------------------------------------------------------- |
+   | `DATABASE_URL`            | Supabase → **Connect → Transaction pooler** (puerto 6543), con la contraseña de la base |
+   | `BETTER_AUTH_URL`         | la URL de la **web** en Vercel, sin barra final (la API se sirve bajo su `/api`)        |
+   | `BETTER_AUTH_SECRET`      | `openssl rand -base64 32`. Cambiarlo cierra todas las sesiones                          |
+   | `GOOGLE_CLIENT_ID`        | Google Cloud → Credenciales → cliente OAuth. Opcional: sin él no se ofrece Google       |
+   | `GOOGLE_CLIENT_SECRET`    | el secreto de ese cliente                                                               |
+   | `NODE_ENV`                | `production`                                                                            |
+   | `RAILWAY_DOCKERFILE_PATH` | `apps/api/Dockerfile`: no está en la raíz, así que Railway no lo encuentra solo         |
 
    En el cliente OAuth de Google, la URI de redirección autorizada es `BETTER_AUTH_URL` + `/api/auth/callback/google`.
 
-`PORT` lo pone Railway.
+`PORT` lo pone Railway. La imagen solo lleva la API y sus dependencias de producción, y la instalación sale de la caché mientras no cambie el lockfile.
 
 5. **Settings → Networking → Generate Domain**, y comprueba que `https://<dominio>/health` responde `{"status":"ok","database":"ok"}`.
 6. En la configuración de uso del workspace, fija un **límite de gasto** para que un error no dispare la factura.
