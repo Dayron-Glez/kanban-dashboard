@@ -5,7 +5,6 @@ import postgres from "postgres"
 import request from "supertest"
 import { AppModule } from "../app.module.js"
 import { SESSION_RESOLVER, type AuthUser, type SessionResolver } from "../auth/session.js"
-import { ENV, type Env } from "../config/env.js"
 import { API_PREFIX, configureApp } from "../configure-app.js"
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"])
@@ -42,7 +41,7 @@ export const createTestApp = async ({ fakeSessions = true }: TestAppOptions = {}
   if (fakeSessions) builder.overrideProvider(SESSION_RESOLVER).useValue(resolveSession)
   const moduleRef = await builder.compile()
   const app = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false })
-  configureApp(app, app.get<Env>(ENV))
+  configureApp(app)
   await app.init()
 
   // Como al registrarse: el usuario y su perfil.

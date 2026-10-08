@@ -1,6 +1,6 @@
 # cauce
 
-Aplicación web de tablero Kanban interactivo construida con React, TypeScript, Tailwind CSS y Supabase. Permite gestionar tareas organizadas en columnas con drag & drop, búsqueda en tiempo real, proyectos compartidos con invitaciones y validación de formularios.
+Aplicación web de tablero Kanban interactivo construida con React, TypeScript y Tailwind CSS, con una API propia en NestJS sobre Postgres. Permite gestionar tareas organizadas en columnas con drag & drop, búsqueda en tiempo real, proyectos compartidos con invitaciones y validación de formularios.
 
 ## Tabla de Contenidos
 
@@ -26,13 +26,16 @@ El proyecto está diseñado como una SPA (Single Page Application) con enfoque e
 
 ### Core
 
-| Tecnología                                    | Versión | Descripción                        |
-| --------------------------------------------- | ------- | ---------------------------------- |
-| [React](https://react.dev/)                   | 19      | Biblioteca de UI                   |
-| [TypeScript](https://www.typescriptlang.org/) | 5.9     | Tipado estático                    |
-| [Vite](https://vite.dev/)                     | 7       | Build tool y dev server            |
-| [Tailwind CSS](https://tailwindcss.com/)      | 4       | Framework de estilos utility-first |
-| [Supabase](https://supabase.com/)             | —       | Base de datos, autenticación y API |
+| Tecnología                                    | Versión | Descripción                         |
+| --------------------------------------------- | ------- | ----------------------------------- |
+| [React](https://react.dev/)                   | 19      | Biblioteca de UI                    |
+| [TypeScript](https://www.typescriptlang.org/) | 5.9     | Tipado estático                     |
+| [Vite](https://vite.dev/)                     | 7       | Build tool y dev server             |
+| [Tailwind CSS](https://tailwindcss.com/)      | 4       | Framework de estilos utility-first  |
+| [NestJS](https://nestjs.com/)                 | 12      | API propia (`apps/api`)             |
+| [Drizzle](https://orm.drizzle.team/)          | —       | Acceso a Postgres desde la API      |
+| [better-auth](https://www.better-auth.com/)   | 1.7     | Login, sesión por cookie y Google   |
+| [Supabase](https://supabase.com/)             | —       | Postgres y migraciones (hasta Neon) |
 
 ### Monorepo
 
@@ -102,10 +105,10 @@ pnpm install
 pnpm db:start
 ```
 
-4. Crea el fichero de entorno de la app a partir del ejemplo y pega en `VITE_SUPABASE_ANON_KEY` el valor de `PUBLISHABLE_KEY` que muestra `pnpm db:status`:
+4. Crea el fichero de entorno de la API a partir del ejemplo y rellena `BETTER_AUTH_SECRET` con un valor aleatorio (`openssl rand -base64 32`). La web no necesita ninguno: llama a la API en `/api` a través del proxy de Vite.
 
 ```bash
-cp apps/web/.env.example apps/web/.env.development.local
+cp apps/api/.env.example apps/api/.env
 ```
 
 5. Inicia el servidor de desarrollo:
@@ -114,7 +117,7 @@ cp apps/web/.env.example apps/web/.env.development.local
 pnpm dev
 ```
 
-La aplicación estará disponible en `http://localhost:5173`. Regístrate con cualquier email: en local no se envían correos de confirmación.
+Arranca la web en `http://localhost:5173` y la API en `http://localhost:3000`. Regístrate con cualquier email: no se envían correos de confirmación. Entrar con Google en local exige rellenar `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en `apps/api/.env`.
 
 ## Base de datos local
 
@@ -130,14 +133,13 @@ La CLI de Supabase levanta en Docker toda la pila (Postgres, autenticación, API
 Herramientas que quedan disponibles mientras la pila está arriba:
 
 - **Supabase Studio**, para ver y editar tablas: `http://127.0.0.1:54323`
-- **Mailpit**, que recoge los correos (recuperación de contraseña, invitaciones): `http://127.0.0.1:54324`
 
 ### Cambiar el esquema
 
 1. Haz el cambio en local, desde Studio o con SQL.
 2. Genera la migración a partir de la diferencia y revísala: `pnpm db:diff nombre_descriptivo`.
 3. Comprueba que se aplica limpia desde cero: `pnpm db:reset`. Ojo: también **borra los usuarios**.
-4. Regenera los tipos de TypeScript de la base: `pnpm db:types`. Lánzalo siempre con pnpm y no redirigiendo la salida a mano desde PowerShell, que escribiría el fichero en UTF-16.
+4. Regenera el esquema de Drizzle de la API: `pnpm db:schema`.
 
 > ⚠️ `pnpm db:push` y `pnpm db:pull` **no son locales**: actúan sobre el proyecto remoto de Supabase, que es la base de datos de producción.
 
@@ -151,13 +153,14 @@ Todos se ejecutan desde la raíz del repositorio.
 | `build`        | Comprueba los tipos y genera el build de producción                         |
 | `test`         | Tests en modo observación                                                   |
 | `test:run`     | Ejecuta todos los tests una vez (con la caché de Turborepo)                 |
+| `test:int`     | Tests de integración de la API contra la base local (`pnpm db:start` antes) |
 | `typecheck`    | Comprueba los tipos de todos los paquetes                                   |
 | `lint`         | Análisis estático con ESLint, sin advertencias permitidas                   |
 | `format`       | Formatea el código con Prettier                                             |
 | `format:check` | Comprueba el formato sin modificar nada                                     |
 | `db:*`         | Base de datos de Supabase (ver [Base de datos local](#base-de-datos-local)) |
 
-Para ejecutar un script de un solo paquete: `pnpm --filter web <script>`. Por ejemplo, `pnpm --filter web dev:prod` arranca la app contra producción usando `apps/web/.env.prod.local`.
+Para ejecutar un script de un solo paquete: `pnpm --filter web <script>` o `pnpm --filter api <script>`.
 
 ## Datos de prueba
 
@@ -171,7 +174,7 @@ Una cuenta recién creada no tiene proyectos, y con el tablero vacío es difíci
 docker exec -i supabase_db_kanban-dashboard psql -U postgres -d postgres < supabase/seed.sql
 ```
 
-Para sembrar el proyecto remoto, pega el script en el **SQL Editor** de Supabase. No sirve ejecutarlo desde la app: la clave pública está sujeta a RLS y no puede sembrar datos.
+Para sembrar el proyecto remoto, pega el script en el **SQL Editor** de Supabase.
 
 Es idempotente: identifica lo que siembra con el marcador `[seed]` en la descripción del proyecto, así que lo borra y lo recrea en cada ejecución sin tocar tus proyectos reales. Para revertirlo, ejecuta solo el `delete` del bloque LIMPIEZA.
 
@@ -182,6 +185,7 @@ Monorepo con pnpm workspaces. Dentro de la app, el código sigue una **Screaming
 ```
 kanban-dashboard/
 ├── apps/
+│   ├── api/                             # API en NestJS (ver apps/api/README.md)
 │   └── web/                             # La aplicación React
 │       ├── src/
 │       │   ├── features/                # Dominios de la aplicación
@@ -194,20 +198,22 @@ kanban-dashboard/
 │       │   │   ├── project/             # Proyectos, miembros y ajustes
 │       │   │   └── task/                # Tarjetas, formularios y paneles de tareas
 │       │   ├── shared/                  # Infraestructura compartida
+│       │   │   ├── api/                 # Cliente de la API, TanStack Query y errores
 │       │   │   ├── components/ui/       # Componentes shadcn/ui
-│       │   │   ├── supabase/            # Cliente y tipos de la base de datos
 │       │   │   └── index.ts             # API pública de shared
 │       │   ├── layouts/                 # Estructura de páginas
 │       │   ├── App.tsx                  # Configuración de rutas
 │       │   └── main.tsx                 # Punto de entrada
-│       ├── .env.example                 # Variables de entorno necesarias
 │       ├── tailwind.css                 # Variables CSS y tema
 │       ├── vite.config.ts               # Vite y Vitest
 │       └── components.json              # Configuración de shadcn/ui
 ├── packages/
+│   ├── api-client/                      # Cliente HTTP de la API, con la respuesta validada
+│   ├── contracts/                       # Esquemas Zod compartidos por la web y la API
 │   └── domain/                          # Lógica de dominio pura, sin framework ni DOM
 ├── supabase/
 │   ├── migrations/                      # Esquema de la base de datos
+│   ├── rollback/                        # Vueltas atrás manuales, que nunca se aplican solas
 │   └── seed.sql                         # Datos de prueba
 ├── eslint.config.js                     # ESLint para todo el monorepo
 ├── pnpm-workspace.yaml                  # Paquetes del workspace
@@ -218,7 +224,8 @@ kanban-dashboard/
 
 ### Monorepo
 
-- **`apps/web`** es la aplicación.
+- **`apps/web`** es la aplicación y **`apps/api`** la API. En producción, Vercel reenvía `/api/*` a la API en Railway; en local lo hace el proxy de Vite. Así comparten dominio y la cookie de sesión es de primera parte.
+- **`packages/contracts`** define con Zod la forma de los datos: la API valida con esos esquemas y **`packages/api-client`** los usa para validar las respuestas en la web.
 - **`packages/domain`** guarda la lógica de dominio pura, que no depende de React ni del navegador. Su `tsconfig` excluye la librería `DOM`, así que el compilador impide que ese código toque `window` o `document`. La app lo consume como `@repo/domain`.
 - ESLint, Prettier y husky se configuran una vez en la raíz y aplican a todos los paquetes.
 

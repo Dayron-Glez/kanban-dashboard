@@ -7,9 +7,8 @@ try {
 }
 
 // Mientras la base siga en Supabase, el dueño de las migraciones es
-// supabase/migrations: Drizzle solo refleja el esquema (pnpm db:schema),
-// igual que db:types genera los tipos de la web. Pasa a ser el dueño en el
-// paso a Neon (sub-PR 4.3).
+// supabase/migrations: Drizzle solo refleja el esquema (pnpm db:schema). Pasa
+// a ser el dueño en el paso a Neon (sub-PR 4.3).
 export default defineConfig({
   dialect: "postgresql",
   out: "./src/db/generated",

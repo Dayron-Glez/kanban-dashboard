@@ -14,18 +14,11 @@ describe("parseEnv", () => {
       DATABASE_URL,
       BETTER_AUTH_URL,
       BETTER_AUTH_SECRET,
-      CORS_ORIGINS: ["http://localhost:5173"],
     })
   })
 
-  it("convierte el puerto y separa los orígenes por comas", () => {
-    const env = parseEnv({
-      ...required,
-      PORT: "8080",
-      CORS_ORIGINS: "https://cauce.app, https://preview.cauce.app",
-    })
-    expect(env.PORT).toBe(8080)
-    expect(env.CORS_ORIGINS).toEqual(["https://cauce.app", "https://preview.cauce.app"])
+  it("convierte el puerto", () => {
+    expect(parseEnv({ ...required, PORT: "8080" }).PORT).toBe(8080)
   })
 
   it("se niega a arrancar sin DATABASE_URL, diciendo qué falta", () => {

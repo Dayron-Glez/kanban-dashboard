@@ -8,7 +8,7 @@ import { configureApp } from "./configure-app.js"
 const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false })
 const env = app.get<Env>(ENV)
 
-configureApp(app, env)
+configureApp(app)
 // Cierra las conexiones a la base al apagar: Railway manda SIGTERM en cada despliegue.
 app.enableShutdownHooks()
 

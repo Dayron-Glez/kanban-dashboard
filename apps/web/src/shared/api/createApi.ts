@@ -2,5 +2,4 @@ import { createHttpApi, createHttpClient, type ApiClient } from "@repo/api-clien
 
 // La API se sirve bajo /api del propio dominio y la sesión viaja en la cookie
 // de better-auth: el navegador la manda sola en cada petición.
-export const createApi = (): ApiClient =>
-  createHttpApi(createHttpClient({ baseUrl: import.meta.env.VITE_API_URL ?? "/api" }))
+export const createApi = (): ApiClient => createHttpApi(createHttpClient({ baseUrl: "/api" }))

@@ -12,13 +12,13 @@ pnpm --filter api dev      # http://localhost:3000/health
 
 `pnpm dev` en la raíz arranca la web y la API a la vez.
 
-| Script                    | Qué hace                                                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm --filter api dev`   | Arranca con recarga al guardar                                                                                                 |
-| `pnpm --filter api test`  | Tests con Vitest                                                                                                               |
-| `pnpm test:int`           | Tests de integración contra la base local (`pnpm db:start` antes). Se niegan a correr contra una base que no sea local         |
-| `pnpm --filter api build` | Compila a `dist/`                                                                                                              |
-| `pnpm db:schema`          | Regenera `src/db/generated` a partir de la base local. Ejecútalo tras cambiar `supabase/migrations`, igual que `pnpm db:types` |
+| Script                    | Qué hace                                                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter api dev`   | Arranca con recarga al guardar                                                                                         |
+| `pnpm --filter api test`  | Tests con Vitest                                                                                                       |
+| `pnpm test:int`           | Tests de integración contra la base local (`pnpm db:start` antes). Se niegan a correr contra una base que no sea local |
+| `pnpm --filter api build` | Compila a `dist/`                                                                                                      |
+| `pnpm db:schema`          | Regenera `src/db/generated` a partir de la base local. Ejecútalo tras cambiar `supabase/migrations`                    |
 
 ### Convenciones
 
@@ -59,7 +59,6 @@ La configuración vive en el panel de Railway. Su fichero `railway.json` está o
    | `BETTER_AUTH_SECRET`   | `openssl rand -base64 32`. Cambiarlo cierra todas las sesiones                          |
    | `GOOGLE_CLIENT_ID`     | Google Cloud → Credenciales → cliente OAuth. Opcional: sin él no se ofrece Google       |
    | `GOOGLE_CLIENT_SECRET` | el secreto de ese cliente                                                               |
-   | `CORS_ORIGINS`         | la URL de la web en Vercel; varias, separadas por comas                                 |
    | `NODE_ENV`             | `production`                                                                            |
 
    En el cliente OAuth de Google, la URI de redirección autorizada es `BETTER_AUTH_URL` + `/api/auth/callback/google`.
