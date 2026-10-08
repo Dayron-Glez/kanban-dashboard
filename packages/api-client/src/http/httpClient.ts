@@ -4,8 +4,11 @@ import { parseWith } from "../parse"
 
 export interface HttpClientOptions {
   baseUrl: string
-  /** El token de la sesión actual, o null si no hay sesión. */
-  getAccessToken: () => Promise<string | null>
+  /**
+   * Para sesiones por token (Bearer). La web no lo usa: su sesión es la cookie
+   * de better-auth, que el navegador manda solo.
+   */
+  getAccessToken?: () => Promise<string | null>
   fetch?: typeof fetch
 }
 
@@ -66,7 +69,7 @@ export const createHttpClient = ({
     path: string,
     options: RequestOptions<S> = {}
   ): Promise<Result<S>> {
-    const token = await getAccessToken()
+    const token = await getAccessToken?.()
     const headers: Record<string, string> = { Accept: "application/json" }
     if (token) headers.Authorization = `Bearer ${token}`
     if (options.body !== undefined) headers["Content-Type"] = "application/json"

@@ -1,9 +1,8 @@
 import type { ReactNode } from "react"
 import { useNavigate, useParams } from "react-router"
 import { IconLoader2 } from "@tabler/icons-react"
-import type { User } from "@supabase/supabase-js"
 import type { InvitationPreview } from "@repo/contracts"
-import { useAuth } from "@/features/auth"
+import { useAuth, type SessionUser } from "@/features/auth"
 import { Button } from "@/shared"
 import { errorMessage } from "@/shared/api"
 import { useAcceptInvitation, useInvitationPreview } from "./api/invitation"
@@ -18,7 +17,7 @@ type InviteView =
 
 interface ResolveViewInput {
   token: string | undefined
-  user: User | null
+  user: SessionUser | null
   authLoading: boolean
   isPending: boolean
   error: unknown

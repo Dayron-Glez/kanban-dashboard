@@ -22,7 +22,7 @@ import {
   type SetFavoriteInput,
 } from "@repo/contracts"
 import { CurrentUser } from "../auth/current-user.decorator.js"
-import type { AuthUser } from "../auth/token-verifier.js"
+import type { AuthUser } from "../auth/session.js"
 import { ProjectsService } from "./projects.service.js"
 
 @Controller("projects")

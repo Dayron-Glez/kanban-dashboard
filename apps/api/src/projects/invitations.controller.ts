@@ -16,7 +16,7 @@ import {
   type InvitationPreview,
 } from "@repo/contracts"
 import { CurrentUser } from "../auth/current-user.decorator.js"
-import type { AuthUser } from "../auth/token-verifier.js"
+import type { AuthUser } from "../auth/session.js"
 import { InvitationsService } from "./invitations.service.js"
 
 // El proyecto va en la ruta, no en el cuerpo.

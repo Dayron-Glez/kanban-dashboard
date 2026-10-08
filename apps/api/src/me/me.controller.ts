@@ -1,6 +1,6 @@
 import { Controller, Get } from "@nestjs/common"
 import { CurrentUser } from "../auth/current-user.decorator.js"
-import type { AuthUser } from "../auth/token-verifier.js"
+import type { AuthUser } from "../auth/session.js"
 
 @Controller("me")
 export class MeController {

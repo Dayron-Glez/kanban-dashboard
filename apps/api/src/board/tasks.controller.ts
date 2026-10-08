@@ -22,7 +22,7 @@ import {
   type TaskInput,
 } from "@repo/contracts"
 import { CurrentUser } from "../auth/current-user.decorator.js"
-import type { AuthUser } from "../auth/token-verifier.js"
+import type { AuthUser } from "../auth/session.js"
 import { HistoryService } from "./history.service.js"
 import { TasksService } from "./tasks.service.js"
 

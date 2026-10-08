@@ -7,8 +7,8 @@ import {
   type InvitationPreview,
 } from "@repo/contracts"
 import { and, desc, eq } from "drizzle-orm"
-import { authUsers } from "drizzle-orm/supabase"
 import { DB, type Database } from "../db/db.module.js"
+import { users } from "../db/identity.js"
 import { projectInvitations, projectMembers, projects } from "../db/generated/schema.js"
 import { ProjectAccess } from "./project-access.js"
 import { toIso } from "../db/timestamps.js"
@@ -106,10 +106,7 @@ export class InvitationsService {
         throw new NotFoundException("La invitación ha caducado")
       }
 
-      const [user] = await tx
-        .select({ email: authUsers.email })
-        .from(authUsers)
-        .where(eq(authUsers.id, userId))
+      const [user] = await tx.select({ email: users.email }).from(users).where(eq(users.id, userId))
       if (user?.email?.toLowerCase() !== invitation.email.toLowerCase()) {
         throw new ForbiddenException("La invitación está dirigida a otra dirección de correo")
       }

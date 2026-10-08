@@ -23,7 +23,9 @@ declare
   v_task   uuid;
   v_seed   text := '[seed]';
 begin
-  select id into v_user from auth.users where email = v_email;
+  -- Desde better-auth (4.2b) los usuarios viven en identity.users, con el
+  -- correo en minúsculas.
+  select id into v_user from identity.users where email = lower(v_email);
   if v_user is null then
     -- Aviso y salida, no excepción: en una base local recién creada todavía no
     -- hay usuarios, y abortar aquí haría fallar el `supabase db reset` entero.

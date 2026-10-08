@@ -1,15 +1,22 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useNavigate } from "react-router"
-import { supabase } from "@/shared/supabase"
 import { Button, Card, CardContent, CardHeader, Input, Label } from "@/shared"
+import { useAuth } from "../context/useAuth"
 import { registerSchema, type RegisterFormValues } from "../schemas/auth.schema"
-import { authErrorMessage } from "../lib/authErrorMessage"
+import { authClient } from "../lib/authClient"
+import { authErrorMessage, NETWORK_ERROR_MESSAGE } from "../lib/authErrorMessage"
 
 export function RegisterPage() {
   const navigate = useNavigate()
   const [authError, setAuthError] = useState<string | null>(null)
+  const { user } = useAuth()
+
+  // Como en LoginPage: se navega cuando la sesión nueva ya está en el contexto.
+  useEffect(() => {
+    if (user) navigate("/home", { replace: true })
+  }, [user, navigate])
 
   const {
     register,
@@ -21,18 +28,16 @@ export function RegisterPage() {
 
   const onSubmit = async (values: RegisterFormValues) => {
     setAuthError(null)
-    const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: { full_name: values.full_name },
-      },
-    })
-    if (error) {
-      setAuthError(authErrorMessage(error))
-      return
+    try {
+      const { error } = await authClient.signUp.email({
+        name: values.full_name,
+        email: values.email,
+        password: values.password,
+      })
+      if (error) setAuthError(authErrorMessage(error))
+    } catch {
+      setAuthError(NETWORK_ERROR_MESSAGE)
     }
-    navigate("/home")
   }
 
   return (

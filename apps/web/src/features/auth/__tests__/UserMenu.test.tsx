@@ -12,10 +12,7 @@ vi.mock("react-router", () => ({
 const mockSignOut = vi.fn()
 vi.mock("../context/useAuth", () => ({
   useAuth: () => ({
-    user: {
-      email: "ana@empresa.com",
-      user_metadata: { full_name: "Ana García" },
-    },
+    user: { id: "u1", name: "Ana García", email: "ana@empresa.com" },
     signOut: mockSignOut,
   }),
 }))

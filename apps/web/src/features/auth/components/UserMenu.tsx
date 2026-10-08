@@ -18,7 +18,7 @@ export function UserMenu() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
 
-  const fullName = user?.user_metadata?.full_name as string | undefined
+  const fullName = user?.name
   const email = user?.email
   const initials = getInitials(fullName, email)
   const displayName = fullName ?? email ?? "Usuario"

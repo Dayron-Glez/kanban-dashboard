@@ -1,4 +1,4 @@
-import { authUsers } from "drizzle-orm/supabase"
+import { users as identityUsers } from "../identity.js"
 import {
   pgTable,
   foreignKey,
@@ -128,7 +128,7 @@ export const profiles = pgTable(
   (table) => [
     foreignKey({
       columns: [table.id],
-      foreignColumns: [authUsers.id],
+      foreignColumns: [identityUsers.id],
       name: "profiles_id_fkey",
     }).onDelete("cascade"),
     pgPolicy("Perfiles de quienes comparten proyecto", {
@@ -213,7 +213,7 @@ export const projects = pgTable(
   (table) => [
     foreignKey({
       columns: [table.ownerId],
-      foreignColumns: [authUsers.id],
+      foreignColumns: [identityUsers.id],
       name: "projects_owner_id_fkey",
     }).onDelete("cascade"),
     pgPolicy("Miembros ven el proyecto", {
@@ -302,11 +302,6 @@ export const tasks = pgTable(
   },
   (table) => [
     foreignKey({
-      columns: [table.assigneeId],
-      foreignColumns: [authUsers.id],
-      name: "tasks_assignee_id_fkey",
-    }).onDelete("set null"),
-    foreignKey({
       columns: [table.columnId],
       foreignColumns: [columns.id],
       name: "tasks_column_id_fkey",
@@ -316,6 +311,11 @@ export const tasks = pgTable(
       foreignColumns: [projects.id],
       name: "tasks_project_id_fkey",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.assigneeId],
+      foreignColumns: [identityUsers.id],
+      name: "tasks_assignee_id_fkey",
+    }).onDelete("set null"),
     pgPolicy("Miembros eliminan tareas", {
       as: "permissive",
       for: "delete",

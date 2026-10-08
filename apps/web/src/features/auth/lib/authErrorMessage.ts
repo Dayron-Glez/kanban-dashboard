@@ -1,20 +1,23 @@
-import { isAuthRetryableFetchError, type AuthError } from "@supabase/supabase-js"
-
-const MESSAGES: Partial<Record<string, string>> = {
-  invalid_credentials: "Email o contraseña incorrectos.",
-  email_not_confirmed: "Confirma tu email antes de entrar. Revisa tu bandeja de entrada.",
-  user_already_exists: "Ya existe una cuenta con ese email.",
-  email_exists: "Ya existe una cuenta con ese email.",
-  email_address_invalid: "Ese email no es válido.",
-  weak_password: "La contraseña es demasiado débil. Prueba con una más larga.",
-  over_request_rate_limit: "Demasiados intentos. Espera unos minutos y vuelve a probar.",
-  over_email_send_rate_limit: "Demasiados emails enviados. Espera unos minutos y vuelve a probar.",
-  signup_disabled: "El registro está desactivado.",
+/** Lo que devuelve el cliente de better-auth cuando algo falla. */
+export interface AuthClientError {
+  code?: string
+  status: number
 }
 
-export const authErrorMessage = (error: AuthError): string => {
-  if (isAuthRetryableFetchError(error)) {
-    return "No hay conexión con el servidor. Comprueba tu red e inténtalo de nuevo."
-  }
+const MESSAGES: Partial<Record<string, string>> = {
+  INVALID_EMAIL_OR_PASSWORD: "Email o contraseña incorrectos.",
+  USER_ALREADY_EXISTS: "Ya existe una cuenta con ese email.",
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Ya existe una cuenta con ese email.",
+  INVALID_EMAIL: "Ese email no es válido.",
+  PASSWORD_TOO_SHORT: "La contraseña debe tener al menos 8 caracteres.",
+  PASSWORD_TOO_LONG: "La contraseña es demasiado larga.",
+}
+
+export const NETWORK_ERROR_MESSAGE =
+  "No hay conexión con el servidor. Comprueba tu red e inténtalo de nuevo."
+
+export const authErrorMessage = (error: AuthClientError): string => {
+  if (error.status === 429) return "Demasiados intentos. Espera unos minutos y vuelve a probar."
+  if (error.status === 0) return NETWORK_ERROR_MESSAGE
   return (error.code && MESSAGES[error.code]) || "No se ha podido completar. Inténtalo de nuevo."
 }

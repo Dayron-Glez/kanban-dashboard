@@ -4,8 +4,9 @@ import postgres, { type Sql } from "postgres"
 import { ENV, type Env } from "../config/env.js"
 import * as relations from "./generated/relations.js"
 import * as tables from "./generated/schema.js"
+import * as identity from "./identity.js"
 
-const schema = { ...tables, ...relations }
+const schema = { ...tables, ...identity, ...relations }
 
 export type Database = PostgresJsDatabase<typeof schema>
 
