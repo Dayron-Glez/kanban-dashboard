@@ -51,6 +51,21 @@ describe("createHttpClient", () => {
     expect(String(fetch.mock.calls[0]![0])).toBe("https://cauce.app/api/me")
   })
 
+  it("admite una base relativa, la del proxy /api del propio dominio", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(() =>
+      Promise.resolve(json({ id: "u1", email: null }))
+    )
+    const client = createHttpClient({
+      baseUrl: "/api",
+      getAccessToken: () => Promise.resolve(null),
+      fetch,
+    })
+
+    await client.request("GET", "/me", { schema: Me })
+
+    expect(String(fetch.mock.calls[0]![0])).toBe("/api/me")
+  })
+
   it("sin sesión no manda la cabecera Authorization", async () => {
     const { client, call } = setup(json({ id: "u1", email: null }), null)
 

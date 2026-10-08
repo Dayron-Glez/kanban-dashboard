@@ -6,6 +6,9 @@ import { configDefaults, defineConfig } from "vitest/config"
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Lo mismo que hace Vercel en producción: la API se sirve desde el dominio de
+  // la web, así la cookie de sesión es de primera parte.
+  server: { proxy: { "/api": "http://localhost:3000" } },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
