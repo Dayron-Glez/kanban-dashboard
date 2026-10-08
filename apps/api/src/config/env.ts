@@ -12,15 +12,6 @@ const EnvSchema = z.object({
   // Opcionales: sin ellas, no se ofrece entrar con Google (en local, por ejemplo).
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
-  CORS_ORIGINS: z
-    .string()
-    .default("http://localhost:5173")
-    .transform((value) =>
-      value
-        .split(",")
-        .map((origin) => origin.trim())
-        .filter(Boolean)
-    ),
 })
 
 export type Env = z.infer<typeof EnvSchema>
