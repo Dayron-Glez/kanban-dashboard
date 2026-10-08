@@ -338,9 +338,6 @@ importers:
       '@repo/domain':
         specifier: workspace:*
         version: link:../../packages/domain
-      '@supabase/supabase-js':
-        specifier: ^2.105.1
-        version: 2.117.2
       '@tabler/icons-react':
         specifier: ^3.35.0
         version: 3.48.0(react@19.3.0)
