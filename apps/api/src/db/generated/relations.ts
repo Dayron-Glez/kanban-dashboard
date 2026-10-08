@@ -1,4 +1,4 @@
-import { authUsers as usersInAuth } from "drizzle-orm/supabase"
+import { users as usersInIdentity } from "../identity.js"
 import { relations } from "drizzle-orm/relations"
 import {
   projects,
@@ -25,18 +25,18 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   projectMembers: many(projectMembers),
   columns: many(columns),
   projectInvitations: many(projectInvitations),
-  usersInAuth: one(usersInAuth, {
+  usersInIdentity: one(usersInIdentity, {
     fields: [projects.ownerId],
-    references: [usersInAuth.id],
+    references: [usersInIdentity.id],
   }),
   tasks: many(tasks),
 }))
 
 export const profilesRelations = relations(profiles, ({ one, many }) => ({
   projectMembers: many(projectMembers),
-  usersInAuth: one(usersInAuth, {
+  usersInIdentity: one(usersInIdentity, {
     fields: [profiles.id],
-    references: [usersInAuth.id],
+    references: [usersInIdentity.id],
   }),
 }))
 
@@ -54,7 +54,7 @@ export const columnsRelations = relations(columns, ({ one, many }) => ({
   tasks: many(tasks),
 }))
 
-export const usersInAuthRelations = relations(usersInAuth, ({ many }) => ({
+export const usersInIdentityRelations = relations(usersInIdentity, ({ many }) => ({
   profiles: many(profiles),
   projects: many(projects),
   tasks: many(tasks),
@@ -86,10 +86,6 @@ export const taskHistoryRelations = relations(taskHistory, ({ one }) => ({
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
   taskHistories: many(taskHistory),
-  usersInAuth: one(usersInAuth, {
-    fields: [tasks.assigneeId],
-    references: [usersInAuth.id],
-  }),
   column: one(columns, {
     fields: [tasks.columnId],
     references: [columns.id],
@@ -97,5 +93,9 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   project: one(projects, {
     fields: [tasks.projectId],
     references: [projects.id],
+  }),
+  usersInIdentity: one(usersInIdentity, {
+    fields: [tasks.assigneeId],
+    references: [usersInIdentity.id],
   }),
 }))

@@ -4,8 +4,14 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-  // Sin barra final: con ella se construyen el emisor y el JWKS de los tokens.
-  SUPABASE_URL: z.url({ protocol: /^https?$/ }).transform((url) => url.replace(/\/+$/, "")),
+  // La URL pública de la web (no la de Railway): better-auth construye con ella
+  // las redirecciones de Google y la cookie es de ese dominio.
+  BETTER_AUTH_URL: z.url({ protocol: /^https?$/ }).transform((url) => url.replace(/\/+$/, "")),
+  // Firma las cookies de sesión. Cambiarlo cierra todas las sesiones.
+  BETTER_AUTH_SECRET: z.string().min(32),
+  // Opcionales: sin ellas, no se ofrece entrar con Google (en local, por ejemplo).
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   CORS_ORIGINS: z
     .string()
     .default("http://localhost:5173")

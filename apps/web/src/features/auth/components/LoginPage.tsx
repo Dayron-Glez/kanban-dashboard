@@ -1,17 +1,25 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useNavigate, useSearchParams } from "react-router"
-import { supabase } from "@/shared/supabase"
 import { Button, Card, CardContent, CardHeader, Input, Label } from "@/shared"
+import { useAuth } from "../context/useAuth"
 import { loginSchema, type LoginFormValues } from "../schemas/auth.schema"
-import { authErrorMessage } from "../lib/authErrorMessage"
+import { authClient } from "../lib/authClient"
+import { authErrorMessage, NETWORK_ERROR_MESSAGE } from "../lib/authErrorMessage"
 
 export function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const redirectTo = searchParams.get("redirect") ?? "/home"
   const [authError, setAuthError] = useState<string | null>(null)
+  const { user } = useAuth()
+
+  // Se navega cuando la sesión ya está en el contexto: navegar justo tras
+  // entrar llegaría antes, y AuthGuard devolvería aquí.
+  useEffect(() => {
+    if (user) navigate(redirectTo, { replace: true })
+  }, [user, navigate, redirectTo])
 
   const {
     register,
@@ -23,22 +31,25 @@ export function LoginPage() {
 
   const onSubmit = async (values: LoginFormValues) => {
     setAuthError(null)
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    })
-    if (error) {
-      setAuthError(authErrorMessage(error))
-      return
+    try {
+      const { error } = await authClient.signIn.email({
+        email: values.email,
+        password: values.password,
+      })
+      if (error) setAuthError(authErrorMessage(error))
+    } catch {
+      setAuthError(NETWORK_ERROR_MESSAGE)
     }
-    navigate(redirectTo)
   }
 
+  // Lleva a Google y, al volver, a la página que se quería abrir.
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    setAuthError(null)
+    const { error } = await authClient.signIn.social({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}${redirectTo}` },
+      callbackURL: `${window.location.origin}${redirectTo}`,
     })
+    if (error) setAuthError(authErrorMessage(error))
   }
 
   return (

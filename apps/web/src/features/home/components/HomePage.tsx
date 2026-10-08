@@ -41,7 +41,7 @@ export function HomePage() {
     refetch: refetchProjects,
   } = useProjects()
 
-  const fullName = user?.user_metadata?.full_name as string | undefined
+  const fullName = user?.name
   const firstName = fullName?.trim().split(/\s+/)[0] ?? null
 
   // P0 primero; el sort es estable, así que dentro de cada prioridad se

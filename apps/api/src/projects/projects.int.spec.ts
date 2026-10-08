@@ -269,13 +269,4 @@ describe("rutas", () => {
     expect((await request(server).get("/health")).status).toBe(200)
     expect((await request(server).get("/api/health")).status).toBe(404)
   })
-
-  // Temporal, hasta el 4.2b: la web desplegada antes del prefijo sigue funcionando.
-  it("las rutas sin /api siguen respondiendo", async () => {
-    const response = await request(ctx.app.getHttpServer())
-      .get("/projects")
-      .set("Authorization", `Bearer ${ana.token}`)
-
-    expect(response.status).toBe(200)
-  })
 })

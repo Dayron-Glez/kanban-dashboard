@@ -1,9 +1,8 @@
 import { createContext } from "react"
-import type { Session, User } from "@supabase/supabase-js"
+import type { SessionUser } from "../lib/authClient"
 
 export interface AuthContextValue {
-  user: User | null
-  session: Session | null
+  user: SessionUser | null
   loading: boolean
   signOut: () => Promise<void>
 }

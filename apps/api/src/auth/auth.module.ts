@@ -1,24 +1,28 @@
 import { Module } from "@nestjs/common"
 import { APP_GUARD } from "@nestjs/core"
-import { createRemoteJWKSet } from "jose"
-import { ENV, type Env } from "../config/env.js"
+import { fromNodeHeaders } from "better-auth/node"
+import { ENV } from "../config/env.js"
+import { DB } from "../db/db.module.js"
 import { AuthGuard } from "./auth.guard.js"
-import { createSupabaseVerifier, TOKEN_VERIFIER } from "./token-verifier.js"
+import { BETTER_AUTH, createAuth, type Auth } from "./better-auth.js"
+import { SESSION_RESOLVER, type SessionResolver } from "./session.js"
 
 @Module({
   providers: [
+    { provide: BETTER_AUTH, inject: [DB, ENV], useFactory: createAuth },
     {
-      provide: TOKEN_VERIFIER,
-      inject: [ENV],
-      // Las claves públicas se descargan una vez y se cachean; jose las vuelve a
-      // pedir si llega un token firmado con una clave nueva (rotación).
-      useFactory: (env: Env) =>
-        createSupabaseVerifier(
-          createRemoteJWKSet(new URL(`${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`)),
-          env.SUPABASE_URL
-        ),
+      provide: SESSION_RESOLVER,
+      inject: [BETTER_AUTH],
+      useFactory:
+        (auth: Auth): SessionResolver =>
+        async (headers) => {
+          const session = await auth.api.getSession({ headers: fromNodeHeaders(headers) })
+          return session ? { id: session.user.id, email: session.user.email } : null
+        },
     },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
+  // configure-app.ts monta sus rutas (/api/auth/*) en Express.
+  exports: [BETTER_AUTH],
 })
 export class AuthModule {}

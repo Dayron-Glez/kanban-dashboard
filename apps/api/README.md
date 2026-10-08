@@ -23,9 +23,9 @@ pnpm --filter api dev      # http://localhost:3000/health
 ### Convenciones
 
 - **Inyección siempre con token explícito**: `@Inject(DB)`, nunca por el tipo del parámetro. Los tests corren con esbuild, que no emite los metadatos de los decoradores, y así un `@Inject` olvidado falla en los tests y no solo en producción.
-- **Todas las rutas van bajo `/api`** (`/api/projects`…), salvo `/health`, que es la que comprueba Railway. La web nunca llama a Railway directamente: en producción Vercel reenvía `/api/*` a la API y en local lo hace el proxy de Vite. Así la web y la API comparten dominio, y la cookie de sesión de better-auth (4.2b) será de primera parte.
+- **Todas las rutas van bajo `/api`** (`/api/projects`…), salvo `/health`, que es la que comprueba Railway. La web nunca llama a Railway directamente: en producción Vercel reenvía `/api/*` a la API y en local lo hace el proxy de Vite. Así la web y la API comparten dominio, y la cookie de sesión de better-auth es de primera parte.
 - **Todas las rutas exigen sesión** por defecto (`AuthGuard` global). Una ruta pública se marca con `@Public()`, como `/health`. El usuario de la sesión se lee con `@CurrentUser()`.
-- **Autenticación puente**: hasta better-auth (sub-PR 4.2), la API acepta los tokens de Supabase Auth. Los verifica con las claves públicas del proyecto (`SUPABASE_URL/auth/v1/.well-known/jwks.json`), sin ningún secreto.
+- **Login con better-auth** (`src/auth/better-auth.ts`): sus rutas (`/api/auth/*`) se montan en Express antes del lector de JSON, por eso la app se crea con `bodyParser: false` (`configure-app.ts`). La sesión va en una cookie; el `AuthGuard` la resuelve con `auth.api.getSession`. Los usuarios viven en el esquema `identity`, cuyas tablas se describen a mano en `src/db/identity.ts` (con fechas `Date`, no texto). Las contraseñas importadas de Supabase Auth están en bcrypt y se comprueban con bcrypt; las nuevas, en scrypt.
 - **La autorización es de la API, no de la base**: la API se conecta con un rol que se salta la RLS, así que cada servicio comprueba el acceso con `ProjectAccess` (`requireMember`, `requireOwner`). A quien no es miembro se le responde 404, para no confirmarle que el proyecto existe. Toda ruta nueva de un proyecto necesita su test de «usuario ajeno» en un `*.int.spec.ts`.
 - **Los cuerpos se validan con los esquemas de `@repo/contracts`**: `@Body({ schema })`, con el `StandardSchemaValidationPipe` global. Las respuestas salen ya con la forma del contrato.
 - **ESM**: los imports relativos llevan la extensión `.js`.
@@ -52,13 +52,17 @@ La configuración vive en el panel de Railway. Su fichero `railway.json` está o
 
 4. En **Variables**:
 
-   | Variable       | Valor                                                                                   |
-   | -------------- | --------------------------------------------------------------------------------------- |
-   | `DATABASE_URL` | Supabase → **Connect → Transaction pooler** (puerto 6543), con la contraseña de la base |
+   | Variable               | Valor                                                                                   |
+   | ---------------------- | --------------------------------------------------------------------------------------- |
+   | `DATABASE_URL`         | Supabase → **Connect → Transaction pooler** (puerto 6543), con la contraseña de la base |
+   | `BETTER_AUTH_URL`      | la URL de la **web** en Vercel, sin barra final (la API se sirve bajo su `/api`)        |
+   | `BETTER_AUTH_SECRET`   | `openssl rand -base64 32`. Cambiarlo cierra todas las sesiones                          |
+   | `GOOGLE_CLIENT_ID`     | Google Cloud → Credenciales → cliente OAuth. Opcional: sin él no se ofrece Google       |
+   | `GOOGLE_CLIENT_SECRET` | el secreto de ese cliente                                                               |
+   | `CORS_ORIGINS`         | la URL de la web en Vercel; varias, separadas por comas                                 |
+   | `NODE_ENV`             | `production`                                                                            |
 
-| `SUPABASE_URL` | `https://<ref>.supabase.co`, sin barra final. Es pública |
-| `CORS_ORIGINS` | la URL de la web en Vercel; varias, separadas por comas |
-| `NODE_ENV` | `production` |
+   En el cliente OAuth de Google, la URI de redirección autorizada es `BETTER_AUTH_URL` + `/api/auth/callback/google`.
 
 `PORT` lo pone Railway.
 

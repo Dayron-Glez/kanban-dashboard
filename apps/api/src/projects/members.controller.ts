@@ -1,7 +1,7 @@
 import { Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe } from "@nestjs/common"
 import type { ProjectMember } from "@repo/contracts"
 import { CurrentUser } from "../auth/current-user.decorator.js"
-import type { AuthUser } from "../auth/token-verifier.js"
+import type { AuthUser } from "../auth/session.js"
 import { MembersService } from "./members.service.js"
 
 @Controller()

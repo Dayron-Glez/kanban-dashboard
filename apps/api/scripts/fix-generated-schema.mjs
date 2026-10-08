@@ -1,20 +1,13 @@
-// Ajusta lo que genera drizzle-kit pull contra Supabase. Es idempotente.
-//
-// 1. Las tablas referencian auth.users, pero pull solo mira el esquema public y
-//    deja esa tabla sin declarar. drizzle-orm ya la trae en drizzle-orm/supabase.
-// 2. La API es ESM con resolución nodenext: los imports relativos llevan .js.
-// 3. Pull escribe también una migración SQL y su historial. Mientras la base
-//    siga en Supabase, las migraciones son de supabase/migrations: se borran.
 import { readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 
 const dir = new URL("../src/db/generated/", import.meta.url)
-const SUPABASE_IMPORT = 'from "drizzle-orm/supabase"'
+const IDENTITY_IMPORT = 'from "../identity.js"'
 
 const schemaFile = new URL("schema.ts", dir)
 let schema = readFileSync(schemaFile, "utf8")
-schema = schema.replaceAll("foreignColumns: [users.id]", "foreignColumns: [authUsers.id]")
-if (!schema.includes(SUPABASE_IMPORT)) {
-  schema = `import { authUsers } ${SUPABASE_IMPORT}\n${schema}`
+schema = schema.replaceAll("foreignColumns: [users.id]", "foreignColumns: [identityUsers.id]")
+if (schema.includes("identityUsers") && !schema.includes(IDENTITY_IMPORT)) {
+  schema = `import { users as identityUsers } ${IDENTITY_IMPORT}\n${schema}`
 }
 writeFileSync(schemaFile, schema)
 
@@ -24,11 +17,11 @@ relations = relations.replace(/import \{([^}]*)\} from "\.\/schema(?:\.js)?"/, (
   const kept = names
     .split(",")
     .map((name) => name.trim())
-    .filter((name) => name && name !== "usersInAuth")
+    .filter((name) => name && name !== "usersInIdentity")
   return `import { ${kept.join(", ")} } from "./schema.js"`
 })
-if (!relations.includes(SUPABASE_IMPORT)) {
-  relations = `import { authUsers as usersInAuth } ${SUPABASE_IMPORT}\n${relations}`
+if (relations.includes("usersInIdentity") && !relations.includes(IDENTITY_IMPORT)) {
+  relations = `import { users as usersInIdentity } ${IDENTITY_IMPORT}\n${relations}`
 }
 writeFileSync(relationsFile, relations)
 
