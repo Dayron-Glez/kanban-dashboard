@@ -142,6 +142,20 @@ describe("sesión", () => {
     expect((await me(cookie)).status).toBe(401)
   })
 
+  it("guarda la IP del usuario aunque llegue tras varios proxys", async () => {
+    const response = await request(ctx.app.getHttpServer())
+      .post("/api/auth/sign-up/email")
+      .set("Origin", ORIGIN)
+      .set("X-Forwarded-For", "203.0.113.7, 76.76.21.9, 10.0.0.1")
+      .send({ name: "Proxy", email: email("proxy"), password: "rodaje-2027" })
+
+    expect(response.status).toBe(200)
+    const session = await me(cookieOf(response))
+    const [row] = await ctx.sql`
+      select ip_address from identity.sessions where user_id = ${session.body.id as string}`
+    expect(row?.ip_address).toBe("203.0.113.7")
+  })
+
   it("con la cookie se usa el resto de la API", async () => {
     const signedUp = await post("/sign-up/email", {
       name: "Marta",

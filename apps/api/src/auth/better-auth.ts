@@ -6,6 +6,7 @@ import type { Env } from "../config/env.js"
 import type { Database } from "../db/db.module.js"
 import { profiles } from "../db/generated/schema.js"
 import { accounts, sessions, users, verifications } from "../db/identity.js"
+import { CLIENT_IP_HEADER } from "./client-ip.js"
 
 export const BETTER_AUTH = Symbol("BETTER_AUTH")
 
@@ -29,9 +30,8 @@ export const createAuth = (db: Database, env: Env) =>
     advanced: {
       // Los ids son UUID, como los de Supabase: las claves ajenas los necesitan.
       database: { generateId: "uuid" },
-      // Detrás de Vercel y Railway, la IP real llega en x-forwarded-for. El
-      // límite de intentos de better-auth va por IP.
-      ipAddress: { ipAddressHeaders: ["x-forwarded-for"] },
+      // La deja resolveClientIp (configure-app.ts). El límite de intentos va por IP.
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
     },
     emailAndPassword: {
       enabled: true,

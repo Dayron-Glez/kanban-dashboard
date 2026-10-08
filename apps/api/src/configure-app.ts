@@ -2,11 +2,13 @@ import { RequestMethod } from "@nestjs/common"
 import type { NestExpressApplication } from "@nestjs/platform-express"
 import { toNodeHandler } from "better-auth/node"
 import { BETTER_AUTH, type Auth } from "./auth/better-auth.js"
+import { resolveClientIp } from "./auth/client-ip.js"
 
 export const API_PREFIX = "/api"
 
 export const configureApp = (app: NestExpressApplication): void => {
   const auth = app.get<Auth>(BETTER_AUTH)
+  app.use(resolveClientIp)
   app.getHttpAdapter().getInstance().all(`${API_PREFIX}/auth/*splat`, toNodeHandler(auth))
   app.useBodyParser("json")
 
