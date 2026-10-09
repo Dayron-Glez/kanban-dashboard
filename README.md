@@ -141,7 +141,7 @@ El esquema se escribe a mano en `apps/api/src/db/schema/` y Drizzle genera la mi
 3. Aplícala en local: `pnpm db:start`. Para comprobar que la serie entera se aplica limpia desde cero: `pnpm db:reset`.
 4. Commitea el esquema, el SQL y los ficheros de `apps/api/drizzle/meta/` juntos.
 
-> ⚠️ Hasta que la base de producción pase a Neon (sub-PR 4.3b), **el esquema está congelado**: producción sigue en Supabase, con sus propias migraciones en `supabase/migrations/`.
+En producción, la migración se aplica antes de desplegar el código que la necesita (ver el README de la API).
 
 ## Scripts Disponibles
 
@@ -206,7 +206,7 @@ kanban-dashboard/
 │   ├── contracts/                       # Esquemas Zod compartidos por la web y la API
 │   └── domain/                          # Lógica de dominio pura, sin framework ni DOM
 ├── supabase/
-│   ├── migrations/                      # Migraciones de la base de producción, hasta el paso a Neon
+│   ├── migrations/                      # Historial de la base en Supabase, hasta el paso a Neon
 │   └── rollback/                        # Vueltas atrás manuales, que nunca se aplican solas
 ├── compose.yaml                         # Postgres local
 ├── eslint.config.js                     # ESLint para todo el monorepo
