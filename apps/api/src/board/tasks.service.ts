@@ -9,7 +9,7 @@ import {
 import { applyMove } from "@repo/domain"
 import { and, count, eq, inArray, ne } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { columns, projectMembers, projects, taskHistory, tasks } from "../db/generated/schema.js"
+import { columns, projectMembers, projects, taskHistory, tasks } from "../db/schema/index.js"
 import { ProjectAccess } from "../projects/project-access.js"
 
 const toTask = (row: typeof tasks.$inferSelect): Task =>

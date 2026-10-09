@@ -18,7 +18,6 @@ pnpm --filter api dev      # http://localhost:3000/health
 | `pnpm --filter api test`  | Tests con Vitest                                                                                                       |
 | `pnpm test:int`           | Tests de integración contra la base local (`pnpm db:start` antes). Se niegan a correr contra una base que no sea local |
 | `pnpm --filter api build` | Compila a `dist/`                                                                                                      |
-| `pnpm db:schema`          | Regenera `src/db/generated` a partir de la base local. Ejecútalo tras cambiar `supabase/migrations`                    |
 
 ### Convenciones
 
@@ -26,12 +25,12 @@ pnpm --filter api dev      # http://localhost:3000/health
 - **Todas las rutas van bajo `/api`** (`/api/projects`…), salvo `/health`, que es la que comprueba Railway. La web nunca llama a Railway directamente: en producción Vercel reenvía `/api/*` a la API y en local lo hace el proxy de Vite. Así la web y la API comparten dominio, y la cookie de sesión de better-auth es de primera parte.
 - **Solo se llega a la API a través de Vercel.** Vercel añade a cada petición `/api/*` la cabecera `x-cauce-proxy-secret` con el valor de su variable `PROXY_SECRET` (`vercel.json`), y la API responde 403 a lo que no la trae (`src/proxy-secret.ts`), salvo `/health`. Quien llame directamente a la URL de Railway no obtiene nada. En producción la variable es obligatoria; en local y en los tests no hay secreto y el filtro queda desactivado. Para cambiar el secreto, ponlo a la vez en Railway y en Vercel y redespliega los dos.
 - **Todas las rutas exigen sesión** por defecto (`AuthGuard` global). Una ruta pública se marca con `@Public()`, como `/health`. El usuario de la sesión se lee con `@CurrentUser()`.
-- **Login con better-auth** (`src/auth/better-auth.ts`): sus rutas (`/api/auth/*`) se montan en Express antes del lector de JSON, por eso la app se crea con `bodyParser: false` (`configure-app.ts`). La sesión va en una cookie; el `AuthGuard` la resuelve con `auth.api.getSession`. Los usuarios viven en el esquema `identity`, cuyas tablas se describen a mano en `src/db/identity.ts` (con fechas `Date`, no texto). Las contraseñas importadas de Supabase Auth están en bcrypt y se comprueban con bcrypt; las nuevas, en scrypt.
+- **Login con better-auth** (`src/auth/better-auth.ts`): sus rutas (`/api/auth/*`) se montan en Express antes del lector de JSON, por eso la app se crea con `bodyParser: false` (`configure-app.ts`). La sesión va en una cookie; el `AuthGuard` la resuelve con `auth.api.getSession`. Los usuarios viven en el esquema `identity`, cuyas tablas se describen en `src/db/schema/identity.ts` (con fechas `Date`, no texto). Las contraseñas importadas de Supabase Auth están en bcrypt y se comprueban con bcrypt; las nuevas, en scrypt.
 - **La IP del usuario** la usa better-auth para el límite de intentos y la guarda en cada sesión. Detrás de Vercel y Railway, `x-forwarded-for` trae varias IP y better-auth solo acepta una, así que `resolveClientIp` (`src/auth/client-ip.ts`) pasa la primera, la del usuario, en `x-cauce-client-ip`. Es fiable porque solo se llega a la API a través de Vercel, que sobrescribe `x-forwarded-for` y no deja que el usuario la falsee.
 - **La autorización es de la API, no de la base**: la API se conecta con un rol que se salta la RLS, así que cada servicio comprueba el acceso con `ProjectAccess` (`requireMember`, `requireOwner`). A quien no es miembro se le responde 404, para no confirmarle que el proyecto existe. Toda ruta nueva de un proyecto necesita su test de «usuario ajeno» en un `*.int.spec.ts`.
 - **Los cuerpos se validan con los esquemas de `@repo/contracts`**: `@Body({ schema })`, con el `StandardSchemaValidationPipe` global. Las respuestas salen ya con la forma del contrato.
 - **ESM**: los imports relativos llevan la extensión `.js`.
-- **El esquema de `src/db/generated` no se edita a mano**: lo escribe `pnpm db:schema`. Las migraciones siguen en `supabase/migrations` hasta el paso a Neon.
+- **El esquema de Drizzle se mantiene a mano** en `src/db/schema/`, un fichero por módulo. Las migraciones siguen en `supabase/migrations` hasta el paso a Neon.
 
 ## Despliegue en Railway
 

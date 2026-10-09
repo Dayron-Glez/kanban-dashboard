@@ -24,8 +24,7 @@
     "db:reset": "supabase db reset",
     "db:pull": "supabase db pull",
     "db:push": "supabase db push",
-    "db:diff": "supabase db diff -f",
-    "db:schema": "pnpm --filter api db:schema"
+    "db:diff": "supabase db diff -f"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

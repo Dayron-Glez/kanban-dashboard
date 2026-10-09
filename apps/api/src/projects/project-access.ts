@@ -2,7 +2,7 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nest
 import type { MemberRole } from "@repo/contracts"
 import { and, eq } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { projectMembers } from "../db/generated/schema.js"
+import { projectMembers } from "../db/schema/index.js"
 
 // La API se conecta con un rol que se salta la RLS: estas comprobaciones son
 // las que la sustituyen. A quien no es miembro se le responde 404 y no 403,

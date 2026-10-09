@@ -139,7 +139,7 @@ Herramientas que quedan disponibles mientras la pila está arriba:
 1. Haz el cambio en local, desde Studio o con SQL.
 2. Genera la migración a partir de la diferencia y revísala: `pnpm db:diff nombre_descriptivo`.
 3. Comprueba que se aplica limpia desde cero: `pnpm db:reset`. Ojo: también **borra los usuarios**.
-4. Regenera el esquema de Drizzle de la API: `pnpm db:schema`.
+4. Refleja el cambio en el esquema de Drizzle de la API, `apps/api/src/db/schema/`, que se mantiene a mano.
 
 > ⚠️ `pnpm db:push` y `pnpm db:pull` **no son locales**: actúan sobre el proyecto remoto de Supabase, que es la base de datos de producción.
 

@@ -8,8 +8,7 @@ import {
 } from "@repo/contracts"
 import { and, desc, eq } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { users } from "../db/identity.js"
-import { projectInvitations, projectMembers, projects } from "../db/generated/schema.js"
+import { projectInvitations, projectMembers, projects, users } from "../db/schema/index.js"
 import { ProjectAccess } from "./project-access.js"
 import { toIso } from "../db/timestamps.js"
 

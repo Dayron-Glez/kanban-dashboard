@@ -4,8 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { hashPassword, verifyPassword } from "better-auth/crypto"
 import type { Env } from "../config/env.js"
 import type { Database } from "../db/db.module.js"
-import { profiles } from "../db/generated/schema.js"
-import { accounts, sessions, users, verifications } from "../db/identity.js"
+import { accounts, profiles, sessions, users, verifications } from "../db/schema/index.js"
 import { CLIENT_IP_HEADER } from "./client-ip.js"
 
 export const BETTER_AUTH = Symbol("BETTER_AUTH")

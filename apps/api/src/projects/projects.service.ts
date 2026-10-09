@@ -9,7 +9,7 @@ import {
 } from "@repo/contracts"
 import { and, desc, eq, sql } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { columns, projectMembers, projects, tasks } from "../db/generated/schema.js"
+import { columns, projectMembers, projects, tasks } from "../db/schema/index.js"
 import { ProjectAccess } from "./project-access.js"
 import { toIso } from "../db/timestamps.js"
 
