@@ -1,23 +1,24 @@
 # API de Cauce
 
-NestJS 12 con Drizzle sobre Postgres. Mientras dure la migración, la base es la de Supabase y la API la usa como un Postgres más; el paso a Neon es el sub-PR 4.3 (ver `docs/modelo/`).
+NestJS 12 con Drizzle sobre Postgres. En local y en CI, un Postgres 17 creado con las migraciones de Drizzle; en producción, todavía la base de Supabase, que la API usa como un Postgres más, hasta el paso a Neon (sub-PR 4.3b).
 
 ## Desarrollo local
 
 ```bash
-pnpm db:start              # Postgres local de Supabase, en Docker
+pnpm db:start              # Postgres local en Docker, con las migraciones aplicadas
 cp apps/api/.env.example apps/api/.env
 pnpm --filter api dev      # http://localhost:3000/health
 ```
 
 `pnpm dev` en la raíz arranca la web y la API a la vez.
 
-| Script                    | Qué hace                                                                                                               |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `pnpm --filter api dev`   | Arranca con recarga al guardar                                                                                         |
-| `pnpm --filter api test`  | Tests con Vitest                                                                                                       |
-| `pnpm test:int`           | Tests de integración contra la base local (`pnpm db:start` antes). Se niegan a correr contra una base que no sea local |
-| `pnpm --filter api build` | Compila a `dist/`                                                                                                      |
+| Script                         | Qué hace                                                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter api dev`        | Arranca con recarga al guardar                                                                                         |
+| `pnpm --filter api test`       | Tests con Vitest                                                                                                       |
+| `pnpm test:int`                | Tests de integración contra la base local (`pnpm db:start` antes). Se niegan a correr contra una base que no sea local |
+| `pnpm --filter api build`      | Compila a `dist/`                                                                                                      |
+| `pnpm --filter api db:migrate` | Aplica las migraciones pendientes a la base de `DATABASE_URL`                                                          |
 
 ### Convenciones
 
@@ -30,7 +31,8 @@ pnpm --filter api dev      # http://localhost:3000/health
 - **La autorización es de la API, no de la base**: la API se conecta con un rol que se salta la RLS, así que cada servicio comprueba el acceso con `ProjectAccess` (`requireMember`, `requireOwner`). A quien no es miembro se le responde 404, para no confirmarle que el proyecto existe. Toda ruta nueva de un proyecto necesita su test de «usuario ajeno» en un `*.int.spec.ts`.
 - **Los cuerpos se validan con los esquemas de `@repo/contracts`**: `@Body({ schema })`, con el `StandardSchemaValidationPipe` global. Las respuestas salen ya con la forma del contrato.
 - **ESM**: los imports relativos llevan la extensión `.js`.
-- **El esquema de Drizzle se mantiene a mano** en `src/db/schema/`, un fichero por módulo. Las migraciones siguen en `supabase/migrations` hasta el paso a Neon.
+- **El esquema de Drizzle se mantiene a mano** en `src/db/schema/`, un fichero por módulo, y es el dueño de las migraciones: `drizzle-kit generate` las escribe en `drizzle/` (ver «Cambiar el esquema» en el README raíz). Sin políticas RLS ni funciones de la base: la autorización vive en los servicios.
+- **Las migraciones nunca se aplican al arrancar la API**: se aplican a mano con `db:migrate`, y no van en la imagen de Docker. Mientras producción siga en Supabase, no lo lances contra ella: su esquema lo llevan `supabase/migrations/`.
 
 ## Despliegue en Railway
 
