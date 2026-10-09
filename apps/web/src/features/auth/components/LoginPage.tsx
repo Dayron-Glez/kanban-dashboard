@@ -6,14 +6,30 @@ import { Button, Card, CardContent, CardHeader, Input, Label } from "@/shared"
 import { useAuth } from "../context/useAuth"
 import { loginSchema, type LoginFormValues } from "../schemas/auth.schema"
 import { authClient } from "../lib/authClient"
-import { authErrorMessage, NETWORK_ERROR_MESSAGE } from "../lib/authErrorMessage"
+import { authErrorMessage, NETWORK_ERROR_MESSAGE, oauthErrorMessage } from "../lib/authErrorMessage"
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const redirectTo = searchParams.get("redirect") ?? "/home"
-  const [authError, setAuthError] = useState<string | null>(null)
+  const oauthError = searchParams.get("error")
+  const [authError, setAuthError] = useState<string | null>(
+    oauthError ? oauthErrorMessage(oauthError) : null
+  )
   const { user } = useAuth()
+
+  // El error de Google se muestra una vez: al recargar, ya no está en la URL.
+  useEffect(() => {
+    if (!oauthError) return
+    setSearchParams(
+      (params) => {
+        params.delete("error")
+        params.delete("error_description")
+        return params
+      },
+      { replace: true }
+    )
+  }, [oauthError, setSearchParams])
 
   // Se navega cuando la sesión ya está en el contexto: navegar justo tras
   // entrar llegaría antes, y AuthGuard devolvería aquí.
@@ -42,12 +58,16 @@ export function LoginPage() {
     }
   }
 
-  // Lleva a Google y, al volver, a la página que se quería abrir.
+  // Lleva a Google y, al volver, a la página que se quería abrir; si falla,
+  // de vuelta aquí, con el código del error en la URL.
   const handleGoogleLogin = async () => {
     setAuthError(null)
+    const errorCallbackURL = new URL("/login", window.location.origin)
+    if (searchParams.has("redirect")) errorCallbackURL.searchParams.set("redirect", redirectTo)
     const { error } = await authClient.signIn.social({
       provider: "google",
       callbackURL: `${window.location.origin}${redirectTo}`,
+      errorCallbackURL: errorCallbackURL.href,
     })
     if (error) setAuthError(authErrorMessage(error))
   }
