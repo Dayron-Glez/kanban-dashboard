@@ -171,6 +171,49 @@ Table core.files {
   Note: 'Los datos de cada fichero subido; el contenido vive en el almacenamiento. Compartido: cada módulo enlaza los suyos.'
 }
 
+Enum core.work_day_kind {
+  holiday [note: 'Festivo']
+  special [note: 'F.Especial: días del convenio (1 y 6 de enero; 24, 25 y 31 de diciembre). Trabajable, con más penalización que un festivo']
+  weekend_worked [note: 'Día no laborable habitual (normalmente sábado o domingo) que se trabaja']
+}
+
+Enum core.holiday_scope {
+  national [note: 'Estatal']
+  regional [note: 'Autonómico']
+  provincial
+  local
+}
+
+Table core.work_calendars {
+  project_id uuid [pk, ref: - core.projects.id]
+  country text [not null, default: 'ES']
+  region text [note: 'Código de comunidad autónoma, p. ej. ES-AN']
+  province text
+  locality text [note: 'Todo el proyecto usa los festivos de un solo lugar, aunque se ruede en varios']
+  timezone text [not null, default: 'Europe/Madrid', note: 'Zona de las horas de los elementos del Calendario']
+  working_weekdays smallint[] [not null, default: '{1,2,3,4,5}', note: 'Días laborables habituales, ISO: 1 lunes … 7 domingo. Por defecto, de lunes a viernes']
+
+  Note: 'El calendario laboral del proyecto: dónde se trabaja, en qué zona horaria y qué días. El lugar decide qué festivos se siembran con date-holidays. Compartido: lo usan el Calendario, y lo usarán el Plan de rodaje y el Presupuesto.'
+}
+
+Table core.work_calendar_days {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  date date [not null]
+  kind core.work_day_kind [not null]
+  name text [note: 'Conmemoración: Navidad, San Isidro…']
+  scope core.holiday_scope
+  is_provisional boolean [not null, default: false, note: 'Festivo aún sin publicar en el boletín oficial (BOE, BOJA…) de ese año']
+  is_worked boolean [not null, default: false, note: 'Festivo o F.Especial que se trabaja: sigue contando como tal para la penalización']
+  is_seeded boolean [not null, default: true, note: 'false si lo añadió o cambió el usuario']
+
+  indexes {
+    (project_id, date) [unique]
+  }
+
+  Note: 'Los siete días de la semana existen; aquí solo van las excepciones a la semana laborable: festivos, días F.Especial y días no laborables que se trabajan.'
+}
+
 // ── work ─────────────────────────────────────────────────────────────────
 
 Enum work.status_category {
@@ -217,50 +260,6 @@ Table work.item_history {
   moved_at timestamptz [not null, default: `now()`]
 
   Note: 'Antes public.task_history. Movimientos entre estados del tablero.'
-}
-
-// ── planning ─────────────────────────────────────────────────────────────
-// Calendario laboral del proyecto. Pasa a core (es compartido entre módulos).
-
-Enum planning.calendar_day_kind {
-  holiday [note: 'Festivo']
-  special [note: 'F.Especial: Artículo 23 del Convenio. Trabajable, con más penalización que un festivo']
-  weekend_worked [note: 'Día no laborable habitual (normalmente sábado o domingo) que se trabaja']
-}
-
-Enum planning.holiday_scope {
-  national [note: 'Estatal']
-  regional [note: 'Autonómico']
-  provincial
-  local
-}
-
-Table planning.project_calendars {
-  project_id uuid [pk, ref: - core.projects.id]
-  country text [not null, default: 'ES']
-  region text [note: 'Código de comunidad autónoma, p. ej. ES-MD']
-  province text
-  locality text
-  working_weekdays smallint[] [not null, default: '{1,2,3,4,5}', note: 'Días laborables habituales, ISO: 1 lunes … 7 domingo. Por defecto, de lunes a viernes']
-
-  Note: 'Dónde se rueda y qué días se trabaja habitualmente. El lugar decide qué festivos se siembran con date-holidays.'
-}
-
-Table planning.calendar_days {
-  id uuid [pk]
-  project_id uuid [not null, ref: > core.projects.id]
-  date date [not null]
-  kind planning.calendar_day_kind [not null]
-  name text [note: 'Conmemoración: Navidad, San Isidro…']
-  scope planning.holiday_scope
-  is_worked boolean [not null, default: false, note: 'Festivo o F.Especial que se trabaja: sigue contando como tal para la penalización']
-  is_seeded boolean [not null, default: true, note: 'false si lo añadió o cambió el usuario']
-
-  indexes {
-    (project_id, date) [unique]
-  }
-
-  Note: 'El calendario tiene los siete días; aquí solo van las excepciones a la semana laborable: festivos, días F.Especial y días no laborables que se trabajan.'
 }
 
 // ── calendar ─────────────────────────────────────────────────────────────
@@ -335,11 +334,11 @@ Table calendar.elements {
   recurrence_rule text [note: 'Si se repite y con qué ciclo, en formato RRULE (RFC 5545). Las repeticiones se calculan al consultar']
   starts_on date [note: 'Calculada por el motor de fechas, salvo en el ancla y en los elementos fijados']
   ends_on date [note: 'En reuniones, recordatorios y contrataciones, igual que starts_on (CHECK)']
-  start_time time [note: 'Hora local del proyecto. Vacía: todo el día']
+  start_time time [note: 'Hora en la zona del proyecto (core.work_calendars.timezone). Vacía: todo el día']
   end_time time
   duration_amount numeric
   duration_unit calendar.duration_unit
-  duration_basis calendar.day_basis [note: 'Por defecto según la unidad, sobreescribible']
+  duration_basis calendar.day_basis [note: 'Por defecto según la unidad, sobreescribible. Los laborables salen de core.work_calendars']
   start_adjustment_days integer [not null, default: 0, note: 'AjusteIni del Excel: desplaza el inicio a mano']
   end_adjustment_days integer [not null, default: 0, note: 'AjusteFin del Excel: alarga o acorta a mano']
   is_anchor boolean [not null, default: false, note: 'La fecha que se escribe a mano y de la que sale el plan. Normalmente el inicio de rodaje']
