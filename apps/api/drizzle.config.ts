@@ -9,6 +9,7 @@ try {
 export default defineConfig({
   dialect: "postgresql",
   schema: "./src/db/schema/index.ts",
+  out: "./drizzle",
   schemaFilter: ["public", "identity"],
   dbCredentials: { url: process.env.DATABASE_URL ?? "" },
 })

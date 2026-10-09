@@ -8,3 +8,4 @@ package-lock.json
 pnpm-lock.yaml
 supabase/.temp
 .turbo
+apps/api/drizzle/meta

@@ -16,6 +16,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
+    "db:migrate": "drizzle-kit migrate",
     "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
