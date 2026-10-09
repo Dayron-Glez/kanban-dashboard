@@ -21,3 +21,12 @@ export const authErrorMessage = (error: AuthClientError): string => {
   if (error.status === 0) return NETWORK_ERROR_MESSAGE
   return (error.code && MESSAGES[error.code]) || "No se ha podido completar. Inténtalo de nuevo."
 }
+
+const OAUTH_MESSAGES: Partial<Record<string, string>> = {
+  account_not_linked: "Ya existe una cuenta con este correo. Entra con tu email y contraseña.",
+  access_denied: "Has cancelado el inicio de sesión con Google.",
+}
+
+/** El código que better-auth añade a la URL al volver de Google con un error. */
+export const oauthErrorMessage = (code: string): string =>
+  OAUTH_MESSAGES[code] ?? "No se ha podido entrar con Google. Inténtalo de nuevo."
