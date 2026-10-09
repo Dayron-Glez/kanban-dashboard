@@ -6,6 +6,5 @@ package-lock.json
 .claude
 .husky
 pnpm-lock.yaml
-supabase/.temp
 .turbo
 apps/api/drizzle/meta

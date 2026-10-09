@@ -205,9 +205,6 @@ kanban-dashboard/
 │   ├── api-client/                      # Cliente HTTP de la API, con la respuesta validada
 │   ├── contracts/                       # Esquemas Zod compartidos por la web y la API
 │   └── domain/                          # Lógica de dominio pura, sin framework ni DOM
-├── supabase/
-│   ├── migrations/                      # Historial de la base en Supabase, hasta el paso a Neon
-│   └── rollback/                        # Vueltas atrás manuales, que nunca se aplican solas
 ├── compose.yaml                         # Postgres local
 ├── eslint.config.js                     # ESLint para todo el monorepo
 ├── pnpm-workspace.yaml                  # Paquetes del workspace
