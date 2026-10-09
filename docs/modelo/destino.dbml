@@ -89,9 +89,16 @@ Enum core.invitation_status {
   accepted [note: 'Aceptada']
 }
 
+Enum core.project_kind {
+  film [note: 'Cine']
+  series [note: 'Serie']
+  documentary [note: 'Documental']
+}
+
 Table core.projects {
   id uuid [pk]
   owner_id uuid [not null, ref: > identity.users.id]
+  kind core.project_kind [not null, default: 'film', note: 'Decide la plantilla con la que nace el calendario']
   name text [not null]
   description text
   color text [not null]
@@ -321,6 +328,7 @@ Table calendar.elements {
   position integer [not null, note: 'Orden entre hermanos']
   name text [not null, note: 'Rodaje, Rodaje 2 (Almería), Montaje de Sonido, Foley, Reunión de producción…']
   color text
+  template_key text [note: 'De qué pieza de la plantilla salió (p. ej. postproduccion.vfx.render). Vacío si lo creó el usuario. No bloquea nada: todo se puede renombrar o borrar']
   description text [note: 'Información del elemento']
   notes text
   location text [note: 'Por ahora texto libre. Con el Plan de rodaje, las localizaciones serán una entidad de core']
