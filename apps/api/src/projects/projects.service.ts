@@ -49,8 +49,6 @@ export class ProjectsService {
   }
 
   // En una transacción: un proyecto no puede quedarse sin propietario ni columnas.
-  // Mientras siga el trigger on_project_created de Supabase, el insert de la
-  // membresía no hace nada.
   create(userId: string, input: CreateProjectInput): Promise<Project> {
     return this.db.transaction(async (tx) => {
       const [row] = await tx
@@ -64,10 +62,7 @@ export class ProjectsService {
         })
         .returning()
       const project = row!
-      await tx
-        .insert(projectMembers)
-        .values({ projectId: project.id, userId, role: "owner" })
-        .onConflictDoNothing({ target: [projectMembers.projectId, projectMembers.userId] })
+      await tx.insert(projectMembers).values({ projectId: project.id, userId, role: "owner" })
       await tx.insert(columns).values(
         DEFAULT_COLUMNS.map((column, position) => ({
           ...column,

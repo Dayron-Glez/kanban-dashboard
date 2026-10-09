@@ -17,8 +17,9 @@
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:migrate": "drizzle-kit migrate",
-    "db:compare": "node --env-file-if-exists=.env.neon.local scripts/compare-db.mjs",
-    "db:copy": "node --env-file-if-exists=.env.neon.local scripts/copy-data.mjs",
+    "db:migrate:prod": "node --env-file=.env.production.local node_modules/drizzle-kit/bin.cjs migrate",
+    "db:compare": "node --env-file-if-exists=.env.traslado.local scripts/compare-db.mjs",
+    "db:copy": "node --env-file-if-exists=.env.traslado.local scripts/copy-data.mjs",
     "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
@@ -27,7 +28,6 @@
     "@nestjs/platform-express": "12.1.2",
     "@repo/contracts": "workspace:*",
     "@repo/domain": "workspace:*",
-    "bcryptjs": "^3.0.3",
     "better-auth": "1.7.7",
     "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.9",

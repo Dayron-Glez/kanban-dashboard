@@ -196,9 +196,6 @@ importers:
       prettier-plugin-tailwindcss:
         specifier: ^0.8.0
         version: 0.8.1(prettier@3.9.9)
-      supabase:
-        specifier: ^2.117.0
-        version: 2.118.0
       turbo:
         specifier: ^2.0.0
         version: 2.11.5
@@ -226,9 +223,6 @@ importers:
       '@repo/domain':
         specifier: workspace:*
         version: link:../../packages/domain
-      bcryptjs:
-        specifier: ^3.0.3
-        version: 3.0.3
       better-auth:
         specifier: 1.7.7
         version: 1.7.7(drizzle-kit@0.31.11)(drizzle-orm@0.45.3(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.15)(vitest@4.1.11(@types/node@22.20.5)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@7.3.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15)(yaml@2.9.1)))
@@ -769,12 +763,6 @@ packages:
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
-
-  '@ecies/ciphers@0.2.6':
-    resolution: {integrity: sha512-patgsRPKGkhhoBjETV4XxD0En4ui5fbX0hzayqI3M8tvNMGUoUvmyYAIWwlxBc1KX5cturfqByYdj5bYGRpN9g==}
-    engines: {bun: '>=1', deno: '>=2.7.10', node: '>=16'}
-    peerDependencies:
-      '@noble/ciphers': ^1.0.0
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
@@ -1672,17 +1660,9 @@ packages:
       '@nestjs/platform-express':
         optional: true
 
-  '@noble/ciphers@1.3.0':
-    resolution: {integrity: sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==}
-    engines: {node: ^14.21.3 || >=16}
-
   '@noble/ciphers@2.4.0':
     resolution: {integrity: sha512-AnjFn0Jv92laAkvMrghlFZq4qQCIN/4DxFV/eooqtC2YTjB7kBeLMS2T9KJX4Dn+ZVXLOwK0lSgqDtx9gvxtiw==}
     engines: {node: '>= 20.19.0'}
-
-  '@noble/curves@1.9.7':
-    resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
-    engines: {node: ^14.21.3 || >=16}
 
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
@@ -2616,50 +2596,6 @@ packages:
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
 
-  '@supabase/cli-darwin-arm64@2.118.0':
-    resolution: {integrity: sha512-48W7wkHIVNgwSz4zr+xsC94la1PytCpudOw5w9qJWAISyBWRXMFBCEMb9aVIEG8S9OcLb4X1KZy4PPA/T+f7NQ==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@supabase/cli-darwin-x64@2.118.0':
-    resolution: {integrity: sha512-r6z41S0ycJiy2cO6sbJA7kPCodpAus6b3Km+qyn2zYlnTLN0nbscYnKxrZf/rJNR+S+sdpOZXgdQjGc/z5jvXw==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@supabase/cli-linux-arm64-musl@2.118.0':
-    resolution: {integrity: sha512-8yXIa+9g3FVVlnUAZ9wB1NEP6kvO0tpqQkDs3wqmb6btLD1MYosD/2/ZazSkpEHiKOwKUSymvUg0OgqI7a1gpw==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@supabase/cli-linux-arm64@2.118.0':
-    resolution: {integrity: sha512-gYjOTnsYgwC68suoFALaXo87KvluXMjdWuo26a7hyD8vLeRJrmX+dpdxgegckQ7wxz8V1iotSBQU6Hd44FEDqw==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@supabase/cli-linux-x64-musl@2.118.0':
-    resolution: {integrity: sha512-baHVTKJ8OehCXIt6pjHFRXofoUqQzve+43lRKKeVlcgDmgHHTTaF/wTpNvQ86IhoDRkiQTuHQkDG8I5GtHdvEA==}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@supabase/cli-linux-x64@2.118.0':
-    resolution: {integrity: sha512-nHm27uv15iu4xIQZRC++CS4uKYU9HuFn9HiOf407620OQ3cCp70fLT59grFlYQ+bqM7Zrv/GmEZHdgR8UO65RA==}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@supabase/cli-windows-arm64@2.118.0':
-    resolution: {integrity: sha512-wd592HmQQ7DsGjnwDHILJfFlsRBQ8Q6wwjX5AXRmqznsj3NOPfFzZm2GtV8hJIj1Ttsf7B8N1DqW/0ta7kU4oQ==}
-    cpu: [arm64]
-    os: [win32]
-
-  '@supabase/cli-windows-x64@2.118.0':
-    resolution: {integrity: sha512-qVAJL532b5pB8uJAPA/+3+wtwM/DX1GxwVLCSDmiT6wfUBD6OJcCYRXCEaUx0YjupyaDoPeuP4BF7IfkQTajww==}
-    cpu: [x64]
-    os: [win32]
-
   '@swc/core-darwin-arm64@1.16.13':
     resolution: {integrity: sha512-JrMH2h7ohd4mOIneNRx/diqTmCDSdWfp9uOdQ8VJ2V2CA7jOJ1jWb+qp8RoZLqgiVmwDDC7eySKB1kbvZ+jVXQ==}
     engines: {node: '>=10'}
@@ -3239,10 +3175,6 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  bcryptjs@3.0.3:
-    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
-    hasBin: true
-
   better-auth@1.7.7:
     resolution: {integrity: sha512-Zhgxi/c5ylmfB/sX+nwnBbsFf/j6k0L8DvL6CJXZSrXgxc5pPMC/e7j812zNd4L4B4ELmdURCPw3X8nAOUdcjw==}
     peerDependencies:
@@ -3682,10 +3614,6 @@ packages:
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
-
-  eciesjs@0.5.0:
-    resolution: {integrity: sha512-s0J9SEVYAEPg7J63GFMApLYzPH9VNIQIyC6s15JpnqVc0TqcKWdbgFlnAweEBRyMmko2dcs2sfC83Hj4J43tuA==}
-    engines: {bun: '>=1', deno: '>=2.7.10', node: '>=16'}
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
@@ -4902,10 +4830,6 @@ packages:
     resolution: {integrity: sha512-ki4hZQfh5rX0QDLLkOCj+h+CVNkqmp/CMf8v8kZpkNVK6jGQooMytqzLZYUVYIZcFZ6yDB70EfD8POcFXiF5oA==}
     engines: {node: '>=18'}
 
-  supabase@2.118.0:
-    resolution: {integrity: sha512-0aPIlzBSBLwbJZCMZKD1QAwlc4xNnNvvk07QuSuuKBKzGLSeV3GovgTLlMKFTJ4JWfJubWF0URPLuPUr0kZr5g==}
-    hasBin: true
-
   superagent@10.4.1:
     resolution: {integrity: sha512-PVMkMrhKrSTtFhUU8jiWuGh/gyRMKiyCTCmm0+qVzRNxlfntmRKJkDhlEXN62x3HIb33sQ4kmL8lcSdccWAchQ==}
     engines: {node: '>=14.18.0'}
@@ -5547,10 +5471,6 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@ecies/ciphers@0.2.6(@noble/ciphers@1.3.0)':
-    dependencies:
-      '@noble/ciphers': 1.3.0
-
   '@esbuild-kit/core-utils@3.3.2':
     dependencies:
       esbuild: 0.18.20
@@ -6128,13 +6048,7 @@ snapshots:
     optionalDependencies:
       '@nestjs/platform-express': 12.1.2(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.1.2)(supports-color@7.2.0)
 
-  '@noble/ciphers@1.3.0': {}
-
   '@noble/ciphers@2.4.0': {}
-
-  '@noble/curves@1.9.7':
-    dependencies:
-      '@noble/hashes': 1.8.0
 
   '@noble/hashes@1.8.0': {}
 
@@ -7056,30 +6970,6 @@ snapshots:
 
   '@standard-schema/utils@0.3.0': {}
 
-  '@supabase/cli-darwin-arm64@2.118.0':
-    optional: true
-
-  '@supabase/cli-darwin-x64@2.118.0':
-    optional: true
-
-  '@supabase/cli-linux-arm64-musl@2.118.0':
-    optional: true
-
-  '@supabase/cli-linux-arm64@2.118.0':
-    optional: true
-
-  '@supabase/cli-linux-x64-musl@2.118.0':
-    optional: true
-
-  '@supabase/cli-linux-x64@2.118.0':
-    optional: true
-
-  '@supabase/cli-windows-arm64@2.118.0':
-    optional: true
-
-  '@supabase/cli-windows-x64@2.118.0':
-    optional: true
-
   '@swc/core-darwin-arm64@1.16.13':
     optional: true
 
@@ -7671,8 +7561,6 @@ snapshots:
 
   baseline-browser-mapping@2.11.26: {}
 
-  bcryptjs@3.0.3: {}
-
   better-auth@1.7.7(drizzle-kit@0.31.11)(drizzle-orm@0.45.3(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.15)(vitest@4.1.11(@types/node@22.20.5)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@7.3.6(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15)(yaml@2.9.1))):
     dependencies:
       '@better-auth/core': 1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.5)
@@ -8001,13 +7889,6 @@ snapshots:
       call-bind-apply-helpers: 1.0.2
       es-errors: 1.3.0
       gopd: 1.2.0
-
-  eciesjs@0.5.0:
-    dependencies:
-      '@ecies/ciphers': 0.2.6(@noble/ciphers@1.3.0)
-      '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.7
-      '@noble/hashes': 1.8.0
 
   ee-first@1.1.1: {}
 
@@ -9258,20 +9139,6 @@ snapshots:
   strtok3@10.3.5:
     dependencies:
       '@tokenizer/token': 0.3.0
-
-  supabase@2.118.0:
-    dependencies:
-      eciesjs: 0.5.0
-      jose: 6.2.12
-    optionalDependencies:
-      '@supabase/cli-darwin-arm64': 2.118.0
-      '@supabase/cli-darwin-x64': 2.118.0
-      '@supabase/cli-linux-arm64': 2.118.0
-      '@supabase/cli-linux-arm64-musl': 2.118.0
-      '@supabase/cli-linux-x64': 2.118.0
-      '@supabase/cli-linux-x64-musl': 2.118.0
-      '@supabase/cli-windows-arm64': 2.118.0
-      '@supabase/cli-windows-x64': 2.118.0
 
   superagent@10.4.1(supports-color@7.2.0):
     dependencies:

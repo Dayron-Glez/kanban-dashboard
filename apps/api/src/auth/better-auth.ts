@@ -1,19 +1,11 @@
-import bcrypt from "bcryptjs"
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { hashPassword, verifyPassword } from "better-auth/crypto"
 import type { Env } from "../config/env.js"
 import type { Database } from "../db/db.module.js"
 import { accounts, profiles, sessions, users, verifications } from "../db/schema/index.js"
 import { CLIENT_IP_HEADER } from "./client-ip.js"
 
 export const BETTER_AUTH = Symbol("BETTER_AUTH")
-
-// Las contraseñas importadas de Supabase Auth están en bcrypt ($2a$…): se
-// comprueban con bcrypt, y así nadie tiene que cambiarla. Las nuevas se
-// guardan en scrypt, el formato de better-auth.
-const verify = ({ hash, password }: { hash: string; password: string }) =>
-  hash.startsWith("$2") ? bcrypt.compare(password, hash) : verifyPassword({ hash, password })
 
 export const createAuth = (db: Database, env: Env) =>
   betterAuth({
@@ -27,17 +19,14 @@ export const createAuth = (db: Database, env: Env) =>
       schema: { user: users, session: sessions, account: accounts, verification: verifications },
     }),
     advanced: {
-      // Los ids son UUID, como los de Supabase: las claves ajenas los necesitan.
+      // Ids UUID, como los de las claves ajenas que apuntan a identity.users.
       database: { generateId: "uuid" },
       // La deja resolveClientIp (configure-app.ts). El límite de intentos va por IP.
       ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
     },
     emailAndPassword: {
       enabled: true,
-      // Solo para las cuentas nuevas: al entrar no se comprueba, así que las de
-      // Supabase con 6 o 7 caracteres siguen funcionando.
       minPasswordLength: 8,
-      password: { hash: hashPassword, verify },
     },
     socialProviders:
       env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET

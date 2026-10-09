@@ -2,10 +2,10 @@
 
 Dos ficheros [DBML](https://dbml.dbdiagram.io/docs/), versionados junto al código:
 
-| Fichero                        | Qué describe                                                                                             |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| [`actual.dbml`](actual.dbml)   | La base de hoy en Supabase, tras el PR 2. Sale de `supabase/migrations`                                  |
-| [`destino.dbml`](destino.dbml) | La base a la que se llega con la API en NestJS y Neon. Es un diseño: lo implementa el esquema de Drizzle |
+| Fichero                        | Qué describe                                                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| [`actual.dbml`](actual.dbml)   | La base en Supabase tras el PR 2, como referencia histórica. El esquema vigente está en `apps/api/src/db/schema/` |
+| [`destino.dbml`](destino.dbml) | La base a la que se llega con la API en NestJS y Neon. Es un diseño: lo implementa el esquema de Drizzle          |
 
 Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram.io/d). Las tablas no se agrupan por módulo en el dibujo (en dbdiagram eso es de pago); el esquema va en el nombre de cada tabla.
 
