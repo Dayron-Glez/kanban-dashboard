@@ -1,8 +1,7 @@
 -- ============================================================================
 -- cauce — datos de prueba
 --
--- Ejecutar en el SQL Editor de Supabase (no desde la app: la anon key está
--- sujeta a RLS y no puede sembrar datos).
+-- Se ejecuta contra el Postgres local con `pnpm db:seed`.
 --
 -- Es IDEMPOTENTE: primero borra los proyectos sembrados —identificados por el
 -- marcador '[seed]' en la descripción— y luego los recrea. Ejecutarlo dos
@@ -28,7 +27,7 @@ begin
   select id into v_user from identity.users where email = lower(v_email);
   if v_user is null then
     -- Aviso y salida, no excepción: en una base local recién creada todavía no
-    -- hay usuarios, y abortar aquí haría fallar el `supabase db reset` entero.
+    -- hay usuarios.
     raise notice 'No existe ningún usuario con el email %. Regístrate en la app y vuelve a sembrar.', v_email;
     return;
   end if;
@@ -43,8 +42,7 @@ begin
   values (v_user, 'Plataforma Web', 'Rediseño y migración del front ' || v_seed, '#6366f1', now() - interval '62 days')
   returning id into v_proj;
 
-  -- El trigger on_project_created ya inserta esta fila; aquí solo se ajusta
-  -- is_favorite, que el trigger no fija.
+  -- La membresía de propietario, que en la app crea la API.
   insert into public.project_members (project_id, user_id, role, is_favorite)
   values (v_proj, v_user, 'owner', true)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
@@ -110,8 +108,7 @@ begin
   values (v_user, 'Campaña Q3', 'Lanzamiento y contenidos ' || v_seed, '#ec4899', now() - interval '35 days')
   returning id into v_proj;
 
-  -- El trigger on_project_created ya inserta esta fila; aquí solo se ajusta
-  -- is_favorite, que el trigger no fija.
+  -- La membresía de propietario, que en la app crea la API.
   insert into public.project_members (project_id, user_id, role, is_favorite)
   values (v_proj, v_user, 'owner', false)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
@@ -141,8 +138,7 @@ begin
   values (v_user, 'API Gateway', 'Servicio de entrada y rate limiting ' || v_seed, '#0ea5e9', now() - interval '12 days')
   returning id into v_proj;
 
-  -- El trigger on_project_created ya inserta esta fila; aquí solo se ajusta
-  -- is_favorite, que el trigger no fija.
+  -- La membresía de propietario, que en la app crea la API.
   insert into public.project_members (project_id, user_id, role, is_favorite)
   values (v_proj, v_user, 'owner', true)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
@@ -166,8 +162,7 @@ begin
   values (v_user, 'Investigación UX', 'Entrevistas y hallazgos ' || v_seed, '#10b981', now() - interval '2 days')
   returning id into v_proj;
 
-  -- El trigger on_project_created ya inserta esta fila; aquí solo se ajusta
-  -- is_favorite, que el trigger no fija.
+  -- La membresía de propietario, que en la app crea la API.
   insert into public.project_members (project_id, user_id, role, is_favorite)
   values (v_proj, v_user, 'owner', false)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;

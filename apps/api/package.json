@@ -16,7 +16,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
-    "db:schema": "drizzle-kit pull && node scripts/fix-generated-schema.mjs && prettier --write src/db/generated",
+    "db:migrate": "drizzle-kit migrate",
     "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {

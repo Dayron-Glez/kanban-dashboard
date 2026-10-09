@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common"
 import { TaskHistoryEntrySchema, type TaskHistoryEntry } from "@repo/contracts"
 import { desc, eq } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { taskHistory, tasks } from "../db/generated/schema.js"
+import { taskHistory, tasks } from "../db/schema/index.js"
 import { toIso } from "../db/timestamps.js"
 import { ProjectAccess } from "../projects/project-access.js"
 

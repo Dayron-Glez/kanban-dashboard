@@ -2,11 +2,7 @@ import { Global, Inject, Module, type OnApplicationShutdown } from "@nestjs/comm
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import postgres, { type Sql } from "postgres"
 import { ENV, type Env } from "../config/env.js"
-import * as relations from "./generated/relations.js"
-import * as tables from "./generated/schema.js"
-import * as identity from "./identity.js"
-
-const schema = { ...tables, ...identity, ...relations }
+import * as schema from "./schema/index.js"
 
 export type Database = PostgresJsDatabase<typeof schema>
 

@@ -26,16 +26,16 @@ El proyecto está diseñado como una SPA (Single Page Application) con enfoque e
 
 ### Core
 
-| Tecnología                                    | Versión | Descripción                         |
-| --------------------------------------------- | ------- | ----------------------------------- |
-| [React](https://react.dev/)                   | 19      | Biblioteca de UI                    |
-| [TypeScript](https://www.typescriptlang.org/) | 5.9     | Tipado estático                     |
-| [Vite](https://vite.dev/)                     | 7       | Build tool y dev server             |
-| [Tailwind CSS](https://tailwindcss.com/)      | 4       | Framework de estilos utility-first  |
-| [NestJS](https://nestjs.com/)                 | 12      | API propia (`apps/api`)             |
-| [Drizzle](https://orm.drizzle.team/)          | —       | Acceso a Postgres desde la API      |
-| [better-auth](https://www.better-auth.com/)   | 1.7     | Login, sesión por cookie y Google   |
-| [Supabase](https://supabase.com/)             | —       | Postgres y migraciones (hasta Neon) |
+| Tecnología                                    | Versión | Descripción                        |
+| --------------------------------------------- | ------- | ---------------------------------- |
+| [React](https://react.dev/)                   | 19      | Biblioteca de UI                   |
+| [TypeScript](https://www.typescriptlang.org/) | 5.9     | Tipado estático                    |
+| [Vite](https://vite.dev/)                     | 7       | Build tool y dev server            |
+| [Tailwind CSS](https://tailwindcss.com/)      | 4       | Framework de estilos utility-first |
+| [NestJS](https://nestjs.com/)                 | 12      | API propia (`apps/api`)            |
+| [Drizzle](https://orm.drizzle.team/)          | —       | Esquema, migraciones y consultas   |
+| [better-auth](https://www.better-auth.com/)   | 1.7     | Login, sesión por cookie y Google  |
+| [PostgreSQL](https://www.postgresql.org/)     | 17      | Base de datos                      |
 
 ### Monorepo
 
@@ -121,27 +121,27 @@ Arranca la web en `http://localhost:5173` y la API en `http://localhost:3000`. R
 
 ## Base de datos local
 
-La CLI de Supabase levanta en Docker toda la pila (Postgres, autenticación, API y Studio) y aplica las migraciones de `supabase/migrations/`. Son una docena de contenedores que dependen entre sí: gestiónalos siempre con los scripts `db:*`, no desde Docker Desktop.
+Un único contenedor de Postgres 17, definido en `compose.yaml`, en el puerto 5433 para no chocar con un Postgres instalado en la máquina. El esquema lo crean las migraciones de Drizzle de `apps/api/drizzle/`.
 
-| Cuándo                        | Comando                    | Qué hace                                                    |
-| ----------------------------- | -------------------------- | ----------------------------------------------------------- |
-| Empiezas a trabajar           | `pnpm db:start`            | Arranca la pila; los datos de la sesión anterior siguen ahí |
-| Quieres ver las URLs y claves | `pnpm db:status`           |                                                             |
-| Terminas                      | `pnpm db:stop`             | Para los contenedores y **conserva los datos**              |
-| Quieres empezar desde cero    | `pnpm db:stop --no-backup` | Borra los contenedores **y los datos**                      |
+| Cuándo                     | Comando         | Qué hace                                                                        |
+| -------------------------- | --------------- | ------------------------------------------------------------------------------- |
+| Empiezas a trabajar        | `pnpm db:start` | Arranca el contenedor y aplica las migraciones pendientes; tus datos siguen ahí |
+| Terminas                   | `pnpm db:stop`  | Para el contenedor y **conserva los datos**                                     |
+| Quieres empezar desde cero | `pnpm db:reset` | Borra el contenedor **y los datos**, y vuelve a crear la base migrada           |
+| Quieres datos de prueba    | `pnpm db:seed`  | Ver [Datos de prueba](#datos-de-prueba)                                         |
 
-Herramientas que quedan disponibles mientras la pila está arriba:
-
-- **Supabase Studio**, para ver y editar tablas: `http://127.0.0.1:54323`
+Para consultar la base, conéctate con cualquier cliente de Postgres a `postgresql://postgres:postgres@127.0.0.1:5433/cauce`, o desde la terminal con `docker compose exec db psql -U postgres -d cauce`.
 
 ### Cambiar el esquema
 
-1. Haz el cambio en local, desde Studio o con SQL.
-2. Genera la migración a partir de la diferencia y revísala: `pnpm db:diff nombre_descriptivo`.
-3. Comprueba que se aplica limpia desde cero: `pnpm db:reset`. Ojo: también **borra los usuarios**.
-4. Regenera el esquema de Drizzle de la API: `pnpm db:schema`.
+El esquema se escribe a mano en `apps/api/src/db/schema/` y Drizzle genera la migración a partir de la diferencia:
 
-> ⚠️ `pnpm db:push` y `pnpm db:pull` **no son locales**: actúan sobre el proyecto remoto de Supabase, que es la base de datos de producción.
+1. Cambia el esquema en `apps/api/src/db/schema/`.
+2. Genera la migración y **revisa el SQL**: `pnpm --filter api exec drizzle-kit generate --name nombre_descriptivo`.
+3. Aplícala en local: `pnpm db:start`. Para comprobar que la serie entera se aplica limpia desde cero: `pnpm db:reset`.
+4. Commitea el esquema, el SQL y los ficheros de `apps/api/drizzle/meta/` juntos.
+
+> ⚠️ Hasta que la base de producción pase a Neon (sub-PR 4.3b), **el esquema está congelado**: producción sigue en Supabase, con sus propias migraciones en `supabase/migrations/`.
 
 ## Scripts Disponibles
 
@@ -158,23 +158,17 @@ Todos se ejecutan desde la raíz del repositorio.
 | `lint`         | Análisis estático con ESLint, sin advertencias permitidas                   |
 | `format`       | Formatea el código con Prettier                                             |
 | `format:check` | Comprueba el formato sin modificar nada                                     |
-| `db:*`         | Base de datos de Supabase (ver [Base de datos local](#base-de-datos-local)) |
+| `db:*`         | Base de datos local (ver [Base de datos local](#base-de-datos-local))       |
 
 Para ejecutar un script de un solo paquete: `pnpm --filter web <script>` o `pnpm --filter api <script>`.
 
 ## Datos de prueba
 
-Una cuenta recién creada no tiene proyectos, y con el tablero vacío es difícil juzgar pantallas como el inicio o las analíticas. `supabase/seed.sql` siembra un entorno realista: cuatro proyectos de distinto tamaño, unas treinta tareas con prioridades y asignaciones variadas, historial de movimientos de las últimas semanas y una invitación pendiente.
+Una cuenta recién creada no tiene proyectos, y con el tablero vacío es difícil juzgar pantallas como el inicio o las analíticas. `apps/api/seed.sql` siembra un entorno realista: cuatro proyectos de distinto tamaño, unas treinta tareas con prioridades y asignaciones variadas, historial de movimientos de las últimas semanas y una invitación pendiente.
 
 1. Regístrate en la app (el seeder necesita que el usuario exista).
-2. Cambia `v_email` al principio de `supabase/seed.sql` por tu email.
-3. Ejecútalo contra la base local:
-
-```bash
-docker exec -i supabase_db_kanban-dashboard psql -U postgres -d postgres < supabase/seed.sql
-```
-
-Para sembrar el proyecto remoto, pega el script en el **SQL Editor** de Supabase.
+2. Cambia `v_email` al principio de `apps/api/seed.sql` por tu email.
+3. Ejecútalo contra la base local: `pnpm db:seed`.
 
 Es idempotente: identifica lo que siembra con el marcador `[seed]` en la descripción del proyecto, así que lo borra y lo recrea en cada ejecución sin tocar tus proyectos reales. Para revertirlo, ejecuta solo el `delete` del bloque LIMPIEZA.
 
@@ -212,9 +206,9 @@ kanban-dashboard/
 │   ├── contracts/                       # Esquemas Zod compartidos por la web y la API
 │   └── domain/                          # Lógica de dominio pura, sin framework ni DOM
 ├── supabase/
-│   ├── migrations/                      # Esquema de la base de datos
-│   ├── rollback/                        # Vueltas atrás manuales, que nunca se aplican solas
-│   └── seed.sql                         # Datos de prueba
+│   ├── migrations/                      # Migraciones de la base de producción, hasta el paso a Neon
+│   └── rollback/                        # Vueltas atrás manuales, que nunca se aplican solas
+├── compose.yaml                         # Postgres local
 ├── eslint.config.js                     # ESLint para todo el monorepo
 ├── pnpm-workspace.yaml                  # Paquetes del workspace
 └── turbo.json                           # Tareas de Turborepo

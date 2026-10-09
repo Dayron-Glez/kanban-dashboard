@@ -3,7 +3,7 @@ import { ColumnSchema, type Column, type ColumnCategory } from "@repo/contracts"
 import { applyColumnOrder } from "@repo/domain"
 import { and, count, eq, ne } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { columns } from "../db/generated/schema.js"
+import { columns } from "../db/schema/index.js"
 import { ProjectAccess } from "../projects/project-access.js"
 
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]

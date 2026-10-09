@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import bcrypt from "bcryptjs"
 import request from "supertest"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { createTestApp } from "../testing/test-app.js"
@@ -92,7 +93,7 @@ describe("usuarios importados de Supabase", () => {
       values (${id}, 'Importada', ${address}, true)`
     await ctx.sql`
       insert into identity.accounts (user_id, account_id, provider_id, password)
-      values (${id}, ${id}, 'credential', extensions.crypt(${PASSWORD}, extensions.gen_salt('bf')))`
+      values (${id}, ${id}, 'credential', ${await bcrypt.hash(PASSWORD, 10)})`
   })
 
   it("entra con su contraseña de siempre", async () => {

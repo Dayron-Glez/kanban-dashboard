@@ -1,6 +1,15 @@
-import { boolean, index, pgSchema, text, timestamp, unique, uuid } from "drizzle-orm/pg-core"
+import {
+  boolean,
+  foreignKey,
+  index,
+  pgSchema,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core"
 
-const identity = pgSchema("identity")
+export const identity = pgSchema("identity")
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -10,7 +19,7 @@ const timestamps = {
 export const users = identity.table("users", {
   id: uuid().defaultRandom().primaryKey(),
   name: text().notNull(),
-  email: text().notNull().unique(),
+  email: text().notNull().unique("users_email_key"),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text(),
   ...timestamps,
@@ -20,25 +29,28 @@ export const sessions = identity.table(
   "sessions",
   {
     id: uuid().defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    token: text().notNull().unique(),
+    userId: uuid("user_id").notNull(),
+    token: text().notNull().unique("sessions_token_key"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
     ...timestamps,
   },
-  (table) => [index("sessions_user_id_idx").on(table.userId)]
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "sessions_user_id_fkey",
+    }).onDelete("cascade"),
+    index("sessions_user_id_idx").on(table.userId),
+  ]
 )
 
 export const accounts = identity.table(
   "accounts",
   {
     id: uuid().defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
     accessToken: text("access_token"),
@@ -51,6 +63,11 @@ export const accounts = identity.table(
     ...timestamps,
   },
   (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "accounts_user_id_fkey",
+    }).onDelete("cascade"),
     index("accounts_user_id_idx").on(table.userId),
     unique("accounts_provider_id_account_id_key").on(table.providerId, table.accountId),
   ]

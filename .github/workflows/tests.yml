@@ -31,6 +31,21 @@ jobs:
       issues: write
       pull-requests: write
 
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cauce
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cauce"
+          --health-interval 1s
+          --health-timeout 3s
+          --health-retries 30
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -47,10 +62,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Solo Postgres, con las migraciones aplicadas: los tests de integración
-      # de la API no necesitan el resto de servicios de Supabase.
-      - name: Start Supabase database
-        run: pnpm exec supabase db start
+      - name: Apply migrations
+        run: pnpm --filter api db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5433/cauce
 
       - name: Run tests
         id: tests

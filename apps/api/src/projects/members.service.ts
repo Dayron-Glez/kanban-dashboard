@@ -2,7 +2,7 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nest
 import { ProjectMemberSchema, type ProjectMember } from "@repo/contracts"
 import { eq } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { profiles, projectMembers } from "../db/generated/schema.js"
+import { profiles, projectMembers } from "../db/schema/index.js"
 import { ProjectAccess } from "./project-access.js"
 import { toIso } from "../db/timestamps.js"
 
