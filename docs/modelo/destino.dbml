@@ -125,6 +125,45 @@ Table core.project_invitations {
   created_at timestamptz [not null, default: `now()`]
 }
 
+Table core.departments {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  name text [not null, note: 'Producción, Dirección, Arte, Fotografía, Sonido…']
+  position integer [not null]
+
+  indexes {
+    (project_id, name) [unique]
+  }
+
+  Note: 'Departamentos del proyecto. Se siembran al crearlo y se editan libremente. Compartidos: los usan el Calendario y los módulos futuros.'
+}
+
+Table core.crew_members {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  user_id uuid [ref: > identity.users.id, note: 'Opcional: la mayoría del equipo no tiene cuenta']
+  department_id uuid [ref: > core.departments.id]
+  full_name text [not null]
+  job_title text [note: 'Cargo: director de producción, ayudante de dirección, foquista…']
+  email text [note: 'Para enviarle avisos aunque no tenga cuenta']
+  phone text
+
+  Note: 'El equipo del proyecto, con o sin cuenta. Compartido: el Calendario asigna elementos y el Plan de rodaje o el Presupuesto usarán a las mismas personas.'
+}
+
+Table core.files {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  name text [not null]
+  content_type text [not null]
+  size_bytes bigint [not null]
+  storage_key text [not null, unique, note: 'Dónde está el fichero en el almacenamiento (por decidir, p. ej. Cloudflare R2)']
+  uploaded_by uuid [ref: > identity.users.id]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Los datos de cada fichero subido; el contenido vive en el almacenamiento. Compartido: cada módulo enlaza los suyos.'
+}
+
 // ── work ─────────────────────────────────────────────────────────────────
 
 Enum work.status_category {
@@ -148,12 +187,6 @@ Enum work.item_size {
   xl
 }
 
-Enum work.alert_channel {
-  app [note: 'Aviso dentro de la app']
-  email [note: 'Correo']
-  push [note: 'Notificación en el móvil']
-}
-
 Table work.statuses {
   id uuid [pk]
   project_id uuid [not null, ref: > core.projects.id]
@@ -166,39 +199,6 @@ Table work.statuses {
   }
 
   Note: 'Antes public.columns. Son los estados del tablero.'
-}
-
-Table work.item_alerts {
-  id uuid [pk]
-  item_id uuid [not null, ref: > calendar.elements.id]
-  minutes_before integer [not null, default: 1440, note: 'Cuánto antes del inicio avisar. 1440 = un día']
-  channel work.alert_channel [not null, default: 'app']
-  sent_at timestamptz [note: 'Vacío hasta que se envía']
-
-  Note: 'Avisos de cada elemento. Un elemento puede tener varios (un día antes por email, una hora antes en el móvil).'
-}
-
-Table work.crew_members {
-  id uuid [pk]
-  project_id uuid [not null, ref: > core.projects.id]
-  user_id uuid [ref: > identity.users.id, note: 'Opcional: la mayoría del equipo no tiene cuenta']
-  full_name text [not null]
-  department text [note: 'Producción, Dirección, Fotografía, Sonido…']
-  role text [note: 'Ayudante de dirección, foquista…']
-  email text [note: 'Para enviarle avisos aunque no tenga cuenta']
-
-  Note: 'Equipo del proyecto, con o sin cuenta. PR 9.'
-}
-
-Table work.item_assignees {
-  item_id uuid [not null, ref: > calendar.elements.id]
-  crew_member_id uuid [not null, ref: > work.crew_members.id]
-
-  indexes {
-    (item_id, crew_member_id) [pk]
-  }
-
-  Note: 'Responsables o asistentes de cada elemento. Sustituye a tasks.assignee_id.'
 }
 
 Table work.item_history {
@@ -290,6 +290,29 @@ Enum calendar.dependency_type {
   SS [note: 'Inicio → inicio']
 }
 
+Enum calendar.assignee_role {
+  responsible [note: 'Responsable']
+  executor [note: 'Ejecutante']
+}
+
+Enum calendar.alert_anchor {
+  start [note: 'Respecto al comienzo']
+  end [note: 'Respecto al fin']
+}
+
+Enum calendar.alert_unit {
+  minutes
+  hours
+  days
+  weeks
+}
+
+Enum calendar.alert_channel {
+  app [note: 'Aviso dentro de la app']
+  email [note: 'Correo']
+  push [note: 'Notificación en el móvil']
+}
+
 Table calendar.elements {
   id uuid [pk]
   project_id uuid [not null, ref: > core.projects.id]
@@ -298,6 +321,10 @@ Table calendar.elements {
   position integer [not null, note: 'Orden entre hermanos']
   name text [not null, note: 'Rodaje, Rodaje 2 (Almería), Montaje de Sonido, Foley, Reunión de producción…']
   color text
+  description text [note: 'Información del elemento']
+  notes text
+  location text [note: 'Por ahora texto libre. Con el Plan de rodaje, las localizaciones serán una entidad de core']
+  recurrence_rule text [note: 'Si se repite y con qué ciclo, en formato RRULE (RFC 5545). Las repeticiones se calculan al consultar']
   starts_on date [note: 'Calculada por el motor de fechas, salvo en el ancla y en los elementos fijados']
   ends_on date [note: 'En reuniones, recordatorios y contrataciones, igual que starts_on (CHECK)']
   start_time time [note: 'Hora local del proyecto. Vacía: todo el día']
@@ -340,4 +367,68 @@ Table calendar.element_dependencies {
   }
 
   Note: 'Grafo de dependencias entre elementos de cualquier tipo: una reunión puede ir una semana antes del rodaje. Los ciclos los rechaza la API al crearlas (CHECK predecessor <> successor en la base).'
+}
+
+// Atributos comunes: valen para cualquier elemento, de una fase a un recordatorio.
+
+Table calendar.element_assignees {
+  element_id uuid [not null, ref: > calendar.elements.id]
+  crew_member_id uuid [not null, ref: > core.crew_members.id]
+  role calendar.assignee_role [not null, default: 'executor']
+
+  indexes {
+    (element_id, crew_member_id) [pk]
+  }
+
+  Note: 'Participantes: el responsable y los ejecutantes, con su cargo concreto (core.crew_members.job_title). Sustituye a tasks.assignee_id.'
+}
+
+Table calendar.element_departments {
+  element_id uuid [not null, ref: > calendar.elements.id]
+  department_id uuid [not null, ref: > core.departments.id]
+
+  indexes {
+    (element_id, department_id) [pk]
+  }
+}
+
+Table calendar.element_guests {
+  id uuid [pk]
+  element_id uuid [not null, ref: > calendar.elements.id]
+  crew_member_id uuid [ref: > core.crew_members.id]
+  email text [note: 'Invitado de fuera del equipo']
+  full_name text
+
+  Note: 'Invitados: alguien del equipo o un correo suelto (CHECK: uno de los dos).'
+}
+
+Table calendar.element_alerts {
+  id uuid [pk]
+  element_id uuid [not null, ref: > calendar.elements.id]
+  relative_to calendar.alert_anchor [not null, default: 'start']
+  offset_amount integer [not null, default: 1, note: 'Cuánto antes avisar']
+  offset_unit calendar.alert_unit [not null, default: 'days']
+  channel calendar.alert_channel [not null, default: 'app']
+  sent_at timestamptz [note: 'Vacío hasta que se envía']
+
+  Note: 'Avisos de comienzo y de fin. Un elemento puede tener varios: un día antes por correo, una hora antes en el móvil.'
+}
+
+Table calendar.element_links {
+  id uuid [pk]
+  element_id uuid [not null, ref: > calendar.elements.id]
+  url text [not null]
+  title text
+  position integer [not null]
+}
+
+Table calendar.element_attachments {
+  element_id uuid [not null, ref: > calendar.elements.id]
+  file_id uuid [not null, ref: > core.files.id]
+
+  indexes {
+    (element_id, file_id) [pk]
+  }
+
+  Note: 'El repositorio de documentos de cada elemento.'
 }
