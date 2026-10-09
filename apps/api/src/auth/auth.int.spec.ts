@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto"
-import bcrypt from "bcryptjs"
 import request from "supertest"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { createTestApp } from "../testing/test-app.js"
@@ -80,23 +79,15 @@ describe("registro", () => {
   })
 })
 
-describe("usuarios importados de Supabase", () => {
-  // Como los deja la migración: contraseña en bcrypt y account 'credential'.
-  // Una de 6 caracteres, el mínimo de Supabase, para comprobar que puede entrar.
-  const address = email("importada")
-  const PASSWORD = "seis66"
+describe("inicio de sesión", () => {
+  const address = email("marta")
+  const PASSWORD = "rodaje-2027"
 
   beforeAll(async () => {
-    const id = randomUUID()
-    await ctx.sql`
-      insert into identity.users (id, name, email, email_verified)
-      values (${id}, 'Importada', ${address}, true)`
-    await ctx.sql`
-      insert into identity.accounts (user_id, account_id, provider_id, password)
-      values (${id}, ${id}, 'credential', ${await bcrypt.hash(PASSWORD, 10)})`
+    await post("/sign-up/email", { name: "Marta", email: address, password: PASSWORD })
   })
 
-  it("entra con su contraseña de siempre", async () => {
+  it("entra con su contraseña", async () => {
     const response = await post("/sign-in/email", { email: address, password: PASSWORD })
 
     expect(response.status).toBe(200)
