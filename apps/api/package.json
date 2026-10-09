@@ -17,6 +17,7 @@
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:migrate": "drizzle-kit migrate",
+    "db:compare": "node --env-file-if-exists=.env.neon.local scripts/compare-db.mjs",
     "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
