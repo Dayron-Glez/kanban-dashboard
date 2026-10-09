@@ -15,8 +15,8 @@ const SQL = Symbol("SQL")
     {
       provide: SQL,
       inject: [ENV],
-      // prepare: false porque el pooler de Supabase en modo transacción no
-      // admite sentencias preparadas: cada consulta puede ir a otra conexión.
+      // prepare: false porque el pooler de Neon (PgBouncer en modo transacción)
+      // puede mandar cada consulta a otra conexión, sin la sentencia preparada.
       useFactory: (env: Env) => postgres(env.DATABASE_URL, { prepare: false, max: 10 }),
     },
     {

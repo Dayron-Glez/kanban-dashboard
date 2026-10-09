@@ -1,6 +1,6 @@
 # API de Cauce
 
-NestJS 12 con Drizzle sobre Postgres. En local y en CI, un Postgres 17 creado con las migraciones de Drizzle; en producción, todavía la base de Supabase, que la API usa como un Postgres más, hasta el paso a Neon (sub-PR 4.3b).
+NestJS 12 con Drizzle sobre Postgres. La base es un Postgres 17 creado con las migraciones de Drizzle: en Docker en local, como servicio en CI y en [Neon](https://neon.com) en producción.
 
 ## Desarrollo local
 
@@ -28,11 +28,11 @@ pnpm --filter api dev      # http://localhost:3000/health
 - **Todas las rutas exigen sesión** por defecto (`AuthGuard` global). Una ruta pública se marca con `@Public()`, como `/health`. El usuario de la sesión se lee con `@CurrentUser()`.
 - **Login con better-auth** (`src/auth/better-auth.ts`): sus rutas (`/api/auth/*`) se montan en Express antes del lector de JSON, por eso la app se crea con `bodyParser: false` (`configure-app.ts`). La sesión va en una cookie; el `AuthGuard` la resuelve con `auth.api.getSession`. Los usuarios viven en el esquema `identity`, cuyas tablas se describen en `src/db/schema/identity.ts` (con fechas `Date`, no texto). Las contraseñas importadas de Supabase Auth están en bcrypt y se comprueban con bcrypt; las nuevas, en scrypt.
 - **La IP del usuario** la usa better-auth para el límite de intentos y la guarda en cada sesión. Detrás de Vercel y Railway, `x-forwarded-for` trae varias IP y better-auth solo acepta una, así que `resolveClientIp` (`src/auth/client-ip.ts`) pasa la primera, la del usuario, en `x-cauce-client-ip`. Es fiable porque solo se llega a la API a través de Vercel, que sobrescribe `x-forwarded-for` y no deja que el usuario la falsee.
-- **La autorización es de la API, no de la base**: la API se conecta con un rol que se salta la RLS, así que cada servicio comprueba el acceso con `ProjectAccess` (`requireMember`, `requireOwner`). A quien no es miembro se le responde 404, para no confirmarle que el proyecto existe. Toda ruta nueva de un proyecto necesita su test de «usuario ajeno» en un `*.int.spec.ts`.
+- **La autorización es de la API, no de la base**: la base no tiene RLS, así que cada servicio comprueba el acceso con `ProjectAccess` (`requireMember`, `requireOwner`). A quien no es miembro se le responde 404, para no confirmarle que el proyecto existe. Toda ruta nueva de un proyecto necesita su test de «usuario ajeno» en un `*.int.spec.ts`.
 - **Los cuerpos se validan con los esquemas de `@repo/contracts`**: `@Body({ schema })`, con el `StandardSchemaValidationPipe` global. Las respuestas salen ya con la forma del contrato.
 - **ESM**: los imports relativos llevan la extensión `.js`.
 - **El esquema de Drizzle se mantiene a mano** en `src/db/schema/`, un fichero por módulo, y es el dueño de las migraciones: `drizzle-kit generate` las escribe en `drizzle/` (ver «Cambiar el esquema» en el README raíz). Sin políticas RLS ni funciones de la base: la autorización vive en los servicios.
-- **Las migraciones nunca se aplican al arrancar la API**: se aplican a mano con `db:migrate`, y no van en la imagen de Docker. Mientras producción siga en Supabase, no lo lances contra ella: su esquema lo llevan `supabase/migrations/`.
+- **Las migraciones nunca se aplican al arrancar la API**: se aplican a mano con `db:migrate`, y no van en la imagen de Docker. En producción, antes de mergear el código que las necesita, con la cadena **directa** de Neon (sin `-pooler`): `DATABASE_URL=<cadena> pnpm --filter api db:migrate`.
 
 ## Despliegue en Railway
 
@@ -50,13 +50,13 @@ La configuración vive en el panel de Railway. Su fichero `railway.json` está o
    | Build Command, Start Command | vacíos: los pone `apps/api/Dockerfile`                                         |
    | Watch Paths                  | `apps/api/**`, `packages/contracts/**`, `packages/domain/**`, `pnpm-lock.yaml` |
    | Healthcheck Path             | `/health`                                                                      |
-   | Region                       | la misma que la base de datos                                                  |
+   | Region                       | la más cercana a la base de datos (EU West, con Neon en Frankfurt)             |
 
 4. En **Variables**:
 
    | Variable                  | Valor                                                                                           |
    | ------------------------- | ----------------------------------------------------------------------------------------------- |
-   | `DATABASE_URL`            | Supabase → **Connect → Transaction pooler** (puerto 6543), con la contraseña de la base         |
+   | `DATABASE_URL`            | Neon → **Connect**, con **Connection pooling** activado (el host lleva `-pooler`)               |
    | `BETTER_AUTH_URL`         | la URL de la **web** en Vercel, sin barra final (la API se sirve bajo su `/api`)                |
    | `BETTER_AUTH_SECRET`      | `openssl rand -base64 32`. Cambiarlo cierra todas las sesiones                                  |
    | `GOOGLE_CLIENT_ID`        | Google Cloud → Credenciales → cliente OAuth. Opcional: sin él no se ofrece Google               |
@@ -75,3 +75,20 @@ La configuración vive en el panel de Railway. Su fichero `railway.json` está o
 ### Qué pasa en cada despliegue
 
 Railway despliega cada push a `master` que toque los Watch Paths. Antes de poner la versión nueva en servicio llama a `/health`; si la base no responde, devuelve 503 y la versión anterior sigue atendiendo.
+
+## Cambiar de base de datos
+
+Así se pasó de Supabase a Neon, y sirve para cualquier otro cambio de host. Los dos scripts leen `SOURCE_DATABASE_URL` (la base actual) y `TARGET_DATABASE_URL` (la nueva) de `apps/api/.env.neon.local`, que git ignora: las contraseñas no pasan por la terminal.
+
+| Script                         | Qué hace                                                                                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter api db:compare` | Compara el esquema de `public` e `identity` y las filas de cada tabla. Solo lectura                                                                           |
+| `pnpm --filter api db:copy`    | Copia las tablas en una transacción: todo o nada. Se niega si el destino tiene filas o tablas que no conoce. Al añadir una tabla, hay que añadirla a su lista |
+
+1. Crea las tablas en la base nueva: `db:migrate` con `DATABASE_URL` = la cadena directa de la nueva.
+2. `db:compare`: el esquema debe salir idéntico y el destino, vacío.
+3. En un momento sin actividad: `db:copy` y `db:compare`, que ya debe decir «Las dos bases coinciden».
+4. En Railway, cambia `DATABASE_URL` por la cadena con pooler de la base nueva, y comprueba la web cuando termine el despliegue.
+5. `db:compare` otra vez: si algo entró en la base antigua entre la copia y el cambio, saldrá aquí.
+
+Para volver atrás, basta con devolver `DATABASE_URL` a la base antigua, que la copia no toca.
