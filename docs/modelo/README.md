@@ -26,7 +26,7 @@ Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram
 - **Fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar**: un proceso puede colgar de la fase, y en Postproducción conviven subfases y procesos. La profundidad no dice el tipo.
 - **Un elemento pertenece a la fase en la que empieza**, aunque acabe en otra (el casting empieza en SoftPre y suele acabar en Preparación). Si al mover fechas su inicio sale de su padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
 - **Las fechas se calculan como en el Excel del productor**: un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base (naturales por defecto, laborables en las excepciones) y dependencias con desfase. Sin ajustes ocultos: mover el inicio reescribe el desfase y mover el fin, la duración. Todo es editable en cada proyecto.
-- **Los eventos y las tareas** pueden durar varios días o uno; **las reuniones, los recordatorios y las contrataciones**, solo uno.
+- **Los eventos y las tareas** pueden durar varios días o uno; **las reuniones y los recordatorios**, solo uno. **Una contratación** va de la fecha de alta a la de baja, y sin baja sigue activa: la baja se ordena cuando el trabajador termina.
 - **Al crear un bloque** («Rodaje 1», «Rodaje 2»…), el bloque recibe sus propios procesos, copiados de la plantilla de su fase (pendiente de confirmar con el productor).
 - **El tablero es una capacidad, no un módulo**: estado, prioridad y tamaño son atributos opcionales de cualquier elemento.
 
@@ -99,5 +99,5 @@ Los procesos de SoftPre casi nunca terminan en SoftPre: siguen hasta Preparació
 
 - **Para el productor:** qué cambia en la plantilla de un documental, y confirmar que cada bloque copia los procesos de su fase.
 - **Avisos:** a quién llegan (responsable, ejecutantes, todo el equipo) y por qué canal.
-- **Contratación:** si necesita datos propios (empresa, persona, fechas de contrato) además de los comunes.
+- **Contratación:** los datos laborales que el prototipo usa para las nóminas (puesto, salario, grupo de cotización, tipo de contrato) irán en un módulo futuro (personal o presupuesto), no en el Calendario. Aquí la contratación es su periodo y la persona contratada.
 - **Almacenamiento de ficheros:** dónde (por ejemplo, Cloudflare R2), antes de los documentos adjuntos.

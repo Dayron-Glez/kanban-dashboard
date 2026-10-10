@@ -228,7 +228,7 @@ Enum calendar.element_kind {
   task [note: 'Tarea. Acción: periodo o un día']
   meeting [note: 'Reunión. Acción: solo un día']
   reminder [note: 'Recordatorio. Acción: solo un día']
-  hiring [note: 'Contratación. Acción: solo un día']
+  hiring [note: 'Contratación. Acción: periodo de la fecha de alta a la de baja; sin baja, sigue activa']
 }
 
 Enum calendar.duration_unit {
@@ -328,7 +328,7 @@ Table calendar.elements {
   size calendar.size
   recurrence_rule text [note: 'Si se repite y con qué ciclo, en formato RRULE (RFC 5545). Las repeticiones se calculan al consultar']
   starts_on date [note: 'Calculada por el motor de fechas, salvo en el ancla y en los elementos fijados']
-  ends_on date [note: 'En reuniones, recordatorios y contrataciones, igual que starts_on (CHECK)']
+  ends_on date [note: 'En reuniones y recordatorios, igual que starts_on (CHECK). En una contratación es la baja: vacía mientras sigue activa']
   start_time time [note: 'Hora en la zona del proyecto (core.work_calendars.timezone). Vacía: todo el día']
   end_time time
   duration_amount numeric
