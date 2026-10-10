@@ -2,7 +2,7 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nest
 import { ProjectMemberSchema, type ProjectMember } from "@repo/contracts"
 import { eq } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { profiles, projectMembers } from "../db/schema/index.js"
+import { projectMembers, users } from "../db/schema/index.js"
 import { ProjectAccess } from "./project-access.js"
 import { toIso } from "../db/timestamps.js"
 
@@ -16,25 +16,20 @@ export class MembersService {
   async listByProject(userId: string, projectId: string): Promise<ProjectMember[]> {
     await this.access.requireMember(projectId, userId)
     const rows = await this.db
-      .select({ member: projectMembers, profile: profiles })
+      .select({ member: projectMembers, user: users })
       .from(projectMembers)
-      .innerJoin(profiles, eq(profiles.id, projectMembers.userId))
+      .innerJoin(users, eq(users.id, projectMembers.userId))
       .where(eq(projectMembers.projectId, projectId))
       .orderBy(projectMembers.joinedAt)
 
-    return rows.map(({ member, profile }) =>
+    return rows.map(({ member, user }) =>
       ProjectMemberSchema.parse({
         id: member.id,
         projectId: member.projectId,
         userId: member.userId,
         role: member.role,
         joinedAt: toIso(member.joinedAt),
-        profile: {
-          id: profile.id,
-          fullName: profile.fullName,
-          email: profile.email,
-          avatarUrl: profile.avatarUrl,
-        },
+        profile: { id: user.id, fullName: user.name, email: user.email, avatarUrl: user.image },
       })
     )
   }

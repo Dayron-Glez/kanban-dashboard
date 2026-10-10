@@ -4,7 +4,6 @@ import {
   check,
   foreignKey,
   pgSchema,
-  pgTable,
   text,
   timestamp,
   unique,
@@ -17,26 +16,6 @@ export const core = pgSchema("core")
 const createdAt = timestamp("created_at", { withTimezone: true, mode: "string" })
   .defaultNow()
   .notNull()
-
-export const profiles = pgTable(
-  "profiles",
-  {
-    id: uuid().primaryKey(),
-    fullName: text("full_name"),
-    avatarUrl: text("avatar_url"),
-    email: text(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.id],
-      foreignColumns: [users.id],
-      name: "profiles_id_fkey",
-    }).onDelete("cascade"),
-  ]
-)
 
 export const projects = core.table(
   "projects",
@@ -75,7 +54,7 @@ export const projectMembers = core.table(
     }).onDelete("cascade"),
     foreignKey({
       columns: [table.userId],
-      foreignColumns: [profiles.id],
+      foreignColumns: [users.id],
       name: "project_members_user_id_fkey",
     }).onDelete("cascade"),
     unique("project_members_project_id_user_id_key").on(table.projectId, table.userId),

@@ -6,7 +6,6 @@ const TABLES = [
   ["identity", "accounts"],
   ["identity", "sessions"],
   ["identity", "verifications"],
-  ["public", "profiles"],
   ["core", "projects"],
   ["core", "project_members"],
   ["core", "project_invitations"],

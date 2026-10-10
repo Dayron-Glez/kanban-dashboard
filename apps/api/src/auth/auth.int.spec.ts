@@ -36,7 +36,7 @@ afterAll(async () => {
 })
 
 describe("registro", () => {
-  it("crea la cuenta, su perfil y una sesión con la que la API la reconoce", async () => {
+  it("crea la cuenta y una sesión con la que la API la reconoce", async () => {
     const address = email("ana")
 
     const response = await post("/sign-up/email", {
@@ -50,9 +50,9 @@ describe("registro", () => {
     expect(session.status).toBe(200)
     expect(session.body).toMatchObject({ email: address })
 
-    const [profile] = await ctx.sql`
-      select full_name, email from public.profiles where id = ${session.body.id as string}`
-    expect(profile).toEqual({ full_name: "Ana", email: address })
+    const [user] = await ctx.sql`
+      select name, email from identity.users where id = ${session.body.id as string}`
+    expect(user).toEqual({ name: "Ana", email: address })
   })
 
   it("exige al menos 8 caracteres en la contraseña", async () => {

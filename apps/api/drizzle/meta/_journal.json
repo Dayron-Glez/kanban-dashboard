@@ -15,6 +15,13 @@
       "when": 1791629394353,
       "tag": "0001_esquema_core",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791630315975,
+      "tag": "0002_perfil_en_usuarios",
+      "breakpoints": true
     }
   ]
 }
