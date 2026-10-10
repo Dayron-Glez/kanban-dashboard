@@ -8,6 +8,27 @@
       "when": 1791545008392,
       "tag": "0000_base",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791629394353,
+      "tag": "0001_esquema_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791630315975,
+      "tag": "0002_perfil_en_usuarios",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791630891868,
+      "tag": "0003_tipo_de_proyecto",
+      "breakpoints": true
     }
   ]
 }

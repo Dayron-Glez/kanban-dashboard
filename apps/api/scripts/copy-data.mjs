@@ -6,10 +6,9 @@ const TABLES = [
   ["identity", "accounts"],
   ["identity", "sessions"],
   ["identity", "verifications"],
-  ["public", "profiles"],
-  ["public", "projects"],
-  ["public", "project_members"],
-  ["public", "project_invitations"],
+  ["core", "projects"],
+  ["core", "project_members"],
+  ["core", "project_invitations"],
   ["public", "columns"],
   ["public", "tasks"],
   ["public", "task_history"],
@@ -35,7 +34,7 @@ const summary = []
 try {
   const existing = await target`
     select table_schema || '.' || table_name as name from information_schema.tables
-    where table_schema in ('public', 'identity') and table_type = 'BASE TABLE'`
+    where table_schema in ('public', 'identity', 'core') and table_type = 'BASE TABLE'`
   const missing = existing
     .map((row) => row.name)
     .filter((table) => !TABLES.some(([s, t]) => name(s, t) === table))

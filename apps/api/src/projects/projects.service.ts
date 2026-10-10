@@ -17,6 +17,7 @@ const toProject = (row: typeof projects.$inferSelect): Project =>
   ProjectSchema.parse({
     id: row.id,
     ownerId: row.ownerId,
+    kind: row.kind,
     name: row.name,
     description: row.description,
     color: row.color,
@@ -55,6 +56,7 @@ export class ProjectsService {
         .insert(projects)
         .values({
           ownerId: userId,
+          kind: input.kind,
           name: input.name,
           // Un campo de formulario vacío llega como "": se guarda como ausencia.
           description: input.description || null,

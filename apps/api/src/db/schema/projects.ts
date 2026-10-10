@@ -3,7 +3,7 @@ import {
   boolean,
   check,
   foreignKey,
-  pgTable,
+  pgSchema,
   text,
   timestamp,
   unique,
@@ -11,35 +11,18 @@ import {
 } from "drizzle-orm/pg-core"
 import { users } from "./identity.js"
 
+export const core = pgSchema("core")
+
 const createdAt = timestamp("created_at", { withTimezone: true, mode: "string" })
   .defaultNow()
   .notNull()
 
-export const profiles = pgTable(
-  "profiles",
-  {
-    id: uuid().primaryKey(),
-    fullName: text("full_name"),
-    avatarUrl: text("avatar_url"),
-    email: text(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.id],
-      foreignColumns: [users.id],
-      name: "profiles_id_fkey",
-    }).onDelete("cascade"),
-  ]
-)
-
-export const projects = pgTable(
+export const projects = core.table(
   "projects",
   {
     id: uuid().defaultRandom().primaryKey(),
     ownerId: uuid("owner_id").notNull(),
+    kind: text().default("film").notNull(),
     name: text().notNull(),
     description: text(),
     color: text().default("#3b82f6").notNull(),
@@ -51,10 +34,11 @@ export const projects = pgTable(
       foreignColumns: [users.id],
       name: "projects_owner_id_fkey",
     }).onDelete("cascade"),
+    check("projects_kind_check", sql`${table.kind} in ('film', 'series', 'documentary')`),
   ]
 )
 
-export const projectMembers = pgTable(
+export const projectMembers = core.table(
   "project_members",
   {
     id: uuid().defaultRandom().primaryKey(),
@@ -72,7 +56,7 @@ export const projectMembers = pgTable(
     }).onDelete("cascade"),
     foreignKey({
       columns: [table.userId],
-      foreignColumns: [profiles.id],
+      foreignColumns: [users.id],
       name: "project_members_user_id_fkey",
     }).onDelete("cascade"),
     unique("project_members_project_id_user_id_key").on(table.projectId, table.userId),
@@ -80,7 +64,7 @@ export const projectMembers = pgTable(
   ]
 )
 
-export const projectInvitations = pgTable(
+export const projectInvitations = core.table(
   "project_invitations",
   {
     id: uuid().defaultRandom().primaryKey(),

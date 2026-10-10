@@ -10,6 +10,7 @@ import { useProject, useProjects } from "../api/projectQueries"
 const summary = (overrides: Partial<ProjectSummary> = {}): ProjectSummary => ({
   id: "p1",
   ownerId: "u1",
+  kind: "film",
   name: "Largometraje",
   description: null,
   color: "#6366f1",

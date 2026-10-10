@@ -36,7 +36,12 @@ describe("proyectos", () => {
 
     expect(response.status).toBe(201)
     project = response.body as Project
-    expect(project).toMatchObject({ ownerId: ana.id, name: "Largometraje", description: null })
+    expect(project).toMatchObject({
+      ownerId: ana.id,
+      kind: "film",
+      name: "Largometraje",
+      description: null,
+    })
 
     const columns = await ctx.sql`
       select title, category from columns where project_id = ${project.id} order by position`
@@ -50,6 +55,28 @@ describe("proyectos", () => {
 
     const mine = (await as(ana).get("/projects")).body as ProjectSummary[]
     expect(mine).toEqual([{ ...project, role: "owner", isFavorite: false, taskCount: 0 }])
+  })
+
+  it("guarda el tipo de proyecto si se indica", async () => {
+    const response = await as(ana).post("/projects", {
+      name: "Serie documental",
+      kind: "series",
+      color: "#3b82f6",
+    })
+
+    expect(response.status).toBe(201)
+    expect((response.body as Project).kind).toBe("series")
+    await as(ana).delete(`/projects/${(response.body as Project).id}`)
+  })
+
+  it("rechaza un tipo de proyecto que no existe", async () => {
+    const response = await as(ana).post("/projects", {
+      name: "Videoclip",
+      kind: "videoclip",
+      color: "#3b82f6",
+    })
+
+    expect(response.status).toBe(400)
   })
 
   it("rechaza un nombre vacío", async () => {
@@ -85,13 +112,13 @@ describe("alguien ajeno al proyecto", () => {
     ])
 
     expect(responses.map((response) => response.status)).toEqual([404, 404, 404, 404, 404, 404])
-    const [row] = await ctx.sql`select name from projects where id = ${project.id}`
+    const [row] = await ctx.sql`select name from core.projects where id = ${project.id}`
     expect(row?.name).toBe("Largometraje")
   })
 
   it("no puede quitar miembros", async () => {
     const [owner] = await ctx.sql`
-      select id from project_members where project_id = ${project.id} and user_id = ${ana.id}`
+      select id from core.project_members where project_id = ${project.id} and user_id = ${ana.id}`
 
     const response = await as(luis).delete(`/members/${owner!.id}`)
 
@@ -166,7 +193,7 @@ describe("invitaciones", () => {
     })
     const expired = created.body as Invitation
     await ctx.sql`
-      update project_invitations set expires_at = now() - interval '1 minute'
+      update core.project_invitations set expires_at = now() - interval '1 minute'
       where id = ${expired.id}`
 
     const response = await as(luis).post(`/invitations/token/${expired.token}/accept`)

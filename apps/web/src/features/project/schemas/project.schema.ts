@@ -1,3 +1,4 @@
+import { ProjectKindSchema } from "@repo/contracts"
 import * as z from "zod"
 
 export const PROJECT_COLORS = [
@@ -13,6 +14,7 @@ export const PROJECT_COLORS = [
 
 export const projectSchema = z.object({
   name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres"),
+  kind: ProjectKindSchema,
   description: z.string().trim().optional(),
   color: z.string().min(1),
 })

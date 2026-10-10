@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import type { Env } from "../config/env.js"
 import type { Database } from "../db/db.module.js"
-import { accounts, profiles, sessions, users, verifications } from "../db/schema/index.js"
+import { accounts, sessions, users, verifications } from "../db/schema/index.js"
 import { CLIENT_IP_HEADER } from "./client-ip.js"
 
 export const BETTER_AUTH = Symbol("BETTER_AUTH")
@@ -37,25 +37,6 @@ export const createAuth = (db: Database, env: Env) =>
     // Quien se registró con correo y entra después con Google (mismo correo)
     // sigue siendo el mismo usuario.
     account: { accountLinking: { enabled: true, trustedProviders: ["google"] } },
-    databaseHooks: {
-      user: {
-        create: {
-          // El perfil que leen miembros y asignados; antes lo creaba un trigger
-          // de auth.users.
-          after: async (user) => {
-            await db
-              .insert(profiles)
-              .values({
-                id: user.id,
-                fullName: user.name,
-                email: user.email,
-                avatarUrl: user.image ?? null,
-              })
-              .onConflictDoNothing()
-          },
-        },
-      },
-    },
   })
 
 export type Auth = ReturnType<typeof createAuth>

@@ -35,15 +35,15 @@ begin
   -- ── LIMPIEZA ──────────────────────────────────────────────────────────────
   -- El borrado en cascada de la FK se encarga de columnas, tareas, miembros,
   -- invitaciones e historial de los proyectos sembrados.
-  delete from public.projects where description like '%' || v_seed;
+  delete from core.projects where description like '%' || v_seed;
 
   -- ── PROYECTO 1: grande y activo ───────────────────────────────────────────
-  insert into public.projects (owner_id, name, description, color, created_at)
+  insert into core.projects (owner_id, name, description, color, created_at)
   values (v_user, 'Plataforma Web', 'Rediseño y migración del front ' || v_seed, '#6366f1', now() - interval '62 days')
   returning id into v_proj;
 
   -- La membresía de propietario, que en la app crea la API.
-  insert into public.project_members (project_id, user_id, role, is_favorite)
+  insert into core.project_members (project_id, user_id, role, is_favorite)
   values (v_proj, v_user, 'owner', true)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
@@ -100,16 +100,16 @@ begin
   end loop;
 
   -- Invitación pendiente, para poder ver esa card en Ajustes.
-  insert into public.project_invitations (project_id, email, token, status, expires_at)
+  insert into core.project_invitations (project_id, email, token, status, expires_at)
   values (v_proj, 'nuevo.companero@ejemplo.com', gen_random_uuid(), 'pending', now() + interval '7 days');
 
   -- ── PROYECTO 2: mediano ───────────────────────────────────────────────────
-  insert into public.projects (owner_id, name, description, color, created_at)
+  insert into core.projects (owner_id, name, description, color, created_at)
   values (v_user, 'Campaña Q3', 'Lanzamiento y contenidos ' || v_seed, '#ec4899', now() - interval '35 days')
   returning id into v_proj;
 
   -- La membresía de propietario, que en la app crea la API.
-  insert into public.project_members (project_id, user_id, role, is_favorite)
+  insert into core.project_members (project_id, user_id, role, is_favorite)
   values (v_proj, v_user, 'owner', false)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
@@ -134,12 +134,12 @@ begin
   end loop;
 
   -- ── PROYECTO 3: pequeño ───────────────────────────────────────────────────
-  insert into public.projects (owner_id, name, description, color, created_at)
+  insert into core.projects (owner_id, name, description, color, created_at)
   values (v_user, 'API Gateway', 'Servicio de entrada y rate limiting ' || v_seed, '#0ea5e9', now() - interval '12 days')
   returning id into v_proj;
 
   -- La membresía de propietario, que en la app crea la API.
-  insert into public.project_members (project_id, user_id, role, is_favorite)
+  insert into core.project_members (project_id, user_id, role, is_favorite)
   values (v_proj, v_user, 'owner', true)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 
@@ -158,12 +158,12 @@ begin
 
   -- ── PROYECTO 4: recién creado, sin tareas ─────────────────────────────────
   -- Sirve para ver cómo se comportan los estados vacíos con datos alrededor.
-  insert into public.projects (owner_id, name, description, color, created_at)
+  insert into core.projects (owner_id, name, description, color, created_at)
   values (v_user, 'Investigación UX', 'Entrevistas y hallazgos ' || v_seed, '#10b981', now() - interval '2 days')
   returning id into v_proj;
 
   -- La membresía de propietario, que en la app crea la API.
-  insert into public.project_members (project_id, user_id, role, is_favorite)
+  insert into core.project_members (project_id, user_id, role, is_favorite)
   values (v_proj, v_user, 'owner', false)
   on conflict (project_id, user_id) do update set is_favorite = excluded.is_favorite;
 

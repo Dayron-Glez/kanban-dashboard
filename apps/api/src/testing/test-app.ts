@@ -44,12 +44,11 @@ export const createTestApp = async ({ fakeSessions = true }: TestAppOptions = {}
   configureApp(app)
   await app.init()
 
-  // Como al registrarse: el usuario y su perfil.
+  // Como al registrarse.
   const createUser = async (name: string): Promise<TestUser> => {
     const id = randomUUID()
     const email = `${name}-${id.slice(0, 8)}@int.test`
     await sql`insert into identity.users (id, name, email) values (${id}, ${name}, ${email})`
-    await sql`insert into public.profiles (id, full_name, email) values (${id}, ${name}, ${email})`
     const user = { id, email, token: `token-${id}` }
     users.set(user.token, user)
     return user
