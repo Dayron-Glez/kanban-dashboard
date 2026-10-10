@@ -25,7 +25,7 @@ Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram
 - **Fases, subfases, procesos y acciones son una sola tabla, `calendar.elements`**, con el tipo explícito en `kind`: comparten atributos, pueden cruzar fases y se colocan en el tiempo igual. Hay cinco tipos de acción: evento, tarea, reunión, recordatorio y contratación.
 - **Fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar**: un proceso puede colgar de la fase, y en Postproducción conviven subfases y procesos. La profundidad no dice el tipo.
 - **Un elemento pertenece a la fase en la que empieza**, aunque acabe en otra (el casting empieza en SoftPre y suele acabar en Preparación). Si al mover fechas su inicio sale de su padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
-- **Las fechas se calculan como en el Excel del productor**: un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base, dependencias con desfase y ajustes manuales. Todo es editable en cada proyecto.
+- **Las fechas se calculan como en el Excel del productor**: un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base (naturales por defecto, laborables en las excepciones) y dependencias con desfase. Sin ajustes ocultos: mover el inicio reescribe el desfase y mover el fin, la duración. Todo es editable en cada proyecto.
 - **Los eventos y las tareas** pueden durar varios días o uno; **las reuniones, los recordatorios y las contrataciones**, solo uno.
 - **Al crear un bloque** («Rodaje 1», «Rodaje 2»…), el bloque recibe sus propios procesos, copiados de la plantilla de su fase (pendiente de confirmar con el productor).
 - **El tablero es una capacidad, no un módulo**: estado, prioridad y tamaño son atributos opcionales de cualquier elemento.
@@ -49,14 +49,14 @@ Hoy la base (Neon) tiene las tablas en `public` e `identity` (ver `apps/api/src/
 
 ## Cuándo llega cada parte
 
-| Parte                                                                                                     | PR        |
-| --------------------------------------------------------------------------------------------------------- | --------- |
-| Tablas actuales a `core` y `calendar`; tipo de proyecto                                                   | 5a        |
-| El árbol de elementos y la plantilla, por tipo de proyecto                                                | 5a        |
-| El calendario laboral y el motor de fechas: ancla, duraciones, dependencias, ajustes y contadores de días | 5b        |
-| Atributos comunes: equipo, departamentos, responsables, invitados, avisos, repetición, links              | 5c        |
-| Documentos adjuntos (`core.files`), cuando haya almacenamiento                                            | posterior |
-| Vistas del Calendario: Gantt, mensual, semanal                                                            | 6 y 8     |
+| Parte                                                                                            | PR        |
+| ------------------------------------------------------------------------------------------------ | --------- |
+| Tablas actuales a `core` y `calendar`; tipo de proyecto                                          | 5a        |
+| El árbol de elementos y la plantilla, por tipo de proyecto                                       | 5a        |
+| El calendario laboral y el motor de fechas: ancla, duraciones, dependencias y contadores de días | 5b        |
+| Atributos comunes: equipo, departamentos, responsables, invitados, avisos, repetición, links     | 5c        |
+| Documentos adjuntos (`core.files`), cuando haya almacenamiento                                   | posterior |
+| Vistas del Calendario: Gantt, mensual, semanal                                                   | 6 y 8     |
 
 El antiguo PR 7 (subtareas y WBS) queda absorbido por el árbol, y el PR 9 (equipo) por el 5c.
 

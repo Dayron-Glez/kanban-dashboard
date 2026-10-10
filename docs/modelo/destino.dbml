@@ -232,14 +232,14 @@ Enum calendar.element_kind {
 }
 
 Enum calendar.duration_unit {
-  days [note: 'Días: base laborable por defecto']
-  weeks [note: 'Semanas: base natural por defecto']
-  months [note: 'Meses de calendario']
+  days [note: 'Días']
+  weeks [note: 'Semanas: siete días']
+  months [note: 'Meses de calendario, como EDATE: del 31 de enero, al 28 de febrero']
 }
 
 Enum calendar.day_basis {
-  working [note: 'Laborables: los días laborables de la semana del proyecto, sin festivos']
-  calendar [note: 'Naturales: los siete días, de lunes a domingo']
+  calendar [note: 'Naturales: los siete días, de lunes a domingo. La base por defecto']
+  working [note: 'Laborables: los días laborables de la semana del proyecto, sin festivos. Para las excepciones']
 }
 
 Enum calendar.date_point {
@@ -333,9 +333,7 @@ Table calendar.elements {
   end_time time
   duration_amount numeric
   duration_unit calendar.duration_unit
-  duration_basis calendar.day_basis [note: 'Por defecto según la unidad, sobreescribible. Los laborables salen de core.work_calendars']
-  start_adjustment_days integer [not null, default: 0, note: 'AjusteIni del Excel: desplaza el inicio a mano']
-  end_adjustment_days integer [not null, default: 0, note: 'AjusteFin del Excel: alarga o acorta a mano']
+  duration_basis calendar.day_basis [not null, default: 'calendar', note: 'Naturales por defecto; laborables en las excepciones. Los laborables salen de core.work_calendars']
   is_anchor boolean [not null, default: false, note: 'La fecha que se escribe a mano y de la que sale el plan. Normalmente el inicio de rodaje']
   is_pinned boolean [not null, default: false, note: 'Fijado: no lo mueve el motor de fechas y corta la propagación']
   dependency_join calendar.dependency_join [not null, default: 'all', note: 'Cómo se combinan sus dependencias si tiene varias']
@@ -352,6 +350,7 @@ Table calendar.elements {
   Note: '''
   Un solo árbol, de hasta cuatro niveles: fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar (un proceso puede colgar de la fase; en Postproducción conviven subfases y procesos). El tipo es explícito: la profundidad no lo dice.
   Reglas que comprueba la API: qué tipo puede colgar de cuál; las acciones no tienen hijos; solo hay padre vacío en fases y en acciones sueltas.
+  Lo que se ve es lo que se calcula, sin ajustes ocultos: mover el inicio de un elemento reescribe el desfase de su dependencia (o lo fija, si no tiene); mover su fin reescribe su duración.
   Las fechas no están limitadas por las del padre: un elemento puede empezar en una fase y acabar en otra, y pertenece a aquella en la que empieza. Si al mover fechas su inicio sale del padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
   '''
 }
@@ -365,7 +364,7 @@ Table calendar.element_dependencies {
   successor_point calendar.date_point [not null, default: 'start', note: 'Qué fecha de este elemento fija']
   lag_amount numeric [not null, default: 0, note: 'Puede ser negativo: Foley empieza dos semanas antes de que acabe Edición']
   lag_unit calendar.duration_unit [not null, default: 'days']
-  lag_basis calendar.day_basis [not null, default: 'working']
+  lag_basis calendar.day_basis [not null, default: 'calendar']
 
   indexes {
     (predecessor_id, successor_id) [unique]
