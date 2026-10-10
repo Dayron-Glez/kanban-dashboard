@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   foreignKey,
+  pgSchema,
   pgTable,
   text,
   timestamp,
@@ -10,6 +11,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 import { users } from "./identity.js"
+
+export const core = pgSchema("core")
 
 const createdAt = timestamp("created_at", { withTimezone: true, mode: "string" })
   .defaultNow()
@@ -35,7 +38,7 @@ export const profiles = pgTable(
   ]
 )
 
-export const projects = pgTable(
+export const projects = core.table(
   "projects",
   {
     id: uuid().defaultRandom().primaryKey(),
@@ -54,7 +57,7 @@ export const projects = pgTable(
   ]
 )
 
-export const projectMembers = pgTable(
+export const projectMembers = core.table(
   "project_members",
   {
     id: uuid().defaultRandom().primaryKey(),
@@ -80,7 +83,7 @@ export const projectMembers = pgTable(
   ]
 )
 
-export const projectInvitations = pgTable(
+export const projectInvitations = core.table(
   "project_invitations",
   {
     id: uuid().defaultRandom().primaryKey(),

@@ -85,13 +85,13 @@ describe("alguien ajeno al proyecto", () => {
     ])
 
     expect(responses.map((response) => response.status)).toEqual([404, 404, 404, 404, 404, 404])
-    const [row] = await ctx.sql`select name from projects where id = ${project.id}`
+    const [row] = await ctx.sql`select name from core.projects where id = ${project.id}`
     expect(row?.name).toBe("Largometraje")
   })
 
   it("no puede quitar miembros", async () => {
     const [owner] = await ctx.sql`
-      select id from project_members where project_id = ${project.id} and user_id = ${ana.id}`
+      select id from core.project_members where project_id = ${project.id} and user_id = ${ana.id}`
 
     const response = await as(luis).delete(`/members/${owner!.id}`)
 
@@ -166,7 +166,7 @@ describe("invitaciones", () => {
     })
     const expired = created.body as Invitation
     await ctx.sql`
-      update project_invitations set expires_at = now() - interval '1 minute'
+      update core.project_invitations set expires_at = now() - interval '1 minute'
       where id = ${expired.id}`
 
     const response = await as(luis).post(`/invitations/token/${expired.token}/accept`)
