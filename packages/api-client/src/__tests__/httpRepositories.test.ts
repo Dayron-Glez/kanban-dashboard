@@ -9,6 +9,7 @@ const NOW = "2026-10-07T18:00:00.000Z"
 const project = {
   id: PROJECT_ID,
   ownerId: "2b7e1c4a-9f3d-4e8a-b5c6-1d2e3f4a5b6c",
+  kind: "film",
   name: "Largometraje",
   description: null,
   color: "#ef4444",

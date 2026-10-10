@@ -22,6 +22,7 @@ export const projects = core.table(
   {
     id: uuid().defaultRandom().primaryKey(),
     ownerId: uuid("owner_id").notNull(),
+    kind: text().default("film").notNull(),
     name: text().notNull(),
     description: text(),
     color: text().default("#3b82f6").notNull(),
@@ -33,6 +34,7 @@ export const projects = core.table(
       foreignColumns: [users.id],
       name: "projects_owner_id_fkey",
     }).onDelete("cascade"),
+    check("projects_kind_check", sql`${table.kind} in ('film', 'series', 'documentary')`),
   ]
 )
 

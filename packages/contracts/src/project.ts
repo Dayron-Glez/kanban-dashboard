@@ -1,9 +1,10 @@
 import * as z from "zod"
-import { MemberRoleSchema } from "./enums.js"
+import { MemberRoleSchema, ProjectKindSchema } from "./enums.js"
 
 export const ProjectSchema = z.object({
   id: z.uuid(),
   ownerId: z.uuid(),
+  kind: ProjectKindSchema,
   name: z.string(),
   description: z.string().nullable(),
   color: z.string(),
@@ -22,6 +23,7 @@ const ProjectNameSchema = z.string().trim().min(1)
 
 export const CreateProjectInputSchema = z.object({
   name: ProjectNameSchema,
+  kind: ProjectKindSchema.optional(),
   description: z.string().nullish(),
   color: z.string(),
 })

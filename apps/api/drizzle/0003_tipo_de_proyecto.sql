@@ -1,0 +1,2 @@
+ALTER TABLE "core"."projects" ADD COLUMN "kind" text DEFAULT 'film' NOT NULL;--> statement-breakpoint
+ALTER TABLE "core"."projects" ADD CONSTRAINT "projects_kind_check" CHECK ("core"."projects"."kind" in ('film', 'series', 'documentary'));
