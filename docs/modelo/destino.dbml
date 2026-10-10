@@ -242,10 +242,14 @@ Enum calendar.day_basis {
   calendar [note: 'Naturales: los siete días, de lunes a domingo']
 }
 
-Enum calendar.dependency_type {
-  FS [note: 'Fin → inicio']
-  FF [note: 'Fin → fin']
-  SS [note: 'Inicio → inicio']
+Enum calendar.date_point {
+  start [note: 'Inicio']
+  end [note: 'Fin']
+}
+
+Enum calendar.dependency_join {
+  all [note: 'Todas: espera a todas (el inicio más tardío, el fin más temprano). «Cuando acaben Edición y VFX»']
+  any [note: 'Cualquiera: basta la primera (el inicio más temprano). «Con lo primero que empiece de Rodaje o sus bloques»']
 }
 
 Enum calendar.assignee_role {
@@ -334,6 +338,7 @@ Table calendar.elements {
   end_adjustment_days integer [not null, default: 0, note: 'AjusteFin del Excel: alarga o acorta a mano']
   is_anchor boolean [not null, default: false, note: 'La fecha que se escribe a mano y de la que sale el plan. Normalmente el inicio de rodaje']
   is_pinned boolean [not null, default: false, note: 'Fijado: no lo mueve el motor de fechas y corta la propagación']
+  dependency_join calendar.dependency_join [not null, default: 'all', note: 'Cómo se combinan sus dependencias si tiene varias']
   created_by uuid [ref: > identity.users.id]
   created_at timestamptz [not null, default: `now()`]
 
@@ -356,7 +361,8 @@ Table calendar.element_dependencies {
   project_id uuid [not null, ref: > core.projects.id]
   predecessor_id uuid [not null, ref: > calendar.elements.id]
   successor_id uuid [not null, ref: > calendar.elements.id]
-  type calendar.dependency_type [not null, default: 'FS']
+  predecessor_point calendar.date_point [not null, default: 'end', note: 'De qué fecha del otro elemento se parte']
+  successor_point calendar.date_point [not null, default: 'start', note: 'Qué fecha de este elemento fija']
   lag_amount numeric [not null, default: 0, note: 'Puede ser negativo: Foley empieza dos semanas antes de que acabe Edición']
   lag_unit calendar.duration_unit [not null, default: 'days']
   lag_basis calendar.day_basis [not null, default: 'working']
@@ -365,7 +371,15 @@ Table calendar.element_dependencies {
     (predecessor_id, successor_id) [unique]
   }
 
-  Note: 'Grafo de dependencias entre elementos de cualquier tipo: una reunión puede ir una semana antes del rodaje. Los ciclos los rechaza la API al crearlas (CHECK predecessor <> successor en la base).'
+  Note: '''
+  Fija el inicio o el fin de un elemento (successor) a partir del inicio o el fin de otro (predecessor), más un desfase. Con desfase 0:
+  - fin → inicio: empieza el día siguiente al fin del otro (Explotación tras Postproducción);
+  - inicio → inicio: empieza el mismo día (Edición con Postproducción);
+  - inicio → fin: termina el día anterior al inicio del otro, y su inicio sale de contar la duración hacia atrás (Preparación antes de Rodaje);
+  - fin → fin: termina el mismo día.
+  Con desfase: «−4 semanas fin de Edición» es fin → inicio con −4 semanas. Un elemento puede tener varias dependencias, que se combinan según su dependency_join: todas (gana la más restrictiva) o cualquiera (gana la primera). Así «cuando acaben Edición y VFX» y «con lo primero que empiece de Rodaje o sus bloques» se expresan sin tipos especiales.
+  Los ciclos los rechaza la API al crearlas (CHECK predecessor <> successor en la base).
+  '''
 }
 
 // Atributos comunes: valen para cualquier elemento, de una fase a un recordatorio.
