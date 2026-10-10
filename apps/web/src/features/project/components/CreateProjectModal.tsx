@@ -1,7 +1,18 @@
-import { useForm, useWatch } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Button, Input, Label } from "@/shared"
+import { PROJECT_KINDS } from "@repo/contracts"
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog"
+import { PROJECT_KIND_LABELS } from "../lib/projectKinds"
 import { projectSchema, PROJECT_COLORS, type ProjectFormValues } from "../schemas/project.schema"
 
 interface CreateProjectModalProps {
@@ -20,7 +31,7 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit }: CreateProje
     formState: { errors, isSubmitting },
   } = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
-    defaultValues: { color: PROJECT_COLORS[0] },
+    defaultValues: { kind: "film", color: PROJECT_COLORS[0] },
   })
 
   const selectedColor = useWatch({ control, name: "color" })
@@ -50,6 +61,28 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit }: CreateProje
             <Label htmlFor="name">Nombre</Label>
             <Input id="name" placeholder="Mi proyecto" {...register("name")} />
             {errors.name && <p className="text-destructive text-xs">{errors.name.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="kind">Tipo</Label>
+            <Controller
+              name="kind"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="kind" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROJECT_KINDS.map((kind) => (
+                      <SelectItem key={kind} value={kind}>
+                        {PROJECT_KIND_LABELS[kind]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div className="space-y-1">
