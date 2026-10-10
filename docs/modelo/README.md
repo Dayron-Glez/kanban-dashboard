@@ -25,7 +25,7 @@ Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram
 - **Fases, subfases, procesos y acciones son una sola tabla, `calendar.elements`**, con el tipo explícito en `kind`: comparten atributos, pueden cruzar fases y se colocan en el tiempo igual. Hay cinco tipos de acción: evento, tarea, reunión, recordatorio y contratación.
 - **Fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar**: un proceso puede colgar de la fase, y en Postproducción conviven subfases y procesos. La profundidad no dice el tipo.
 - **Un elemento pertenece a la fase en la que empieza**, aunque acabe en otra (el casting empieza en SoftPre y suele acabar en Preparación). Si al mover fechas su inicio sale de su padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
-- **Las fechas se calculan como en el Excel del productor**: un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base (naturales por defecto, laborables en las excepciones) y dependencias con desfase. Sin ajustes ocultos: mover el inicio reescribe el desfase y mover el fin, la duración. Todo es editable en cada proyecto.
+- **Las fechas se calculan como en el prototipo del productor**, que es la referencia (su Excel quedó atrás): un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base (naturales por defecto, laborables en las excepciones) y dependencias con desfase. Sin ajustes ocultos: mover el inicio reescribe el desfase y mover el fin, la duración. Todo es editable en cada proyecto.
 - **Los eventos y las tareas** pueden durar varios días o uno; **las reuniones y los recordatorios**, solo uno. **Una contratación** va de la fecha de alta a la de baja, y sin baja sigue activa: la baja se ordena cuando el trabajador termina.
 - **Al crear un bloque** («Rodaje 1», «Rodaje 2»…), el bloque recibe sus propios procesos, copiados de la plantilla de su fase: cada bloque de rodaje, su Shooting y su Wrap.
 - **El tablero es una capacidad, no un módulo**: estado, prioridad y tamaño son atributos opcionales de cualquier elemento.
@@ -103,7 +103,7 @@ El Shooting de un rodaje sin bloques tiene en el prototipo su duración «enlaza
 **7 de octubre de 2026:**
 
 1. **Ancla.** Casi siempre es el inicio de rodaje, pero puede ser otro elemento, como un estreno ya cerrado: `is_anchor`, uno por proyecto.
-2. **El calendario va de lunes a domingo; los laborables habituales, de lunes a viernes, salvo festivos.** Las duraciones en días cuentan laborables; en semanas, los siete días; en meses, meses de calendario. La semana laborable es configurable por proyecto (`working_weekdays`).
+2. **El calendario va de lunes a domingo; los laborables habituales, de lunes a viernes, salvo festivos.** La semana laborable es configurable por proyecto (`working_weekdays`).
 3. **Festivos y F.Especial se pueden trabajar**, con más penalización en los F.Especial: un día conserva su tipo y lleva `is_worked`.
 4. **Todo el proyecto usa los festivos de un solo lugar**, aunque se ruede en varios.
 
@@ -114,6 +114,15 @@ El Shooting de un rodaje sin bloques tiene en el prototipo su duración «enlaza
 3. **Todo es editable**: se renombran fases, se añaden nuevas y se borra lo que no se use de la plantilla.
 4. **Los procesos «(cierre)» de Preparación** son los de SoftPre alargándose, no procesos nuevos.
 5. **La app es, de momento, el módulo Calendario**; el tablero deja de ser la vista principal.
+
+**10 de octubre de 2026**, tras revisar su prototipo:
+
+1. **El prototipo es la referencia**, no el Excel, que quedó atrás.
+2. **Días naturales por defecto**, en duraciones y desfases; laborables solo en las excepciones.
+3. **La contratación es un periodo**, del alta a la baja.
+4. **Rodaje, y cada uno de sus bloques, tiene dos procesos: Shooting y Wrap.**
+5. **Las acciones comunes se crean solas** con la plantilla, y se pueden modificar o borrar.
+6. **F.Especial**: Jueves y Viernes Santo, y el 1 y 6 de enero y el 24, 25 y 31 de diciembre.
 
 ## Pendiente
 
