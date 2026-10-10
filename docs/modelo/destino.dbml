@@ -173,7 +173,7 @@ Table core.files {
 
 Enum core.work_day_kind {
   holiday [note: 'Festivo']
-  special [note: 'F.Especial: días del convenio (1 y 6 de enero; 24, 25 y 31 de diciembre). Trabajable, con más penalización que un festivo']
+  special [note: 'F.Especial: Jueves y Viernes Santo, y los que añade el art. 23 del convenio (1 y 6 de enero; 24, 25 y 31 de diciembre). Festivos muy familiares: se intenta no trabajarlos y, si se trabajan, con más recargo que un festivo']
   weekend_worked [note: 'Día no laborable habitual (normalmente sábado o domingo) que se trabaja']
 }
 
@@ -228,24 +228,28 @@ Enum calendar.element_kind {
   task [note: 'Tarea. Acción: periodo o un día']
   meeting [note: 'Reunión. Acción: solo un día']
   reminder [note: 'Recordatorio. Acción: solo un día']
-  hiring [note: 'Contratación. Acción: solo un día']
+  hiring [note: 'Contratación. Acción: periodo de la fecha de alta a la de baja; sin baja, sigue activa']
 }
 
 Enum calendar.duration_unit {
-  days [note: 'Días: base laborable por defecto']
-  weeks [note: 'Semanas: base natural por defecto']
-  months [note: 'Meses de calendario']
+  days [note: 'Días']
+  weeks [note: 'Semanas: siete días']
+  months [note: 'Meses de calendario, como EDATE: del 31 de enero, al 28 de febrero']
 }
 
 Enum calendar.day_basis {
-  working [note: 'Laborables: los días laborables de la semana del proyecto, sin festivos']
-  calendar [note: 'Naturales: los siete días, de lunes a domingo']
+  calendar [note: 'Naturales: los siete días, de lunes a domingo. La base por defecto']
+  working [note: 'Laborables: los días laborables de la semana del proyecto, sin festivos. Para las excepciones']
 }
 
-Enum calendar.dependency_type {
-  FS [note: 'Fin → inicio']
-  FF [note: 'Fin → fin']
-  SS [note: 'Inicio → inicio']
+Enum calendar.date_point {
+  start [note: 'Inicio']
+  end [note: 'Fin']
+}
+
+Enum calendar.dependency_join {
+  all [note: 'Todas: espera a todas (el inicio más tardío, el fin más temprano). «Cuando acaben Edición y VFX»']
+  any [note: 'Cualquiera: basta la primera (el inicio más temprano). «Con lo primero que empiece de Rodaje o sus bloques»']
 }
 
 Enum calendar.assignee_role {
@@ -324,16 +328,15 @@ Table calendar.elements {
   size calendar.size
   recurrence_rule text [note: 'Si se repite y con qué ciclo, en formato RRULE (RFC 5545). Las repeticiones se calculan al consultar']
   starts_on date [note: 'Calculada por el motor de fechas, salvo en el ancla y en los elementos fijados']
-  ends_on date [note: 'En reuniones, recordatorios y contrataciones, igual que starts_on (CHECK)']
+  ends_on date [note: 'En reuniones y recordatorios, igual que starts_on (CHECK). En una contratación es la baja: vacía mientras sigue activa']
   start_time time [note: 'Hora en la zona del proyecto (core.work_calendars.timezone). Vacía: todo el día']
   end_time time
   duration_amount numeric
   duration_unit calendar.duration_unit
-  duration_basis calendar.day_basis [note: 'Por defecto según la unidad, sobreescribible. Los laborables salen de core.work_calendars']
-  start_adjustment_days integer [not null, default: 0, note: 'AjusteIni del Excel: desplaza el inicio a mano']
-  end_adjustment_days integer [not null, default: 0, note: 'AjusteFin del Excel: alarga o acorta a mano']
+  duration_basis calendar.day_basis [not null, default: 'calendar', note: 'Naturales por defecto; laborables en las excepciones. Los laborables salen de core.work_calendars']
   is_anchor boolean [not null, default: false, note: 'La fecha que se escribe a mano y de la que sale el plan. Normalmente el inicio de rodaje']
   is_pinned boolean [not null, default: false, note: 'Fijado: no lo mueve el motor de fechas y corta la propagación']
+  dependency_join calendar.dependency_join [not null, default: 'all', note: 'Cómo se combinan sus dependencias si tiene varias']
   created_by uuid [ref: > identity.users.id]
   created_at timestamptz [not null, default: `now()`]
 
@@ -347,6 +350,7 @@ Table calendar.elements {
   Note: '''
   Un solo árbol, de hasta cuatro niveles: fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar (un proceso puede colgar de la fase; en Postproducción conviven subfases y procesos). El tipo es explícito: la profundidad no lo dice.
   Reglas que comprueba la API: qué tipo puede colgar de cuál; las acciones no tienen hijos; solo hay padre vacío en fases y en acciones sueltas.
+  Lo que se ve es lo que se calcula, sin ajustes ocultos: mover el inicio de un elemento reescribe el desfase de su dependencia (o lo fija, si no tiene); mover su fin reescribe su duración.
   Las fechas no están limitadas por las del padre: un elemento puede empezar en una fase y acabar en otra, y pertenece a aquella en la que empieza. Si al mover fechas su inicio sale del padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
   '''
 }
@@ -356,16 +360,25 @@ Table calendar.element_dependencies {
   project_id uuid [not null, ref: > core.projects.id]
   predecessor_id uuid [not null, ref: > calendar.elements.id]
   successor_id uuid [not null, ref: > calendar.elements.id]
-  type calendar.dependency_type [not null, default: 'FS']
+  predecessor_point calendar.date_point [not null, default: 'end', note: 'De qué fecha del otro elemento se parte']
+  successor_point calendar.date_point [not null, default: 'start', note: 'Qué fecha de este elemento fija']
   lag_amount numeric [not null, default: 0, note: 'Puede ser negativo: Foley empieza dos semanas antes de que acabe Edición']
   lag_unit calendar.duration_unit [not null, default: 'days']
-  lag_basis calendar.day_basis [not null, default: 'working']
+  lag_basis calendar.day_basis [not null, default: 'calendar']
 
   indexes {
     (predecessor_id, successor_id) [unique]
   }
 
-  Note: 'Grafo de dependencias entre elementos de cualquier tipo: una reunión puede ir una semana antes del rodaje. Los ciclos los rechaza la API al crearlas (CHECK predecessor <> successor en la base).'
+  Note: '''
+  Fija el inicio o el fin de un elemento (successor) a partir del inicio o el fin de otro (predecessor), más un desfase. Con desfase 0:
+  - fin → inicio: empieza el día siguiente al fin del otro (Explotación tras Postproducción);
+  - inicio → inicio: empieza el mismo día (Edición con Postproducción);
+  - inicio → fin: termina el día anterior al inicio del otro, y su inicio sale de contar la duración hacia atrás (Preparación antes de Rodaje);
+  - fin → fin: termina el mismo día.
+  Con desfase: «−4 semanas fin de Edición» es fin → inicio con −4 semanas. Un elemento puede tener varias dependencias, que se combinan según su dependency_join: todas (gana la más restrictiva) o cualquiera (gana la primera). Así «cuando acaben Edición y VFX» y «con lo primero que empiece de Rodaje o sus bloques» se expresan sin tipos especiales.
+  Los ciclos los rechaza la API al crearlas (CHECK predecessor <> successor en la base).
+  '''
 }
 
 // Atributos comunes: valen para cualquier elemento, de una fase a un recordatorio.
