@@ -32,8 +32,9 @@ function App() {
 
               {/* Nivel de proyecto */}
               <Route element={<KanbanLayout />}>
-                <Route path="/projects/:id" element={<ProjectTasksView />} />
+                <Route path="/projects/:id" element={<Navigate to="calendar" replace />} />
                 <Route path="/projects/:id/calendar" element={<CalendarPhasesPage />} />
+                <Route path="/projects/:id/board" element={<ProjectTasksView />} />
                 <Route path="/projects/:id/analytics" element={<AnalyticsPage />} />
                 <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
                 <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />

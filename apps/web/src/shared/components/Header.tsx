@@ -25,6 +25,7 @@ interface HeaderProps {
 /** Última miga de la ruta, derivada del segmento final de la URL. */
 const VIEW_LABELS: Record<string, string> = {
   calendar: "Calendario",
+  board: "Tablero",
   analytics: "Analytics",
   members: "Miembros",
   settings: "Ajustes",
@@ -36,7 +37,7 @@ export function Header({ projectName, actions }: HeaderProps) {
   const location = useLocation()
 
   const lastSegment = location.pathname.split("/").filter(Boolean).pop() ?? ""
-  const viewLabel = VIEW_LABELS[lastSegment] ?? "Tablero"
+  const viewLabel = VIEW_LABELS[lastSegment] ?? "Calendario"
   const { data: activeProject } = useProject(projectId)
 
   return (
