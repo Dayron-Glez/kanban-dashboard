@@ -1,22 +1,11 @@
 import { ConflictException, Inject, Injectable } from "@nestjs/common"
-import { CalendarElementSchema, type CalendarElement, type ProjectKind } from "@repo/contracts"
-import { asc, count, eq } from "drizzle-orm"
+import type { CalendarElement, ProjectKind } from "@repo/contracts"
+import { count, eq } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
 import { elements, projects } from "../db/schema/index.js"
 import { ProjectAccess } from "../projects/project-access.js"
 import { insertCalendarTemplate } from "./calendar-template.js"
-
-const toElement = (row: typeof elements.$inferSelect): CalendarElement =>
-  CalendarElementSchema.parse({
-    id: row.id,
-    projectId: row.projectId,
-    kind: row.kind,
-    parentId: row.parentId,
-    position: row.position,
-    name: row.name,
-    color: row.color,
-    templateKey: row.templateKey,
-  })
+import { loadPlan } from "./plan.js"
 
 @Injectable()
 export class ElementsService {
@@ -27,12 +16,7 @@ export class ElementsService {
 
   async listByProject(userId: string, projectId: string): Promise<CalendarElement[]> {
     await this.access.requireMember(projectId, userId)
-    const rows = await this.db
-      .select()
-      .from(elements)
-      .where(eq(elements.projectId, projectId))
-      .orderBy(asc(elements.position), asc(elements.id))
-    return rows.map(toElement)
+    return (await loadPlan(this.db, projectId)).elements
   }
 
   // Para los proyectos que nacieron sin calendario o lo han vaciado. El

@@ -16,6 +16,12 @@ const element = (
   name: id,
   color: null,
   templateKey: null,
+  duration: null,
+  startsOn: null,
+  endsOn: null,
+  isAnchor: false,
+  isPinned: false,
+  issue: null,
   ...overrides,
 })
 

@@ -17,6 +17,12 @@ const element = (id: string, parentId: string | null, name: string): CalendarEle
   name,
   color: parentId ? null : "#819DDA",
   templateKey: null,
+  duration: null,
+  startsOn: null,
+  endsOn: null,
+  isAnchor: false,
+  isPinned: false,
+  issue: null,
 })
 
 const summary = (role: ProjectSummary["role"]): ProjectSummary => ({

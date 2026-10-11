@@ -220,6 +220,12 @@ describe("createHttpApi", () => {
       name: "Desarrollo",
       color: "#DAD381",
       templateKey: "desarrollo",
+      duration: null,
+      startsOn: null,
+      endsOn: null,
+      isAnchor: false,
+      isPinned: false,
+      issue: null,
     }
     const { api, sent } = setup(() => json([element]))
 
@@ -244,6 +250,12 @@ describe("createHttpApi", () => {
           name: "X",
           color: null,
           templateKey: null,
+          duration: null,
+          startsOn: null,
+          endsOn: null,
+          isAnchor: false,
+          isPinned: false,
+          issue: null,
         },
       ])
     )
