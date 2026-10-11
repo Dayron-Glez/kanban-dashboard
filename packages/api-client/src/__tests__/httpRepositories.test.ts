@@ -264,4 +264,60 @@ describe("createHttpApi", () => {
       code: "invalid_response",
     })
   })
+
+  it("plan: leerlo y editarlo devuelven el plan validado", async () => {
+    const plan = {
+      elements: [
+        {
+          id: TOKEN,
+          projectId: PROJECT_ID,
+          kind: "phase",
+          parentId: null,
+          position: 0,
+          name: "Rodaje",
+          color: "#81DAD9",
+          templateKey: "rodaje",
+          duration: { amount: 6, unit: "weeks" },
+          startsOn: "2027-04-05",
+          endsOn: "2027-05-16",
+          isAnchor: true,
+          isPinned: false,
+          issue: null,
+        },
+      ],
+      dependencies: [],
+    }
+    const { api, sent } = setup(() => json(plan))
+    const input = { duration: { amount: 6, unit: "weeks" }, fixedStart: "2027-04-05" } as const
+
+    await expect(api.elements.getPlan(PROJECT_ID)).resolves.toEqual(plan)
+    await expect(api.elements.updatePlan(TOKEN, input)).resolves.toEqual(plan)
+
+    expect(sent()).toEqual([
+      { method: "GET", path: `/projects/${PROJECT_ID}/plan`, body: undefined },
+      { method: "PATCH", path: `/elements/${TOKEN}/plan`, body: input },
+    ])
+  })
+
+  it("plan: rechaza un desfase con una unidad que no existe", async () => {
+    const { api } = setup(() =>
+      json({
+        elements: [],
+        dependencies: [
+          {
+            id: TOKEN,
+            predecessorId: TOKEN,
+            successorId: TOKEN,
+            predecessorPoint: "end",
+            successorPoint: "start",
+            lag: { amount: 1, unit: "fortnights" },
+          },
+        ],
+      })
+    )
+
+    await expect(api.elements.getPlan(PROJECT_ID)).rejects.toMatchObject({
+      code: "invalid_response",
+    })
+  })
 })

@@ -56,6 +56,8 @@ export const createFakeApi = () =>
     elements: {
       listByProject: vi.fn<ElementsRepository["listByProject"]>(),
       generateFromTemplate: vi.fn<ElementsRepository["generateFromTemplate"]>(),
+      getPlan: vi.fn<ElementsRepository["getPlan"]>(),
+      updatePlan: vi.fn<ElementsRepository["updatePlan"]>(),
     },
   }) satisfies ApiClient
 
