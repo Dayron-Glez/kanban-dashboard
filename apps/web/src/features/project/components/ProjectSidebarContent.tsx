@@ -1,4 +1,5 @@
 import {
+  IconCalendar,
   IconChartBar,
   IconHome,
   IconLayoutGrid,
@@ -37,6 +38,7 @@ const GLOBAL_NAV: NavItem[] = [
 
 /** Navegación del proyecto activo. */
 const projectNav = (id: string): NavItem[] => [
+  { label: "Calendario", icon: IconCalendar, href: `/projects/${id}/calendar` },
   { label: "Tablero", icon: IconLayoutKanban, href: `/projects/${id}` },
   { label: "Analytics", icon: IconChartBar, href: `/projects/${id}/analytics` },
   { label: "Miembros", icon: IconUsers, href: `/projects/${id}/members` },
