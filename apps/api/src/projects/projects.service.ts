@@ -5,12 +5,14 @@ import {
   ProjectSummarySchema,
   type CreateProjectInput,
   type Project,
+  type ProjectKind,
   type ProjectSummary,
 } from "@repo/contracts"
 import { and, desc, eq, sql } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
 import { columns, projectMembers, projects, tasks } from "../db/schema/index.js"
 import { ProjectAccess } from "./project-access.js"
+import { insertCalendarTemplate } from "../calendar/calendar-template.js"
 import { toIso } from "../db/timestamps.js"
 
 const toProject = (row: typeof projects.$inferSelect): Project =>
@@ -49,7 +51,7 @@ export class ProjectsService {
     )
   }
 
-  // En una transacción: un proyecto no puede quedarse sin propietario ni columnas.
+  // En una transacción: un proyecto no puede quedarse sin propietario, columnas ni calendario.
   create(userId: string, input: CreateProjectInput): Promise<Project> {
     return this.db.transaction(async (tx) => {
       const [row] = await tx
@@ -72,6 +74,7 @@ export class ProjectsService {
           position,
         }))
       )
+      await insertCalendarTemplate(tx, project.id, project.kind as ProjectKind)
       return toProject(project)
     })
   }
