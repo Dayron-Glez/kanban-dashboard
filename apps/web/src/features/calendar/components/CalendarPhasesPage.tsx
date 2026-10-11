@@ -1,31 +1,40 @@
 import { useMemo } from "react"
 import { useParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
+import type { UpdateElementPlanInput } from "@repo/contracts"
 import { Button, QueryErrorState, Skeleton } from "@/shared/index"
 import { useProject } from "@/features/project"
-import { useElements, useGenerateFromTemplate } from "../api/elements"
+import { useGenerateFromTemplate, usePlan, useUpdatePlan } from "../api/elements"
 import { buildElementTree } from "../lib/elementTree"
+import { missingSetup } from "../lib/planFormat"
 import { ElementTree } from "./ElementTree"
+import { PlanSetup } from "./PlanSetup"
 
 export function CalendarPhasesPage() {
   const { id: projectId = "" } = useParams<{ id: string }>()
-  const elements = useElements(projectId)
+  const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
+  const update = useUpdatePlan(projectId)
   const isOwner = useProject(projectId).data?.role === "owner"
-  const tree = useMemo(() => buildElementTree(elements.data ?? []), [elements.data])
+  const elements = plan.data?.elements
+  const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
+  const steps = useMemo(() => missingSetup(elements ?? []), [elements])
+
+  const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
+    update.mutate({ elementId, input })
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
       <h1 className="text-lg font-semibold">Fases</h1>
 
-      {elements.isPending ? (
+      {plan.isPending ? (
         <div className="flex flex-col gap-2" aria-busy>
           {Array.from({ length: 7 }, (_, index) => (
             <Skeleton key={index} className="h-8 w-full" />
           ))}
         </div>
-      ) : elements.isError ? (
-        <QueryErrorState error={elements.error} onRetry={() => void elements.refetch()} />
+      ) : plan.isError ? (
+        <QueryErrorState error={plan.error} onRetry={() => void plan.refetch()} />
       ) : tree.length === 0 ? (
         <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center text-sm">
           <p>Este proyecto todavía no tiene fases.</p>
@@ -39,7 +48,16 @@ export function CalendarPhasesPage() {
           )}
         </div>
       ) : (
-        <ElementTree nodes={tree} />
+        <>
+          {isOwner && <PlanSetup steps={steps} pending={update.isPending} onUpdate={onUpdate} />}
+          <ElementTree
+            nodes={tree}
+            dependencies={plan.data.dependencies}
+            editable={isOwner}
+            pending={update.isPending}
+            onUpdate={onUpdate}
+          />
+        </>
       )}
     </div>
   )

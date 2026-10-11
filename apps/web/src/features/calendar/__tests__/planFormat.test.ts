@@ -1,0 +1,140 @@
+import type { CalendarElement, ElementDependency } from "@repo/contracts"
+import { describe, expect, it } from "vitest"
+import {
+  describeIssue,
+  describeRule,
+  formatDuration,
+  formatPlanDate,
+  missingSetup,
+} from "../lib/planFormat"
+
+const element = (id: string, overrides: Partial<CalendarElement> = {}): CalendarElement => ({
+  id,
+  projectId: "p",
+  kind: "process",
+  parentId: "padre",
+  position: 0,
+  name: id,
+  color: null,
+  templateKey: id,
+  duration: null,
+  startsOn: null,
+  endsOn: null,
+  isAnchor: false,
+  isPinned: false,
+  issue: null,
+  ...overrides,
+})
+
+const dep = (
+  predecessorId: string,
+  predecessorPoint: ElementDependency["predecessorPoint"],
+  successorId: string,
+  successorPoint: ElementDependency["successorPoint"],
+  amount = 0,
+  unit: ElementDependency["lag"]["unit"] = "days"
+): ElementDependency => ({
+  id: `${predecessorId}-${successorId}-${successorPoint}`,
+  predecessorId,
+  predecessorPoint,
+  successorId,
+  successorPoint,
+  lag: { amount, unit },
+})
+
+const names: Record<string, string> = {
+  rodaje: "Rodaje",
+  edicion: "Edición",
+  postproduccion: "Postproducción",
+  shooting: "Shooting",
+}
+const nameOf = (id: string) => names[id] ?? id
+
+describe("formatDuration y formatPlanDate", () => {
+  it("singular, plural y decimales con coma", () => {
+    expect(formatDuration({ amount: 6, unit: "weeks" })).toBe("6 semanas")
+    expect(formatDuration({ amount: 1, unit: "months" })).toBe("1 mes")
+    expect(formatDuration({ amount: 2.5, unit: "weeks" })).toBe("2,5 semanas")
+    expect(formatDuration({ amount: 3.85, unit: "months" })).toBe("3,85 meses")
+  })
+
+  it("fecha corta en español", () => {
+    expect(formatPlanDate("2027-04-05")).toBe("5 abr 2027")
+  })
+})
+
+describe("describeRule", () => {
+  it("el ancla y los fijados", () => {
+    expect(describeRule(element("rodaje", { isAnchor: true }), [], nameOf)).toBe("Fecha clave")
+    expect(describeRule(element("desarrollo", { isPinned: true }), [], nameOf)).toBe("Fecha fija")
+  })
+
+  it("empezar con el padre no se dice: es lo esperado", () => {
+    expect(
+      describeRule(element("musica"), [dep("padre", "start", "musica", "start")], nameOf)
+    ).toBeNull()
+  })
+
+  it("las reglas de la plantilla, con las palabras del productor", () => {
+    const deps = [
+      dep("rodaje", "start", "preparacion", "end", -1),
+      dep("rodaje", "start", "postproduccion", "start"),
+      dep("postproduccion", "end", "explotacion", "start", 1),
+      dep("rodaje", "start", "shooting", "start"),
+      dep("rodaje", "end", "shooting", "end"),
+    ]
+    expect(describeRule(element("preparacion"), deps, nameOf)).toBe("Antes del inicio de Rodaje")
+    expect(describeRule(element("postproduccion"), deps, nameOf)).toBe("Con el inicio de Rodaje")
+    expect(describeRule(element("explotacion"), deps, nameOf)).toBe("Tras el fin de Postproducción")
+    expect(describeRule(element("shooting"), deps, nameOf)).toBe("Ocupa lo mismo que Rodaje")
+  })
+
+  it("un desfase cualquiera, como las fórmulas del prototipo", () => {
+    const deps = [dep("edicion", "end", "vfx", "start", -4, "weeks")]
+    expect(describeRule(element("vfx"), deps, nameOf)).toBe("−4 semanas fin de Edición")
+  })
+
+  it("sin dependencias ni ancla, no hay regla que contar", () => {
+    expect(describeRule(element("suelto"), [], nameOf)).toBeNull()
+  })
+})
+
+describe("describeIssue", () => {
+  it("dice de qué falta la fecha", () => {
+    expect(describeIssue({ code: "missing-dependency", elementId: "rodaje" }, nameOf)).toBe(
+      "Falta la fecha de Rodaje"
+    )
+    expect(describeIssue({ code: "missing-duration" }, nameOf)).toBe("Falta la duración")
+  })
+})
+
+describe("missingSetup", () => {
+  const plan = [
+    element("desarrollo", { kind: "phase", parentId: null, name: "Desarrollo", isPinned: true }),
+    element("softpre", { kind: "phase", parentId: null, name: "SoftPre" }),
+    element("preparacion", { kind: "phase", parentId: null, name: "Preparación" }),
+    element("rodaje", { kind: "phase", parentId: null, name: "Rodaje", isAnchor: true }),
+    element("postproduccion", { kind: "phase", parentId: null, name: "Postproducción" }),
+  ]
+
+  it("empieza por el rodaje y sigue por las fases", () => {
+    expect(missingSetup(plan).map((step) => step.label)).toEqual([
+      "Fecha de inicio de Rodaje",
+      "Duración de Rodaje",
+      "Duración de Preparación",
+      "Duración de SoftPre",
+      "Duración de Postproducción",
+      "Fecha de inicio de Desarrollo",
+      "Duración de Desarrollo",
+    ])
+  })
+
+  it("lo que ya está escrito sale de la lista", () => {
+    const written = plan.map((candidate) => ({
+      ...candidate,
+      duration: { amount: 1, unit: "weeks" as const },
+      startsOn: "2027-04-05",
+    }))
+    expect(missingSetup(written)).toEqual([])
+  })
+})
