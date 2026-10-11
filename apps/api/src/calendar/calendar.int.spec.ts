@@ -17,6 +17,22 @@ const elementsOf = async (user: TestUser, projectId = project.id) =>
 const names = (elements: CalendarElement[], kind: CalendarElement["kind"]) =>
   elements.filter((element) => element.kind === kind).map((element) => element.name)
 
+const dependenciesOf = (projectId = project.id) => ctx.sql<
+  {
+    predecessor: string
+    predecessorPoint: string
+    successor: string
+    successorPoint: string
+    lag: number
+  }[]
+>`
+  select p.template_key as predecessor, d.predecessor_point as "predecessorPoint",
+         s.template_key as successor, d.successor_point as "successorPoint", d.lag_amount::float as lag
+  from calendar.element_dependencies d
+  join calendar.elements p on p.id = d.predecessor_id
+  join calendar.elements s on s.id = d.successor_id
+  where d.project_id = ${projectId}`
+
 beforeAll(async () => {
   ctx = await createTestApp()
   ana = await ctx.createUser("ana")
@@ -43,6 +59,47 @@ describe("calendario del proyecto", () => {
     expect(names(elements, "process")).toHaveLength(38)
     expect(names(elements, "process")).toContain("Argumento")
     expect(names(elements, "process")).not.toContain("Biblia")
+  })
+
+  it("nace con Rodaje como ancla, Desarrollo fijado y sus dependencias", async () => {
+    const flags = await ctx.sql<{ key: string; isAnchor: boolean; isPinned: boolean }[]>`
+      select template_key as key, is_anchor as "isAnchor", is_pinned as "isPinned"
+      from calendar.elements where project_id = ${project.id} and (is_anchor or is_pinned)`
+    const dependencies = await dependenciesOf()
+
+    expect(flags).toEqual(
+      expect.arrayContaining([
+        { key: "rodaje", isAnchor: true, isPinned: false },
+        { key: "desarrollo", isAnchor: false, isPinned: true },
+      ])
+    )
+    expect(flags).toHaveLength(2)
+    expect(dependencies).toHaveLength(61)
+    expect(dependencies).toEqual(
+      expect.arrayContaining([
+        {
+          predecessor: "rodaje",
+          predecessorPoint: "start",
+          successor: "preparacion",
+          successorPoint: "end",
+          lag: -1,
+        },
+        {
+          predecessor: "rodaje",
+          predecessorPoint: "end",
+          successor: "rodaje.shooting",
+          successorPoint: "end",
+          lag: 0,
+        },
+        {
+          predecessor: "rodaje.shooting",
+          predecessorPoint: "end",
+          successor: "rodaje.wrap",
+          successorPoint: "start",
+          lag: 1,
+        },
+      ])
+    )
   })
 
   it("cada hijo apunta al id de su padre", async () => {
@@ -92,5 +149,19 @@ describe("calendario del proyecto", () => {
     expect(response.status).toBe(201)
     expect(names(response.body as CalendarElement[], "phase")).toHaveLength(7)
     expect(await elementsOf(ana)).toHaveLength((response.body as CalendarElement[]).length)
+    expect(await dependenciesOf()).toHaveLength(61)
+  })
+
+  it("la base rechaza un segundo ancla y una dependencia de un elemento consigo mismo", async () => {
+    const [desarrollo] = await ctx.sql<{ id: string }[]>`
+      select id from calendar.elements where project_id = ${project.id} and template_key = 'desarrollo'`
+
+    await expect(
+      ctx.sql`update calendar.elements set is_anchor = true where id = ${desarrollo!.id}`
+    ).rejects.toThrow(/elements_one_anchor_per_project/)
+    await expect(
+      ctx.sql`insert into calendar.element_dependencies (project_id, predecessor_id, successor_id)
+              values (${project.id}, ${desarrollo!.id}, ${desarrollo!.id})`
+    ).rejects.toThrow(/element_dependencies_not_self_check/)
   })
 })
