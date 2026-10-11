@@ -1,4 +1,4 @@
-import type { ElementKind, ProjectKind } from "@repo/contracts"
+import type { DatePoint, DurationUnit, ElementKind, ProjectKind } from "@repo/contracts"
 
 interface TemplateNode {
   slug: string
@@ -7,6 +7,8 @@ interface TemplateNode {
   names?: Partial<Record<ProjectKind, string>>
   only?: ProjectKind[]
   color?: string
+  anchor?: boolean
+  pinned?: boolean
   children?: TemplateNode[]
 }
 
@@ -22,6 +24,7 @@ export const CALENDAR_TEMPLATE: readonly TemplateNode[] = [
     kind: "phase",
     name: "Desarrollo",
     color: "#DAD381",
+    pinned: true,
     children: [
       {
         slug: "creativa",
@@ -119,6 +122,7 @@ export const CALENDAR_TEMPLATE: readonly TemplateNode[] = [
     kind: "phase",
     name: "Rodaje",
     color: "#81DAD9",
+    anchor: true,
     children: leaves("process", [
       ["shooting", "Shooting"],
       ["wrap", "Wrap"],
@@ -195,6 +199,8 @@ export interface TemplateElement {
   name: string
   position: number
   color: string | null
+  isAnchor: boolean
+  isPinned: boolean
 }
 
 /** Los elementos con los que nace el calendario, cada padre antes que sus hijos. */
@@ -212,10 +218,68 @@ export function buildCalendarTemplate(projectKind: ProjectKind): TemplateElement
           name: node.names?.[projectKind] ?? node.name,
           position,
           color: node.color ?? null,
+          isAnchor: node.anchor ?? false,
+          isPinned: node.pinned ?? false,
         })
         visit(node.children ?? [], key)
       })
   }
   visit(CALENDAR_TEMPLATE, null)
   return elements
+}
+
+export interface TemplateDependency {
+  predecessorKey: string
+  predecessorPoint: DatePoint
+  successorKey: string
+  successorPoint: DatePoint
+  lagAmount: number
+  lagUnit: DurationUnit
+}
+
+const link = (
+  predecessor: [key: string, point: DatePoint],
+  successor: [key: string, point: DatePoint],
+  lagDays = 0
+): TemplateDependency => ({
+  predecessorKey: predecessor[0],
+  predecessorPoint: predecessor[1],
+  successorKey: successor[0],
+  successorPoint: successor[1],
+  lagAmount: lagDays,
+  lagUnit: "days",
+})
+
+// Las de la tabla «Dependencias por defecto» de docs/modelo/README.md. Lo que
+// no está aquí empieza con el elemento del que cuelga.
+const TEMPLATE_LINKS: TemplateDependency[] = [
+  link(["rodaje", "start"], ["preparacion", "end"], -1),
+  link(["preparacion", "start"], ["softpre", "end"], -1),
+  link(["rodaje", "start"], ["postproduccion", "start"]),
+  link(["postproduccion", "end"], ["explotacion", "start"], 1),
+  link(["explotacion", "end"], ["acreditacion-de-coste", "start"], 1),
+  link(["rodaje", "start"], ["rodaje.shooting", "start"]),
+  link(["rodaje", "end"], ["rodaje.shooting", "end"]),
+  link(["rodaje.shooting", "end"], ["rodaje.wrap", "start"], 1),
+  link(["desarrollo", "end"], ["desarrollo.luz-verde", "start"]),
+]
+
+/** Cómo se encadenan los elementos de la plantilla, por clave. */
+export function buildTemplateDependencies(elements: TemplateElement[]): TemplateDependency[] {
+  const keys = new Set(elements.map((element) => element.key))
+  const explicit = TEMPLATE_LINKS.filter(
+    (dependency) => keys.has(dependency.predecessorKey) && keys.has(dependency.successorKey)
+  )
+  const startsFixed = new Set(
+    explicit
+      .filter((dependency) => dependency.successorPoint === "start")
+      .map((dependency) => dependency.successorKey)
+  )
+  const withParent = elements
+    .filter(
+      (element) =>
+        element.parentKey && !element.isAnchor && !element.isPinned && !startsFixed.has(element.key)
+    )
+    .map((element) => link([element.parentKey!, "start"], [element.key, "start"]))
+  return [...explicit, ...withParent]
 }
