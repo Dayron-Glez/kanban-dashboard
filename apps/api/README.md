@@ -1,6 +1,6 @@
 # API de Cauce
 
-NestJS 12 con Drizzle sobre Postgres. La base es un Postgres 17 creado con las migraciones de Drizzle: en Docker en local, como servicio en CI y en [Neon](https://neon.com) en producción.
+NestJS 12 con Drizzle sobre Postgres. La base es un Postgres 18 creado con las migraciones de Drizzle: en Docker en local, como servicio en CI y en [Neon](https://neon.com) en producción.
 
 ## Desarrollo local
 
