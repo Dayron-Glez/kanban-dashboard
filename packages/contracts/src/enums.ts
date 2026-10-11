@@ -17,6 +17,10 @@ export const ELEMENT_KINDS = [
 export const ElementKindSchema = z.enum(ELEMENT_KINDS)
 export type ElementKind = z.infer<typeof ElementKindSchema>
 
+export const DURATION_UNITS = ["days", "weeks", "months"] as const
+export const DurationUnitSchema = z.enum(DURATION_UNITS)
+export type DurationUnit = z.infer<typeof DurationUnitSchema>
+
 export const MEMBER_ROLES = ["owner", "member"] as const
 export const MemberRoleSchema = z.enum(MEMBER_ROLES)
 export type MemberRole = z.infer<typeof MemberRoleSchema>
