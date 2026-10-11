@@ -84,17 +84,44 @@ La plantilla sí trae cómo se encadenan los elementos, tomado del prototipo del
 | ------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | Rodaje                   | La fecha clave, escrita a mano                                                      | ancla (`is_anchor`)                                                            |
 | Desarrollo               | Su inicio se escribe a mano                                                         | fijado (`is_pinned`)                                                           |
-| Preparación              | Termina el día antes de que empiece Rodaje; su duración se cuenta hacia atrás       | inicio de Rodaje → su fin                                                      |
-| SoftPre                  | Termina el día antes de que empiece Preparación, igual                              | inicio de Preparación → su fin                                                 |
+| Preparación              | Termina el día antes de que empiece Rodaje; su duración se cuenta hacia atrás       | inicio de Rodaje → su fin, −1 día                                              |
+| SoftPre                  | Termina el día antes de que empiece Preparación, igual                              | inicio de Preparación → su fin, −1 día                                         |
 | Postproducción           | Empieza con el primer día de rodaje: el de Rodaje o el de cualquiera de sus bloques | inicio de Rodaje y de cada bloque → su inicio, con «cualquiera»                |
-| Explotación              | Empieza al día siguiente de que acabe Postproducción                                | fin de Postproducción → su inicio                                              |
-| Acreditación de coste    | Empieza al día siguiente de que acabe Explotación                                   | fin de Explotación → su inicio                                                 |
+| Explotación              | Empieza al día siguiente de que acabe Postproducción                                | fin de Postproducción → su inicio, +1 día                                      |
+| Acreditación de coste    | Empieza al día siguiente de que acabe Explotación                                   | fin de Explotación → su inicio, +1 día                                         |
 | Subfases y procesos      | Empiezan con el elemento del que cuelgan (Edición, con Postproducción)              | inicio del padre → su inicio                                                   |
 | Shooting                 | Sin bloques, ocupa lo mismo que Rodaje. Con bloques, empieza con su bloque          | inicio y fin de Rodaje → su inicio y su fin; o inicio de su bloque → su inicio |
-| Wrap                     | Empieza al día siguiente de que acabe su Shooting                                   | fin del Shooting → su inicio                                                   |
+| Wrap                     | Empieza al día siguiente de que acabe su Shooting                                   | fin del Shooting → su inicio, +1 día                                           |
 | Acciones de la plantilla | Empiezan con su proceso                                                             | inicio del proceso → su inicio                                                 |
 
 El Shooting de un rodaje sin bloques tiene en el prototipo su duración «enlazada» a la de Rodaje. Aquí no hace falta un mecanismo aparte: depende del inicio y del fin de Rodaje a la vez, y su duración sale de ahí.
+
+## Motor de fechas
+
+Las convenciones que deciden cada fecha, fijadas antes de escribir el motor (`packages/domain`). Reproducen las del prototipo del productor, y su proyecto de ejemplo es la prueba de aceptación: las 12 filas con fechas de la hoja «Fases» de su plantilla xlsx tienen que salir iguales.
+
+**Fechas y duraciones**
+
+- **Las fechas son días, sin hora ni zona**: `YYYY-MM-DD` en la API y en la base (`date`), y enteros (días desde una época, en UTC) dentro del motor.
+- **El fin es el último día, incluido.** Algo de un día empieza y acaba el mismo día.
+- **La duración da el fin a partir del inicio**: días, `inicio + n − 1`; semanas, `inicio + n × 7 − 1`; meses, como EDATE de Excel (el mismo día del mes, o el último si no existe: del 31 de enero, al 28 de febrero), menos un día.
+- **Los decimales se redondean hacia abajo**: 2,5 semanas son 17 días. En los meses, la fracción se toma de los días del mes siguiente: 1,5 meses es un mes más la mitad de los días del mes que sigue.
+- **Contar hacia atrás** (cuando lo que se conoce es el fin): el inicio es la fecha que queda la duración antes del día siguiente al fin. Es la regla de Preparación y SoftPre.
+- **Días naturales.** Los laborables (`duration_basis`, `lag_basis`) llegan con el calendario laboral, en las excepciones.
+
+**Dependencias**
+
+- **El desfase es aritmética literal**: la fecha que se fija es la del otro elemento más el desfase, sin días implícitos. «Empieza al día siguiente del fin» es fin → inicio con **+1 día**; «termina el día antes del inicio» es inicio → fin con **−1 día**; «−4 semanas fin de Edición» es fin → inicio con −4 semanas, exactamente 28 días antes. La plantilla lleva sus ±1 explícitos.
+- **Una dependencia por extremo del elemento**: como mucho una fija su inicio y otra su fin. Varias sobre el mismo extremo se combinan con `dependency_join` («cuando acaben todas» o «con la primera»), que llega con los bloques de rodaje.
+- **Qué manda en cada elemento**, en este orden:
+  1. el **ancla** y los **fijados** tienen su inicio escrito a mano y no se mueven;
+  2. con dependencia de **inicio y de fin**, las dos fechas salen de ellas y la duración es la que resulte (el Shooting de un rodaje sin bloques);
+  3. con dependencia **solo de inicio**, el fin sale de la duración;
+  4. con dependencia **solo de fin**, el inicio se cuenta hacia atrás con la duración.
+- **Sin duración**, se calcula el inicio si se puede y el fin queda vacío, con el motivo («falta la duración»). El prototipo lo dejaba todo vacío; saber cuándo empieza algo ya sirve para planificar.
+- **Sin lo que necesita** (una dependencia hacia algo sin fechas), el elemento queda sin fechas y el motor dice qué falta. Nunca inventa una fecha.
+- **Los ciclos se rechazan**, indicando el camino que los forma.
+- **Semana 1** es la del inicio de Rodaje; antes, semanas negativas, y no hay semana 0.
 
 ## Decidido con el productor
 
