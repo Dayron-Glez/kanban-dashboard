@@ -36,6 +36,13 @@
       "when": 1791720394258,
       "tag": "0004_arbol_del_calendario",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791756600228,
+      "tag": "0005_plan_con_fechas",
+      "breakpoints": true
     }
   ]
 }

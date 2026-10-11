@@ -331,21 +331,21 @@ Table calendar.element_dependencies {
   successor_id uuid [not null, ref: > calendar.elements.id]
   predecessor_point calendar.date_point [not null, default: 'end', note: 'De qué fecha del otro elemento se parte']
   successor_point calendar.date_point [not null, default: 'start', note: 'Qué fecha de este elemento fija']
-  lag_amount numeric [not null, default: 0, note: 'Puede ser negativo: Foley empieza dos semanas antes de que acabe Edición']
+  lag_amount numeric [not null, default: 0, note: 'Puede ser negativo: VFX empieza cuatro semanas antes de que acabe Edición']
   lag_unit calendar.duration_unit [not null, default: 'days']
   lag_basis calendar.day_basis [not null, default: 'calendar']
 
   indexes {
-    (predecessor_id, successor_id) [unique]
+    (predecessor_id, successor_id, successor_point) [unique, note: 'Con (predecessor_id, successor_id), el Shooting no podría depender a la vez del inicio y del fin de Rodaje']
   }
 
   Note: '''
-  Fija el inicio o el fin de un elemento (successor) a partir del inicio o el fin de otro (predecessor), más un desfase. Con desfase 0:
-  - fin → inicio: empieza el día siguiente al fin del otro (Explotación tras Postproducción);
-  - inicio → inicio: empieza el mismo día (Edición con Postproducción);
-  - inicio → fin: termina el día anterior al inicio del otro, y su inicio sale de contar la duración hacia atrás (Preparación antes de Rodaje);
-  - fin → fin: termina el mismo día.
-  Con desfase: «−4 semanas fin de Edición» es fin → inicio con −4 semanas. Un elemento puede tener varias dependencias, que se combinan según su dependency_join: todas (gana la más restrictiva) o cualquiera (gana la primera). Así «cuando acaben Edición y VFX» y «con lo primero que empiece de Rodaje o sus bloques» se expresan sin tipos especiales.
+  Fija el inicio o el fin de un elemento (successor) a partir del inicio o el fin de otro (predecessor), más un desfase. El desfase es aritmética literal, sin días implícitos:
+  - fin → inicio, +1 día: empieza el día siguiente al fin del otro (Explotación tras Postproducción);
+  - inicio → inicio, 0: empieza el mismo día (Edición con Postproducción);
+  - inicio → fin, −1 día: termina el día anterior al inicio del otro, y su inicio sale de contar la duración hacia atrás (Preparación antes de Rodaje);
+  - fin → inicio, −4 semanas: «−4 semanas fin de Edición», 28 días antes del fin de Edición.
+  Como mucho una dependencia fija cada extremo de un elemento; varias sobre el mismo extremo se combinan según su dependency_join: todas (gana la más restrictiva) o cualquiera (gana la primera). Así «cuando acaben Edición y VFX» y «con lo primero que empiece de Rodaje o sus bloques» se expresan sin tipos especiales.
   Los ciclos los rechaza la API al crearlas (CHECK predecessor <> successor en la base).
   '''
 }

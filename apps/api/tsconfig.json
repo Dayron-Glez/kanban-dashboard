@@ -25,5 +25,5 @@
   },
   /* También los ficheros de configuración: si no, el editor los analiza sin
      los tipos de Node y marca process como desconocido. */
-  "include": ["src", "*.config.ts"]
+  "include": ["src", "scripts/**/*.ts", "*.config.ts"]
 }

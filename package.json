@@ -21,7 +21,7 @@
     "db:start": "docker compose up -d --wait db && pnpm --filter api db:migrate",
     "db:stop": "docker compose stop db",
     "db:reset": "docker compose down -v && pnpm db:start",
-    "db:seed": "docker compose exec -T db psql -U postgres -d cauce -v ON_ERROR_STOP=1 -f - < apps/api/seed.sql"
+    "db:seed": "docker compose exec -T db psql -U postgres -d cauce -v ON_ERROR_STOP=1 -f - < apps/api/seed.sql && pnpm --filter api db:seed:example"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

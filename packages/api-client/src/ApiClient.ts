@@ -1,6 +1,7 @@
 import type {
   AssignedTask,
   CalendarElement,
+  CalendarPlan,
   Column,
   ColumnCategory,
   CreateColumnInput,
@@ -16,6 +17,7 @@ import type {
   Task,
   TaskHistoryEntry,
   TaskInput,
+  UpdateElementPlanInput,
 } from "@repo/contracts"
 
 export interface ProjectsRepository {
@@ -73,6 +75,10 @@ export interface ElementsRepository {
   listByProject(projectId: string): Promise<CalendarElement[]>
   /** Solo con el calendario vacío; devuelve el árbol creado. */
   generateFromTemplate(projectId: string): Promise<CalendarElement[]>
+  /** Los elementos con sus fechas y las dependencias que las encadenan. */
+  getPlan(projectId: string): Promise<CalendarPlan>
+  /** Cambia la duración o la fecha escrita a mano; devuelve el plan recalculado. */
+  updatePlan(elementId: string, input: UpdateElementPlanInput): Promise<CalendarPlan>
 }
 
 export interface ApiClient {

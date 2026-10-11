@@ -13,6 +13,7 @@ const TABLES = [
   ["public", "tasks"],
   ["public", "task_history"],
   ["calendar", "elements"],
+  ["calendar", "element_dependencies"],
 ]
 
 const sourceUrl = process.env.SOURCE_DATABASE_URL

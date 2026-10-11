@@ -1,6 +1,14 @@
 import type { ElementKind } from "@repo/contracts"
 import { describe, expect, it } from "vitest"
-import { buildCalendarTemplate, CALENDAR_TEMPLATE, type TemplateElement } from "../calendarTemplate"
+import {
+  buildCalendarTemplate,
+  buildTemplateDependencies,
+  CALENDAR_TEMPLATE,
+  type TemplateDependency,
+  type TemplateElement,
+} from "../calendarTemplate"
+import { fromIsoDate } from "../planDates"
+import { computeSchedule } from "../schedule"
 
 const names = (elements: TemplateElement[]) => elements.map((element) => element.name)
 const ofKind = (elements: TemplateElement[], kind: ElementKind) =>
@@ -123,5 +131,93 @@ describe("buildCalendarTemplate", () => {
   it("las claves siguen la ruta del árbol", () => {
     expect(film.map((element) => element.key)).toContain("postproduccion.vfx.render")
     expect(film.map((element) => element.key)).toContain("softpre.casting.busqueda")
+  })
+})
+
+describe("buildTemplateDependencies", () => {
+  const film = buildCalendarTemplate("film")
+  const dependencies = buildTemplateDependencies(film)
+  const startOf = (key: string) =>
+    dependencies.find(
+      (dependency) => dependency.successorKey === key && dependency.successorPoint === "start"
+    )
+  const describeLink = (dependency: TemplateDependency | undefined) =>
+    dependency &&
+    `${dependency.predecessorKey}.${dependency.predecessorPoint} ${dependency.lagAmount >= 0 ? "+" : ""}${dependency.lagAmount}`
+
+  it("Rodaje es el ancla y Desarrollo está fijado", () => {
+    expect(film.filter((element) => element.isAnchor).map((element) => element.key)).toEqual([
+      "rodaje",
+    ])
+    expect(film.filter((element) => element.isPinned).map((element) => element.key)).toEqual([
+      "desarrollo",
+    ])
+  })
+
+  it("las fases se encadenan como en la tabla del README", () => {
+    const endOf = (key: string) =>
+      dependencies.find(
+        (dependency) => dependency.successorKey === key && dependency.successorPoint === "end"
+      )
+    expect(describeLink(endOf("preparacion"))).toBe("rodaje.start -1")
+    expect(describeLink(endOf("softpre"))).toBe("preparacion.start -1")
+    expect(describeLink(startOf("postproduccion"))).toBe("rodaje.start +0")
+    expect(describeLink(startOf("explotacion"))).toBe("postproduccion.end +1")
+    expect(describeLink(startOf("acreditacion-de-coste"))).toBe("explotacion.end +1")
+  })
+
+  it("el Shooting ocupa lo que Rodaje y el Wrap empieza al día siguiente", () => {
+    const shooting = dependencies.filter(
+      (dependency) => dependency.successorKey === "rodaje.shooting"
+    )
+    expect(shooting.map(describeLink)).toEqual(["rodaje.start +0", "rodaje.end +0"])
+    expect(describeLink(startOf("rodaje.wrap"))).toBe("rodaje.shooting.end +1")
+  })
+
+  it("lo demás empieza con el elemento del que cuelga", () => {
+    expect(describeLink(startOf("postproduccion.vfx.render"))).toBe("postproduccion.vfx.start +0")
+    expect(describeLink(startOf("softpre.casting.busqueda"))).toBe("softpre.casting.start +0")
+    expect(describeLink(startOf("desarrollo.luz-verde"))).toBe("desarrollo.end +0")
+  })
+
+  it("las fases sin regla propia no dependen de nada", () => {
+    expect(startOf("desarrollo")).toBeUndefined()
+    expect(startOf("rodaje")).toBeUndefined()
+  })
+
+  it.each(["film", "series", "documentary"] as const)(
+    "en %s, sin ciclos y todo se alcanza desde el ancla o desde Desarrollo",
+    (kind) => {
+      const elements = buildCalendarTemplate(kind)
+      const result = computeSchedule(
+        elements.map((element) => ({
+          id: element.key,
+          durationAmount: 1,
+          durationUnit: "weeks",
+          isAnchor: element.isAnchor,
+          isPinned: element.isPinned,
+          fixedStart: element.isAnchor
+            ? fromIsoDate("2027-04-05")
+            : element.isPinned
+              ? fromIsoDate("2026-01-01")
+              : null,
+        })),
+        buildTemplateDependencies(elements).map((dependency) => ({
+          ...dependency,
+          predecessorId: dependency.predecessorKey,
+          successorId: dependency.successorKey,
+        }))
+      )
+      const unscheduled = [...result].filter(([, dates]) => dates.issue).map(([key]) => key)
+      expect(unscheduled).toEqual([])
+    }
+  )
+
+  it("solo enlaza elementos que existen en el proyecto", () => {
+    const keys = new Set(film.map((element) => element.key))
+    for (const dependency of dependencies) {
+      expect(keys).toContain(dependency.predecessorKey)
+      expect(keys).toContain(dependency.successorKey)
+    }
   })
 })

@@ -1,6 +1,11 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import type { CalendarElement, ProjectSummary } from "@repo/contracts"
+import type {
+  CalendarElement,
+  CalendarPlan,
+  ElementDependency,
+  ProjectSummary,
+} from "@repo/contracts"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { beforeEach, describe, expect, it } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
@@ -8,7 +13,12 @@ import { CalendarPhasesPage } from "../components/CalendarPhasesPage"
 
 const PROJECT_ID = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b"
 
-const element = (id: string, parentId: string | null, name: string): CalendarElement => ({
+const element = (
+  id: string,
+  parentId: string | null,
+  name: string,
+  overrides: Partial<CalendarElement> = {}
+): CalendarElement => ({
   id,
   projectId: PROJECT_ID,
   kind: parentId ? "subphase" : "phase",
@@ -17,7 +27,17 @@ const element = (id: string, parentId: string | null, name: string): CalendarEle
   name,
   color: parentId ? null : "#819DDA",
   templateKey: null,
+  duration: null,
+  startsOn: null,
+  endsOn: null,
+  isAnchor: false,
+  isPinned: false,
+  issue: null,
+  ...overrides,
 })
+
+const planOf = (elements: CalendarElement[], dependencies: ElementDependency[] = []) =>
+  ({ elements, dependencies }) satisfies CalendarPlan
 
 const summary = (role: ProjectSummary["role"]): ProjectSummary => ({
   id: PROJECT_ID,
@@ -31,6 +51,21 @@ const summary = (role: ProjectSummary["role"]): ProjectSummary => ({
   isFavorite: false,
   taskCount: 0,
 })
+
+const rodaje = (overrides: Partial<CalendarElement> = {}) =>
+  element("rodaje", null, "Rodaje", { templateKey: "rodaje", isAnchor: true, ...overrides })
+
+const preparacion = (overrides: Partial<CalendarElement> = {}) =>
+  element("preparacion", null, "Preparación", { templateKey: "preparacion", ...overrides })
+
+const preparacionAntesDelRodaje: ElementDependency = {
+  id: "d1",
+  predecessorId: "rodaje",
+  predecessorPoint: "start",
+  successorId: "preparacion",
+  successorPoint: "end",
+  lag: { amount: -1, unit: "days" },
+}
 
 let api: ReturnType<typeof createFakeApi>
 
@@ -47,6 +82,8 @@ const renderPage = () => {
   )
 }
 
+const rowOf = (name: string) => screen.getByText(name).closest("li")!
+
 beforeEach(() => {
   api = createFakeApi()
   api.projects.listMine.mockResolvedValue([summary("owner")])
@@ -54,10 +91,9 @@ beforeEach(() => {
 
 describe("CalendarPhasesPage", () => {
   it("muestra las fases abiertas y pliega sus hijos", async () => {
-    api.elements.listByProject.mockResolvedValue([
-      element("post", null, "Postproducción"),
-      element("vfx", "post", "VFX"),
-    ])
+    api.elements.getPlan.mockResolvedValue(
+      planOf([element("post", null, "Postproducción"), element("vfx", "post", "VFX")])
+    )
     renderPage()
 
     expect(await screen.findByText("VFX")).toBeInTheDocument()
@@ -65,8 +101,107 @@ describe("CalendarPhasesPage", () => {
     expect(screen.queryByText("VFX")).not.toBeInTheDocument()
   })
 
+  it("enseña fechas, duración y la regla de cada elemento", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf(
+        [
+          rodaje({
+            duration: { amount: 6, unit: "weeks" },
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+          preparacion({
+            duration: { amount: 9, unit: "weeks" },
+            startsOn: "2027-02-01",
+            endsOn: "2027-04-04",
+          }),
+        ],
+        [preparacionAntesDelRodaje]
+      )
+    )
+    renderPage()
+
+    const row = within(await screen.findByText("Preparación").then((node) => node.closest("li")!))
+    expect(row.getByText("Antes del inicio de Rodaje")).toBeInTheDocument()
+    expect(row.getByText("9 semanas")).toBeInTheDocument()
+    expect(row.getByText("1 feb 2027")).toBeInTheDocument()
+    expect(row.getByText("4 abr 2027")).toBeInTheDocument()
+    expect(within(rowOf("Rodaje")).getByText("Fecha clave")).toBeInTheDocument()
+  })
+
+  it("si falta una fecha, dice por qué", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf(
+        [
+          rodaje({ issue: { code: "missing-date" } }),
+          preparacion({ issue: { code: "missing-dependency", elementId: "rodaje" } }),
+        ],
+        [preparacionAntesDelRodaje]
+      )
+    )
+    renderPage()
+
+    expect(
+      await within(
+        await screen.findByText("Preparación").then((node) => node.closest("li")!)
+      ).findByText("Falta la fecha de Rodaje")
+    ).toBeInTheDocument()
+  })
+
+  it("la propietaria escribe una duración y ve el plan recalculado", async () => {
+    api.elements.getPlan.mockResolvedValue(planOf([rodaje(), preparacion()]))
+    api.elements.updatePlan.mockResolvedValue(
+      planOf([rodaje(), preparacion({ duration: { amount: 9, unit: "weeks" } })])
+    )
+    renderPage()
+
+    await userEvent.click(
+      within(await screen.findByRole("treeitem", { name: /Preparación/ })).getByRole("button", {
+        name: "Duración de Preparación",
+      })
+    )
+    await userEvent.type(screen.getByLabelText("Cantidad"), "9")
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }))
+
+    expect(api.elements.updatePlan).toHaveBeenCalledWith("preparacion", {
+      duration: { amount: 9, unit: "weeks" },
+    })
+    expect(await within(rowOf("Preparación")).findByText("9 semanas")).toBeInTheDocument()
+  })
+
+  it("el bloque «Para que el plan salga solo» pide lo que falta y se va cuando está todo", async () => {
+    api.elements.getPlan.mockResolvedValue(planOf([rodaje(), preparacion()]))
+    renderPage()
+
+    const setup = await screen.findByRole("region", { name: "Para que el plan salga solo" })
+    expect(within(setup).getByText("Fecha de inicio de Rodaje")).toBeInTheDocument()
+    expect(within(setup).getByText("Duración de Preparación")).toBeInTheDocument()
+  })
+
+  it("sin nada pendiente, no hay bloque", async () => {
+    const written = { duration: { amount: 1, unit: "weeks" as const }, startsOn: "2027-04-05" }
+    api.elements.getPlan.mockResolvedValue(planOf([rodaje(written), preparacion(written)]))
+    renderPage()
+
+    await screen.findByText("Preparación")
+    expect(screen.queryByRole("region", { name: "Para que el plan salga solo" })).toBeNull()
+  })
+
+  it("un miembro ve el plan pero no puede editarlo", async () => {
+    api.projects.listMine.mockResolvedValue([summary("member")])
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ duration: { amount: 6, unit: "weeks" } }), preparacion()])
+    )
+    renderPage()
+
+    expect(await screen.findByText("6 semanas")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Duración de/ })).toBeNull()
+    expect(screen.queryByRole("region", { name: "Para que el plan salga solo" })).toBeNull()
+  })
+
   it("la propietaria genera el calendario si está vacío", async () => {
-    api.elements.listByProject.mockResolvedValue([])
+    api.elements.getPlan.mockResolvedValueOnce(planOf([]))
+    api.elements.getPlan.mockResolvedValue(planOf([element("dev", null, "Desarrollo")]))
     api.elements.generateFromTemplate.mockResolvedValue([element("dev", null, "Desarrollo")])
     renderPage()
 
@@ -78,7 +213,7 @@ describe("CalendarPhasesPage", () => {
 
   it("un miembro no ve el botón de generar", async () => {
     api.projects.listMine.mockResolvedValue([summary("member")])
-    api.elements.listByProject.mockResolvedValue([])
+    api.elements.getPlan.mockResolvedValue(planOf([]))
     renderPage()
 
     expect(await screen.findByText(/Solo el propietario/)).toBeInTheDocument()

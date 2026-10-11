@@ -166,9 +166,11 @@ Para ejecutar un script de un solo paquete: `pnpm --filter web <script>` o `pnpm
 
 Una cuenta recién creada no tiene proyectos, y con el tablero vacío es difícil juzgar pantallas como el inicio o las analíticas. `apps/api/seed.sql` siembra un entorno realista: cuatro proyectos de distinto tamaño, unas treinta tareas con prioridades y asignaciones variadas, historial de movimientos de las últimas semanas y una invitación pendiente.
 
+Además, `apps/api/scripts/seed-example.ts` crea el **proyecto de ejemplo del productor** con su plan completo: la plantilla de cine con sus duraciones, la fecha de rodaje y las mismas fechas que calcula su prototipo. El script comprueba esas fechas antes de terminar.
+
 1. Regístrate en la app (el seeder necesita que el usuario exista).
-2. Cambia `v_email` al principio de `apps/api/seed.sql` por tu email.
-3. Ejecútalo contra la base local: `pnpm db:seed`.
+2. Cambia `v_email` al principio de `apps/api/seed.sql` por tu email; para el proyecto de ejemplo, usa la variable `SEED_EMAIL` o cambia su valor por defecto.
+3. Ejecútalo contra la base local: `pnpm db:seed` (los dos seeders) o `pnpm --filter api db:seed:example` (solo el proyecto de ejemplo).
 
 Es idempotente: identifica lo que siembra con el marcador `[seed]` en la descripción del proyecto, así que lo borra y lo recrea en cada ejecución sin tocar tus proyectos reales. Para revertirlo, ejecuta solo el `delete` del bloque LIMPIEZA.
 
