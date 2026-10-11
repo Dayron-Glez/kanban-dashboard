@@ -9,6 +9,9 @@ if (!source || !target) {
   process.exit(1)
 }
 
+// Desde Postgres 18 cada NOT NULL es también una restricción (contype 'n'): se
+// ignora, porque la nulabilidad ya se compara en las columnas.
+
 // uuid_generate_v4() y gen_random_uuid() generan el mismo UUID v4 aleatorio.
 const normalize = (text) => text.replaceAll("uuid_generate_v4()", "gen_random_uuid()")
 
@@ -25,7 +28,7 @@ const inspect = async (url) => {
         from pg_constraint c
         join pg_class t on t.oid = c.conrelid
         join pg_namespace n on n.oid = t.relnamespace
-        where n.nspname in ${tx(SCHEMAS)}
+        where n.nspname in ${tx(SCHEMAS)} and c.contype <> 'n'
         union all
         select 'índice', schemaname || '.' || indexname, indexdef
         from pg_indexes where schemaname in ${tx(SCHEMAS)}`
