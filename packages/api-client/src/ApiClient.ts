@@ -1,5 +1,6 @@
 import type {
   AssignedTask,
+  CalendarElement,
   Column,
   ColumnCategory,
   CreateColumnInput,
@@ -67,6 +68,13 @@ export interface HistoryRepository {
   listByProject(projectId: string): Promise<TaskHistoryEntry[]>
 }
 
+export interface ElementsRepository {
+  /** El árbol del calendario, plano: cada elemento lleva el id de su padre. */
+  listByProject(projectId: string): Promise<CalendarElement[]>
+  /** Solo con el calendario vacío; devuelve el árbol creado. */
+  generateFromTemplate(projectId: string): Promise<CalendarElement[]>
+}
+
 export interface ApiClient {
   projects: ProjectsRepository
   members: MembersRepository
@@ -74,4 +82,5 @@ export interface ApiClient {
   columns: ColumnsRepository
   tasks: TasksRepository
   history: HistoryRepository
+  elements: ElementsRepository
 }

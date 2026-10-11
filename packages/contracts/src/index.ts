@@ -1,4 +1,5 @@
 export * from "./column.js"
+export * from "./element.js"
 export * from "./enums.js"
 export * from "./invitation.js"
 export * from "./member.js"

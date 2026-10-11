@@ -9,6 +9,7 @@ export const queryKeys = {
     columns: (id: string) => [...queryKeys.projects.detail(id), "columns"] as const,
     tasks: (id: string) => [...queryKeys.projects.detail(id), "tasks"] as const,
     history: (id: string) => [...queryKeys.projects.detail(id), "history"] as const,
+    elements: (id: string) => [...queryKeys.projects.detail(id), "elements"] as const,
     /** Clave común de las mutaciones del tablero, no de una consulta. */
     board: (id: string) => [...queryKeys.projects.detail(id), "board"] as const,
   },

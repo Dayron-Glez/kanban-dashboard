@@ -1,6 +1,6 @@
 import postgres from "postgres"
 
-const SCHEMAS = ["public", "identity", "core"]
+const SCHEMAS = ["public", "identity", "core", "calendar"]
 
 const source = process.env.SOURCE_DATABASE_URL
 const target = process.env.TARGET_DATABASE_URL

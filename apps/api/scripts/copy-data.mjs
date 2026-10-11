@@ -12,6 +12,7 @@ const TABLES = [
   ["public", "columns"],
   ["public", "tasks"],
   ["public", "task_history"],
+  ["calendar", "elements"],
 ]
 
 const sourceUrl = process.env.SOURCE_DATABASE_URL
@@ -34,7 +35,7 @@ const summary = []
 try {
   const existing = await target`
     select table_schema || '.' || table_name as name from information_schema.tables
-    where table_schema in ('public', 'identity', 'core') and table_type = 'BASE TABLE'`
+    where table_schema in ('public', 'identity', 'core', 'calendar') and table_type = 'BASE TABLE'`
   const missing = existing
     .map((row) => row.name)
     .filter((table) => !TABLES.some(([s, t]) => name(s, t) === table))

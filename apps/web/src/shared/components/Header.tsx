@@ -24,6 +24,7 @@ interface HeaderProps {
 
 /** Última miga de la ruta, derivada del segmento final de la URL. */
 const VIEW_LABELS: Record<string, string> = {
+  calendar: "Calendario",
   analytics: "Analytics",
   members: "Miembros",
   settings: "Ajustes",

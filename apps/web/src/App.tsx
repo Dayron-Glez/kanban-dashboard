@@ -4,6 +4,7 @@ import { AuthProvider, AuthGuard, LoginPage, RegisterPage } from "@/features/aut
 import { ProjectsPage, ProjectMembersPage, ProjectSettingsPage } from "@/features/project"
 import { HomePage } from "@/features/home"
 import { AnalyticsPage } from "@/features/analytics"
+import { CalendarPhasesPage } from "@/features/calendar"
 import { InviteAcceptPage } from "@/features/invite"
 import { NotFoundPage } from "@/shared"
 import AppLayout from "./layouts/AppLayout"
@@ -32,6 +33,7 @@ function App() {
               {/* Nivel de proyecto */}
               <Route element={<KanbanLayout />}>
                 <Route path="/projects/:id" element={<ProjectTasksView />} />
+                <Route path="/projects/:id/calendar" element={<CalendarPhasesPage />} />
                 <Route path="/projects/:id/analytics" element={<AnalyticsPage />} />
                 <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
                 <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
