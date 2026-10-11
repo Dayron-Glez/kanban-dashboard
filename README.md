@@ -121,7 +121,7 @@ Arranca la web en `http://localhost:5173` y la API en `http://localhost:3000`. R
 
 ## Base de datos local
 
-Un único contenedor de Postgres 17, definido en `compose.yaml`, en el puerto 5433 para no chocar con un Postgres instalado en la máquina. El esquema lo crean las migraciones de Drizzle de `apps/api/drizzle/`.
+Un único contenedor de Postgres 18, definido en `compose.yaml`, en el puerto 5433 para no chocar con un Postgres instalado en la máquina. El esquema lo crean las migraciones de Drizzle de `apps/api/drizzle/`.
 
 | Cuándo                     | Comando         | Qué hace                                                                        |
 | -------------------------- | --------------- | ------------------------------------------------------------------------------- |
