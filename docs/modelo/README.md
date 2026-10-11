@@ -28,24 +28,22 @@ Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram
 - **Las fechas se calculan como en el prototipo del productor**, que es la referencia (su Excel quedó atrás): un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base (naturales por defecto, laborables en las excepciones) y dependencias con desfase. Sin ajustes ocultos: mover el inicio reescribe el desfase y mover el fin, la duración. Todo es editable en cada proyecto.
 - **Los eventos y las tareas** pueden durar varios días o uno; **las reuniones y los recordatorios**, solo uno. **Una contratación** va de la fecha de alta a la de baja, y sin baja sigue activa: la baja se ordena cuando el trabajador termina.
 - **Al crear un bloque** («Rodaje 1», «Rodaje 2»…), el bloque recibe sus propios procesos, copiados de la plantilla de su fase: cada bloque de rodaje, su Shooting y su Wrap.
-- **El tablero es una capacidad, no un módulo**: estado, prioridad y tamaño son atributos opcionales de cualquier elemento.
+- **Las acciones siempre cuelgan de un elemento**: fase, subfase o proceso. Como en el prototipo, solo las tareas se marcan como hechas (`completed_at`) y la prioridad sirve para resolver conflictos; no hay estados, columnas ni tamaños.
 
 ## Del esquema actual al de destino
 
 Hoy la base (Neon) tiene las tablas en `public` e `identity` (ver `apps/api/src/db/schema/`). Con los datos aún de prueba, moverlas de esquema es una línea por tabla.
 
-| Actual                                                 | Destino                                                                            | Cambio                                                                                  |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `identity.*`                                           | `identity.*`                                                                       | Igual                                                                                   |
-| `public.projects`                                      | `core.projects`                                                                    | Gana `kind` (cine, serie, documental)                                                   |
-| `public.project_members`, `public.project_invitations` | `core.*`                                                                           | `role` y `status` pasan a enum                                                          |
-| `public.profiles`                                      | `identity.users`                                                                   | Se funde: el nombre y la imagen ya están en `identity.users`                            |
-| `public.columns`                                       | `calendar.statuses`                                                                | Los estados de cualquier elemento                                                       |
-| `public.tasks`                                         | `calendar.elements`                                                                | Elementos de tipo tarea, sin fase (acciones sueltas), con su estado, prioridad y tamaño |
-| `tasks.assignee_id`                                    | `calendar.element_assignees` + `core.crew_members`                                 | Varias personas por elemento, con o sin cuenta, como responsable o ejecutante           |
-| `public.task_history`                                  | `calendar.element_status_history`                                                  | Gana quién hizo el cambio                                                               |
-| —                                                      | `core.departments`, `core.work_calendars`, `core.work_calendar_days`, `core.files` | Nuevas, compartidas                                                                     |
-| —                                                      | resto de `calendar.*`                                                              | Nuevas: el árbol, las dependencias y los atributos comunes                              |
+| Actual                                                  | Destino                                                                            | Cambio                                                                              |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `identity.*`                                            | `identity.*`                                                                       | Igual                                                                               |
+| `public.projects`                                       | `core.projects`                                                                    | Gana `kind` (cine, serie, documental)                                               |
+| `public.project_members`, `public.project_invitations`  | `core.*`                                                                           | `role` y `status` pasan a enum                                                      |
+| `public.profiles`                                       | `identity.users`                                                                   | Se funde: el nombre y la imagen ya están en `identity.users`                        |
+| `public.columns`, `public.tasks`, `public.task_history` | Se quedan en `public`, congeladas                                                  | El tablero de la etapa anterior, como vista secundaria y sin trabajo nuevo (11 oct) |
+| —                                                       | `calendar.element_assignees` + `core.crew_members`                                 | Varias personas por elemento, con o sin cuenta, como responsable o ejecutante       |
+| —                                                       | `core.departments`, `core.work_calendars`, `core.work_calendar_days`, `core.files` | Nuevas, compartidas                                                                 |
+| —                                                       | resto de `calendar.*`                                                              | Nuevas: el árbol, las dependencias y los atributos comunes                          |
 
 ## Cuándo llega cada parte
 
@@ -123,6 +121,12 @@ El Shooting de un rodaje sin bloques tiene en el prototipo su duración «enlaza
 4. **Rodaje, y cada uno de sus bloques, tiene dos procesos: Shooting y Wrap.**
 5. **Las acciones comunes se crean solas** con la plantilla, y se pueden modificar o borrar.
 6. **F.Especial**: Jueves y Viernes Santo, y el 1 y 6 de enero y el 24, 25 y 31 de diciembre.
+
+**11 de octubre de 2026**, tras recorrer el prototipo en marcha:
+
+1. **El tablero no pasa al Calendario.** El prototipo no tiene columnas, estados, orden manual ni velocidad. Se revierte la decisión del 9 de octubre de llevar estado, prioridad y tamaño a cualquier elemento: el tablero queda congelado en `public`, como vista secundaria, por si vuelve a hacer falta.
+2. **Las acciones cuelgan siempre de un elemento**, solo las tareas se completan y la prioridad llega con los conflictos.
+3. **El proyecto se abre en el Calendario.**
 
 ## Pendiente
 

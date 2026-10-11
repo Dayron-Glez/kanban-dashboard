@@ -7,7 +7,12 @@ export function ProjectNavTabs() {
   const isAnalytics = location.pathname.endsWith("/analytics")
 
   const tabs = [
-    { label: "Tablero", path: `/projects/${id}`, icon: IconLayoutKanban, active: !isAnalytics },
+    {
+      label: "Tablero",
+      path: `/projects/${id}/board`,
+      icon: IconLayoutKanban,
+      active: !isAnalytics,
+    },
     {
       label: "Analytics",
       path: `/projects/${id}/analytics`,

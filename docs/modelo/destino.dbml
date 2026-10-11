@@ -275,46 +275,17 @@ Enum calendar.alert_channel {
   push [note: 'Notificación en el móvil']
 }
 
-Enum calendar.status_category {
-  todo [note: 'Por hacer']
-  doing [note: 'En curso']
-  blocked [note: 'Bloqueada']
-  done [note: 'Hecha']
-}
-
 Enum calendar.priority {
-  p0 [note: 'Urgente']
-  p1 [note: 'Normal']
-  p2 [note: 'Baja']
-}
-
-Enum calendar.size {
-  xs
-  s
-  m
-  l
-  xl
-}
-
-Table calendar.statuses {
-  id uuid [pk]
-  project_id uuid [not null, ref: > core.projects.id]
-  title text [not null]
-  category calendar.status_category [not null, default: 'todo']
-  position integer [not null]
-
-  indexes {
-    project_id [unique, name: 'statuses_one_done_per_project', note: 'Parcial: WHERE category = done']
-  }
-
-  Note: 'Antes public.columns. Los estados por los que pasa un elemento (Pendiente, En curso, Hecho…), editables por proyecto.'
+  high [note: 'Alta']
+  normal [note: 'Normal']
+  low [note: 'Baja']
 }
 
 Table calendar.elements {
   id uuid [pk]
   project_id uuid [not null, ref: > core.projects.id]
   kind calendar.element_kind [not null]
-  parent_id uuid [ref: > calendar.elements.id, note: 'La fase, subfase o proceso al que pertenece: donde empieza. Vacío solo en fases y en acciones sueltas']
+  parent_id uuid [ref: > calendar.elements.id, note: 'La fase, subfase o proceso al que pertenece: donde empieza. Vacío solo en las fases: no hay acciones sueltas']
   position integer [not null, note: 'Orden entre hermanos']
   name text [not null, note: 'Rodaje, Rodaje 2 (Almería), Montaje de Sonido, Foley, Reunión de producción…']
   color text
@@ -322,10 +293,9 @@ Table calendar.elements {
   description text [note: 'Información del elemento']
   notes text
   location text [note: 'Por ahora texto libre. Con el Plan de rodaje, las localizaciones serán una entidad de core']
-  status_id uuid [ref: > calendar.statuses.id, note: 'Opcional: solo los elementos que se siguen por estado (hoy, las tareas)']
-  status_position integer [note: 'Orden dentro de su estado, para la vista de tablero']
-  priority calendar.priority
-  size calendar.size
+  completed_at timestamptz [note: 'Solo en tareas (CHECK): cuándo se marcó hecha. Vacía: pendiente']
+  completed_by uuid [ref: > identity.users.id]
+  priority calendar.priority [note: 'Solo para resolver conflictos entre acciones que se solapan; normal si no se indica']
   recurrence_rule text [note: 'Si se repite y con qué ciclo, en formato RRULE (RFC 5545). Las repeticiones se calculan al consultar']
   starts_on date [note: 'Calculada por el motor de fechas, salvo en el ancla y en los elementos fijados']
   ends_on date [note: 'En reuniones y recordatorios, igual que starts_on (CHECK). En una contratación es la baja: vacía mientras sigue activa']
@@ -344,12 +314,11 @@ Table calendar.elements {
     project_id [unique, name: 'elements_one_anchor_per_project', note: 'Parcial: WHERE is_anchor']
     (parent_id, position)
     (project_id, starts_on)
-    (status_id, status_position)
   }
 
   Note: '''
   Un solo árbol, de hasta cuatro niveles: fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar (un proceso puede colgar de la fase; en Postproducción conviven subfases y procesos). El tipo es explícito: la profundidad no lo dice.
-  Reglas que comprueba la API: qué tipo puede colgar de cuál; las acciones no tienen hijos; solo hay padre vacío en fases y en acciones sueltas.
+  Reglas que comprueba la API: qué tipo puede colgar de cuál; las acciones no tienen hijos; solo las fases no tienen padre.
   Lo que se ve es lo que se calcula, sin ajustes ocultos: mover el inicio de un elemento reescribe el desfase de su dependencia (o lo fija, si no tiene); mover su fin reescribe su duración.
   Las fechas no están limitadas por las del padre: un elemento puede empezar en una fase y acabar en otra, y pertenece a aquella en la que empieza. Si al mover fechas su inicio sale del padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
   '''
@@ -443,15 +412,4 @@ Table calendar.element_attachments {
   }
 
   Note: 'El repositorio de documentos de cada elemento.'
-}
-
-Table calendar.element_status_history {
-  id uuid [pk]
-  element_id uuid [not null, ref: > calendar.elements.id]
-  from_status_id uuid [ref: > calendar.statuses.id]
-  to_status_id uuid [not null, ref: > calendar.statuses.id]
-  changed_by uuid [ref: > identity.users.id, note: 'Nuevo: quién lo cambió']
-  changed_at timestamptz [not null, default: `now()`]
-
-  Note: 'Antes public.task_history. Cada cambio de estado; de aquí salen las estadísticas (velocidad, progreso).'
 }

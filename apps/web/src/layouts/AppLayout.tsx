@@ -49,7 +49,7 @@ function AppShell() {
   const location = useLocation()
 
   // Solo el tablero lleva filtro de tareas y «Agregar Columna» en el navbar.
-  const isBoard = Boolean(id) && location.pathname === `/projects/${id}`
+  const isBoard = Boolean(id) && location.pathname === `/projects/${id}/board`
   const projectName = useProject(id).data?.name
 
   const open = mode === "expanded" || (mode === "hover" && hoverOpen)
