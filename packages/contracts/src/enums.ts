@@ -21,6 +21,10 @@ export const DURATION_UNITS = ["days", "weeks", "months"] as const
 export const DurationUnitSchema = z.enum(DURATION_UNITS)
 export type DurationUnit = z.infer<typeof DurationUnitSchema>
 
+export const DATE_POINTS = ["start", "end"] as const
+export const DatePointSchema = z.enum(DATE_POINTS)
+export type DatePoint = z.infer<typeof DatePointSchema>
+
 export const MEMBER_ROLES = ["owner", "member"] as const
 export const MemberRoleSchema = z.enum(MEMBER_ROLES)
 export type MemberRole = z.infer<typeof MemberRoleSchema>
