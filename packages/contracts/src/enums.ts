@@ -4,6 +4,19 @@ export const PROJECT_KINDS = ["film", "series", "documentary"] as const
 export const ProjectKindSchema = z.enum(PROJECT_KINDS)
 export type ProjectKind = z.infer<typeof ProjectKindSchema>
 
+export const ELEMENT_KINDS = [
+  "phase",
+  "subphase",
+  "process",
+  "event",
+  "task",
+  "meeting",
+  "reminder",
+  "hiring",
+] as const
+export const ElementKindSchema = z.enum(ELEMENT_KINDS)
+export type ElementKind = z.infer<typeof ElementKindSchema>
+
 export const MEMBER_ROLES = ["owner", "member"] as const
 export const MemberRoleSchema = z.enum(MEMBER_ROLES)
 export type MemberRole = z.infer<typeof MemberRoleSchema>
