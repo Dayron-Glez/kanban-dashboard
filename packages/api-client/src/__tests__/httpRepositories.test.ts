@@ -209,4 +209,47 @@ describe("createHttpApi", () => {
       `GET /projects/${PROJECT_ID}/history`,
     ])
   })
+
+  it("calendario: leer el árbol y generarlo desde la plantilla", async () => {
+    const element = {
+      id: TOKEN,
+      projectId: PROJECT_ID,
+      kind: "phase",
+      parentId: null,
+      position: 0,
+      name: "Desarrollo",
+      color: "#DAD381",
+      templateKey: "desarrollo",
+    }
+    const { api, sent } = setup(() => json([element]))
+
+    await expect(api.elements.listByProject(PROJECT_ID)).resolves.toEqual([element])
+    await expect(api.elements.generateFromTemplate(PROJECT_ID)).resolves.toEqual([element])
+
+    expect(sent()).toEqual([
+      { method: "GET", path: `/projects/${PROJECT_ID}/elements`, body: undefined },
+      { method: "POST", path: `/projects/${PROJECT_ID}/elements/template`, body: undefined },
+    ])
+  })
+
+  it("calendario: rechaza un elemento de un tipo desconocido", async () => {
+    const { api } = setup(() =>
+      json([
+        {
+          id: TOKEN,
+          projectId: PROJECT_ID,
+          kind: "block",
+          parentId: null,
+          position: 0,
+          name: "X",
+          color: null,
+          templateKey: null,
+        },
+      ])
+    )
+
+    await expect(api.elements.listByProject(PROJECT_ID)).rejects.toMatchObject({
+      code: "invalid_response",
+    })
+  })
 })
