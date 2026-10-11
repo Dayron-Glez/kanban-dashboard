@@ -13,6 +13,7 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   Tooltip,
@@ -39,10 +40,14 @@ const GLOBAL_NAV: NavItem[] = [
 /** Navegación del proyecto activo. */
 const projectNav = (id: string): NavItem[] => [
   { label: "Calendario", icon: IconCalendar, href: `/projects/${id}/calendar` },
-  { label: "Tablero", icon: IconLayoutKanban, href: `/projects/${id}/board` },
-  { label: "Analytics", icon: IconChartBar, href: `/projects/${id}/analytics` },
   { label: "Miembros", icon: IconUsers, href: `/projects/${id}/members` },
   { label: "Ajustes", icon: IconSettings, href: `/projects/${id}/settings` },
+]
+
+/** El tablero de la etapa anterior, apartado por si vuelve a hacer falta. */
+const otherViews = (id: string): NavItem[] => [
+  { label: "Tablero", icon: IconLayoutKanban, href: `/projects/${id}/board` },
+  { label: "Analytics", icon: IconChartBar, href: `/projects/${id}/analytics` },
 ]
 
 interface Props {
@@ -58,7 +63,6 @@ interface Props {
 export function ProjectSidebarContent({ mode, onModeChange }: Props) {
   const { open } = useSidebar()
   const { id: activeId } = useParams()
-  const location = useLocation()
 
   const items = activeId ? projectNav(activeId) : GLOBAL_NAV
 
@@ -71,50 +75,74 @@ export function ProjectSidebarContent({ mode, onModeChange }: Props) {
       <SidebarContent className="bg-card overflow-x-hidden py-0">
         <SidebarGroup className="pt-2">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-px">
-              {items.map(({ label, icon: Icon, href }) => {
-                const isActive = location.pathname === href
-                return (
-                  <SidebarMenuItem key={label}>
-                    {/* Un solo árbol para ambos estados: el icono vive en un
-                        slot fijo de 32px (el interior del rail), así no se
-                        mueve ni un píxel al expandir; solo aparece la
-                        etiqueta a su derecha. */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          to={href}
-                          aria-label={label}
-                          className={`relative flex h-8 items-center rounded-md transition-colors ${
-                            isActive
-                              ? "bg-accent text-accent-foreground font-bold"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                          }`}
-                        >
-                          <span className="flex w-8 shrink-0 items-center justify-center">
-                            <Icon size={16} />
-                          </span>
-                          {open && (
-                            <span className="flex-1 truncate pr-2 text-[12.5px] whitespace-nowrap">
-                              {label}
-                            </span>
-                          )}
-                          {isActive && (
-                            <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-r-sm" />
-                          )}
-                        </Link>
-                      </TooltipTrigger>
-                      {!open && <TooltipContent side="right">{label}</TooltipContent>}
-                    </Tooltip>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
+            <NavMenu items={items} />
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {activeId && (
+          <SidebarGroup className="mt-auto pb-2">
+            {open ? (
+              <SidebarGroupLabel className="text-muted-foreground/70 h-6 px-2 text-[11px]">
+                Otras vistas
+              </SidebarGroupLabel>
+            ) : (
+              <span aria-hidden className="bg-border mx-2 mb-2 h-px" />
+            )}
+            <SidebarGroupContent>
+              <NavMenu items={otherViews(activeId)} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarControlFooter mode={mode} onModeChange={onModeChange} />
     </>
+  )
+}
+
+function NavMenu({ items }: Readonly<{ items: NavItem[] }>) {
+  const { open } = useSidebar()
+  const location = useLocation()
+
+  return (
+    <SidebarMenu className="gap-px">
+      {items.map(({ label, icon: Icon, href }) => {
+        const isActive = location.pathname === href
+        return (
+          <SidebarMenuItem key={label}>
+            {/* Un solo árbol para ambos estados: el icono vive en un
+              slot fijo de 32px (el interior del rail), así no se
+              mueve ni un píxel al expandir; solo aparece la
+              etiqueta a su derecha. */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to={href}
+                  aria-label={label}
+                  className={`relative flex h-8 items-center rounded-md transition-colors ${
+                    isActive
+                      ? "bg-accent text-accent-foreground font-bold"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <span className="flex w-8 shrink-0 items-center justify-center">
+                    <Icon size={16} />
+                  </span>
+                  {open && (
+                    <span className="flex-1 truncate pr-2 text-[12.5px] whitespace-nowrap">
+                      {label}
+                    </span>
+                  )}
+                  {isActive && (
+                    <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-r-sm" />
+                  )}
+                </Link>
+              </TooltipTrigger>
+              {!open && <TooltipContent side="right">{label}</TooltipContent>}
+            </Tooltip>
+          </SidebarMenuItem>
+        )
+      })}
+    </SidebarMenu>
   )
 }
