@@ -20,6 +20,7 @@
     "db:migrate:prod": "node --env-file=.env.production.local node_modules/drizzle-kit/bin.cjs migrate",
     "db:compare": "node --env-file-if-exists=.env.traslado.local scripts/compare-db.mjs",
     "db:copy": "node --env-file-if-exists=.env.traslado.local scripts/copy-data.mjs",
+    "db:seed:example": "tsx --conditions=source --env-file-if-exists=.env scripts/seed-example.ts",
     "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
@@ -43,6 +44,7 @@
     "@types/supertest": "^7.2.1",
     "drizzle-kit": "^0.31.11",
     "supertest": "^7.3.1",
+    "tsx": "4.23.15",
     "typescript": "~5.9.3",
     "vite": "^7.3.6",
     "vitest": "^4.1.11"
