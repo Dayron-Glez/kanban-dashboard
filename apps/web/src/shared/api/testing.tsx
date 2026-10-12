@@ -58,6 +58,8 @@ export const createFakeApi = () =>
       generateFromTemplate: vi.fn<ElementsRepository["generateFromTemplate"]>(),
       getPlan: vi.fn<ElementsRepository["getPlan"]>(),
       updatePlan: vi.fn<ElementsRepository["updatePlan"]>(),
+      setRule: vi.fn<ElementsRepository["setRule"]>(),
+      removeRule: vi.fn<ElementsRepository["removeRule"]>(),
     },
   }) satisfies ApiClient
 
