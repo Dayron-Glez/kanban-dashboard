@@ -1,6 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
 import type { CalendarElement, Duration } from "@repo/contracts"
-import { fromIsoDate, toIsoDate, type EpochDay } from "@repo/domain"
+import { fromIsoDate, spanOf, toIsoDate, type EpochDay } from "@repo/domain"
 import { cn } from "@/shared/index"
 import { formatDuration, formatPlanDate } from "../lib/planFormat"
 import {
@@ -65,7 +65,8 @@ export function TimelineBar({
   const free = modes != null && !modes.locked ? modes : null
   const draggable = free != null
   const x = (day: EpochDay) => timelineX(day, timeline)
-  const width = (from: EpochDay, to: EpochDay) => Math.max(x(to) - x(from) + timeline.pxPerDay, 3)
+  const width = (from: EpochDay, to: EpochDay) =>
+    Math.max(spanOf(from, to, timeline.range) * timeline.width, 3)
 
   const begin = (drag: BarDrag) => (event: PointerEvent<HTMLElement>) => {
     if (!draggable || event.button !== 0) return
