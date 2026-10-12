@@ -52,9 +52,21 @@ export const CalendarPlanSchema = z.object({
 })
 export type CalendarPlan = z.infer<typeof CalendarPlanSchema>
 
-/** Lo que se edita del plan de un elemento. La fecha, solo en el ancla y los fijados. */
+/**
+ * Lo que se edita del plan de un elemento. La fecha, solo en el ancla y los
+ * fijados; `isPinned` fija con esa fecha un elemento que no depende de nada.
+ */
 export const UpdateElementPlanInputSchema = z.object({
   duration: DurationSchema.nullable().optional(),
   fixedStart: z.iso.date().nullable().optional(),
+  isPinned: z.boolean().optional(),
 })
 export type UpdateElementPlanInput = z.infer<typeof UpdateElementPlanInputSchema>
+
+/** De qué elemento depende un extremo, de qué punto de ese elemento y con qué desfase. */
+export const SetElementRuleInputSchema = z.object({
+  predecessorId: z.uuid(),
+  predecessorPoint: DatePointSchema,
+  lag: z.object({ amount: z.number(), unit: DurationUnitSchema }),
+})
+export type SetElementRuleInput = z.infer<typeof SetElementRuleInputSchema>
