@@ -180,7 +180,7 @@ export function CalendarPhasesPage() {
               view={view}
               timeline={timeline}
             />
-            <ChangePreviewDialog elements={plan.data.elements} {...changes.dialog} />
+            <ChangePreviewDialog plan={plan.data} {...changes.dialog} />
           </>
         )}
       </div>

@@ -2,7 +2,7 @@ import { useState } from "react"
 import type { CalendarPlan } from "@repo/contracts"
 import { toast } from "sonner"
 import type { PendingChange } from "../components/ChangePreviewDialog"
-import { inverseOf, previewChange, type PlanChange } from "../lib/planPreview"
+import { describeChange, inverseOf, previewChange, type PlanChange } from "../lib/planPreview"
 import { useRemoveRule, useSetRule, useUpdatePlan } from "./elements"
 
 /**
@@ -79,7 +79,11 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
     setWaiting({
       change,
       inverse,
-      preview: { moved: preview.moved, outside: [...outside, ...others] },
+      preview: {
+        title: describeChange(plan, change),
+        moved: preview.moved,
+        outside: [...outside, ...others],
+      },
     })
   }
 

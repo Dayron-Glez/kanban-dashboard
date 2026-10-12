@@ -248,16 +248,20 @@ describe("CalendarPhasesPage", () => {
     }
 
     await changeDuration()
-    const dialog = await screen.findByRole("alertdialog", { name: "Este cambio mueve 1 elemento" })
-    expect(within(dialog).getAllByText("SoftPre").length).toBeGreaterThan(0)
-    expect(within(dialog).getByText("Se adelanta 1 semana")).toBeInTheDocument()
+    const dialog = await screen.findByRole("alertdialog", {
+      name: "Cambiar la duración de Preparación",
+    })
+    expect(dialog).toHaveTextContent("−1 semana para 1 elemento")
+    expect(within(dialog).getByText("SoftPre")).toBeInTheDocument()
     expect(within(dialog).getByRole("button", { name: "Cancelar" })).toHaveFocus()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Ver las 1 fechas" }))
+    expect(within(dialog).getByRole("cell", { name: "SoftPre" })).toBeInTheDocument()
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }))
     expect(api.elements.updatePlan).not.toHaveBeenCalled()
 
     await changeDuration()
-    await userEvent.click(await screen.findByRole("button", { name: "Guardar el cambio" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Aplicar" }))
     expect(api.elements.updatePlan).toHaveBeenCalledWith("preparacion", {
       duration: { amount: 9, unit: "weeks" },
     })

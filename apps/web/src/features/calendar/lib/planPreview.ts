@@ -17,6 +17,7 @@ import {
   type ScheduleElement,
 } from "@repo/domain"
 import { buildElementTree, type ElementNode } from "./elementTree"
+import { formatPlanDate } from "./planFormat"
 
 /** Un cambio del plan, tal como se manda a la API. */
 export type PlanChange =
@@ -234,24 +235,6 @@ export function describeMove(change: ScheduleChange, plural = false): string {
   return `cambia${n} de fechas`
 }
 
-export interface MoveGroup {
-  label: string
-  changes: ScheduleChange[]
-}
-
-/** Los cambios agrupados por cómo se mueven: mover el rodaje retrasa casi todo lo mismo. */
-export function groupMoves(changes: ScheduleChange[]): MoveGroup[] {
-  const groups = new Map<string, ScheduleChange[]>()
-  for (const change of changes) {
-    const key = describeMove(change)
-    groups.set(key, [...(groups.get(key) ?? []), change])
-  }
-  return [...groups.values()].map((items) => {
-    const label = describeMove(items[0]!, items.length > 1)
-    return { label: label.charAt(0).toUpperCase() + label.slice(1), changes: items }
-  })
-}
-
 /**
  * El cambio que deshace otro, calculado con el plan de antes de aplicarlo: la
  * duración, la fecha o la regla que había.
@@ -283,4 +266,75 @@ export function inverseOf(plan: CalendarPlan, change: PlanChange): PlanChange {
       lag: previous.lag,
     },
   }
+}
+
+export interface MoveSummary {
+  /** «+1 semana» si todo se mueve igual; si no, null. */
+  headline: string | null
+  /** Por fase: cuántos de sus elementos se mueven y cómo. */
+  groups: { phaseId: string; name: string; color: string | null; count: number; label: string }[]
+}
+
+// Cuánto se desplaza entero, si se desplaza entero: lo que nunca tuvo fin cuenta por su inicio.
+const wholeShift = ({ startShift, endShift, before, after }: ScheduleChange) =>
+  startShift != null && (endShift === startShift || (before.end == null && after.end == null))
+    ? startShift
+    : null
+
+// «−3 semanas» si todos se desplazan lo mismo; si no, cómo se mueven o null.
+function commonLabel(changes: ScheduleChange[]): string | null {
+  const shifts = new Set(changes.map(wholeShift))
+  const [shift] = shifts
+  if (shifts.size === 1 && shift != null) return shiftPart(shift)
+  const moves = new Set(changes.map((change) => describeMove(change)))
+  return moves.size === 1 ? describeMove(changes[0]!) : null
+}
+
+/** Lo que enseña la vista previa plegada: el resumen y un grupo por fase. */
+export function summarizeMoves(changes: ScheduleChange[], plan: CalendarPlan): MoveSummary {
+  const byId = new Map(plan.elements.map((element) => [element.id, element]))
+  const phaseOf = (id: string) => {
+    let current = byId.get(id)
+    while (current?.parentId) current = byId.get(current.parentId)
+    return current
+  }
+  const shifts = new Set(changes.map(wholeShift))
+  const [shift] = shifts
+  const headline = shifts.size === 1 && shift != null ? shiftPart(shift) : null
+
+  const groups = new Map<
+    string,
+    { phase: CalendarPlan["elements"][number]; items: ScheduleChange[] }
+  >()
+  for (const change of changes) {
+    const phase = phaseOf(change.id)
+    if (!phase) continue
+    const group = groups.get(phase.id) ?? { phase, items: [] }
+    group.items.push(change)
+    groups.set(phase.id, group)
+  }
+  return {
+    headline,
+    groups: [...groups.values()].map(({ phase, items }) => ({
+      phaseId: phase.id,
+      name: phase.name,
+      color: phase.color,
+      count: items.length,
+      label: commonLabel(items) ?? "cambian de fechas",
+    })),
+  }
+}
+
+/** El título de la vista previa: qué cambio se va a aplicar. */
+export function describeChange(plan: CalendarPlan, change: PlanChange): string {
+  const name = plan.elements.find((element) => element.id === change.elementId)?.name ?? ""
+  if (change.type === "update") {
+    if (change.input.fixedStart)
+      return `Mover ${name} al ${formatPlanDate(change.input.fixedStart)}`
+    if (change.input.duration !== undefined) return `Cambiar la duración de ${name}`
+    return `Cambiar ${name}`
+  }
+  return change.type === "set-rule"
+    ? `Cambiar de qué depende ${name}`
+    : `Quitar una regla de ${name}`
 }
