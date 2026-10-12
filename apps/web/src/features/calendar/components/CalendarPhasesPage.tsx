@@ -1,21 +1,43 @@
 import { useMemo, useState } from "react"
-import { useParams } from "react-router"
+import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
 import { fromIsoDate, moveEnd, moveStart } from "@repo/domain"
 import { toast } from "sonner"
-import { Button, QueryErrorState, Skeleton } from "@/shared/index"
+import { Button, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
 import { useGenerateFromTemplate, usePlan } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree } from "../lib/elementTree"
 import { setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, editContext } from "../lib/planPreview"
+import {
+  buildTimeline,
+  PLAN_SCALES,
+  PLAN_VIEWS,
+  type PlanScale,
+  type PlanView,
+} from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementSheet } from "./ElementSheet"
 import { ElementTree } from "./ElementTree"
 import { PlanHeader } from "./PlanHeader"
+import { SegmentedControl } from "./SegmentedControl"
 import { PlanSetup } from "./PlanSetup"
+
+const VIEW_OPTIONS = [
+  { value: "tabla", label: "Tabla" },
+  { value: "ambos", label: "Ambos" },
+  { value: "cronograma", label: "Cronograma" },
+] as const satisfies readonly { value: PlanView; label: string }[]
+
+const SCALE_OPTIONS = [
+  { value: "semanas", label: "Semanas" },
+  { value: "meses", label: "Meses" },
+] as const satisfies readonly { value: PlanScale; label: string }[]
+
+const pick = <T extends string>(value: string | null, options: readonly T[], fallback: T) =>
+  options.includes(value as T) ? (value as T) : fallback
 
 const EDIT_ERRORS = {
   "missing-reference": "No se puede calcular: depende de algo que todavía no tiene fecha",
@@ -29,10 +51,24 @@ export function CalendarPhasesPage() {
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
   const isOwner = useProject(projectId).data?.role === "owner"
+  const isMobile = useIsMobile()
+  const [searchParams, setSearchParams] = useSearchParams()
+  // En la URL, para que un enlace abra lo mismo que se ve. En el móvil, solo la tabla.
+  const view = isMobile ? "tabla" : pick(searchParams.get("vista"), PLAN_VIEWS, "ambos")
+  const scale = pick(searchParams.get("escala"), PLAN_SCALES, "meses")
+  const setParam = (key: string, value: string) =>
+    setSearchParams(
+      (params) => {
+        params.set(key, value)
+        return params
+      },
+      { replace: true }
+    )
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
+  const timeline = useMemo(() => buildTimeline(elements ?? [], scale), [elements, scale])
 
   const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
     changes.request({ type: "update", elementId, input })
@@ -54,8 +90,31 @@ export function CalendarPhasesPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
-      <PlanHeader summary={summary} />
+    <div className="flex w-full min-w-0 flex-col gap-4 p-6">
+      <PlanHeader
+        summary={summary}
+        actions={
+          !isMobile &&
+          tree.length > 0 && (
+            <>
+              <SegmentedControl
+                label="Vista"
+                value={view}
+                options={VIEW_OPTIONS}
+                onChange={(next) => setParam("vista", next)}
+              />
+              {view !== "tabla" && (
+                <SegmentedControl
+                  label="Escala"
+                  value={scale}
+                  options={SCALE_OPTIONS}
+                  onChange={(next) => setParam("escala", next)}
+                />
+              )}
+            </>
+          )
+        }
+      />
 
       {plan.isPending ? (
         <div className="flex flex-col gap-2" aria-busy>
@@ -89,6 +148,8 @@ export function CalendarPhasesPage() {
             onOpen={setOpenId}
             onMoveDate={onMoveDate}
             selectedId={openId}
+            view={view}
+            timeline={timeline}
           />
           <ElementSheet
             elementId={openId}

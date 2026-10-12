@@ -87,7 +87,9 @@ export default function KanbanLayout() {
       className="flex min-h-0 flex-1 flex-col overflow-hidden"
     >
       {isScrollablePage ? (
-        <ScrollArea className="h-full">
+        // Radix envuelve el contenido en un display: table que crece con lo más
+        // ancho (el cronograma); en bloque, el ancho lo marca la ventana.
+        <ScrollArea className="h-full [&_[data-slot=scroll-area-viewport]>div]:!block">
           <Outlet />
         </ScrollArea>
       ) : (

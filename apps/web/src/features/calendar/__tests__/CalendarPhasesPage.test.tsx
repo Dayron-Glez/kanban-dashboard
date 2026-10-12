@@ -72,11 +72,11 @@ const preparacionAntesDelRodaje: ElementDependency = {
 
 let api: ReturnType<typeof createFakeApi>
 
-const renderPage = () => {
+const renderPage = (search = "") => {
   const Wrapper = createWrapper(api)
   render(
     <Wrapper>
-      <MemoryRouter initialEntries={[`/projects/${PROJECT_ID}/calendar`]}>
+      <MemoryRouter initialEntries={[`/projects/${PROJECT_ID}/calendar${search}`]}>
         <Routes>
           <Route path="/projects/:id/calendar" element={<CalendarPhasesPage />} />
         </Routes>
@@ -123,7 +123,7 @@ describe("CalendarPhasesPage", () => {
         [preparacionAntesDelRodaje]
       )
     )
-    renderPage()
+    renderPage("?vista=tabla")
 
     const row = within(await screen.findByText("Preparación").then((node) => node.closest("li")!))
     expect(row.getByText("Antes del inicio de Rodaje")).toBeInTheDocument()
@@ -131,6 +131,36 @@ describe("CalendarPhasesPage", () => {
     expect(row.getByText("1 feb 2027")).toBeInTheDocument()
     expect(row.getByText("4 abr 2027")).toBeInTheDocument()
     expect(within(rowOf("Rodaje")).getByText("clave")).toBeInTheDocument()
+  })
+
+  it("por defecto enseña el cronograma: cada elemento con su barra, y se puede pasar a la tabla", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf(
+        [
+          rodaje({
+            duration: { amount: 6, unit: "weeks" },
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+          preparacion({ startsOn: "2027-02-01" }),
+        ],
+        [preparacionAntesDelRodaje]
+      )
+    )
+    renderPage()
+
+    expect(
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Preparación: 1 feb 2027, sin fin" })
+    ).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Ambos" })).toHaveAttribute("aria-checked", "true")
+
+    await userEvent.click(screen.getByRole("radio", { name: "Tabla" }))
+    expect(screen.queryByRole("button", { name: /Rodaje: 5 abr/ })).toBeNull()
+    expect(screen.getByRole("button", { name: "Inicio de Rodaje" })).toBeInTheDocument()
+    expect(screen.queryByRole("radiogroup", { name: "Escala" })).toBeNull()
   })
 
   it("si falta una fecha, dice por qué al pasar por encima", async () => {
@@ -143,7 +173,7 @@ describe("CalendarPhasesPage", () => {
         [preparacionAntesDelRodaje]
       )
     )
-    renderPage()
+    renderPage("?vista=tabla")
 
     expect(await screen.findByRole("button", { name: "Inicio de Preparación" })).toHaveAttribute(
       "title",
