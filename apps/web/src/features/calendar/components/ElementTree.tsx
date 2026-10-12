@@ -6,12 +6,18 @@ import type {
   ElementDependency,
   UpdateElementPlanInput,
 } from "@repo/contracts"
-import { fromIsoDate, positionOf, spanOf } from "@repo/domain"
 import { cn } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
-import { describeIssue, describeRule, formatDuration, formatPlanDate } from "../lib/planFormat"
-import { trackBackground, type PlanView, type Timeline } from "../lib/timeline"
+import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
+import {
+  barDragModes,
+  trackBackground,
+  type BarDrag,
+  type PlanView,
+  type Timeline,
+} from "../lib/timeline"
 import { DateEditor, DurationEditor } from "./PlanEditors"
+import { TimelineBar } from "./TimelineBar"
 import { TimelineScale } from "./TimelineScale"
 
 interface ElementTreeProps {
@@ -23,6 +29,8 @@ interface ElementTreeProps {
   onOpen: (elementId: string) => void
   /** Escribir a mano el inicio o el fin: la regla que lo produce se ajusta. */
   onMoveDate: (elementId: string, point: DatePoint, date: string) => void
+  /** Una barra arrastrada o movida con las flechas, en días. */
+  onDragBar: (elementId: string, drag: BarDrag, days: number) => void
   selectedId?: string | null
   view?: PlanView
   timeline?: Timeline | null
@@ -53,6 +61,7 @@ export function ElementTree({
   onUpdate,
   onOpen,
   onMoveDate,
+  onDragBar,
   selectedId = null,
   view = "tabla",
   timeline = null,
@@ -122,59 +131,24 @@ export function ElementTree({
   }
 
   const bar = (node: ElementNode, rule: string | null) => {
-    if (!timeline) return null
+    if (!timeline || !node.element.startsOn) return null
     const { element, depth } = node
-    if (!element.startsOn) return null
-    const start = fromIsoDate(element.startsOn)
-    const color = shade(node.phaseColor, depth === 0 ? 0 : depth + 1) ?? "var(--muted-foreground)"
-    const left = positionOf(start, timeline.range) * timeline.width
-    const label = `${element.name}: ${formatPlanDate(element.startsOn)}${element.endsOn ? ` → ${formatPlanDate(element.endsOn)}` : ", sin fin"}`
-    const selected = element.id === selectedId
-    const tooltip = rule ? `${label} · ${rule}` : label
-
-    if (!element.endsOn) {
-      // Sin fin: un punto y una estela que se desvanece.
-      return (
-        <button
-          type="button"
-          aria-label={label}
-          title={tooltip}
-          onClick={() => onOpen(element.id)}
-          className="absolute top-1/2 flex -translate-y-1/2 items-center"
-          style={{ left }}
-        >
-          <span className="size-2.5 rounded-full border-2" style={{ borderColor: color }} />
-          <span
-            className="h-0.5 w-8"
-            style={{ background: `linear-gradient(90deg, ${color}, transparent)` }}
-          />
-        </button>
-      )
-    }
-
-    const width = Math.max(
-      spanOf(start, fromIsoDate(element.endsOn), timeline.range) * timeline.width,
-      3
-    )
+    const label = `${element.name}: ${formatPlanDate(element.startsOn!)}${element.endsOn ? ` → ${formatPlanDate(element.endsOn)}` : ", sin fin"}`
+    const modes = barDragModes(element, dependencies)
+    const lockedBy = modes.locked ? `Se mueve con ${modes.by.map(nameOf).join(" y ")}` : null
+    const tooltip = [label, rule, editable ? lockedBy : null].filter(Boolean).join(" · ")
     return (
-      <button
-        type="button"
-        aria-label={label}
-        title={tooltip}
-        onClick={() => onOpen(element.id)}
-        className={cn(
-          "absolute top-1/2 -translate-y-1/2 overflow-hidden rounded-[5px] text-left transition-shadow",
-          depth === 0 ? "h-[18px]" : "h-3.5",
-          selected && "ring-primary ring-offset-background ring-2 ring-offset-1"
-        )}
-        style={{ left, width, backgroundColor: color }}
-      >
-        {depth === 0 && element.duration && width > 64 && (
-          <span className="text-background absolute inset-y-0 left-2 flex items-center text-[11px] font-semibold whitespace-nowrap">
-            {formatDuration(element.duration)}
-          </span>
-        )}
-      </button>
+      <TimelineBar
+        element={element}
+        isPhase={depth === 0}
+        color={shade(node.phaseColor, depth === 0 ? 0 : depth + 1) ?? "var(--muted-foreground)"}
+        timeline={timeline}
+        selected={element.id === selectedId}
+        tooltip={tooltip}
+        modes={editable && !pending ? modes : null}
+        onOpen={() => onOpen(element.id)}
+        onDrag={(drag, days) => onDragBar(element.id, drag, days)}
+      />
     )
   }
 

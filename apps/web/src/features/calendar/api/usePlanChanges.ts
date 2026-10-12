@@ -49,7 +49,7 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
       })
     )
 
-  const request = (change: PlanChange) => {
+  const request = (change: PlanChange, title?: string) => {
     if (!plan) return
     const preview = previewChange(plan, change)
     if ("cycle" in preview) {
@@ -80,7 +80,7 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
       change,
       inverse,
       preview: {
-        title: describeChange(plan, change),
+        title: title ?? describeChange(plan, change),
         moved: preview.moved,
         outside: [...outside, ...others],
       },

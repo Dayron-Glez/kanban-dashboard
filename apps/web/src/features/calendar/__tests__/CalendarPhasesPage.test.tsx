@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type {
   CalendarElement,
@@ -275,6 +275,101 @@ describe("CalendarPhasesPage", () => {
         duration: { amount: 8, unit: "weeks" },
       })
     )
+  })
+
+  it("las barras se mueven con las flechas: un día, una semana con Mayús, solo el fin con Alt", async () => {
+    const plan = planOf([
+      rodaje({
+        duration: { amount: 6, unit: "weeks" },
+        startsOn: "2027-04-05",
+        endsOn: "2027-05-16",
+      }),
+    ])
+    api.elements.getPlan.mockResolvedValue(plan)
+    api.elements.updatePlan.mockResolvedValue(plan)
+    renderPage()
+
+    const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    bar.focus()
+    await userEvent.keyboard("{Shift>}{ArrowRight}{/Shift}")
+    expect(api.elements.updatePlan).toHaveBeenLastCalledWith("rodaje", { fixedStart: "2027-04-12" })
+
+    await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}")
+    expect(api.elements.updatePlan).toHaveBeenLastCalledWith("rodaje", {
+      duration: { amount: 41, unit: "days" },
+    })
+  })
+
+  it("arrastrar una barra la mueve a la semana más cercana, y soltar sin moverla la abre", async () => {
+    const plan = planOf([
+      rodaje({
+        duration: { amount: 6, unit: "weeks" },
+        startsOn: "2027-04-05",
+        endsOn: "2027-05-16",
+      }),
+    ])
+    api.elements.getPlan.mockResolvedValue(plan)
+    api.elements.updatePlan.mockResolvedValue(plan)
+    renderPage()
+
+    const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    // En «meses» un día mide 2 px: 30 px son 15 días, que se ajustan a 2 semanas.
+    fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
+    fireEvent.pointerMove(bar, { clientX: 130, pointerId: 1 })
+    fireEvent.pointerUp(bar, { clientX: 130, pointerId: 1 })
+    // El clic que sigue a soltar no abre el inspector; un clic sin arrastrar, sí.
+    fireEvent.click(bar)
+    await waitFor(() =>
+      expect(api.elements.updatePlan).toHaveBeenLastCalledWith("rodaje", {
+        fixedStart: "2027-04-19",
+      })
+    )
+    expect(screen.queryByRole("heading", { name: "Rodaje" })).toBeNull()
+    fireEvent.click(bar)
+    expect(screen.getByRole("heading", { name: "Rodaje" })).toBeInTheDocument()
+  })
+
+  it("lo que cuelga de otros por sus dos fechas no se arrastra, y lo dice", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf(
+        [
+          rodaje({
+            duration: { amount: 6, unit: "weeks" },
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+          element("shooting", "rodaje", "Shooting", {
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+        ],
+        [
+          {
+            id: "s1",
+            predecessorId: "rodaje",
+            predecessorPoint: "start",
+            successorId: "shooting",
+            successorPoint: "start",
+            lag: { amount: 0, unit: "days" },
+          },
+          {
+            id: "s2",
+            predecessorId: "rodaje",
+            predecessorPoint: "end",
+            successorId: "shooting",
+            successorPoint: "end",
+            lag: { amount: 0, unit: "days" },
+          },
+        ]
+      )
+    )
+    renderPage()
+
+    const bar = await screen.findByRole("button", { name: "Shooting: 5 abr 2027 → 16 may 2027" })
+    expect(bar).toHaveAttribute("title", expect.stringContaining("Se mueve con Rodaje"))
+    bar.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    expect(api.elements.updatePlan).not.toHaveBeenCalled()
   })
 
   it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {

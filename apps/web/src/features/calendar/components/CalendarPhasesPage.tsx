@@ -2,19 +2,21 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
-import { fromIsoDate, moveEnd, moveStart } from "@repo/domain"
+import { fromIsoDate, moveEnd, moveStart, toIsoDate } from "@repo/domain"
 import { toast } from "sonner"
 import { Button, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
 import { useGenerateFromTemplate, usePlan } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree, type ElementNode } from "../lib/elementTree"
-import { setupSteps, summarizePlan } from "../lib/planFormat"
-import { changeForEdit, editContext } from "../lib/planPreview"
+import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
+import { changeForEdit, describeShift, editContext } from "../lib/planPreview"
 import {
   buildTimeline,
+  dragTarget,
   PLAN_SCALES,
   PLAN_VIEWS,
+  type BarDrag,
   type PlanScale,
   type PlanView,
 } from "../lib/timeline"
@@ -106,15 +108,33 @@ export function CalendarPhasesPage() {
   }, [openId, elements, tree])
 
   // Una fecha escrita a mano se convierte en el cambio de regla o duración que la produce.
-  const onMoveDate = (elementId: string, point: DatePoint, date: string) => {
+  const onMoveDate = (elementId: string, point: DatePoint, date: string, title?: string) => {
     if (!plan.data) return
+    const name = plan.data.elements.find((element) => element.id === elementId)?.name
     const move = point === "start" ? moveStart : moveEnd
     const result = move(editContext(plan.data, elementId), fromIsoDate(date))
     if ("error" in result) {
       toast.error(EDIT_ERRORS[result.error])
       return
     }
-    changes.request(changeForEdit(plan.data, elementId, result.edit))
+    changes.request(
+      changeForEdit(plan.data, elementId, result.edit),
+      title ??
+        `Mover el ${point === "start" ? "inicio" : "fin"} de ${name} al ${formatPlanDate(date)}`
+    )
+  }
+
+  // Arrastrar una barra es escribir la fecha que cambia: pasa por la misma vista previa.
+  const onDragBar = (elementId: string, drag: BarDrag, days: number) => {
+    const element = plan.data?.elements.find((candidate) => candidate.id === elementId)
+    if (!element || !plan.data) return
+    const target = dragTarget(element, plan.data.dependencies, drag, days)
+    if (!target) return
+    const title =
+      drag === "move"
+        ? `Mover ${element.name} ${describeShift(days)} ${days > 0 ? "más tarde" : "antes"}`
+        : undefined
+    onMoveDate(elementId, target.point, toIsoDate(target.date), title)
   }
 
   return (
@@ -176,6 +196,7 @@ export function CalendarPhasesPage() {
               onUpdate={onUpdate}
               onOpen={setOpenId}
               onMoveDate={onMoveDate}
+              onDragBar={onDragBar}
               selectedId={openId}
               view={view}
               timeline={timeline}
