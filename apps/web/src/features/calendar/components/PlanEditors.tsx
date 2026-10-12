@@ -17,7 +17,12 @@ import {
   SelectValue,
   cn,
 } from "@/shared/index"
-import { DURATION_UNIT_OPTIONS, formatDuration, formatPlanDate } from "../lib/planFormat"
+import {
+  DURATION_UNIT_OPTIONS,
+  formatDuration,
+  formatLongDate,
+  formatPlanDate,
+} from "../lib/planFormat"
 
 // Los desplegables de mes y año necesitan un rango; sin él, se quedan en el año en curso.
 const THIS_YEAR = new Date().getFullYear()
@@ -27,6 +32,9 @@ const DROPDOWN_END = new Date(THIS_YEAR + 15, 11)
 // Lo vacío no se pinta: aparece al pasar por la fila (group/row) o al llegar con el teclado.
 const QUIET =
   "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+
+const FIELD =
+  "hover:bg-muted/60 focus-visible:ring-ring/50 block w-full rounded-lg px-2.5 py-1.5 text-left outline-none focus-visible:ring-[3px] disabled:cursor-default"
 
 const TRIGGER =
   "hover:bg-muted focus-visible:ring-ring/50 rounded px-1.5 py-0.5 text-left outline-none focus-visible:ring-[3px] disabled:cursor-default disabled:hover:bg-transparent"
@@ -41,6 +49,8 @@ interface DurationEditorProps {
   emptyLabel?: string
   /** Sin valor, solo aparece al pasar por la fila o con el foco. */
   quiet?: boolean
+  /** Solo la cantidad: la unidad se elige aparte. */
+  amountOnly?: boolean
 }
 
 export function DurationEditor({
@@ -51,6 +61,7 @@ export function DurationEditor({
   onSave,
   emptyLabel = "Añadir",
   quiet = false,
+  amountOnly = false,
 }: Readonly<DurationEditorProps>) {
   const [open, setOpen] = useState<boolean>(false)
   const [amount, setAmount] = useState<string>("")
@@ -87,7 +98,11 @@ export function DurationEditor({
           disabled={pending}
           className={cn(TRIGGER, !value && "text-muted-foreground", !value && quiet && QUIET)}
         >
-          {value ? formatDuration(value) : emptyLabel}
+          {value
+            ? amountOnly
+              ? String(value.amount).replace(".", ",")
+              : formatDuration(value)
+            : emptyLabel}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64" align="end">
@@ -153,6 +168,8 @@ interface DateEditorProps {
   reason?: string
   /** Sin valor, solo aparece al pasar por la fila o con el foco. */
   quiet?: boolean
+  /** Como campo con su etiqueta encima («Inicio», «Fin»), en vez de en línea. */
+  fieldLabel?: string
 }
 
 export function DateEditor({
@@ -164,12 +181,20 @@ export function DateEditor({
   emptyLabel = "Escribir fecha",
   reason,
   quiet = false,
+  fieldLabel,
 }: Readonly<DateEditorProps>) {
   const [open, setOpen] = useState<boolean>(false)
   const selected = value ? parseISO(value) : undefined
 
   if (!editable) {
-    return <span title={reason}>{value ? formatPlanDate(value) : "—"}</span>
+    return fieldLabel ? (
+      <div className="px-2.5 py-1.5" title={reason}>
+        <span className="text-muted-foreground block text-[11px]">{fieldLabel}</span>
+        <span className="text-sm font-semibold">{value ? formatLongDate(value) : "—"}</span>
+      </div>
+    ) : (
+      <span title={reason}>{value ? formatPlanDate(value) : "—"}</span>
+    )
   }
 
   return (
@@ -180,9 +205,29 @@ export function DateEditor({
           aria-label={label}
           title={value ? undefined : reason}
           disabled={pending}
-          className={cn(TRIGGER, !value && "text-muted-foreground", !value && quiet && QUIET)}
+          className={
+            fieldLabel
+              ? FIELD
+              : cn(TRIGGER, !value && "text-muted-foreground", !value && quiet && QUIET)
+          }
         >
-          {value ? formatPlanDate(value) : emptyLabel}
+          {fieldLabel ? (
+            <>
+              <span className="text-muted-foreground block text-[11px]">{fieldLabel}</span>
+              <span
+                className={cn(
+                  "text-sm font-semibold",
+                  !value && "text-muted-foreground font-normal"
+                )}
+              >
+                {value ? formatLongDate(value) : emptyLabel}
+              </span>
+            </>
+          ) : value ? (
+            formatPlanDate(value)
+          ) : (
+            emptyLabel
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="end">

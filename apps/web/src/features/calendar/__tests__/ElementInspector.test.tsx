@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { CalendarElement, CalendarPlan, ElementDependency } from "@repo/contracts"
 import { beforeAll, describe, expect, it, vi } from "vitest"
-import { ElementSheet } from "../components/ElementSheet"
+import { ElementInspector } from "../components/ElementInspector"
 
 const element = (
   id: string,
@@ -74,7 +74,11 @@ const plan: CalendarPlan = {
   ],
 }
 
-const renderSheet = (elementId: string, editable = true) => {
+const renderSheet = (
+  elementId: string,
+  editable = true,
+  planSpan: { start: string; end: string } | null = null
+) => {
   const handlers = {
     onUpdate: vi.fn(),
     onMoveDate: vi.fn(),
@@ -83,11 +87,12 @@ const renderSheet = (elementId: string, editable = true) => {
     onClose: vi.fn(),
   }
   render(
-    <ElementSheet
+    <ElementInspector
       elementId={elementId}
       plan={plan}
       editable={editable}
       pending={false}
+      planSpan={planSpan}
       {...handlers}
     />
   )
@@ -97,7 +102,7 @@ const renderSheet = (elementId: string, editable = true) => {
 const openRules = () =>
   userEvent.click(screen.getByRole("button", { name: "Cambiar de qué depende" }))
 
-describe("ElementSheet", () => {
+describe("ElementInspector", () => {
   it("enseña las fechas, de dónde cuelga y cómo se calcula", async () => {
     renderSheet("vfx")
 
@@ -105,8 +110,8 @@ describe("ElementSheet", () => {
     await openRules()
 
     expect(screen.getByRole("heading", { name: "VFX" })).toBeInTheDocument()
-    expect(screen.getByText("Subfase · Postproducción")).toBeInTheDocument()
-    expect(screen.getByText("25 jul 2027")).toBeInTheDocument()
+    expect(screen.getByText("Postproducción › Subfase")).toBeInTheDocument()
+    expect(screen.getByText("dom 25 jul 2027")).toBeInTheDocument()
     expect(screen.getByLabelText("Desfase")).toHaveValue("-4")
     expect(screen.getByRole("combobox", { name: "Unidad del desfase" })).toHaveTextContent(
       "semanas"
@@ -192,5 +197,23 @@ describe("ElementSheet", () => {
 
     expect(screen.getByText("−4 semanas fin de Edición")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /regla/ })).toBeNull()
+  })
+
+  it("el contador suma una unidad y cambiar de unidad conserva lo que dura", async () => {
+    const { onUpdate } = renderSheet("vfx")
+
+    await userEvent.click(screen.getByRole("button", { name: "Una unidad más" }))
+    expect(onUpdate).toHaveBeenLastCalledWith("vfx", { duration: { amount: 6, unit: "weeks" } })
+
+    // Del 25 jul al 28 ago son 35 días: en días, 35.
+    await userEvent.click(screen.getByRole("radio", { name: "días" }))
+    expect(onUpdate).toHaveBeenLastCalledWith("vfx", { duration: { amount: 35, unit: "days" } })
+  })
+
+  it("la barra sitúa una fase dentro del plan entero", () => {
+    renderSheet("post", true, { start: "2026-01-01", end: "2027-10-31" })
+
+    expect(screen.getByText("Plan · 1 ene 2026")).toBeInTheDocument()
+    expect(screen.getByText("31 oct 2027")).toBeInTheDocument()
   })
 })

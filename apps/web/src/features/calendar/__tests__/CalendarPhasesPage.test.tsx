@@ -322,6 +322,22 @@ describe("CalendarPhasesPage", () => {
     expect(screen.queryByRole("region", { name: "Para que el plan salga solo" })).toBeNull()
   })
 
+  it("el inspector se acopla al lado, se recorre con ↑ ↓ y se cierra con Esc", async () => {
+    api.elements.getPlan.mockResolvedValue(planOf([rodaje(), preparacion()]))
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ver el detalle de Rodaje" }))
+    expect(screen.getByRole("complementary", { name: "Detalle de Rodaje" })).toBeInTheDocument()
+
+    await userEvent.keyboard("{ArrowDown}")
+    expect(
+      screen.getByRole("complementary", { name: "Detalle de Preparación" })
+    ).toBeInTheDocument()
+
+    await userEvent.keyboard("{Escape}")
+    expect(screen.queryByRole("complementary", { name: /Detalle de/ })).toBeNull()
+  })
+
   it("la propietaria genera el calendario si está vacío", async () => {
     api.elements.getPlan.mockResolvedValueOnce(planOf([]))
     api.elements.getPlan.mockResolvedValue(planOf([element("dev", null, "Desarrollo")]))

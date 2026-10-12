@@ -23,6 +23,10 @@ export function formatDuration({ amount, unit }: Duration): string {
 /** «5 abr 2027». */
 export const formatPlanDate = (iso: string) => format(parseISO(iso), "d MMM yyyy", { locale: es })
 
+/** «lun 5 abr 2027». */
+export const formatLongDate = (iso: string) =>
+  format(parseISO(iso), "EEE d MMM yyyy", { locale: es })
+
 const POINT_LABELS: Record<DatePoint, string> = { start: "inicio", end: "fin" }
 
 const signed = (lag: ElementDependency["lag"]) =>

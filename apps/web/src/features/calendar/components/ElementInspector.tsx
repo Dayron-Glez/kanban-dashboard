@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { IconChevronRight } from "@tabler/icons-react"
+import { IconChevronRight, IconX } from "@tabler/icons-react"
 import type {
   CalendarPlan,
   DatePoint,
@@ -7,20 +7,13 @@ import type {
   UpdateElementPlanInput,
 } from "@repo/contracts"
 import { validPredecessors } from "@repo/domain"
-import {
-  Button,
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/shared/index"
+import { Button } from "@/shared/index"
 import { buildElementTree, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { describeIssue, describeRule } from "../lib/planFormat"
-import { DateEditor, DurationEditor } from "./PlanEditors"
 import { RuleEditor } from "./RuleEditor"
+import { WhenField } from "./WhenField"
 
-interface ElementSheetProps {
+interface ElementInspectorProps {
   elementId: string | null
   plan: CalendarPlan
   editable: boolean
@@ -30,16 +23,24 @@ interface ElementSheetProps {
   onMoveDate: (elementId: string, point: DatePoint, date: string) => void
   onSetRule: (elementId: string, point: DatePoint, input: SetElementRuleInput) => void
   onRemoveRule: (elementId: string, point: DatePoint) => void
+  /** Si el plan entero tiene fechas: el contexto de las fases. */
+  planSpan: { start: string; end: string } | null
 }
 
 const flatten = (nodes: ElementNode[]): ElementNode[] =>
   nodes.flatMap((node) => [node, ...flatten(node.children)])
 
+// Los hijos toman el color de su fase, más claro cuanto más hondo.
+const shade = (color: string | null, depth: number) =>
+  color
+    ? `color-mix(in oklch, ${color} ${Math.max(100 - depth * 25, 30)}%, transparent)`
+    : undefined
+
 /**
- * El detalle de un elemento. Arriba, sus fechas, que se escriben directamente;
- * debajo, cómo se calculan, para quien quiera cambiar de qué depende.
+ * El inspector de un elemento, acoplado a la derecha: no tapa el plan, que se
+ * ve moverse mientras se edita. Arriba, cuándo; debajo, cómo se calcula.
  */
-export function ElementSheet({
+export function ElementInspector({
   elementId,
   plan,
   editable,
@@ -49,7 +50,8 @@ export function ElementSheet({
   onMoveDate,
   onSetRule,
   onRemoveRule,
-}: Readonly<ElementSheetProps>) {
+  planSpan,
+}: Readonly<ElementInspectorProps>) {
   const [showRules, setShowRules] = useState<boolean>(false)
   const [addingEnd, setAddingEnd] = useState<boolean>(false)
   const element = plan.elements.find((candidate) => candidate.id === elementId)
@@ -87,6 +89,17 @@ export function ElementSheet({
     parents.unshift(parent.name)
     parentId = parent.parentId
   }
+  const node = flatten(buildElementTree(plan.elements)).find(
+    (candidate) => candidate.element.id === element.id
+  )
+  const color = node ? shade(node.phaseColor, node.depth) : undefined
+  const parent = plan.elements.find((candidate) => candidate.id === element.parentId)
+  const context =
+    parent?.startsOn && parent.endsOn
+      ? { name: parent.name, start: parent.startsOn, end: parent.endsOn }
+      : planSpan
+        ? { name: "Plan", ...planSpan }
+        : null
   const reason = element.issue ? describeIssue(element.issue, nameOf) : undefined
   const rule =
     describeRule(element, plan.dependencies, nameOf) ??
@@ -94,66 +107,49 @@ export function ElementSheet({
   const fixedStart = element.isAnchor || element.isPinned
 
   return (
-    <Sheet open onOpenChange={(open) => !open && close()}>
-      <SheetContent className="bg-card flex w-full flex-col gap-6 overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle>{element.name}</SheetTitle>
-          <SheetDescription>
-            {[ELEMENT_KIND_LABELS[element.kind], ...parents].join(" · ")}
-          </SheetDescription>
-        </SheetHeader>
+    <aside
+      aria-label={`Detalle de ${element.name}`}
+      className="border-border bg-background flex w-[400px] shrink-0 flex-col border-l max-xl:fixed max-xl:inset-y-0 max-xl:right-0 max-xl:z-40 max-xl:shadow-2xl xl:sticky xl:top-0 xl:max-h-screen"
+    >
+      <div className="border-border border-b px-5 pt-4 pb-3">
+        <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+          <span
+            aria-hidden
+            className="size-2 shrink-0 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <span className="truncate">
+            {[...parents, ELEMENT_KIND_LABELS[element.kind]].join(" › ")}
+          </span>
+          <button
+            type="button"
+            aria-label="Cerrar el detalle"
+            onClick={close}
+            className="hover:text-foreground ml-auto rounded p-1"
+          >
+            <IconX size={14} />
+          </button>
+        </div>
+        <h2 className="mt-1.5 text-sm font-semibold">{element.name}</h2>
+      </div>
 
-        <section aria-labelledby="sheet-dates" className="flex flex-col gap-2 px-4">
-          <h3 id="sheet-dates" className="text-sm font-semibold">
-            Fechas
-          </h3>
-          <dl className="grid grid-cols-[6rem_1fr] items-center gap-y-1 text-sm">
-            <dt className="text-muted-foreground">Inicio</dt>
-            <dd>
-              <DateEditor
-                label={`Inicio de ${element.name}`}
-                value={element.startsOn}
-                editable={editable}
-                pending={pending}
-                reason={reason}
-                emptyLabel={fixedStart ? "Escribir fecha" : "—"}
-                onSave={(date) => onMoveDate(element.id, "start", date)}
-              />
-            </dd>
-            <dt className="text-muted-foreground">Fin</dt>
-            <dd>
-              <DateEditor
-                label={`Fin de ${element.name}`}
-                value={element.endsOn}
-                editable={editable}
-                pending={pending}
-                reason={reason}
-                emptyLabel="—"
-                onSave={(date) => onMoveDate(element.id, "end", date)}
-              />
-            </dd>
-            <dt className="text-muted-foreground">Duración</dt>
-            <dd>
-              <DurationEditor
-                label={`Duración de ${element.name}`}
-                value={element.duration}
-                editable={editable}
-                pending={pending}
-                onSave={(duration) => onUpdate(element.id, { duration })}
-              />
-            </dd>
-          </dl>
-          {reason && <p className="text-muted-foreground text-xs">{reason}.</p>}
-          {editable && (
-            <p className="text-muted-foreground text-xs">
-              Escribe la fecha que quieras: el plan se ajusta para que salga, y antes de guardar ves
-              qué más se mueve.
-            </p>
-          )}
-        </section>
+      <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
+        <WhenField
+          element={element}
+          context={context}
+          color={color}
+          editable={editable}
+          pending={pending}
+          reason={reason}
+          onUpdate={(input) => onUpdate(element.id, input)}
+          onMoveDate={(point, date) => onMoveDate(element.id, point, date)}
+        />
 
-        <section aria-labelledby="sheet-rules" className="flex flex-col gap-3 px-4 pb-6">
-          <h3 id="sheet-rules" className="text-sm font-semibold">
+        <section aria-labelledby="inspector-rules" className="flex flex-col gap-2">
+          <h3
+            id="inspector-rules"
+            className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+          >
             Cómo se calcula
           </h3>
           <p className="text-sm">
@@ -226,7 +222,7 @@ export function ElementSheet({
             </>
           )}
         </section>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </aside>
   )
 }

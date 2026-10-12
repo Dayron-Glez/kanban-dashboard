@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
@@ -8,7 +8,7 @@ import { Button, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
 import { useGenerateFromTemplate, usePlan } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
-import { buildElementTree } from "../lib/elementTree"
+import { buildElementTree, type ElementNode } from "../lib/elementTree"
 import { setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, editContext } from "../lib/planPreview"
 import {
@@ -19,7 +19,7 @@ import {
   type PlanView,
 } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
-import { ElementSheet } from "./ElementSheet"
+import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { PlanHeader } from "./PlanHeader"
 import { SegmentedControl } from "./SegmentedControl"
@@ -38,6 +38,9 @@ const SCALE_OPTIONS = [
 
 const pick = <T extends string>(value: string | null, options: readonly T[], fallback: T) =>
   options.includes(value as T) ? (value as T) : fallback
+
+const flattenIds = (nodes: ElementNode[]): string[] =>
+  nodes.flatMap((node) => [node.element.id, ...flattenIds(node.children)])
 
 const EDIT_ERRORS = {
   "missing-reference": "No se puede calcular: depende de algo que todavía no tiene fecha",
@@ -77,6 +80,31 @@ export function CalendarPhasesPage() {
   const onRemoveRule = (elementId: string, point: DatePoint) =>
     changes.request({ type: "remove-rule", elementId, point })
 
+  // Con el inspector abierto: ↑ ↓ pasan al elemento de arriba o de abajo, Esc cierra.
+  useEffect(() => {
+    if (!openId || !elements) return
+    const order = flattenIds(tree)
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement
+      if (
+        target.closest(
+          "input, textarea, [role=dialog], [role=alertdialog], [role=listbox], [data-radix-popper-content-wrapper]"
+        )
+      )
+        return
+      if (event.key === "Escape") setOpenId(null)
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
+      const index = order.indexOf(openId)
+      const next = order[index + (event.key === "ArrowDown" ? 1 : -1)]
+      if (next) {
+        event.preventDefault()
+        setOpenId(next)
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [openId, elements, tree])
+
   // Una fecha escrita a mano se convierte en el cambio de regla o duración que la produce.
   const onMoveDate = (elementId: string, point: DatePoint, date: string) => {
     if (!plan.data) return
@@ -90,80 +118,85 @@ export function CalendarPhasesPage() {
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 p-6">
-      <PlanHeader
-        summary={summary}
-        actions={
-          !isMobile &&
-          tree.length > 0 && (
-            <>
-              <SegmentedControl
-                label="Vista"
-                value={view}
-                options={VIEW_OPTIONS}
-                onChange={(next) => setParam("vista", next)}
-              />
-              {view !== "tabla" && (
+    <div className="flex w-full min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 p-6">
+        <PlanHeader
+          summary={summary}
+          actions={
+            !isMobile &&
+            tree.length > 0 && (
+              <>
                 <SegmentedControl
-                  label="Escala"
-                  value={scale}
-                  options={SCALE_OPTIONS}
-                  onChange={(next) => setParam("escala", next)}
+                  label="Vista"
+                  value={view}
+                  options={VIEW_OPTIONS}
+                  onChange={(next) => setParam("vista", next)}
                 />
-              )}
-            </>
-          )
-        }
-      />
+                {view !== "tabla" && (
+                  <SegmentedControl
+                    label="Escala"
+                    value={scale}
+                    options={SCALE_OPTIONS}
+                    onChange={(next) => setParam("escala", next)}
+                  />
+                )}
+              </>
+            )
+          }
+        />
 
-      {plan.isPending ? (
-        <div className="flex flex-col gap-2" aria-busy>
-          {Array.from({ length: 7 }, (_, index) => (
-            <Skeleton key={index} className="h-8 w-full" />
-          ))}
-        </div>
-      ) : plan.isError ? (
-        <QueryErrorState error={plan.error} onRetry={() => void plan.refetch()} />
-      ) : tree.length === 0 ? (
-        <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center text-sm">
-          <p>Este proyecto todavía no tiene fases.</p>
-          {isOwner ? (
-            <Button size="sm" onClick={() => generate.mutate()} disabled={generate.isPending}>
-              <IconTemplate className="mr-1 h-4 w-4" />
-              Generar desde la plantilla
-            </Button>
-          ) : (
-            <p>Solo el propietario puede generarlas desde la plantilla.</p>
-          )}
-        </div>
-      ) : (
-        <>
-          {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
-          <ElementTree
-            nodes={tree}
-            dependencies={plan.data.dependencies}
-            editable={isOwner}
-            pending={changes.pending}
-            onUpdate={onUpdate}
-            onOpen={setOpenId}
-            onMoveDate={onMoveDate}
-            selectedId={openId}
-            view={view}
-            timeline={timeline}
-          />
-          <ElementSheet
-            elementId={openId}
-            plan={plan.data}
-            editable={isOwner}
-            pending={changes.pending}
-            onClose={() => setOpenId(null)}
-            onUpdate={onUpdate}
-            onMoveDate={onMoveDate}
-            onSetRule={onSetRule}
-            onRemoveRule={onRemoveRule}
-          />
-          <ChangePreviewDialog elements={plan.data.elements} {...changes.dialog} />
-        </>
+        {plan.isPending ? (
+          <div className="flex flex-col gap-2" aria-busy>
+            {Array.from({ length: 7 }, (_, index) => (
+              <Skeleton key={index} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : plan.isError ? (
+          <QueryErrorState error={plan.error} onRetry={() => void plan.refetch()} />
+        ) : tree.length === 0 ? (
+          <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center text-sm">
+            <p>Este proyecto todavía no tiene fases.</p>
+            {isOwner ? (
+              <Button size="sm" onClick={() => generate.mutate()} disabled={generate.isPending}>
+                <IconTemplate className="mr-1 h-4 w-4" />
+                Generar desde la plantilla
+              </Button>
+            ) : (
+              <p>Solo el propietario puede generarlas desde la plantilla.</p>
+            )}
+          </div>
+        ) : (
+          <>
+            {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
+            <ElementTree
+              nodes={tree}
+              dependencies={plan.data.dependencies}
+              editable={isOwner}
+              pending={changes.pending}
+              onUpdate={onUpdate}
+              onOpen={setOpenId}
+              onMoveDate={onMoveDate}
+              selectedId={openId}
+              view={view}
+              timeline={timeline}
+            />
+            <ChangePreviewDialog elements={plan.data.elements} {...changes.dialog} />
+          </>
+        )}
+      </div>
+      {plan.data && openId && (
+        <ElementInspector
+          elementId={openId}
+          plan={plan.data}
+          editable={isOwner}
+          pending={changes.pending}
+          onClose={() => setOpenId(null)}
+          onUpdate={onUpdate}
+          onMoveDate={onMoveDate}
+          onSetRule={onSetRule}
+          onRemoveRule={onRemoveRule}
+          planSpan={summary.span}
+        />
       )}
     </div>
   )

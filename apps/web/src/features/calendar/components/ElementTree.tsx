@@ -60,6 +60,17 @@ export function ElementTree({
   // Las fases empiezan abiertas y el resto cerrado: se guarda lo que el usuario cambia.
   const [toggled, setToggled] = useState<Set<string>>(new Set())
   const showTimeline = view !== "tabla" && timeline != null
+  // Lo que contiene al elemento seleccionado se abre solo, para que se vea.
+  const selectedPath = new Set<string>()
+  const findPath = (list: ElementNode[], path: string[]): boolean =>
+    list.some((node) => {
+      if (node.element.id === selectedId) {
+        path.forEach((id) => selectedPath.add(id))
+        return true
+      }
+      return findPath(node.children, [...path, node.element.id])
+    })
+  if (selectedId) findPath(nodes, [])
   const background = showTimeline ? trackBackground(timeline) : undefined
 
   const names = new Map<string, string>()
@@ -169,7 +180,7 @@ export function ElementTree({
 
   const renderNode = (node: ElementNode) => {
     const { element, depth, children } = node
-    const expanded = toggled.has(element.id) !== (depth === 0)
+    const expanded = toggled.has(element.id) !== (depth === 0) || selectedPath.has(element.id)
     const hasChildren = children.length > 0
     const rule = describeRule(element, dependencies, nameOf)
     const selected = element.id === selectedId
