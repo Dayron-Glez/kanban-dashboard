@@ -243,6 +243,25 @@ describe("CalendarPhasesPage", () => {
     )
   })
 
+  it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({
+          duration: { amount: 6, unit: "weeks" },
+          startsOn: "2027-04-05",
+          endsOn: "2027-05-16",
+        }),
+        preparacion({ startsOn: "2027-02-01" }),
+      ])
+    )
+    renderPage()
+
+    expect(await screen.findByText("Rodaje · 5 abr 2027")).toBeInTheDocument()
+    expect(screen.getByText("1 fase sin duración")).toBeInTheDocument()
+    const setup = screen.getByRole("region", { name: "Para que el plan salga solo" })
+    expect(within(setup).getByText("2 de 3")).toBeInTheDocument()
+  })
+
   it("el bloque «Para que el plan salga solo» pide lo que falta y se va cuando está todo", async () => {
     api.elements.getPlan.mockResolvedValue(planOf([rodaje(), preparacion()]))
     renderPage()

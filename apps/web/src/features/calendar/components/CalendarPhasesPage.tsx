@@ -9,11 +9,12 @@ import { useProject } from "@/features/project"
 import { useGenerateFromTemplate, usePlan } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree } from "../lib/elementTree"
-import { missingSetup } from "../lib/planFormat"
+import { setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, editContext } from "../lib/planPreview"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementSheet } from "./ElementSheet"
 import { ElementTree } from "./ElementTree"
+import { PlanHeader } from "./PlanHeader"
 import { PlanSetup } from "./PlanSetup"
 
 const EDIT_ERRORS = {
@@ -30,7 +31,8 @@ export function CalendarPhasesPage() {
   const isOwner = useProject(projectId).data?.role === "owner"
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
-  const steps = useMemo(() => missingSetup(elements ?? []), [elements])
+  const steps = useMemo(() => setupSteps(elements ?? []), [elements])
+  const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
 
   const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
     changes.request({ type: "update", elementId, input })
@@ -53,7 +55,7 @@ export function CalendarPhasesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
-      <h1 className="text-lg font-semibold">Fases</h1>
+      <PlanHeader summary={summary} />
 
       {plan.isPending ? (
         <div className="flex flex-col gap-2" aria-busy>

@@ -100,6 +100,7 @@ export interface SetupStep {
   element: CalendarElement
   field: "fixedStart" | "duration"
   label: string
+  done: boolean
 }
 
 const SETUP: [templateKey: string, field: SetupStep["field"]][] = [
@@ -112,15 +113,50 @@ const SETUP: [templateKey: string, field: SetupStep["field"]][] = [
   ["desarrollo", "duration"],
 ]
 
-/** Lo mínimo que falta para que el plan salga solo, en el orden en que conviene escribirlo. */
-export function missingSetup(elements: CalendarElement[]): SetupStep[] {
+/** Lo mínimo para que el plan salga solo, en el orden en que conviene escribirlo. */
+export function setupSteps(elements: CalendarElement[]): SetupStep[] {
   return SETUP.flatMap(([templateKey, field]) => {
     const element = elements.find((candidate) => candidate.templateKey === templateKey)
     if (!element) return []
-    const missing = field === "duration" ? !element.duration : !element.startsOn
-    if (!missing) return []
+    const done = field === "duration" ? element.duration != null : element.startsOn != null
     const label =
       field === "duration" ? `Duración de ${element.name}` : `Fecha de inicio de ${element.name}`
-    return [{ element, field, label }]
+    return [{ element, field, label, done }]
   })
+}
+
+export interface PlanSummary {
+  anchor: CalendarElement | undefined
+  /** De lo primero que empieza a lo último que acaba, si hay fechas. */
+  span: { start: string; end: string; months: number } | null
+  /** Fases sin duración: lo que el resumen avisa que falta. */
+  phasesWithoutDuration: number
+}
+
+export function summarizePlan(elements: CalendarElement[]): PlanSummary {
+  const days = elements.flatMap((element) =>
+    [element.startsOn, element.endsOn].filter((day): day is string => day != null)
+  )
+  const sorted = [...days].sort()
+  const start = sorted[0]
+  const end = sorted.at(-1)
+  return {
+    anchor: elements.find((element) => element.isAnchor),
+    span:
+      start && end
+        ? {
+            start,
+            end,
+            months: Math.max(
+              1,
+              Math.round(
+                (parseISO(end).getTime() - parseISO(start).getTime()) / (30.4375 * 86_400_000)
+              )
+            ),
+          }
+        : null,
+    phasesWithoutDuration: elements.filter(
+      (element) => element.kind === "phase" && element.duration == null
+    ).length,
+  }
 }

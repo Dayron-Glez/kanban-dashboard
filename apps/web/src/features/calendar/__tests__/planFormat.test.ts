@@ -5,7 +5,8 @@ import {
   describeRule,
   formatDuration,
   formatPlanDate,
-  missingSetup,
+  setupSteps,
+  summarizePlan,
 } from "../lib/planFormat"
 
 const element = (id: string, overrides: Partial<CalendarElement> = {}): CalendarElement => ({
@@ -108,7 +109,7 @@ describe("describeIssue", () => {
   })
 })
 
-describe("missingSetup", () => {
+describe("setupSteps", () => {
   const plan = [
     element("desarrollo", { kind: "phase", parentId: null, name: "Desarrollo", isPinned: true }),
     element("softpre", { kind: "phase", parentId: null, name: "SoftPre" }),
@@ -118,7 +119,11 @@ describe("missingSetup", () => {
   ]
 
   it("empieza por el rodaje y sigue por las fases", () => {
-    expect(missingSetup(plan).map((step) => step.label)).toEqual([
+    expect(
+      setupSteps(plan)
+        .filter((step) => !step.done)
+        .map((step) => step.label)
+    ).toEqual([
       "Fecha de inicio de Rodaje",
       "Duración de Rodaje",
       "Duración de Preparación",
@@ -129,12 +134,58 @@ describe("missingSetup", () => {
     ])
   })
 
-  it("lo que ya está escrito sale de la lista", () => {
+  it("lo que ya está escrito queda marcado como hecho", () => {
     const written = plan.map((candidate) => ({
       ...candidate,
       duration: { amount: 1, unit: "weeks" as const },
       startsOn: "2027-04-05",
     }))
-    expect(missingSetup(written)).toEqual([])
+    expect(setupSteps(written).every((step) => step.done)).toBe(true)
+  })
+})
+
+describe("summarizePlan", () => {
+  const element = (id: string, overrides: Partial<CalendarElement>): CalendarElement => ({
+    id,
+    projectId: "p",
+    kind: "phase",
+    parentId: null,
+    position: 0,
+    name: id,
+    color: null,
+    templateKey: id,
+    duration: null,
+    startsOn: null,
+    endsOn: null,
+    isAnchor: false,
+    isPinned: false,
+    issue: null,
+    ...overrides,
+  })
+
+  it("el ancla, de dónde a dónde va el plan y cuántas fases no tienen duración", () => {
+    const summary = summarizePlan([
+      element("desarrollo", {
+        startsOn: "2026-01-01",
+        endsOn: "2026-03-31",
+        duration: { amount: 3, unit: "months" },
+      }),
+      element("rodaje", {
+        isAnchor: true,
+        startsOn: "2027-04-05",
+        endsOn: "2027-05-16",
+        duration: { amount: 6, unit: "weeks" },
+      }),
+      element("explotacion", { startsOn: "2027-11-01" }),
+      element("shooting", { kind: "process", parentId: "rodaje" }),
+    ])
+
+    expect(summary.anchor?.id).toBe("rodaje")
+    expect(summary.span).toEqual({ start: "2026-01-01", end: "2027-11-01", months: 22 })
+    expect(summary.phasesWithoutDuration).toBe(1)
+  })
+
+  it("sin fechas, no hay rango", () => {
+    expect(summarizePlan([element("rodaje", { isAnchor: true })]).span).toBeNull()
   })
 })
