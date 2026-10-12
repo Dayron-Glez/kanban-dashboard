@@ -1,12 +1,19 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
-import type { UpdateElementPlanInput } from "@repo/contracts"
+import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
 import { Button, QueryErrorState, Skeleton } from "@/shared/index"
 import { useProject } from "@/features/project"
-import { useGenerateFromTemplate, usePlan, useUpdatePlan } from "../api/elements"
+import {
+  useGenerateFromTemplate,
+  usePlan,
+  useRemoveRule,
+  useSetRule,
+  useUpdatePlan,
+} from "../api/elements"
 import { buildElementTree } from "../lib/elementTree"
 import { missingSetup } from "../lib/planFormat"
+import { ElementSheet } from "./ElementSheet"
 import { ElementTree } from "./ElementTree"
 import { PlanSetup } from "./PlanSetup"
 
@@ -15,6 +22,10 @@ export function CalendarPhasesPage() {
   const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
   const update = useUpdatePlan(projectId)
+  const setRule = useSetRule(projectId)
+  const removeRule = useRemoveRule(projectId)
+  const [openId, setOpenId] = useState<string | null>(null)
+  const pending = update.isPending || setRule.isPending || removeRule.isPending
   const isOwner = useProject(projectId).data?.role === "owner"
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
@@ -22,6 +33,10 @@ export function CalendarPhasesPage() {
 
   const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
     update.mutate({ elementId, input })
+  const onSetRule = (elementId: string, point: DatePoint, input: SetElementRuleInput) =>
+    setRule.mutate({ elementId, point, input })
+  const onRemoveRule = (elementId: string, point: DatePoint) =>
+    removeRule.mutate({ elementId, point })
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
@@ -49,13 +64,24 @@ export function CalendarPhasesPage() {
         </div>
       ) : (
         <>
-          {isOwner && <PlanSetup steps={steps} pending={update.isPending} onUpdate={onUpdate} />}
+          {isOwner && <PlanSetup steps={steps} pending={pending} onUpdate={onUpdate} />}
           <ElementTree
             nodes={tree}
             dependencies={plan.data.dependencies}
             editable={isOwner}
-            pending={update.isPending}
+            pending={pending}
             onUpdate={onUpdate}
+            onOpen={setOpenId}
+          />
+          <ElementSheet
+            elementId={openId}
+            plan={plan.data}
+            editable={isOwner}
+            pending={pending}
+            onClose={() => setOpenId(null)}
+            onUpdate={onUpdate}
+            onSetRule={onSetRule}
+            onRemoveRule={onRemoveRule}
           />
         </>
       )}

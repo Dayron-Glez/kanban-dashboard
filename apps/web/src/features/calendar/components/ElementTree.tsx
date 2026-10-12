@@ -11,6 +11,7 @@ interface ElementTreeProps {
   editable: boolean
   pending: boolean
   onUpdate: (elementId: string, input: UpdateElementPlanInput) => void
+  onOpen: (elementId: string) => void
 }
 
 // Los hijos toman el color de su fase, más claro cuanto más hondo.
@@ -27,6 +28,7 @@ export function ElementTree({
   editable,
   pending,
   onUpdate,
+  onOpen,
 }: Readonly<ElementTreeProps>) {
   // Las fases empiezan abiertas y el resto cerrado: se guarda lo que el usuario cambia.
   const [toggled, setToggled] = useState<Set<string>>(new Set())
@@ -94,7 +96,14 @@ export function ElementTree({
               className="size-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: shade(node.phaseColor, depth) }}
             />
-            <span className={`truncate ${depth === 0 ? "font-semibold" : ""}`}>{element.name}</span>
+            <button
+              type="button"
+              onClick={() => onOpen(element.id)}
+              aria-label={`Ver el detalle de ${element.name}`}
+              className={`hover:text-primary truncate text-left hover:underline ${depth === 0 ? "font-semibold" : ""}`}
+            >
+              {element.name}
+            </button>
             {rule && <span className="text-muted-foreground truncate text-xs">{rule}</span>}
           </div>
 
