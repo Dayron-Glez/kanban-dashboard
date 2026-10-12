@@ -7,6 +7,7 @@ import {
   describeShift,
   editContext,
   groupMoves,
+  inverseOf,
   previewChange,
 } from "../lib/planPreview"
 
@@ -221,5 +222,72 @@ describe("describeMove y groupMoves", () => {
       ["Se retrasan 1 semana", 2],
       ["Inicio igual, fin +3 días", 1],
     ])
+  })
+})
+
+describe("inverseOf", () => {
+  it("deshacer una duración vuelve a la que había, también si no había", () => {
+    expect(
+      inverseOf(plan, { type: "update", elementId: "preparacion", input: { duration: null } })
+    ).toEqual({
+      type: "update",
+      elementId: "preparacion",
+      input: { duration: { amount: 9, unit: "weeks" } },
+    })
+    const sinDuracion = {
+      ...plan,
+      elements: plan.elements.map((item) => ({ ...item, duration: null })),
+    }
+    expect(
+      inverseOf(sinDuracion, {
+        type: "update",
+        elementId: "preparacion",
+        input: { duration: { amount: 3, unit: "weeks" } },
+      })
+    ).toEqual({ type: "update", elementId: "preparacion", input: { duration: null } })
+  })
+
+  it("deshacer la fecha del ancla vuelve a la de antes", () => {
+    expect(
+      inverseOf(plan, { type: "update", elementId: "rodaje", input: { fixedStart: "2027-05-03" } })
+    ).toEqual({ type: "update", elementId: "rodaje", input: { fixedStart: "2027-04-05" } })
+  })
+
+  it("deshacer fijar un elemento lo vuelve a soltar", () => {
+    expect(
+      inverseOf(plan, {
+        type: "update",
+        elementId: "shooting",
+        input: { isPinned: true, fixedStart: "2027-04-07" },
+      })
+    ).toEqual({ type: "update", elementId: "shooting", input: { isPinned: false } })
+  })
+
+  it("deshacer una regla devuelve la que había en ese extremo, o la quita si no había", () => {
+    const setStart = {
+      type: "set-rule" as const,
+      elementId: "shooting",
+      point: "start" as const,
+      input: {
+        predecessorId: "rodaje",
+        predecessorPoint: "end" as const,
+        lag: { amount: 1, unit: "days" as const },
+      },
+    }
+    expect(inverseOf(plan, setStart)).toEqual({
+      type: "set-rule",
+      elementId: "shooting",
+      point: "start",
+      input: {
+        predecessorId: "rodaje",
+        predecessorPoint: "start",
+        lag: { amount: 0, unit: "days" },
+      },
+    })
+    expect(inverseOf(plan, { ...setStart, point: "end" })).toEqual({
+      type: "remove-rule",
+      elementId: "shooting",
+      point: "end",
+    })
   })
 })

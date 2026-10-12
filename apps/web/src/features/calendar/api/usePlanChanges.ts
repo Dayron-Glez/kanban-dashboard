@@ -2,35 +2,52 @@ import { useState } from "react"
 import type { CalendarPlan } from "@repo/contracts"
 import { toast } from "sonner"
 import type { PendingChange } from "../components/ChangePreviewDialog"
-import { previewChange, type PlanChange } from "../lib/planPreview"
+import { inverseOf, previewChange, type PlanChange } from "../lib/planPreview"
 import { useRemoveRule, useSetRule, useUpdatePlan } from "./elements"
 
 /**
  * Todo cambio del plan pasa por aquí: se calcula antes qué movería y, si mueve
- * otras fechas o saca algo de su fase, se pregunta antes de guardarlo.
+ * otras fechas o saca algo de su fase, se pregunta antes de guardarlo. Al
+ * guardarlo, se ofrece deshacerlo.
  */
 export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined) {
   const update = useUpdatePlan(projectId)
   const setRule = useSetRule(projectId)
   const removeRule = useRemoveRule(projectId)
-  const [waiting, setWaiting] = useState<{ change: PlanChange; preview: PendingChange } | null>(
-    null
-  )
+  const [waiting, setWaiting] = useState<{
+    change: PlanChange
+    inverse: PlanChange
+    preview: PendingChange
+  } | null>(null)
 
-  const send = (change: PlanChange) => {
+  const send = (change: PlanChange, onSuccess?: () => void) => {
+    const options = { onSuccess }
     switch (change.type) {
       case "update":
-        return update.mutate({ elementId: change.elementId, input: change.input })
+        return update.mutate({ elementId: change.elementId, input: change.input }, options)
       case "set-rule":
-        return setRule.mutate({
-          elementId: change.elementId,
-          point: change.point,
-          input: change.input,
-        })
+        return setRule.mutate(
+          { elementId: change.elementId, point: change.point, input: change.input },
+          options
+        )
       case "remove-rule":
-        return removeRule.mutate({ elementId: change.elementId, point: change.point })
+        return removeRule.mutate({ elementId: change.elementId, point: change.point }, options)
     }
   }
+
+  // Solo el último cambio: deshacer no se puede deshacer.
+  const save = (change: PlanChange, inverse: PlanChange) =>
+    send(change, () =>
+      toast.success("Cambio guardado", {
+        id: "plan-change",
+        duration: 8000,
+        action: {
+          label: "Deshacer",
+          onClick: () =>
+            send(inverse, () => toast.success("Cambio deshecho", { id: "plan-change" })),
+        },
+      })
+    )
 
   const request = (change: PlanChange) => {
     if (!plan) return
@@ -54,11 +71,16 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
         return child && father ? [{ name: child.name, parent: father.name }] : []
       })
 
+    const inverse = inverseOf(plan, change)
     if (preview.moved.length === 0 && outside.length === 0) {
-      send(change)
+      save(change, inverse)
       return
     }
-    setWaiting({ change, preview: { moved: preview.moved, outside: [...outside, ...others] } })
+    setWaiting({
+      change,
+      inverse,
+      preview: { moved: preview.moved, outside: [...outside, ...others] },
+    })
   }
 
   return {
@@ -67,7 +89,7 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
     dialog: {
       pending: waiting?.preview ?? null,
       onConfirm: () => {
-        if (waiting) send(waiting.change)
+        if (waiting) save(waiting.change, waiting.inverse)
         setWaiting(null)
       },
       onCancel: () => setWaiting(null),

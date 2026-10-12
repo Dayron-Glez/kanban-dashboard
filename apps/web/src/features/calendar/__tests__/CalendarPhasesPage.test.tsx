@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type {
   CalendarElement,
@@ -7,9 +7,12 @@ import type {
   ProjectSummary,
 } from "@repo/contracts"
 import { MemoryRouter, Route, Routes } from "react-router"
-import { beforeEach, describe, expect, it } from "vitest"
+import { toast } from "sonner"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
 import { CalendarPhasesPage } from "../components/CalendarPhasesPage"
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const PROJECT_ID = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b"
 
@@ -85,6 +88,7 @@ const renderPage = () => {
 const rowOf = (name: string) => screen.getByText(name).closest("li")!
 
 beforeEach(() => {
+  vi.mocked(toast.success).mockClear()
   api = createFakeApi()
   api.projects.listMine.mockResolvedValue([summary("owner")])
 })
@@ -227,6 +231,16 @@ describe("CalendarPhasesPage", () => {
     expect(api.elements.updatePlan).toHaveBeenCalledWith("preparacion", {
       duration: { amount: 9, unit: "weeks" },
     })
+
+    // Tras guardar, el aviso ofrece deshacer: vuelve a la duración de antes.
+    const [, options] = vi.mocked(toast.success).mock.calls.at(-1)!
+    const undo = (options as unknown as { action: { onClick: () => void } }).action
+    undo.onClick()
+    await waitFor(() =>
+      expect(api.elements.updatePlan).toHaveBeenLastCalledWith("preparacion", {
+        duration: { amount: 8, unit: "weeks" },
+      })
+    )
   })
 
   it("el bloque «Para que el plan salga solo» pide lo que falta y se va cuando está todo", async () => {

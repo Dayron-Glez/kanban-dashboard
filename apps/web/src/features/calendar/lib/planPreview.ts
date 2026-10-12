@@ -251,3 +251,36 @@ export function groupMoves(changes: ScheduleChange[]): MoveGroup[] {
     return { label: label.charAt(0).toUpperCase() + label.slice(1), changes: items }
   })
 }
+
+/**
+ * El cambio que deshace otro, calculado con el plan de antes de aplicarlo: la
+ * duración, la fecha o la regla que había.
+ */
+export function inverseOf(plan: CalendarPlan, change: PlanChange): PlanChange {
+  const element = plan.elements.find((candidate) => candidate.id === change.elementId)!
+  if (change.type === "update") {
+    const { duration, fixedStart, isPinned } = change.input
+    const input: UpdateElementPlanInput = {}
+    if (duration !== undefined) input.duration = element.duration
+    if (isPinned !== undefined && isPinned !== element.isPinned) input.isPinned = element.isPinned
+    if (fixedStart !== undefined && (element.isAnchor || element.isPinned)) {
+      input.fixedStart = element.startsOn
+    }
+    return { type: "update", elementId: change.elementId, input }
+  }
+  const previous = plan.dependencies.find(
+    (dependency) =>
+      dependency.successorId === change.elementId && dependency.successorPoint === change.point
+  )
+  if (!previous) return { type: "remove-rule", elementId: change.elementId, point: change.point }
+  return {
+    type: "set-rule",
+    elementId: change.elementId,
+    point: change.point,
+    input: {
+      predecessorId: previous.predecessorId,
+      predecessorPoint: previous.predecessorPoint,
+      lag: previous.lag,
+    },
+  }
+}
