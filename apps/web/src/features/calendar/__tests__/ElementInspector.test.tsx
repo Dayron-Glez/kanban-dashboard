@@ -85,6 +85,7 @@ const renderSheet = (
     onSetRule: vi.fn(),
     onRemoveRule: vi.fn(),
     onClose: vi.fn(),
+    onOpen: vi.fn(),
   }
   render(
     <ElementInspector
@@ -99,75 +100,88 @@ const renderSheet = (
   return handlers
 }
 
-const openRules = () =>
-  userEvent.click(screen.getByRole("button", { name: "Cambiar de qué depende" }))
-
 describe("ElementInspector", () => {
-  it("enseña las fechas, de dónde cuelga y cómo se calcula", async () => {
+  it("enseña las fechas, de dónde cuelga y su regla como frase", () => {
     renderSheet("vfx")
-
-    expect(screen.getByText("−4 semanas fin de Edición")).toBeInTheDocument()
-    await openRules()
 
     expect(screen.getByRole("heading", { name: "VFX" })).toBeInTheDocument()
     expect(screen.getByText("Postproducción › Subfase")).toBeInTheDocument()
     expect(screen.getByText("dom 25 jul 2027")).toBeInTheDocument()
-    expect(screen.getByLabelText("Desfase")).toHaveValue("-4")
-    expect(screen.getByRole("combobox", { name: "Unidad del desfase" })).toHaveTextContent(
-      "semanas"
+    expect(screen.getByRole("button", { name: "Cuánto" })).toHaveTextContent("4 semanas")
+    expect(screen.getByRole("button", { name: "Antes, a la vez o después" })).toHaveTextContent(
+      "antes del"
     )
-    expect(screen.getByRole("combobox", { name: "Desde qué fecha" })).toHaveTextContent("el fin")
-    expect(screen.getByRole("combobox", { name: "De qué elemento" })).toHaveTextContent("Edición")
+    expect(screen.getByRole("button", { name: "Desde qué fecha" })).toHaveTextContent("fin")
+    expect(screen.getByRole("button", { name: "De qué elemento" })).toHaveTextContent("Edición")
   })
 
-  it("guardar la regla manda el desfase nuevo, con coma decimal", async () => {
+  it("cada ficha cambia su parte de la regla, sin números negativos", async () => {
     const { onSetRule } = renderSheet("vfx")
-    await openRules()
 
-    const lag = screen.getByLabelText("Desfase")
-    await userEvent.clear(lag)
-    await userEvent.type(lag, "-3,5")
-    await userEvent.click(screen.getByRole("button", { name: "Guardar la regla" }))
+    await userEvent.click(screen.getByRole("button", { name: "Antes, a la vez o después" }))
+    await userEvent.click(screen.getByRole("option", { name: "después del" }))
+    expect(onSetRule).toHaveBeenLastCalledWith("vfx", "start", {
+      predecessorId: "edicion",
+      predecessorPoint: "end",
+      lag: { amount: 4, unit: "weeks" },
+    })
 
-    expect(onSetRule).toHaveBeenCalledWith("vfx", "start", {
+    await userEvent.click(screen.getByRole("button", { name: "Cuánto" }))
+    const amount = screen.getByLabelText("Cantidad del desfase")
+    await userEvent.clear(amount)
+    await userEvent.type(amount, "3,5")
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }))
+    expect(onSetRule).toHaveBeenLastCalledWith("vfx", "start", {
       predecessorId: "edicion",
       predecessorPoint: "end",
       lag: { amount: -3.5, unit: "weeks" },
     })
+
+    await userEvent.click(screen.getByRole("button", { name: "Desde qué fecha" }))
+    await userEvent.click(screen.getByRole("option", { name: "inicio" }))
+    expect(onSetRule).toHaveBeenLastCalledWith(
+      "vfx",
+      "start",
+      expect.objectContaining({ predecessorPoint: "start" })
+    )
   })
 
-  it("no ofrece depender de uno mismo ni de lo que cuelga de él", async () => {
-    renderSheet("vfx")
-    await openRules()
-
-    await userEvent.click(screen.getByRole("combobox", { name: "De qué elemento" }))
-    const options = screen.getAllByRole("option").map((option) => option.textContent)
-
-    expect(options).toEqual(["Postproducción", "Edición"])
-  })
-
-  it("elegir otra fecha de referencia y otro elemento cambia la regla que se guarda", async () => {
+  it("«con el» quita el desfase", async () => {
     const { onSetRule } = renderSheet("vfx")
-    await openRules()
 
-    await userEvent.click(screen.getByRole("combobox", { name: "Desde qué fecha" }))
-    await userEvent.click(screen.getByRole("option", { name: "el inicio" }))
-    await userEvent.click(screen.getByRole("combobox", { name: "De qué elemento" }))
+    await userEvent.click(screen.getByRole("button", { name: "Antes, a la vez o después" }))
+    await userEvent.click(screen.getByRole("option", { name: "con el" }))
+
+    expect(onSetRule).toHaveBeenLastCalledWith(
+      "vfx",
+      "start",
+      expect.objectContaining({ lag: { amount: 0, unit: "weeks" } })
+    )
+  })
+
+  it("el buscador de elementos no ofrece depender de uno mismo ni de lo que cuelga de él", async () => {
+    const { onSetRule } = renderSheet("vfx")
+
+    await userEvent.click(screen.getByRole("button", { name: "De qué elemento" }))
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Postproducción",
+      "Edición",
+    ])
+
+    await userEvent.type(screen.getByPlaceholderText("Buscar un elemento…"), "post")
     await userEvent.click(screen.getByRole("option", { name: "Postproducción" }))
-    await userEvent.click(screen.getByRole("button", { name: "Guardar la regla" }))
-
-    expect(onSetRule).toHaveBeenCalledWith("vfx", "start", {
-      predecessorId: "post",
-      predecessorPoint: "start",
-      lag: { amount: -4, unit: "weeks" },
-    })
+    expect(onSetRule).toHaveBeenLastCalledWith(
+      "vfx",
+      "start",
+      expect.objectContaining({ predecessorId: "post" })
+    )
   })
 
   it("el ancla no tiene regla que cambiar: su fecha se escribe a mano", () => {
     renderSheet("post")
 
     expect(screen.getByText(/Es la fecha clave/)).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Cambiar de qué depende" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "De qué elemento" })).toBeNull()
   })
 
   it("las fechas se escriben directamente, también las calculadas", async () => {
@@ -179,24 +193,37 @@ describe("ElementInspector", () => {
     expect(onMoveDate).toHaveBeenCalledWith("vfx", "start", "2027-08-01")
   })
 
-  it("se puede añadir una regla de fin y quitar la de inicio", async () => {
-    const { onRemoveRule } = renderSheet("vfx")
-    await openRules()
-    const end = screen.getByRole("heading", { name: "Cuándo acaba" }).parentElement!
+  it("se puede fijar el fin a otro elemento y quitar la regla de inicio", async () => {
+    const { onSetRule, onRemoveRule } = renderSheet("vfx")
 
-    await userEvent.click(within(end).getByRole("button", { name: "Añadir regla de fin" }))
-    expect(within(end).getByRole("button", { name: "Guardar la regla" })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Fijar el fin a otro elemento" }))
+    const pickers = screen.getAllByRole("button", { name: "De qué elemento" })
+    await userEvent.click(pickers[1]!)
+    await userEvent.click(screen.getByRole("option", { name: "Edición" }))
+    expect(onSetRule).toHaveBeenLastCalledWith("vfx", "end", {
+      predecessorId: "edicion",
+      predecessorPoint: "end",
+      lag: { amount: 0, unit: "days" },
+    })
 
-    const start = screen.getByRole("heading", { name: "Cuándo empieza" }).parentElement!
-    await userEvent.click(within(start).getByRole("button", { name: "Quitar la regla" }))
+    await userEvent.click(screen.getAllByRole("button", { name: "Quitar la regla" })[0]!)
     expect(onRemoveRule).toHaveBeenCalledWith("vfx", "start")
+  })
+
+  it("«Si cambia, mueve» lista lo que depende de él y salta a ello", async () => {
+    const { onOpen } = renderSheet("vfx")
+
+    const dependents = screen.getByRole("region", { name: "Si cambia, mueve" })
+    await userEvent.click(within(dependents).getByRole("button", { name: /Creación VFX/ }))
+    expect(onOpen).toHaveBeenCalledWith("creacion")
   })
 
   it("un miembro lee la regla pero no la edita", () => {
     renderSheet("vfx", false)
 
-    expect(screen.getByText("−4 semanas fin de Edición")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /regla/ })).toBeNull()
+    expect(screen.getByText("4 semanas")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "De qué elemento" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Quitar la regla" })).toBeNull()
   })
 
   it("el contador suma una unidad y cambiar de unidad conserva lo que dura", async () => {

@@ -195,6 +195,7 @@ export function CalendarPhasesPage() {
           onMoveDate={onMoveDate}
           onSetRule={onSetRule}
           onRemoveRule={onRemoveRule}
+          onOpen={setOpenId}
           planSpan={summary.span}
         />
       )}

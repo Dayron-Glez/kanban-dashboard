@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { IconChevronRight, IconX } from "@tabler/icons-react"
+import { IconX } from "@tabler/icons-react"
 import type {
   CalendarPlan,
   DatePoint,
@@ -7,10 +7,9 @@ import type {
   UpdateElementPlanInput,
 } from "@repo/contracts"
 import { validPredecessors } from "@repo/domain"
-import { Button } from "@/shared/index"
 import { buildElementTree, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { describeIssue, describeRule } from "../lib/planFormat"
-import { RuleEditor } from "./RuleEditor"
+import { RuleSentence } from "./RuleSentence"
 import { WhenField } from "./WhenField"
 
 interface ElementInspectorProps {
@@ -23,6 +22,8 @@ interface ElementInspectorProps {
   onMoveDate: (elementId: string, point: DatePoint, date: string) => void
   onSetRule: (elementId: string, point: DatePoint, input: SetElementRuleInput) => void
   onRemoveRule: (elementId: string, point: DatePoint) => void
+  /** Saltar a otro elemento, desde «Si cambia, mueve». */
+  onOpen: (elementId: string) => void
   /** Si el plan entero tiene fechas: el contexto de las fases. */
   planSpan: { start: string; end: string } | null
 }
@@ -50,16 +51,15 @@ export function ElementInspector({
   onMoveDate,
   onSetRule,
   onRemoveRule,
+  onOpen,
   planSpan,
 }: Readonly<ElementInspectorProps>) {
-  const [showRules, setShowRules] = useState<boolean>(false)
   const [addingEnd, setAddingEnd] = useState<boolean>(false)
   const element = plan.elements.find((candidate) => candidate.id === elementId)
   const nameOf = (id: string) =>
     plan.elements.find((candidate) => candidate.id === id)?.name ?? "otro elemento"
 
   const close = () => {
-    setShowRules(false)
     setAddingEnd(false)
     onClose()
   }
@@ -79,9 +79,26 @@ export function ElementInspector({
       element.id
     )
   )
-  const candidates = flatten(buildElementTree(plan.elements))
+  const ordered = flatten(buildElementTree(plan.elements))
+  const colorOf = (id: string) => {
+    const found = ordered.find((candidate) => candidate.element.id === id)
+    return found ? shade(found.phaseColor, found.depth) : undefined
+  }
+  const candidates = ordered
     .filter((node) => allowed.has(node.element.id))
-    .map((node) => ({ element: node.element, depth: node.depth }))
+    .map((node) => ({ element: node.element, depth: node.depth, color: colorOf(node.element.id) }))
+  const dependents = ordered
+    .filter((node) =>
+      plan.dependencies.some(
+        (dependency) =>
+          dependency.predecessorId === element.id && dependency.successorId === node.element.id
+      )
+    )
+    .map((node) => ({
+      element: node.element,
+      color: colorOf(node.element.id),
+      rule: describeRule(node.element, plan.dependencies, nameOf),
+    }))
   const parents: string[] = []
   for (let parentId = element.parentId; parentId;) {
     const parent = plan.elements.find((candidate) => candidate.id === parentId)
@@ -101,10 +118,6 @@ export function ElementInspector({
         ? { name: "Plan", ...planSpan }
         : null
   const reason = element.issue ? describeIssue(element.issue, nameOf) : undefined
-  const rule =
-    describeRule(element, plan.dependencies, nameOf) ??
-    (startRule ? `Con el inicio de ${nameOf(startRule.predecessorId)}` : "No depende de nada")
-  const fixedStart = element.isAnchor || element.isPinned
 
   return (
     <aside
@@ -150,78 +163,93 @@ export function ElementInspector({
             id="inspector-rules"
             className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
           >
-            Cómo se calcula
+            De qué depende
           </h3>
-          <p className="text-sm">
-            {element.isAnchor
-              ? "Es la fecha clave: se escribe a mano y de ella sale el resto del plan."
-              : element.isPinned
-                ? "Tiene una fecha fija: se escribe a mano y no se mueve con el plan."
-                : rule}
-          </p>
-
-          {editable && !fixedStart && (
-            <>
-              <button
-                type="button"
-                aria-expanded={showRules}
-                onClick={() => setShowRules((open) => !open)}
-                className="text-muted-foreground hover:text-foreground flex items-center gap-1 self-start text-xs"
-              >
-                <IconChevronRight
-                  size={14}
-                  className={`transition-transform ${showRules ? "rotate-90" : ""}`}
-                />
-                Cambiar de qué depende
-              </button>
-
-              {showRules && (
-                <div className="flex flex-col gap-5">
-                  <div className="flex flex-col gap-2">
-                    <h4 className="text-xs font-medium">Cuándo empieza</h4>
-                    <RuleEditor
-                      key={`start-${element.id}-${startRule?.id ?? "none"}`}
-                      point="start"
-                      current={startRule}
-                      candidates={candidates}
-                      fallbackPredecessorId={element.parentId}
-                      pending={pending}
-                      onSave={(input) => onSetRule(element.id, "start", input)}
-                      onRemove={() => onRemoveRule(element.id, "start")}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <h4 className="text-xs font-medium">Cuándo acaba</h4>
-                    {endRule || addingEnd ? (
-                      <RuleEditor
-                        key={`end-${element.id}-${endRule?.id ?? "none"}`}
-                        point="end"
-                        current={endRule}
-                        candidates={candidates}
-                        fallbackPredecessorId={element.parentId}
-                        pending={pending}
-                        onSave={(input) => onSetRule(element.id, "end", input)}
-                        onRemove={() => {
-                          setAddingEnd(false)
-                          onRemoveRule(element.id, "end")
-                        }}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-muted-foreground text-sm">
-                          Acaba cuando marca su duración.
-                        </p>
-                        <Button variant="outline" size="sm" onClick={() => setAddingEnd(true)}>
-                          Añadir regla de fin
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+          {element.isAnchor ? (
+            <p className="text-sm">
+              Es la fecha clave: se escribe a mano y de ella sale el resto del plan.
+            </p>
+          ) : element.isPinned ? (
+            <p className="text-sm">
+              Tiene una fecha fija: se escribe a mano y no se mueve con el plan.
+            </p>
+          ) : (
+            <RuleSentence
+              key={`start-${element.id}-${startRule?.id ?? "none"}`}
+              point="start"
+              current={startRule}
+              candidates={candidates}
+              editable={editable}
+              pending={pending}
+              onChange={(input) => onSetRule(element.id, "start", input)}
+              onRemove={() => onRemoveRule(element.id, "start")}
+            />
+          )}
+          {endRule || addingEnd ? (
+            <RuleSentence
+              key={`end-${element.id}-${endRule?.id ?? "none"}`}
+              point="end"
+              current={endRule}
+              candidates={candidates}
+              editable={editable}
+              pending={pending}
+              onChange={(input) => onSetRule(element.id, "end", input)}
+              onRemove={() => {
+                setAddingEnd(false)
+                if (endRule) onRemoveRule(element.id, "end")
+              }}
+            />
+          ) : (
+            <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-sm">
+              <span>
+                Acaba <span className="text-muted-foreground">cuando se cumple su duración</span>
+              </span>
+              {editable && (
+                <button
+                  type="button"
+                  onClick={() => setAddingEnd(true)}
+                  className="text-primary text-xs hover:underline"
+                >
+                  Fijar el fin a otro elemento
+                </button>
               )}
-            </>
+            </div>
           )}
         </section>
+
+        {dependents.length > 0 && (
+          <section aria-labelledby="inspector-dependents" className="flex flex-col gap-1.5">
+            <h3
+              id="inspector-dependents"
+              className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+            >
+              Si cambia, mueve
+            </h3>
+            <ul className="flex flex-col">
+              {dependents.map((dependent) => (
+                <li key={dependent.element.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(dependent.element.id)}
+                    className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
+                  >
+                    <span
+                      aria-hidden
+                      className="size-1.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: dependent.color }}
+                    />
+                    <span className="truncate">{dependent.element.name}</span>
+                    {dependent.rule && (
+                      <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-[11px]">
+                        {dependent.rule}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </aside>
   )
