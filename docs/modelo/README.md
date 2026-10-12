@@ -134,7 +134,12 @@ Cualquier fecha se puede escribir a mano, también las calculadas. La app no la 
   - sin dependencias, pasa a ser un fijado con esa fecha.
 - **Mover el fin**: con dependencia de fin, se reescribe su desfase; si no, la duración.
 - **La unidad al reescribir** es la que había, si la cantidad sale entera; si no, semanas, si salen enteras; y si no, días. Nunca aparecen decimales que nadie ha escrito: los 119 días de SoftPre no son meses enteros, pero sí 17 semanas.
-- **Antes de guardar, la app enseña qué más se mueve**: «Este cambio mueve N fechas», con lo que se adelanta y lo que se retrasa, cuánto, y si algo pasa a empezar fuera de su fase. Si no se mueve nada más, se guarda sin preguntar. La vista previa sale del mismo motor que el servidor.
+- **Arrastrar una barra del cronograma es escribir una fecha**, con las mismas reglas:
+  - el cuerpo la mueve entera: escribe el inicio o, si solo depende de su fin, reescribe ese desfase;
+  - el borde del fin cambia solo el fin; el del inicio solo se ofrece si el fin se queda donde está (el inicio no tiene regla);
+  - se ajusta a días en la escala de semanas y a semanas en la de meses; con el teclado, ← → mueven un día, con Mayús una semana y con Alt solo el fin;
+  - lo que tiene sus dos fechas atadas a otros (el Shooting a Rodaje) no se arrastra: se mueve con ellos.
+- **Antes de guardar, la app enseña qué más se mueve**: el cambio («Mover Rodaje 1 semana más tarde»), cuánto se desplaza el plan («+1 semana para 45 elementos»), cuánto cada fase, lo que pasa a empezar fuera de su fase y, si se pide, la tabla de fechas de antes y después. Si no se mueve nada más, se guarda sin preguntar. La vista previa sale del mismo motor que el servidor.
 - **Cambiar una regla** (de qué elemento depende un extremo, de qué punto y con qué desfase) pasa por la misma vista previa. Una regla que cerraría un ciclo no se puede elegir, y si llega a la API se rechaza con el camino que lo forma.
 - **El último cambio se puede deshacer**: se aplica el cambio contrario (la duración, el desfase o la regla de antes). No hay historial de cambios.
 - **Si un cambio deja un elemento empezando fuera de su fase, la app avisa**, pero no lo cambia de fase: eso es mover el elemento en el árbol, y lo decide quien planifica.
