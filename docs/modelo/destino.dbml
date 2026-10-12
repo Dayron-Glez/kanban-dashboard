@@ -319,7 +319,7 @@ Table calendar.elements {
   Note: '''
   Un solo árbol, de hasta cuatro niveles: fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar (un proceso puede colgar de la fase; en Postproducción conviven subfases y procesos). El tipo es explícito: la profundidad no lo dice.
   Reglas que comprueba la API: qué tipo puede colgar de cuál; las acciones no tienen hijos; solo las fases no tienen padre.
-  Lo que se ve es lo que se calcula, sin ajustes ocultos: mover el inicio de un elemento reescribe el desfase de su dependencia (o lo fija, si no tiene); mover su fin reescribe su duración.
+  Lo que se ve es lo que se calcula, sin ajustes ocultos: escribir una fecha reescribe el desfase o la duración que la produce, o fija el elemento si no depende de nada (ver docs/modelo/README.md, «Editar el plan»).
   Las fechas no están limitadas por las del padre: un elemento puede empezar en una fase y acabar en otra, y pertenece a aquella en la que empieza. Si al mover fechas su inicio sale del padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
   '''
 }

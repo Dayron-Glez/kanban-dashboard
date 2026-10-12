@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type {
   CalendarElement,
@@ -7,9 +7,12 @@ import type {
   ProjectSummary,
 } from "@repo/contracts"
 import { MemoryRouter, Route, Routes } from "react-router"
-import { beforeEach, describe, expect, it } from "vitest"
+import { toast } from "sonner"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
 import { CalendarPhasesPage } from "../components/CalendarPhasesPage"
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const PROJECT_ID = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b"
 
@@ -85,6 +88,7 @@ const renderPage = () => {
 const rowOf = (name: string) => screen.getByText(name).closest("li")!
 
 beforeEach(() => {
+  vi.mocked(toast.success).mockClear()
   api = createFakeApi()
   api.projects.listMine.mockResolvedValue([summary("owner")])
 })
@@ -129,7 +133,7 @@ describe("CalendarPhasesPage", () => {
     expect(within(rowOf("Rodaje")).getByText("Fecha clave")).toBeInTheDocument()
   })
 
-  it("si falta una fecha, dice por qué", async () => {
+  it("si falta una fecha, dice por qué al pasar por encima", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf(
         [
@@ -141,11 +145,10 @@ describe("CalendarPhasesPage", () => {
     )
     renderPage()
 
-    expect(
-      await within(
-        await screen.findByText("Preparación").then((node) => node.closest("li")!)
-      ).findByText("Falta la fecha de Rodaje")
-    ).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Inicio de Preparación" })).toHaveAttribute(
+      "title",
+      "Falta la fecha de Rodaje"
+    )
   })
 
   it("la propietaria escribe una duración y ve el plan recalculado", async () => {
@@ -167,6 +170,77 @@ describe("CalendarPhasesPage", () => {
       duration: { amount: 9, unit: "weeks" },
     })
     expect(await within(rowOf("Preparación")).findByText("9 semanas")).toBeInTheDocument()
+  })
+
+  it("si un cambio mueve otras fechas, lo enseña antes y solo guarda al confirmar", async () => {
+    const softpre = element("softpre", null, "SoftPre", {
+      templateKey: "softpre",
+      duration: { amount: 17, unit: "weeks" },
+      startsOn: "2026-10-12",
+      endsOn: "2027-02-07",
+    })
+    const datedPlan = planOf(
+      [
+        softpre,
+        preparacion({
+          duration: { amount: 8, unit: "weeks" },
+          startsOn: "2027-02-08",
+          endsOn: "2027-04-04",
+        }),
+        rodaje({
+          duration: { amount: 6, unit: "weeks" },
+          startsOn: "2027-04-05",
+          endsOn: "2027-05-16",
+        }),
+      ],
+      [
+        preparacionAntesDelRodaje,
+        {
+          id: "d2",
+          predecessorId: "preparacion",
+          predecessorPoint: "start",
+          successorId: "softpre",
+          successorPoint: "end",
+          lag: { amount: -1, unit: "days" },
+        },
+      ]
+    )
+    api.elements.getPlan.mockResolvedValue(datedPlan)
+    api.elements.updatePlan.mockResolvedValue(datedPlan)
+    renderPage()
+
+    const changeDuration = async () => {
+      await userEvent.click(await screen.findByRole("button", { name: "Duración de Preparación" }))
+      const amount = screen.getByLabelText("Cantidad")
+      await userEvent.clear(amount)
+      await userEvent.type(amount, "9")
+      await userEvent.click(screen.getByRole("button", { name: "Guardar" }))
+    }
+
+    await changeDuration()
+    const dialog = await screen.findByRole("alertdialog", { name: "Este cambio mueve 1 elemento" })
+    expect(within(dialog).getAllByText("SoftPre").length).toBeGreaterThan(0)
+    expect(within(dialog).getByText("Se adelanta 1 semana")).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Cancelar" })).toHaveFocus()
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }))
+    expect(api.elements.updatePlan).not.toHaveBeenCalled()
+
+    await changeDuration()
+    await userEvent.click(await screen.findByRole("button", { name: "Guardar el cambio" }))
+    expect(api.elements.updatePlan).toHaveBeenCalledWith("preparacion", {
+      duration: { amount: 9, unit: "weeks" },
+    })
+
+    // Tras guardar, el aviso ofrece deshacer: vuelve a la duración de antes.
+    const [, options] = vi.mocked(toast.success).mock.calls.at(-1)!
+    const undo = (options as unknown as { action: { onClick: () => void } }).action
+    undo.onClick()
+    await waitFor(() =>
+      expect(api.elements.updatePlan).toHaveBeenLastCalledWith("preparacion", {
+        duration: { amount: 8, unit: "weeks" },
+      })
+    )
   })
 
   it("el bloque «Para que el plan salga solo» pide lo que falta y se va cuando está todo", async () => {

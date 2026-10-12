@@ -25,7 +25,7 @@ Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram
 - **Fases, subfases, procesos y acciones son una sola tabla, `calendar.elements`**, con el tipo explícito en `kind`: comparten atributos, pueden cruzar fases y se colocan en el tiempo igual. Hay cinco tipos de acción: evento, tarea, reunión, recordatorio y contratación.
 - **Fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar**: un proceso puede colgar de la fase, y en Postproducción conviven subfases y procesos. La profundidad no dice el tipo.
 - **Un elemento pertenece a la fase en la que empieza**, aunque acabe en otra (el casting empieza en SoftPre y suele acabar en Preparación). Si al mover fechas su inicio sale de su padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
-- **Las fechas se calculan como en el prototipo del productor**, que es la referencia (su Excel quedó atrás): un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base (naturales por defecto, laborables en las excepciones) y dependencias con desfase. Sin ajustes ocultos: mover el inicio reescribe el desfase y mover el fin, la duración. Todo es editable en cada proyecto.
+- **Las fechas se calculan como en el prototipo del productor**, que es la referencia (su Excel quedó atrás): un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base (naturales por defecto, laborables en las excepciones) y dependencias con desfase. Sin ajustes ocultos: escribir una fecha reescribe el desfase o la duración que la produce (ver «Editar el plan»). Todo es editable en cada proyecto.
 - **Los eventos y las tareas** pueden durar varios días o uno; **las reuniones y los recordatorios**, solo uno. **Una contratación** va de la fecha de alta a la de baja, y sin baja sigue activa: la baja se ordena cuando el trabajador termina.
 - **Al crear un bloque** («Rodaje 1», «Rodaje 2»…), el bloque recibe sus propios procesos, copiados de la plantilla de su fase: cada bloque de rodaje, su Shooting y su Wrap.
 - **Las acciones siempre cuelgan de un elemento**: fase, subfase o proceso. Como en el prototipo, solo las tareas se marcan como hechas (`completed_at`) y la prioridad sirve para resolver conflictos; no hay estados, columnas ni tamaños.
@@ -122,6 +122,22 @@ Las convenciones que deciden cada fecha, fijadas antes de escribir el motor (`pa
 - **Sin lo que necesita** (una dependencia hacia algo sin fechas), el elemento queda sin fechas y el motor dice qué falta. Nunca inventa una fecha.
 - **Los ciclos se rechazan**, indicando el camino que los forma.
 - **Semana 1** es la del inicio de Rodaje; antes, semanas negativas, y no hay semana 0.
+
+### Editar el plan
+
+Cualquier fecha se puede escribir a mano, también las calculadas. La app no la deja suelta: reescribe lo que la produce, para que el elemento siga encadenado y lo que se ve sea lo que se calcula.
+
+- **Mover el inicio**:
+  - con dependencia de inicio, se reescribe su desfase («VFX, −4 semanas del fin de Edición» pasa a −3 semanas);
+  - si solo depende del fin, se reescribe la duración y el fin no se mueve: así, llevar el inicio de SoftPre al 5 de octubre de 2026 la deja en 17 semanas, no en 3,85 meses;
+  - en el ancla o un fijado, cambia su fecha;
+  - sin dependencias, pasa a ser un fijado con esa fecha.
+- **Mover el fin**: con dependencia de fin, se reescribe su desfase; si no, la duración.
+- **La unidad al reescribir** es la que había, si la cantidad sale entera; si no, semanas, si salen enteras; y si no, días. Nunca aparecen decimales que nadie ha escrito: los 119 días de SoftPre no son meses enteros, pero sí 17 semanas.
+- **Antes de guardar, la app enseña qué más se mueve**: «Este cambio mueve N fechas», con lo que se adelanta y lo que se retrasa, cuánto, y si algo pasa a empezar fuera de su fase. Si no se mueve nada más, se guarda sin preguntar. La vista previa sale del mismo motor que el servidor.
+- **Cambiar una regla** (de qué elemento depende un extremo, de qué punto y con qué desfase) pasa por la misma vista previa. Una regla que cerraría un ciclo no se puede elegir, y si llega a la API se rechaza con el camino que lo forma.
+- **El último cambio se puede deshacer**: se aplica el cambio contrario (la duración, el desfase o la regla de antes). No hay historial de cambios.
+- **Si un cambio deja un elemento empezando fuera de su fase, la app avisa**, pero no lo cambia de fase: eso es mover el elemento en el árbol, y lo decide quien planifica.
 
 ## Decidido con el productor
 

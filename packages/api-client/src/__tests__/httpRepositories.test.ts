@@ -320,4 +320,22 @@ describe("createHttpApi", () => {
       code: "invalid_response",
     })
   })
+
+  it("reglas: fijar y quitar van a su extremo y devuelven el plan", async () => {
+    const plan = { elements: [], dependencies: [] }
+    const { api, sent } = setup(() => json(plan))
+    const rule = {
+      predecessorId: PROJECT_ID,
+      predecessorPoint: "end",
+      lag: { amount: -4, unit: "weeks" },
+    } as const
+
+    await expect(api.elements.setRule(TOKEN, "start", rule)).resolves.toEqual(plan)
+    await expect(api.elements.removeRule(TOKEN, "end")).resolves.toEqual(plan)
+
+    expect(sent()).toEqual([
+      { method: "PUT", path: `/elements/${TOKEN}/rules/start`, body: rule },
+      { method: "DELETE", path: `/elements/${TOKEN}/rules/end`, body: undefined },
+    ])
+  })
 })

@@ -8,12 +8,14 @@ import type {
   CreateInvitationInput,
   CreateProjectInput,
   CreateTaskInput,
+  DatePoint,
   Invitation,
   InvitationPreview,
   Project,
   ProjectMember,
   MoveTaskInput,
   ProjectSummary,
+  SetElementRuleInput,
   Task,
   TaskHistoryEntry,
   TaskInput,
@@ -79,6 +81,9 @@ export interface ElementsRepository {
   getPlan(projectId: string): Promise<CalendarPlan>
   /** Cambia la duración o la fecha escrita a mano; devuelve el plan recalculado. */
   updatePlan(elementId: string, input: UpdateElementPlanInput): Promise<CalendarPlan>
+  /** Fija de qué depende un extremo, sustituyendo la regla que hubiera. */
+  setRule(elementId: string, point: DatePoint, input: SetElementRuleInput): Promise<CalendarPlan>
+  removeRule(elementId: string, point: DatePoint): Promise<CalendarPlan>
 }
 
 export interface ApiClient {

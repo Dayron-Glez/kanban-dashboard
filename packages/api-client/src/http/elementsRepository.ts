@@ -19,4 +19,13 @@ export const createElementsRepository = (http: HttpClient): ElementsRepository =
       body: input,
       schema: CalendarPlanSchema,
     }),
+  setRule: (elementId, point, input) =>
+    http.request("PUT", `/elements/${elementId}/rules/${point}`, {
+      body: input,
+      schema: CalendarPlanSchema,
+    }),
+  removeRule: (elementId, point) =>
+    http.request("DELETE", `/elements/${elementId}/rules/${point}`, {
+      schema: CalendarPlanSchema,
+    }),
 })
