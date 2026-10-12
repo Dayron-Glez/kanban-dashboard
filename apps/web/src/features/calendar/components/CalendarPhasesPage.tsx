@@ -88,6 +88,7 @@ export function CalendarPhasesPage() {
             onUpdate={onUpdate}
             onOpen={setOpenId}
             onMoveDate={onMoveDate}
+            selectedId={openId}
           />
           <ElementSheet
             elementId={openId}

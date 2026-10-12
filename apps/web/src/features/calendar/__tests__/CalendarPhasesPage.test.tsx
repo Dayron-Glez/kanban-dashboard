@@ -130,7 +130,7 @@ describe("CalendarPhasesPage", () => {
     expect(row.getByText("9 semanas")).toBeInTheDocument()
     expect(row.getByText("1 feb 2027")).toBeInTheDocument()
     expect(row.getByText("4 abr 2027")).toBeInTheDocument()
-    expect(within(rowOf("Rodaje")).getByText("Fecha clave")).toBeInTheDocument()
+    expect(within(rowOf("Rodaje")).getByText("clave")).toBeInTheDocument()
   })
 
   it("si falta una fecha, dice por qué al pasar por encima", async () => {

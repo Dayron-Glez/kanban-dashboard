@@ -24,6 +24,10 @@ const THIS_YEAR = new Date().getFullYear()
 const DROPDOWN_START = new Date(THIS_YEAR - 10, 0)
 const DROPDOWN_END = new Date(THIS_YEAR + 15, 11)
 
+// Lo vacío no se pinta: aparece al pasar por la fila (group/row) o al llegar con el teclado.
+const QUIET =
+  "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+
 const TRIGGER =
   "hover:bg-muted focus-visible:ring-ring/50 rounded px-1.5 py-0.5 text-left outline-none focus-visible:ring-[3px] disabled:cursor-default disabled:hover:bg-transparent"
 
@@ -33,6 +37,10 @@ interface DurationEditorProps {
   editable: boolean
   pending: boolean
   onSave: (duration: Duration | null) => void
+  /** Lo que se ve sin duración; por defecto, «Añadir». */
+  emptyLabel?: string
+  /** Sin valor, solo aparece al pasar por la fila o con el foco. */
+  quiet?: boolean
 }
 
 export function DurationEditor({
@@ -41,6 +49,8 @@ export function DurationEditor({
   editable,
   pending,
   onSave,
+  emptyLabel = "Añadir",
+  quiet = false,
 }: Readonly<DurationEditorProps>) {
   const [open, setOpen] = useState<boolean>(false)
   const [amount, setAmount] = useState<string>("")
@@ -75,9 +85,9 @@ export function DurationEditor({
           type="button"
           aria-label={label}
           disabled={pending}
-          className={cn(TRIGGER, !value && "text-muted-foreground")}
+          className={cn(TRIGGER, !value && "text-muted-foreground", !value && quiet && QUIET)}
         >
-          {value ? formatDuration(value) : "Añadir"}
+          {value ? formatDuration(value) : emptyLabel}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64" align="end">
@@ -141,6 +151,8 @@ interface DateEditorProps {
   emptyLabel?: string
   /** Por qué no hay fecha, al pasar el cursor. */
   reason?: string
+  /** Sin valor, solo aparece al pasar por la fila o con el foco. */
+  quiet?: boolean
 }
 
 export function DateEditor({
@@ -151,6 +163,7 @@ export function DateEditor({
   onSave,
   emptyLabel = "Escribir fecha",
   reason,
+  quiet = false,
 }: Readonly<DateEditorProps>) {
   const [open, setOpen] = useState<boolean>(false)
   const selected = value ? parseISO(value) : undefined
@@ -167,7 +180,7 @@ export function DateEditor({
           aria-label={label}
           title={value ? undefined : reason}
           disabled={pending}
-          className={cn(TRIGGER, !value && "text-muted-foreground")}
+          className={cn(TRIGGER, !value && "text-muted-foreground", !value && quiet && QUIET)}
         >
           {value ? formatPlanDate(value) : emptyLabel}
         </button>
