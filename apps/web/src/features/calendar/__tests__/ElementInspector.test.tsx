@@ -180,7 +180,8 @@ describe("ElementInspector", () => {
   it("el ancla no tiene regla que cambiar: su fecha se escribe a mano", () => {
     renderSheet("post")
 
-    expect(screen.getByText(/Es la fecha clave/)).toBeInTheDocument()
+    expect(screen.getByText("La fecha clave del plan")).toBeInTheDocument()
+    expect(screen.getByText(/Mueve 3 elementos/)).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "De qué elemento" })).toBeNull()
   })
 
@@ -242,5 +243,17 @@ describe("ElementInspector", () => {
 
     expect(screen.getByText("Plan · 1 ene 2026")).toBeInTheDocument()
     expect(screen.getByText("31 oct 2027")).toBeInTheDocument()
+  })
+
+  it("sin duración, ofrece las habituales a un clic", async () => {
+    const { onUpdate } = renderSheet("creacion")
+
+    const suggestions = screen.getByRole("group", { name: "¿Cuánto dura?" })
+    await userEvent.click(within(suggestions).getByRole("button", { name: "2 semanas" }))
+
+    expect(onUpdate).toHaveBeenCalledWith("creacion", { duration: { amount: 2, unit: "weeks" } })
+    expect(
+      within(suggestions).getByRole("button", { name: /Duración de Creación VFX/ })
+    ).toHaveTextContent("otra…")
   })
 })

@@ -164,3 +164,45 @@ export function summarizePlan(elements: CalendarElement[]): PlanSummary {
     ).length,
   }
 }
+
+const SUGGESTIONS: Record<"phase" | "process" | "action", Duration[]> = {
+  phase: [
+    { amount: 4, unit: "weeks" },
+    { amount: 3, unit: "months" },
+    { amount: 6, unit: "months" },
+  ],
+  process: [
+    { amount: 1, unit: "weeks" },
+    { amount: 2, unit: "weeks" },
+    { amount: 4, unit: "weeks" },
+  ],
+  action: [
+    { amount: 1, unit: "days" },
+    { amount: 3, unit: "days" },
+    { amount: 1, unit: "weeks" },
+  ],
+}
+
+/** Duraciones habituales para empezar con un clic, según el tipo de elemento. */
+export function durationSuggestions(element: CalendarElement): Duration[] {
+  if (element.kind === "phase") return SUGGESTIONS.phase
+  if (element.kind === "subphase" || element.kind === "process") return SUGGESTIONS.process
+  return SUGGESTIONS.action
+}
+
+/** Cuántos elementos se mueven, directa o indirectamente, si se mueve este. */
+export function countDependents(dependencies: ElementDependency[], elementId: string): number {
+  const seen = new Set<string>()
+  const pending = [elementId]
+  while (pending.length > 0) {
+    const current = pending.pop()!
+    for (const dependency of dependencies) {
+      if (dependency.predecessorId === current && !seen.has(dependency.successorId)) {
+        seen.add(dependency.successorId)
+        pending.push(dependency.successorId)
+      }
+    }
+  }
+  seen.delete(elementId)
+  return seen.size
+}

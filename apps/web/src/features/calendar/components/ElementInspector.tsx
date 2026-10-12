@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { IconX } from "@tabler/icons-react"
+import { IconAnchor, IconPin, IconX } from "@tabler/icons-react"
+import { cn } from "@/shared/index"
 import type {
   CalendarPlan,
   DatePoint,
@@ -8,7 +9,7 @@ import type {
 } from "@repo/contracts"
 import { validPredecessors } from "@repo/domain"
 import { buildElementTree, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
-import { describeIssue, describeRule } from "../lib/planFormat"
+import { countDependents, describeIssue, describeRule } from "../lib/planFormat"
 import { RuleSentence } from "./RuleSentence"
 import { WhenField } from "./WhenField"
 
@@ -87,6 +88,7 @@ export function ElementInspector({
   const candidates = ordered
     .filter((node) => allowed.has(node.element.id))
     .map((node) => ({ element: node.element, depth: node.depth, color: colorOf(node.element.id) }))
+  const movesCount = countDependents(plan.dependencies, element.id)
   const dependents = ordered
     .filter((node) =>
       plan.dependencies.some(
@@ -165,14 +167,31 @@ export function ElementInspector({
           >
             De qué depende
           </h3>
-          {element.isAnchor ? (
-            <p className="text-sm">
-              Es la fecha clave: se escribe a mano y de ella sale el resto del plan.
-            </p>
-          ) : element.isPinned ? (
-            <p className="text-sm">
-              Tiene una fecha fija: se escribe a mano y no se mueve con el plan.
-            </p>
+          {element.isAnchor || element.isPinned ? (
+            <div
+              className={cn(
+                "flex gap-3 rounded-xl border p-3",
+                element.isAnchor ? "border-primary/25 bg-primary/5" : "border-border bg-card"
+              )}
+            >
+              {element.isAnchor ? (
+                <IconAnchor size={16} className="text-primary mt-0.5 shrink-0" aria-hidden />
+              ) : (
+                <IconPin size={16} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden />
+              )}
+              <div className="flex flex-col gap-0.5">
+                <p className="text-sm font-semibold">
+                  {element.isAnchor ? "La fecha clave del plan" : "Una fecha fija"}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {element.isAnchor
+                    ? "Todo se calcula desde aquí: si la mueves, el plan entero se mueve con ella."
+                    : "Se escribe a mano y no se mueve con el plan."}
+                  {movesCount > 0 &&
+                    ` Mueve ${movesCount === 1 ? "1 elemento" : `${movesCount} elementos`}.`}
+                </p>
+              </div>
+            </div>
           ) : (
             <RuleSentence
               key={`start-${element.id}-${startRule?.id ?? "none"}`}

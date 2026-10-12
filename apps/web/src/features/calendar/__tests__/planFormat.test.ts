@@ -5,6 +5,8 @@ import {
   describeRule,
   formatDuration,
   formatPlanDate,
+  countDependents,
+  durationSuggestions,
   setupSteps,
   summarizePlan,
 } from "../lib/planFormat"
@@ -187,5 +189,34 @@ describe("summarizePlan", () => {
 
   it("sin fechas, no hay rango", () => {
     expect(summarizePlan([element("rodaje", { isAnchor: true })]).span).toBeNull()
+  })
+})
+
+describe("durationSuggestions y countDependents", () => {
+  it("sugiere según el tipo: meses para una fase, semanas para un proceso, días para una acción", () => {
+    expect(durationSuggestions(element("x", { kind: "phase" }))[1]).toEqual({
+      amount: 3,
+      unit: "months",
+    })
+    expect(durationSuggestions(element("x", { kind: "process" }))[0]).toEqual({
+      amount: 1,
+      unit: "weeks",
+    })
+    expect(durationSuggestions(element("x", { kind: "task" }))[0]).toEqual({
+      amount: 1,
+      unit: "days",
+    })
+  })
+
+  it("cuenta lo que se mueve en cadena, sin repetir", () => {
+    const deps = [
+      dep("rodaje", "start", "preparacion", "end", -1),
+      dep("preparacion", "start", "softpre", "end", -1),
+      dep("rodaje", "start", "postproduccion", "start"),
+      dep("postproduccion", "start", "edicion", "start"),
+      dep("rodaje", "end", "edicion", "end"),
+    ]
+    expect(countDependents(deps, "rodaje")).toBe(4)
+    expect(countDependents(deps, "softpre")).toBe(0)
   })
 })

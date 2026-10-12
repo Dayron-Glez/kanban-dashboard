@@ -1,7 +1,7 @@
 import type { CalendarElement, DatePoint, Duration, UpdateElementPlanInput } from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { IconArrowRight, IconMinus, IconPlus } from "@tabler/icons-react"
-import { formatPlanDate } from "../lib/planFormat"
+import { durationSuggestions, formatDuration, formatPlanDate } from "../lib/planFormat"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { SegmentedControl } from "./SegmentedControl"
 
@@ -160,13 +160,40 @@ export function WhenField({
                 onChange={changeUnit}
               />
             </>
+          ) : !duration && editable ? (
+            // Sin duración: las habituales a un clic, y «otra…» para escribirla.
+            <div
+              role="group"
+              aria-label="¿Cuánto dura?"
+              className="border-warn/40 bg-warn-soft/40 flex flex-1 flex-wrap items-center gap-1.5 rounded-lg border border-dashed px-2.5 py-1.5"
+            >
+              <span className="text-warn mr-1 text-xs">¿Cuánto dura?</span>
+              {durationSuggestions(element).map((suggestion) => (
+                <button
+                  key={`${suggestion.amount}-${suggestion.unit}`}
+                  type="button"
+                  disabled={pending}
+                  onClick={() => onUpdate({ duration: suggestion })}
+                  className="bg-card border-border hover:bg-muted h-6 rounded-full border px-2.5 text-xs font-medium"
+                >
+                  {formatDuration(suggestion)}
+                </button>
+              ))}
+              <DurationEditor
+                label={`Duración de ${element.name}`}
+                value={null}
+                editable
+                pending={pending}
+                emptyLabel="otra…"
+                onSave={(next) => onUpdate({ duration: next })}
+              />
+            </div>
           ) : (
             <DurationEditor
               label={`Duración de ${element.name}`}
               value={duration}
               editable={editable}
               pending={pending}
-              emptyLabel="Añadir duración"
               onSave={(next) => onUpdate({ duration: next })}
             />
           )}
