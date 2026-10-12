@@ -2,41 +2,54 @@ import { useMemo, useState } from "react"
 import { useParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
+import { fromIsoDate, moveEnd, moveStart } from "@repo/domain"
+import { toast } from "sonner"
 import { Button, QueryErrorState, Skeleton } from "@/shared/index"
 import { useProject } from "@/features/project"
-import {
-  useGenerateFromTemplate,
-  usePlan,
-  useRemoveRule,
-  useSetRule,
-  useUpdatePlan,
-} from "../api/elements"
+import { useGenerateFromTemplate, usePlan } from "../api/elements"
+import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree } from "../lib/elementTree"
 import { missingSetup } from "../lib/planFormat"
+import { changeForEdit, editContext } from "../lib/planPreview"
+import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementSheet } from "./ElementSheet"
 import { ElementTree } from "./ElementTree"
 import { PlanSetup } from "./PlanSetup"
+
+const EDIT_ERRORS = {
+  "missing-reference": "No se puede calcular: depende de algo que todavía no tiene fecha",
+  inverted: "El inicio no puede quedar después del fin",
+} as const
 
 export function CalendarPhasesPage() {
   const { id: projectId = "" } = useParams<{ id: string }>()
   const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
-  const update = useUpdatePlan(projectId)
-  const setRule = useSetRule(projectId)
-  const removeRule = useRemoveRule(projectId)
+  const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
-  const pending = update.isPending || setRule.isPending || removeRule.isPending
   const isOwner = useProject(projectId).data?.role === "owner"
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const steps = useMemo(() => missingSetup(elements ?? []), [elements])
 
   const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
-    update.mutate({ elementId, input })
+    changes.request({ type: "update", elementId, input })
   const onSetRule = (elementId: string, point: DatePoint, input: SetElementRuleInput) =>
-    setRule.mutate({ elementId, point, input })
+    changes.request({ type: "set-rule", elementId, point, input })
   const onRemoveRule = (elementId: string, point: DatePoint) =>
-    removeRule.mutate({ elementId, point })
+    changes.request({ type: "remove-rule", elementId, point })
+
+  // Una fecha escrita a mano se convierte en el cambio de regla o duración que la produce.
+  const onMoveDate = (elementId: string, point: DatePoint, date: string) => {
+    if (!plan.data) return
+    const move = point === "start" ? moveStart : moveEnd
+    const result = move(editContext(plan.data, elementId), fromIsoDate(date))
+    if ("error" in result) {
+      toast.error(EDIT_ERRORS[result.error])
+      return
+    }
+    changes.request(changeForEdit(plan.data, elementId, result.edit))
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
@@ -64,25 +77,28 @@ export function CalendarPhasesPage() {
         </div>
       ) : (
         <>
-          {isOwner && <PlanSetup steps={steps} pending={pending} onUpdate={onUpdate} />}
+          {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
           <ElementTree
             nodes={tree}
             dependencies={plan.data.dependencies}
             editable={isOwner}
-            pending={pending}
+            pending={changes.pending}
             onUpdate={onUpdate}
             onOpen={setOpenId}
+            onMoveDate={onMoveDate}
           />
           <ElementSheet
             elementId={openId}
             plan={plan.data}
             editable={isOwner}
-            pending={pending}
+            pending={changes.pending}
             onClose={() => setOpenId(null)}
             onUpdate={onUpdate}
+            onMoveDate={onMoveDate}
             onSetRule={onSetRule}
             onRemoveRule={onRemoveRule}
           />
+          <ChangePreviewDialog elements={plan.data.elements} {...changes.dialog} />
         </>
       )}
     </div>

@@ -137,14 +137,26 @@ interface DateEditorProps {
   editable: boolean
   pending: boolean
   onSave: (date: string) => void
+  /** Lo que se ve sin fecha; por defecto, «Escribir fecha». */
+  emptyLabel?: string
+  /** Por qué no hay fecha, al pasar el cursor. */
+  reason?: string
 }
 
-export function DateEditor({ label, value, editable, pending, onSave }: Readonly<DateEditorProps>) {
+export function DateEditor({
+  label,
+  value,
+  editable,
+  pending,
+  onSave,
+  emptyLabel = "Escribir fecha",
+  reason,
+}: Readonly<DateEditorProps>) {
   const [open, setOpen] = useState<boolean>(false)
   const selected = value ? parseISO(value) : undefined
 
   if (!editable) {
-    return <span>{value ? formatPlanDate(value) : "—"}</span>
+    return <span title={reason}>{value ? formatPlanDate(value) : "—"}</span>
   }
 
   return (
@@ -153,10 +165,11 @@ export function DateEditor({ label, value, editable, pending, onSave }: Readonly
         <button
           type="button"
           aria-label={label}
+          title={value ? undefined : reason}
           disabled={pending}
           className={cn(TRIGGER, !value && "text-muted-foreground")}
         >
-          {value ? formatPlanDate(value) : "Escribir fecha"}
+          {value ? formatPlanDate(value) : emptyLabel}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="end">

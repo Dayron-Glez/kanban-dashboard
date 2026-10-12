@@ -1,6 +1,11 @@
 import { useState } from "react"
 import { IconChevronRight } from "@tabler/icons-react"
-import type { CalendarElement, ElementDependency, UpdateElementPlanInput } from "@repo/contracts"
+import type {
+  CalendarElement,
+  DatePoint,
+  ElementDependency,
+  UpdateElementPlanInput,
+} from "@repo/contracts"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
 import { DateEditor, DurationEditor } from "./PlanEditors"
@@ -12,6 +17,8 @@ interface ElementTreeProps {
   pending: boolean
   onUpdate: (elementId: string, input: UpdateElementPlanInput) => void
   onOpen: (elementId: string) => void
+  /** Escribir a mano el inicio o el fin: la regla que lo produce se ajusta. */
+  onMoveDate: (elementId: string, point: DatePoint, date: string) => void
 }
 
 // Los hijos toman el color de su fase, más claro cuanto más hondo.
@@ -29,6 +36,7 @@ export function ElementTree({
   pending,
   onUpdate,
   onOpen,
+  onMoveDate,
 }: Readonly<ElementTreeProps>) {
   // Las fases empiezan abiertas y el resto cerrado: se guarda lo que el usuario cambia.
   const [toggled, setToggled] = useState<Set<string>>(new Set())
@@ -61,12 +69,32 @@ export function ElementTree({
     )
   }
 
+  const dateCell = (element: CalendarElement, point: DatePoint) => {
+    const value = point === "start" ? element.startsOn : element.endsOn
+    const reason = element.issue ? describeIssue(element.issue, nameOf) : undefined
+    if (!editable) {
+      return value ? <span className="px-1.5">{formatPlanDate(value)}</span> : missing(element)
+    }
+    return (
+      <DateEditor
+        label={`${point === "start" ? "Inicio" : "Fin"} de ${element.name}`}
+        value={value}
+        editable
+        pending={pending}
+        emptyLabel={
+          point === "start" && (element.isAnchor || element.isPinned) ? "Escribir fecha" : "—"
+        }
+        reason={reason}
+        onSave={(date) => onMoveDate(element.id, point, date)}
+      />
+    )
+  }
+
   const renderNode = (node: ElementNode) => {
     const { element, depth, children } = node
     const expanded = toggled.has(element.id) !== (depth === 0)
     const hasChildren = children.length > 0
     const rule = describeRule(element, dependencies, nameOf)
-    const writesStart = element.isAnchor || element.isPinned
 
     return (
       <li key={element.id} role="treeitem" aria-expanded={hasChildren ? expanded : undefined}>
@@ -114,26 +142,8 @@ export function ElementTree({
             pending={pending}
             onSave={(duration) => onUpdate(element.id, { duration })}
           />
-          {writesStart ? (
-            <DateEditor
-              label={`Inicio de ${element.name}`}
-              value={element.startsOn}
-              editable={editable}
-              pending={pending}
-              onSave={(fixedStart) => onUpdate(element.id, { fixedStart })}
-            />
-          ) : element.startsOn ? (
-            <span className="px-1.5">{formatPlanDate(element.startsOn)}</span>
-          ) : (
-            missing(element)
-          )}
-          {element.endsOn ? (
-            <span className="px-1.5">{formatPlanDate(element.endsOn)}</span>
-          ) : element.startsOn ? (
-            missing(element)
-          ) : (
-            <span className="text-muted-foreground px-1.5">—</span>
-          )}
+          {dateCell(element, "start")}
+          {dateCell(element, "end")}
         </div>
         {hasChildren && expanded && <ul role="group">{children.map(renderNode)}</ul>}
       </li>

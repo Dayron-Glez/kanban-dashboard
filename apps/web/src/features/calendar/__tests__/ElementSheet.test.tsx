@@ -77,6 +77,7 @@ const plan: CalendarPlan = {
 const renderSheet = (elementId: string, editable = true) => {
   const handlers = {
     onUpdate: vi.fn(),
+    onMoveDate: vi.fn(),
     onSetRule: vi.fn(),
     onRemoveRule: vi.fn(),
     onClose: vi.fn(),
@@ -93,9 +94,15 @@ const renderSheet = (elementId: string, editable = true) => {
   return handlers
 }
 
+const openRules = () =>
+  userEvent.click(screen.getByRole("button", { name: "Cambiar de qué depende" }))
+
 describe("ElementSheet", () => {
-  it("enseña las fechas, de dónde cuelga y la regla actual como frase", () => {
+  it("enseña las fechas, de dónde cuelga y cómo se calcula", async () => {
     renderSheet("vfx")
+
+    expect(screen.getByText("−4 semanas fin de Edición")).toBeInTheDocument()
+    await openRules()
 
     expect(screen.getByRole("heading", { name: "VFX" })).toBeInTheDocument()
     expect(screen.getByText("Subfase · Postproducción")).toBeInTheDocument()
@@ -110,6 +117,7 @@ describe("ElementSheet", () => {
 
   it("guardar la regla manda el desfase nuevo, con coma decimal", async () => {
     const { onSetRule } = renderSheet("vfx")
+    await openRules()
 
     const lag = screen.getByLabelText("Desfase")
     await userEvent.clear(lag)
@@ -125,6 +133,7 @@ describe("ElementSheet", () => {
 
   it("no ofrece depender de uno mismo ni de lo que cuelga de él", async () => {
     renderSheet("vfx")
+    await openRules()
 
     await userEvent.click(screen.getByRole("combobox", { name: "De qué elemento" }))
     const options = screen.getAllByRole("option").map((option) => option.textContent)
@@ -134,6 +143,7 @@ describe("ElementSheet", () => {
 
   it("elegir otra fecha de referencia y otro elemento cambia la regla que se guarda", async () => {
     const { onSetRule } = renderSheet("vfx")
+    await openRules()
 
     await userEvent.click(screen.getByRole("combobox", { name: "Desde qué fecha" }))
     await userEvent.click(screen.getByRole("option", { name: "el inicio" }))
@@ -148,21 +158,31 @@ describe("ElementSheet", () => {
     })
   })
 
-  it("el ancla no tiene regla de inicio: su fecha se escribe a mano", () => {
+  it("el ancla no tiene regla que cambiar: su fecha se escribe a mano", () => {
     renderSheet("post")
 
     expect(screen.getByText(/Es la fecha clave/)).toBeInTheDocument()
-    expect(screen.queryByLabelText("Desfase")).toBeNull()
+    expect(screen.queryByRole("button", { name: "Cambiar de qué depende" })).toBeNull()
+  })
+
+  it("las fechas se escriben directamente, también las calculadas", async () => {
+    const { onMoveDate } = renderSheet("vfx")
+
+    await userEvent.click(screen.getByRole("button", { name: "Inicio de VFX" }))
+    await userEvent.click(screen.getByRole("button", { name: /1 de agosto de 2027/ }))
+
+    expect(onMoveDate).toHaveBeenCalledWith("vfx", "start", "2027-08-01")
   })
 
   it("se puede añadir una regla de fin y quitar la de inicio", async () => {
     const { onRemoveRule } = renderSheet("vfx")
-    const end = screen.getByRole("region", { name: "Cuándo acaba" })
+    await openRules()
+    const end = screen.getByRole("heading", { name: "Cuándo acaba" }).parentElement!
 
     await userEvent.click(within(end).getByRole("button", { name: "Añadir regla de fin" }))
     expect(within(end).getByRole("button", { name: "Guardar la regla" })).toBeInTheDocument()
 
-    const start = screen.getByRole("region", { name: "Cuándo empieza" })
+    const start = screen.getByRole("heading", { name: "Cuándo empieza" }).parentElement!
     await userEvent.click(within(start).getByRole("button", { name: "Quitar la regla" }))
     expect(onRemoveRule).toHaveBeenCalledWith("vfx", "start")
   })
