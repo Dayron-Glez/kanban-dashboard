@@ -79,11 +79,22 @@ export const scrollLeftFor = (day: EpochDay, timeline: Timeline, visibleWidth: n
  * El fondo de todas las filas: los fines de semana sombreados de arriba abajo y
  * las líneas de hoy y de la semana 1. Se calcula una vez y lo comparten todas.
  */
-export function trackBackground(timeline: Timeline): CSSProperties {
+export interface TimelineMarks {
+  today: boolean
+  week1: boolean
+  weekends: boolean
+}
+
+const ALL_MARKS: TimelineMarks = { today: true, week1: true, weekends: true }
+
+export function trackBackground(
+  timeline: Timeline,
+  marks: TimelineMarks = ALL_MARKS
+): CSSProperties {
   const { pxPerDay } = timeline
   const line = (at: number, color: string) => ({ at, color })
   const lines = [
-    ...(timeline.shootWeek != null
+    ...(marks.week1 && timeline.shootWeek != null
       ? [
           line(
             timelineX(timeline.shootWeek, timeline),
@@ -91,18 +102,29 @@ export function trackBackground(timeline: Timeline): CSSProperties {
           ),
         ]
       : []),
-    line(timelineX(timeline.today, timeline) + pxPerDay / 2, "var(--primary)"),
+    ...(marks.today
+      ? [line(timelineX(timeline.today, timeline) + pxPerDay / 2, "var(--primary)")]
+      : []),
   ].filter(({ at }) => at >= 0 && at <= timeline.width)
   // La rejilla empieza en lunes: sábado y domingo son los días 5 y 6 de cada semana.
   const weekend = `repeating-linear-gradient(90deg, transparent 0 ${5 * pxPerDay}px, var(--weekend) ${5 * pxPerDay}px ${7 * pxPerDay}px)`
+  const layers = [
+    ...lines.map(({ at, color }) => ({
+      image: `linear-gradient(${color}, ${color})`,
+      size: "1px 100%",
+      position: `${at}px 0`,
+      repeat: "no-repeat",
+    })),
+    ...(marks.weekends
+      ? [{ image: weekend, size: "auto", position: "0 0", repeat: "repeat" }]
+      : []),
+  ]
+  if (layers.length === 0) return {}
   return {
-    backgroundImage: [
-      ...lines.map(({ color }) => `linear-gradient(${color}, ${color})`),
-      weekend,
-    ].join(", "),
-    backgroundSize: [...lines.map(() => "1px 100%"), "auto"].join(", "),
-    backgroundPosition: [...lines.map(({ at }) => `${at}px 0`), "0 0"].join(", "),
-    backgroundRepeat: [...lines.map(() => "no-repeat"), "repeat"].join(", "),
+    backgroundImage: layers.map((layer) => layer.image).join(", "),
+    backgroundSize: layers.map((layer) => layer.size).join(", "),
+    backgroundPosition: layers.map((layer) => layer.position).join(", "),
+    backgroundRepeat: layers.map((layer) => layer.repeat).join(", "),
   }
 }
 

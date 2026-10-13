@@ -547,6 +547,35 @@ describe("CalendarPage", () => {
     expect(JSON.parse(localStorage.getItem("cauce.gantt.campos")!)).toMatchObject({ start: true })
   })
 
+  it("la leyenda, en una línea, explica el Gantt; se oculta entera o por partes, y se recuerda", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    const legend = await screen.findByRole("note", { name: "Leyenda" })
+    expect(within(legend).getByText("Hoy")).toBeInTheDocument()
+    expect(within(legend).getByText("Subfase o proceso")).toBeInTheDocument()
+    // Las explicaciones largas, en el tooltip.
+    await userEvent.hover(within(legend).getByText("Semana 1"))
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "La semana en la que empieza el rodaje: de ahí se cuentan las demás"
+    )
+    await userEvent.unhover(within(legend).getByText("Semana 1"))
+
+    await userEvent.click(screen.getByRole("button", { name: "Qué partes de la leyenda se ven" }))
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Hoy (y su línea)" }))
+    await userEvent.keyboard("{Escape}")
+    expect(within(legend).queryByText("Hoy")).toBeNull()
+
+    await userEvent.click(screen.getByRole("button", { name: "Leyenda" }))
+    expect(screen.queryByRole("note", { name: "Leyenda" })).toBeNull()
+    expect(JSON.parse(localStorage.getItem("cauce.gantt.leyenda")!)).toMatchObject({
+      visible: false,
+      today: false,
+    })
+  })
+
   it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([
@@ -580,7 +609,7 @@ describe("CalendarPage", () => {
     api.elements.getPlan.mockResolvedValue(planOf([rodaje(written), preparacion(written)]))
     renderPage()
 
-    await screen.findByText("Preparación")
+    await screen.findByRole("button", { name: "Ver el detalle de Preparación" })
     expect(screen.queryByRole("region", { name: "Para que el plan salga solo" })).toBeNull()
   })
 

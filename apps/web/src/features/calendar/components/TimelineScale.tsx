@@ -2,7 +2,7 @@ import { toIsoDate } from "@repo/domain"
 import { cn } from "@/shared/index"
 import type { GanttFields } from "../lib/ganttFields"
 import { formatLongDate } from "../lib/planFormat"
-import { timelineX as x, trackBackground, type Timeline } from "../lib/timeline"
+import { timelineX as x, trackBackground, type Timeline, type TimelineMarks } from "../lib/timeline"
 
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"]
@@ -11,10 +11,16 @@ interface TimelineScaleProps {
   timeline: Timeline
   /** Qué filas se ven (campos visibles). */
   rows: Pick<GanttFields, "month" | "week" | "day">
+  /** Hoy, la semana 1 y los fines de semana se pueden apagar desde la leyenda. */
+  marks?: TimelineMarks
 }
 
 /** La cabecera del Gantt: el mes (con el año en enero), la semana desde el rodaje y el día. */
-export function TimelineScale({ timeline, rows }: Readonly<TimelineScaleProps>) {
+export function TimelineScale({
+  timeline,
+  rows,
+  marks = { today: true, week1: true, weekends: true },
+}: Readonly<TimelineScaleProps>) {
   const { pxPerDay } = timeline
 
   return (
@@ -45,7 +51,7 @@ export function TimelineScale({ timeline, rows }: Readonly<TimelineScaleProps>) 
               key={week.start}
               className={cn(
                 "border-border/60 absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
-                week.number === 1 && "bg-primary/10 text-primary font-semibold"
+                marks.week1 && week.number === 1 && "bg-primary/10 text-primary font-semibold"
               )}
               style={{ left: x(week.start, timeline), width: week.days * pxPerDay }}
             >
@@ -57,17 +63,17 @@ export function TimelineScale({ timeline, rows }: Readonly<TimelineScaleProps>) 
       {rows.day && (
         <div
           className="relative isolate h-[34px]"
-          style={{ width: timeline.width, ...trackBackground(timeline) }}
+          style={{ width: timeline.width, ...trackBackground(timeline, marks) }}
         >
           {timeline.days.map((day) => {
-            const today = day.day === timeline.today
+            const today = marks.today && day.day === timeline.today
             return (
               <span
                 key={day.day}
                 title={formatLongDate(toIsoDate(day.day))}
                 className={cn(
                   "absolute inset-y-0 flex flex-col items-center justify-center leading-none",
-                  day.weekend && "text-muted-foreground/60",
+                  marks.weekends && day.weekend && "text-muted-foreground/60",
                   today &&
                     "text-background before:bg-primary font-bold before:absolute before:inset-[3px] before:-z-10 before:rounded-md"
                 )}

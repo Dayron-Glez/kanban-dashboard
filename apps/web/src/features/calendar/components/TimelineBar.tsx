@@ -23,6 +23,8 @@ interface TimelineBarProps {
   modes: BarDragModes | null
   onOpen: () => void
   onDrag: (drag: BarDrag, days: number) => void
+  /** Los fines de semana algo más oscuros dentro de la barra (se apagan desde la leyenda). */
+  weekends?: boolean
   /** Hasta dónde se puede llegar: el arrastre se para en el tope y dice por qué. */
   limit?: (drag: BarDrag, days: number) => { days: number; reason: string | null }
 }
@@ -61,6 +63,7 @@ export function TimelineBar({
   onOpen,
   onDrag,
   limit,
+  weekends = true,
 }: Readonly<TimelineBarProps>) {
   const [state, setState] = useState<DragState | null>(null)
   const dragged = useRef<boolean>(false)
@@ -233,7 +236,7 @@ export function TimelineBar({
             state?.moved && "cursor-grabbing shadow-md",
             selected && "ring-primary ring-offset-background ring-2 ring-offset-1"
           )}
-          style={{ backgroundColor: color, ...weekendsInside(span.start) }}
+          style={{ backgroundColor: color, ...(weekends && weekendsInside(span.start)) }}
         >
           {isPhase && duration && barWidth > 64 && (
             <span className="text-background absolute inset-y-0 left-2 flex items-center text-sm font-semibold whitespace-nowrap">

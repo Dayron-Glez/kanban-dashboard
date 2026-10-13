@@ -16,6 +16,7 @@ import {
   type BarDrag,
   type PlanView,
   type Timeline,
+  type TimelineMarks,
 } from "../lib/timeline"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { TimelineBar } from "./TimelineBar"
@@ -47,6 +48,8 @@ interface ElementTreeProps {
   view?: PlanView
   /** Las columnas de la tabla junto al Gantt (en el móvil van todas). */
   fields?: Pick<GanttFields, "duration" | "start" | "end">
+  /** Hoy, la semana 1 y los fines de semana, que la leyenda puede apagar. */
+  marks?: TimelineMarks
   /** Las filas de la cabecera del Gantt. */
   headerRows?: Pick<GanttFields, "month" | "week" | "day">
   timeline?: Timeline | null
@@ -81,6 +84,7 @@ export function ElementTree({
   view = "tabla",
   fields = DEFAULT_GANTT_FIELDS,
   headerRows = DEFAULT_GANTT_FIELDS,
+  marks,
   timeline = null,
 }: Readonly<ElementTreeProps>) {
   const showTimeline = view !== "tabla" && timeline != null
@@ -98,7 +102,7 @@ export function ElementTree({
       return findPath(node.children, [...path, node.element.id])
     })
   if (selectedId) findPath(nodes, [])
-  const background = showTimeline ? trackBackground(timeline) : undefined
+  const background = showTimeline ? trackBackground(timeline, marks) : undefined
 
   const names = new Map<string, string>()
   const collect = (list: ElementNode[]) =>
@@ -159,6 +163,7 @@ export function ElementTree({
         onOpen={() => onOpen(element.id)}
         onDrag={(drag, days) => onDragBar(element.id, drag, days)}
         limit={limitDrag && ((drag, days) => limitDrag(element.id, drag, days))}
+        weekends={marks?.weekends ?? true}
       />
     )
   }
@@ -301,7 +306,7 @@ export function ElementTree({
           {columns.start && <span className="px-1.5">Inicio</span>}
           {columns.end && <span className="px-1.5">Fin</span>}
         </div>
-        {showTimeline && <TimelineScale timeline={timeline} rows={headerRows} />}
+        {showTimeline && <TimelineScale timeline={timeline} rows={headerRows} marks={marks} />}
       </div>
 
       <div>

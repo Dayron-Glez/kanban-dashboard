@@ -1,7 +1,14 @@
 import type { CalendarElement, ElementDependency } from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
-import { barDragModes, buildTimeline, dragDays, dragTarget, scrollLeftFor } from "../lib/timeline"
+import {
+  barDragModes,
+  buildTimeline,
+  dragDays,
+  dragTarget,
+  scrollLeftFor,
+  trackBackground,
+} from "../lib/timeline"
 
 const element = (id: string, overrides: Partial<CalendarElement> = {}): CalendarElement => ({
   id,
@@ -60,6 +67,21 @@ describe("scrollLeftFor", () => {
     // El 5 de abril de 2027 está 175 días después del primer día de la rejilla.
     expect(scrollLeftFor(fromIsoDate("2027-04-05"), timeline, 900)).toBe(175 * 28 + 14 - 300)
     expect(scrollLeftFor(timeline.today, timeline, 900)).toBe(0)
+  })
+})
+
+describe("trackBackground", () => {
+  const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
+
+  it("pinta hoy, la semana 1 y los fines de semana, y la leyenda puede apagarlos", () => {
+    expect(trackBackground(timeline).backgroundImage?.split("gradient(")).toHaveLength(4)
+    expect(trackBackground(timeline, { today: false, week1: false, weekends: true })).toEqual({
+      backgroundImage: expect.stringMatching(/^repeating-linear-gradient/),
+      backgroundSize: "auto",
+      backgroundPosition: "0 0",
+      backgroundRepeat: "repeat",
+    })
+    expect(trackBackground(timeline, { today: false, week1: false, weekends: false })).toEqual({})
   })
 })
 

@@ -25,11 +25,13 @@ import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
+import { loadLegend, saveLegend, type GanttLegend } from "../lib/ganttLegend"
 import { buildTimeline, dragTarget, scrollLeftFor, type BarDrag } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { FieldsMenu } from "./FieldsMenu"
+import { GanttLegendStrip, LegendMenu } from "./GanttLegend"
 import { GoToDate } from "./GoToDate"
 import { PlanHeader } from "./PlanHeader"
 import { PlanSetup } from "./PlanSetup"
@@ -76,6 +78,11 @@ export function CalendarPage() {
   const changeFields = (next: GanttFields) => {
     setFields(next)
     saveGanttFields(next)
+  }
+  const [legend, setLegend] = useState<GanttLegend>(loadLegend)
+  const changeLegend = (next: GanttLegend) => {
+    setLegend(next)
+    saveLegend(next)
   }
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
@@ -271,6 +278,7 @@ export function CalendarPage() {
                     </Button>
                     <GoToDate shortcuts={shortcuts} onGo={goTo} />
                     <FieldsMenu value={fields} onChange={changeFields} />
+                    <LegendMenu value={legend} onChange={changeLegend} />
                   </>
                 )}
               </>
@@ -301,6 +309,7 @@ export function CalendarPage() {
         ) : (
           <>
             {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
+            {view !== "tabla" && timeline && <GanttLegendStrip legend={legend} />}
             <div className="-mx-6 min-h-0 flex-1 px-6">
               <ElementTree
                 nodes={tree}
@@ -317,6 +326,7 @@ export function CalendarPage() {
                 viewportRef={viewportRef}
                 fields={fields}
                 headerRows={fields}
+                marks={legend}
                 selectedId={openId}
                 view={view}
                 timeline={timeline}
