@@ -12,8 +12,8 @@ import {
   type TimelineRange,
 } from "@repo/domain"
 
-/** Cómo se reparte el árbol: solo la tabla (el móvil), o la tabla y el cronograma. */
-export type PlanView = "tabla" | "ambos" | "cronograma"
+/** Cómo se ve el árbol: solo la tabla (el móvil), o la tabla junto al Gantt. */
+export type PlanView = "tabla" | "gantt"
 
 /** El ancho de cada día del Gantt, en píxeles. */
 export const DAY_WIDTH = 28

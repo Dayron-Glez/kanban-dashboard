@@ -8,6 +8,7 @@ import type {
 } from "@repo/contracts"
 import { cn, ScrollArea, ScrollBar } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
+import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
 import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
 import {
   barDragModes,
@@ -44,6 +45,10 @@ interface ElementTreeProps {
   onToggle: (elementId: string) => void
   selectedId?: string | null
   view?: PlanView
+  /** Las columnas de la tabla junto al Gantt (en el móvil van todas). */
+  fields?: Pick<GanttFields, "duration" | "start" | "end">
+  /** Las filas de la cabecera del Gantt. */
+  headerRows?: Pick<GanttFields, "month" | "week" | "day">
   timeline?: Timeline | null
 }
 
@@ -53,17 +58,8 @@ const shade = (color: string | null, depth: number) =>
     ? `color-mix(in oklch, ${color} ${Math.max(100 - depth * 25, 30)}%, transparent)`
     : undefined
 
-// Las columnas de la parte de tabla, según la vista: con cronograma, las
-// fechas se leen en las barras y la tabla se queda con el nombre.
-const TABLE_COLUMNS: Record<PlanView, string> = {
-  tabla: "grid-cols-[minmax(0,1fr)_7rem_7rem_7rem] flex-1",
-  ambos: "grid-cols-[minmax(0,1fr)_6.5rem] w-[24rem]",
-  cronograma: "grid-cols-[minmax(0,1fr)] w-[16rem]",
-}
-
-// Lo que ocupa la parte de tabla junto al Gantt: la barra horizontal empieza ahí,
-// porque esa parte no se desplaza.
-const TABLE_WIDTH: Record<PlanView, string> = { tabla: "0", ambos: "24rem", cronograma: "16rem" }
+// En el móvil, la tabla con todas sus columnas; junto al Gantt, las que se elijan.
+const MOBILE_TABLE = { gridTemplateColumns: "minmax(0,1fr) 7rem 7rem 7rem" }
 
 const CHIP =
   "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-[11px] font-medium whitespace-nowrap"
@@ -83,9 +79,14 @@ export function ElementTree({
   viewportRef,
   selectedId = null,
   view = "tabla",
+  fields = DEFAULT_GANTT_FIELDS,
+  headerRows = DEFAULT_GANTT_FIELDS,
   timeline = null,
 }: Readonly<ElementTreeProps>) {
   const showTimeline = view !== "tabla" && timeline != null
+  const columns = view === "tabla" ? { duration: true, start: true, end: true } : fields
+  const ganttTable = tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields })
+  const table = view === "tabla" ? MOBILE_TABLE : ganttTable
   // Lo que contiene al elemento seleccionado se abre solo, para que se vea.
   const selectedPath = new Set<string>()
   const findPath = (list: ElementNode[], path: string[]): boolean =>
@@ -181,10 +182,11 @@ export function ElementTree({
           <div
             className={cn(
               "bg-background sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
-              TABLE_COLUMNS[view],
+              view === "tabla" && "flex-1",
               showTimeline && "border-border/60 border-r",
               selected && "shadow-[inset_2px_0_0_var(--primary)]"
             )}
+            style={table}
           >
             <div
               className="flex min-w-0 items-center gap-2"
@@ -237,7 +239,7 @@ export function ElementTree({
                   fija
                 </span>
               ) : (
-                // Con cronograma, la regla se lee en la barra y en el inspector; en la
+                // Con el Gantt, la regla se lee en la barra y en el inspector; en la
                 // tabla aparece al pasar el ratón, sin quitar sitio al nombre.
                 rule &&
                 view === "tabla" && (
@@ -254,7 +256,7 @@ export function ElementTree({
               )}
             </div>
 
-            {view !== "cronograma" && (
+            {columns.duration && (
               <DurationEditor
                 label={`Duración de ${element.name}`}
                 value={element.duration}
@@ -265,8 +267,8 @@ export function ElementTree({
                 onSave={(duration) => onUpdate(element.id, { duration })}
               />
             )}
-            {view === "tabla" && dateCell(element, "start")}
-            {view === "tabla" && dateCell(element, "end")}
+            {columns.start && dateCell(element, "start")}
+            {columns.end && dateCell(element, "end")}
           </div>
 
           {showTimeline && (
@@ -289,16 +291,17 @@ export function ElementTree({
           // Con el Gantt, los títulos van a la altura de la fila de los días.
           className={cn(
             "bg-background text-muted-foreground sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
-            TABLE_COLUMNS[view],
+            view === "tabla" && "flex-1",
             showTimeline && "border-border/60 items-end border-r pb-2.5"
           )}
+          style={table}
         >
           <span className="pl-8">Elemento</span>
-          {view !== "cronograma" && <span className="px-1.5">Duración</span>}
-          {view === "tabla" && <span className="px-1.5">Inicio</span>}
-          {view === "tabla" && <span className="px-1.5">Fin</span>}
+          {columns.duration && <span className="px-1.5">Duración</span>}
+          {columns.start && <span className="px-1.5">Inicio</span>}
+          {columns.end && <span className="px-1.5">Fin</span>}
         </div>
-        {showTimeline && <TimelineScale timeline={timeline} />}
+        {showTimeline && <TimelineScale timeline={timeline} rows={headerRows} />}
       </div>
 
       <div>
@@ -315,7 +318,7 @@ export function ElementTree({
     <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
       {content}
       {showTimeline && (
-        <ScrollBar orientation="horizontal" className="z-30" style={{ left: TABLE_WIDTH[view] }} />
+        <ScrollBar orientation="horizontal" className="z-30" style={{ left: ganttTable.width }} />
       )}
     </ScrollArea>
   )

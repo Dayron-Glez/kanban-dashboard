@@ -24,10 +24,12 @@ import { buildElementTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
 import { pickView, type CalendarView } from "../lib/calendarViews"
+import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { buildTimeline, dragTarget, scrollLeftFor, type BarDrag } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
+import { FieldsMenu } from "./FieldsMenu"
 import { GoToDate } from "./GoToDate"
 import { PlanHeader } from "./PlanHeader"
 import { PlanSetup } from "./PlanSetup"
@@ -68,7 +70,13 @@ export function CalendarPage() {
       { replace: true }
     )
   // En el móvil, el árbol con sus fechas: la rejilla no cabe.
-  const view = isMobile ? "tabla" : "ambos"
+  const view = isMobile ? "tabla" : "gantt"
+  // Los campos visibles se recuerdan en este navegador.
+  const [fields, setFields] = useState<GanttFields>(loadGanttFields)
+  const changeFields = (next: GanttFields) => {
+    setFields(next)
+    saveGanttFields(next)
+  }
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
@@ -262,6 +270,7 @@ export function CalendarPage() {
                       Hoy
                     </Button>
                     <GoToDate shortcuts={shortcuts} onGo={goTo} />
+                    <FieldsMenu value={fields} onChange={changeFields} />
                   </>
                 )}
               </>
@@ -306,6 +315,8 @@ export function CalendarPage() {
                 expanded={expanded}
                 onToggle={toggle}
                 viewportRef={viewportRef}
+                fields={fields}
+                headerRows={fields}
                 selectedId={openId}
                 view={view}
                 timeline={timeline}

@@ -94,6 +94,7 @@ const rowOf = (name: string) => screen.getByText(name).closest("li")!
 
 beforeEach(() => {
   device.mobile = false
+  localStorage.clear()
   vi.mocked(toast.success).mockClear()
   api = createFakeApi()
   api.projects.listMine.mockResolvedValue([summary("owner")])
@@ -524,6 +525,26 @@ describe("CalendarPage", () => {
       await userEvent.click(screen.getByRole("button", { name: "Hoy" }))
       expect(scrollTo).toHaveBeenLastCalledWith({ left: leftOf("2026-10-13"), behavior: "smooth" })
     })
+  })
+
+  it("en «Campos visibles» se añaden columnas junto al Gantt, y se recuerda", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    expect(screen.queryByRole("button", { name: "Inicio de Rodaje" })).toBeNull()
+
+    await userEvent.click(screen.getByRole("button", { name: "Campos visibles" }))
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Inicio" }))
+    expect(screen.getByRole("menuitemcheckbox", { name: "Inicio" })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    )
+    await userEvent.keyboard("{Escape}")
+    expect(screen.getByRole("button", { name: "Inicio de Rodaje" })).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem("cauce.gantt.campos")!)).toMatchObject({ start: true })
   })
 
   it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {
