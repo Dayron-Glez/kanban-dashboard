@@ -32,7 +32,7 @@ export default function KanbanLayout() {
   // Todo lo que no es el tablero scrollea con ScrollArea; el tablero maneja su
   // propia altura y no debe llevar scroll vertical. La tabla vive en la misma
   // ruta que el tablero pero sí es una pantalla que scrollea.
-  const isBoardRoute = /\/projects\/[^/]+$/.test(location.pathname)
+  const isBoardRoute = /\/projects\/[^/]+\/board$/.test(location.pathname)
   const isTable = parseView(searchParams.get(VIEW_PARAM)) === "table"
   const isScrollablePage = !isBoardRoute || isTable
   // El calendario reparte el alto él mismo: la cuadrícula lleva su propio scroll.
