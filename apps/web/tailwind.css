@@ -268,3 +268,39 @@ body,
     }
   }
 }
+
+/*
+ * Colores de fase (ver features/calendar/lib/phaseColors.ts): el elemento recibe
+ * los dos juegos como variables y estas clases eligen el del tema. En claro, el
+ * borde separa el relleno pastel del fondo; en oscuro no hace falta.
+ */
+.phase-fill {
+  background-color: var(--phase-fill);
+}
+.phase-child-fill {
+  background-color: var(--phase-child-fill);
+}
+.phase-edge {
+  outline: 1px solid var(--phase-edge);
+  outline-offset: -1px;
+}
+.phase-child-edge {
+  outline: 1px solid var(--phase-child-edge);
+  outline-offset: -1px;
+}
+.phase-ink {
+  color: var(--phase-ink);
+}
+.dark .phase-fill {
+  background-color: var(--phase-fill-dark);
+}
+.dark .phase-child-fill {
+  background-color: var(--phase-child-fill-dark);
+}
+.dark .phase-edge,
+.dark .phase-child-edge {
+  outline: none;
+}
+.dark .phase-ink {
+  color: var(--phase-ink-dark);
+}

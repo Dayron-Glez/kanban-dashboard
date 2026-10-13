@@ -9,6 +9,7 @@ import type {
 import { cn, ScrollArea, ScrollBar } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
+import { phaseTint } from "../lib/phaseColors"
 import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
 import {
   barDragModes,
@@ -54,12 +55,6 @@ interface ElementTreeProps {
   headerRows?: Pick<GanttFields, "month" | "week" | "day">
   timeline?: Timeline | null
 }
-
-// Los hijos toman el color de su fase, más claro cuanto más hondo.
-const shade = (color: string | null, depth: number) =>
-  color
-    ? `color-mix(in oklch, ${color} ${Math.max(100 - depth * 25, 30)}%, transparent)`
-    : undefined
 
 // En el móvil, la tabla con todas sus columnas; junto al Gantt, las que se elijan.
 const MOBILE_TABLE = { gridTemplateColumns: "minmax(0,1fr) 7rem 7rem 7rem" }
@@ -155,7 +150,7 @@ export function ElementTree({
       <TimelineBar
         element={element}
         isPhase={depth === 0}
-        color={shade(node.phaseColor, depth === 0 ? 0 : depth + 1) ?? "var(--muted-foreground)"}
+        tint={phaseTint(node.phaseColor, depth === 0)}
         timeline={timeline}
         selected={element.id === selectedId}
         tooltip={tooltip}
@@ -215,8 +210,12 @@ export function ElementTree({
               <span
                 aria-hidden
                 title={ELEMENT_KIND_LABELS[element.kind]}
-                className={cn("shrink-0 rounded-full", depth === 0 ? "h-4 w-1" : "size-1.5")}
-                style={{ backgroundColor: shade(node.phaseColor, depth) }}
+                className={cn(
+                  "shrink-0 rounded-full",
+                  depth === 0 ? "h-4 w-1" : "size-1.5",
+                  phaseTint(node.phaseColor, depth === 0).className
+                )}
+                style={phaseTint(node.phaseColor, depth === 0).style}
               />
               <button
                 type="button"

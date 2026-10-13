@@ -2,6 +2,7 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
 import type { CalendarElement, Duration } from "@repo/contracts"
 import { fromIsoDate, spanOf, toIsoDate, type EpochDay } from "@repo/domain"
 import { cn } from "@/shared/index"
+import { PHASE_TEXT, type PhaseTint } from "../lib/phaseColors"
 import { formatDuration, formatPlanDate } from "../lib/planFormat"
 import {
   dragDays,
@@ -15,7 +16,8 @@ interface TimelineBarProps {
   element: CalendarElement
   /** Las fases llevan una barra más alta, con su duración dentro. */
   isPhase: boolean
-  color: string
+  /** El color de su fase (ver phaseTint). */
+  tint: PhaseTint
   timeline: Timeline
   selected: boolean
   tooltip: string
@@ -55,7 +57,7 @@ function draggedSpan(start: EpochDay, end: EpochDay | null, state: DragState | n
 export function TimelineBar({
   element,
   isPhase,
-  color,
+  tint,
   timeline,
   selected,
   tooltip,
@@ -201,16 +203,16 @@ export function TimelineBar({
           {...common}
           {...pointer}
           className={cn(
-            "absolute top-1/2 flex -translate-y-1/2 touch-none items-center",
+            "phase-ink absolute top-1/2 flex -translate-y-1/2 touch-none items-center",
             draggable && "cursor-grab",
             state?.moved && "cursor-grabbing"
           )}
-          style={{ left: x(span.start) }}
+          style={{ ...tint.style, left: x(span.start) }}
         >
-          <span className="size-2.5 rounded-full border-2" style={{ borderColor: color }} />
+          <span className="size-2.5 rounded-full border-2 border-current" />
           <span
             className="h-0.5 w-8"
-            style={{ background: `linear-gradient(90deg, ${color}, transparent)` }}
+            style={{ background: "linear-gradient(90deg, currentColor, transparent)" }}
           />
         </button>
       </>
@@ -232,14 +234,18 @@ export function TimelineBar({
           {...common}
           className={cn(
             "absolute inset-0 overflow-hidden rounded-[5px] text-left transition-shadow",
+            tint.className,
             draggable && "cursor-grab",
             state?.moved && "cursor-grabbing shadow-md",
             selected && "ring-primary ring-offset-background ring-2 ring-offset-1"
           )}
-          style={{ backgroundColor: color, ...(weekends && weekendsInside(span.start)) }}
+          style={{ ...tint.style, ...(weekends && weekendsInside(span.start)) }}
         >
           {isPhase && duration && barWidth > 64 && (
-            <span className="text-background absolute inset-y-0 left-2 flex items-center text-sm font-semibold whitespace-nowrap">
+            <span
+              className="absolute inset-y-0 left-2 flex items-center text-sm font-semibold whitespace-nowrap"
+              style={{ color: PHASE_TEXT }}
+            >
               {formatDuration(duration)}
             </span>
           )}

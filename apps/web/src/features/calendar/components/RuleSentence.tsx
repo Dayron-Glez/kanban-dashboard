@@ -20,13 +20,14 @@ import {
   PopoverTrigger,
   cn,
 } from "@/shared/index"
+import type { PhaseTint } from "../lib/phaseColors"
 import { formatDuration } from "../lib/planFormat"
 import { SegmentedControl } from "./SegmentedControl"
 
 export interface RuleCandidate {
   element: CalendarElement
   depth: number
-  color: string | undefined
+  tint: PhaseTint
 }
 
 interface RuleSentenceProps {
@@ -162,7 +163,7 @@ export function RuleSentence({
       <CommandInput placeholder="Buscar un elemento…" />
       <CommandList>
         <CommandEmpty>No hay ninguno con ese nombre.</CommandEmpty>
-        {candidates.map(({ element, depth, color }) => (
+        {candidates.map(({ element, depth, tint }) => (
           <CommandItem
             key={element.id}
             value={`${element.name} ${element.id}`}
@@ -170,8 +171,8 @@ export function RuleSentence({
           >
             <span style={{ paddingLeft: `${depth * 12}px` }} className="flex items-center gap-2">
               <span
-                className="size-1.5 shrink-0 rounded-full"
-                style={{ backgroundColor: color }}
+                className={cn("size-1.5 shrink-0 rounded-full", tint.className)}
+                style={tint.style}
                 aria-hidden
               />
               {element.name}
@@ -194,8 +195,8 @@ export function RuleSentence({
       {predecessor ? (
         <>
           <span
-            className="size-1.5 rounded-full"
-            style={{ backgroundColor: predecessor.color }}
+            className={cn("size-1.5 rounded-full", predecessor.tint.className)}
+            style={predecessor.tint.style}
             aria-hidden
           />
           {predecessor.element.name}

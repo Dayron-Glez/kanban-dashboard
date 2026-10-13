@@ -1,6 +1,8 @@
 import type { CalendarElement, DatePoint, Duration, UpdateElementPlanInput } from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { IconArrowRight, IconMinus, IconPlus } from "@tabler/icons-react"
+import { cn } from "@/shared/index"
+import type { PhaseTint } from "../lib/phaseColors"
 import { durationSuggestions, formatDuration, formatPlanDate } from "../lib/planFormat"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { SegmentedControl } from "./SegmentedControl"
@@ -9,7 +11,8 @@ interface WhenFieldProps {
   element: CalendarElement
   /** Dónde se sitúa: el elemento del que cuelga, o el plan entero si es una fase. */
   context: { name: string; start: string; end: string } | null
-  color: string | undefined
+  /** El color de su fase. */
+  tint: PhaseTint
   editable: boolean
   pending: boolean
   reason?: string
@@ -31,7 +34,7 @@ const daysBetween = (start: string, end: string) => fromIsoDate(end) - fromIsoDa
 export function WhenField({
   element,
   context,
-  color,
+  tint,
   editable,
   pending,
   reason,
@@ -73,11 +76,11 @@ export function WhenField({
         </div>
         <div className="bg-muted relative h-1.5 overflow-hidden rounded-full">
           <div
-            className="absolute inset-y-0 rounded-full"
+            className={cn("absolute inset-y-0 rounded-full", tint.className)}
             style={{
+              ...tint.style,
               left: `${Math.min(Math.max(left, 0), 99)}%`,
               width: `${Math.max(Math.min(width, 100 - Math.max(left, 0)), 1)}%`,
-              backgroundColor: color ?? "var(--primary)",
             }}
           />
         </div>

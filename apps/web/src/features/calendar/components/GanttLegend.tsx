@@ -15,6 +15,7 @@ import {
   cn,
 } from "@/shared/index"
 import { LEGEND_PARTS, toggleAllParts, type GanttLegend } from "../lib/ganttLegend"
+import { phaseTint } from "../lib/phaseColors"
 
 interface LegendMenuProps {
   value: GanttLegend
@@ -100,6 +101,9 @@ function Item({ children, hint }: Readonly<{ children: ReactNode; hint?: string 
   )
 }
 
+// Las muestras de barra, con el gris neutro: no son de ninguna fase.
+const neutral = (isPhase: boolean) => phaseTint(null, isPhase)
+
 interface GanttLegendProps {
   legend: GanttLegend
 }
@@ -146,11 +150,17 @@ export function GanttLegendStrip({ legend }: Readonly<GanttLegendProps>) {
         {legend.bars && (
           <>
             <Item>
-              <Swatch className="bg-muted-foreground h-3 w-5" />
+              <Swatch
+                className={cn("h-3 w-5", neutral(true).className)}
+                style={neutral(true).style}
+              />
               Fase
             </Item>
             <Item>
-              <Swatch className="bg-muted-foreground/60 h-2 w-5" />
+              <Swatch
+                className={cn("h-2 w-5", neutral(false).className)}
+                style={neutral(false).style}
+              />
               Subfase o proceso
             </Item>
             <Item hint="Tiene inicio, pero aún no se sabe cuándo acaba">
