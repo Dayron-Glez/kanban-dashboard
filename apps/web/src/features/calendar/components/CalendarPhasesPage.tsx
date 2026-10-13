@@ -4,7 +4,7 @@ import { IconChevronsDown, IconChevronsUp, IconTemplate } from "@tabler/icons-re
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
 import { fromIsoDate, moveEnd, moveStart, toIsoDate } from "@repo/domain"
 import { toast } from "sonner"
-import { Button, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
+import { Button, cn, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
 import { useGenerateFromTemplate, usePlan } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
@@ -154,7 +154,8 @@ export function CalendarPhasesPage() {
 
   return (
     <div className="flex w-full min-w-0">
-      <div className="flex min-w-0 flex-1 flex-col gap-4 p-6">
+      {/* Con el detalle abierto, en pantallas anchas el plan le deja sitio y no queda tapado. */}
+      <div className={cn("flex min-w-0 flex-1 flex-col gap-4 p-6", openId && "xl:pr-[424px]")}>
         <PlanHeader
           summary={summary}
           actions={

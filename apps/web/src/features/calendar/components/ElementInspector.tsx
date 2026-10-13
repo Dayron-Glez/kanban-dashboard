@@ -1,6 +1,14 @@
 import { useState } from "react"
-import { IconAnchor, IconPin, IconX } from "@tabler/icons-react"
-import { cn } from "@/shared/index"
+import { IconAnchor, IconPin } from "@tabler/icons-react"
+import {
+  cn,
+  ScrollArea,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/shared/index"
 import type {
   CalendarPlan,
   DatePoint,
@@ -39,8 +47,9 @@ const shade = (color: string | null, depth: number) =>
     : undefined
 
 /**
- * El inspector de un elemento, acoplado a la derecha: no tapa el plan, que se
- * ve moverse mientras se edita. Arriba, cuándo; debajo, cómo se calcula.
+ * El inspector de un elemento, en un Sheet a la derecha. No es modal: el plan
+ * se sigue viendo y tocando, y ↑ ↓ pasan de un elemento a otro. Arriba, cuándo;
+ * debajo, cómo se calcula.
  */
 export function ElementInspector({
   elementId,
@@ -122,154 +131,158 @@ export function ElementInspector({
   const reason = element.issue ? describeIssue(element.issue, nameOf) : undefined
 
   return (
-    <aside
-      aria-label={`Detalle de ${element.name}`}
-      className="border-border bg-background flex w-[400px] shrink-0 flex-col border-l max-xl:fixed max-xl:inset-y-0 max-xl:right-0 max-xl:z-40 max-xl:shadow-2xl xl:sticky xl:top-0 xl:max-h-screen"
-    >
-      <div className="border-border border-b px-5 pt-4 pb-3">
-        <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
-          <span
-            aria-hidden
-            className="size-2 shrink-0 rounded-full"
-            style={{ backgroundColor: color }}
-          />
-          <span className="truncate">
-            {[...parents, ELEMENT_KIND_LABELS[element.kind]].join(" › ")}
-          </span>
-          <button
-            type="button"
-            aria-label="Cerrar el detalle"
-            onClick={close}
-            className="hover:text-foreground ml-auto rounded p-1"
-          >
-            <IconX size={14} />
-          </button>
-        </div>
-        <h2 className="mt-1.5 text-sm font-semibold">{element.name}</h2>
-      </div>
+    <Sheet open modal={false} onOpenChange={(open) => !open && close()}>
+      <SheetContent
+        side="right"
+        className="w-[400px] gap-0 sm:max-w-[400px]"
+        // El foco se queda en el plan, para seguir con ↑ ↓; y tocar el plan no lo cierra.
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
+      >
+        <SheetHeader className="border-border gap-1 border-b px-5 pt-4 pb-3">
+          <SheetDescription className="flex items-center gap-1.5 pr-6 text-xs">
+            <span
+              aria-hidden
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+            <span className="truncate">
+              {[...parents, ELEMENT_KIND_LABELS[element.kind]].join(" › ")}
+            </span>
+          </SheetDescription>
+          <SheetTitle className="text-sm">{element.name}</SheetTitle>
+        </SheetHeader>
 
-      <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
-        <WhenField
-          element={element}
-          context={context}
-          color={color}
-          editable={editable}
-          pending={pending}
-          reason={reason}
-          onUpdate={(input) => onUpdate(element.id, input)}
-          onMoveDate={(point, date) => onMoveDate(element.id, point, date)}
-        />
-
-        <section aria-labelledby="inspector-rules" className="flex flex-col gap-2">
-          <h3
-            id="inspector-rules"
-            className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
-          >
-            De qué depende
-          </h3>
-          {element.isAnchor || element.isPinned ? (
-            <div
-              className={cn(
-                "flex gap-3 rounded-xl border p-3",
-                element.isAnchor ? "border-primary/25 bg-primary/5" : "border-border bg-card"
-              )}
-            >
-              {element.isAnchor ? (
-                <IconAnchor size={16} className="text-primary mt-0.5 shrink-0" aria-hidden />
-              ) : (
-                <IconPin size={16} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden />
-              )}
-              <div className="flex flex-col gap-0.5">
-                <p className="text-sm font-semibold">
-                  {element.isAnchor ? "La fecha clave del plan" : "Una fecha fija"}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {element.isAnchor
-                    ? "Todo se calcula desde aquí: si la mueves, el plan entero se mueve con ella."
-                    : "Se escribe a mano y no se mueve con el plan."}
-                  {movesCount > 0 &&
-                    ` Mueve ${movesCount === 1 ? "1 elemento" : `${movesCount} elementos`}.`}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <RuleSentence
-              key={`start-${element.id}-${startRule?.id ?? "none"}`}
-              point="start"
-              current={startRule}
-              candidates={candidates}
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="flex flex-col gap-6 px-5 py-5">
+            <WhenField
+              element={element}
+              context={context}
+              color={color}
               editable={editable}
               pending={pending}
-              onChange={(input) => onSetRule(element.id, "start", input)}
-              onRemove={() => onRemoveRule(element.id, "start")}
+              reason={reason}
+              onUpdate={(input) => onUpdate(element.id, input)}
+              onMoveDate={(point, date) => onMoveDate(element.id, point, date)}
             />
-          )}
-          {endRule || addingEnd ? (
-            <RuleSentence
-              key={`end-${element.id}-${endRule?.id ?? "none"}`}
-              point="end"
-              current={endRule}
-              candidates={candidates}
-              editable={editable}
-              pending={pending}
-              onChange={(input) => onSetRule(element.id, "end", input)}
-              onRemove={() => {
-                setAddingEnd(false)
-                if (endRule) onRemoveRule(element.id, "end")
-              }}
-            />
-          ) : (
-            <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-sm">
-              <span>
-                Acaba <span className="text-muted-foreground">cuando se cumple su duración</span>
-              </span>
-              {editable && (
-                <button
-                  type="button"
-                  onClick={() => setAddingEnd(true)}
-                  className="text-primary text-xs hover:underline"
+
+            <section aria-labelledby="inspector-rules" className="flex flex-col gap-2">
+              <h3
+                id="inspector-rules"
+                className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+              >
+                De qué depende
+              </h3>
+              {element.isAnchor || element.isPinned ? (
+                <div
+                  className={cn(
+                    "flex gap-3 rounded-xl border p-3",
+                    element.isAnchor ? "border-primary/25 bg-primary/5" : "border-border bg-card"
+                  )}
                 >
-                  Fijar el fin a otro elemento
-                </button>
-              )}
-            </div>
-          )}
-        </section>
-
-        {dependents.length > 0 && (
-          <section aria-labelledby="inspector-dependents" className="flex flex-col gap-1.5">
-            <h3
-              id="inspector-dependents"
-              className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
-            >
-              Si cambia, mueve
-            </h3>
-            <ul className="flex flex-col">
-              {dependents.map((dependent) => (
-                <li key={dependent.element.id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpen(dependent.element.id)}
-                    className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
-                  >
-                    <span
+                  {element.isAnchor ? (
+                    <IconAnchor size={16} className="text-primary mt-0.5 shrink-0" aria-hidden />
+                  ) : (
+                    <IconPin
+                      size={16}
+                      className="text-muted-foreground mt-0.5 shrink-0"
                       aria-hidden
-                      className="size-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: dependent.color }}
                     />
-                    <span className="truncate">{dependent.element.name}</span>
-                    {dependent.rule && (
-                      <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-[11px]">
-                        {dependent.rule}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
-    </aside>
+                  )}
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-sm font-semibold">
+                      {element.isAnchor ? "La fecha clave del plan" : "Una fecha fija"}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {element.isAnchor
+                        ? "Todo se calcula desde aquí: si la mueves, el plan entero se mueve con ella."
+                        : "Se escribe a mano y no se mueve con el plan."}
+                      {movesCount > 0 &&
+                        ` Mueve ${movesCount === 1 ? "1 elemento" : `${movesCount} elementos`}.`}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <RuleSentence
+                  key={`start-${element.id}-${startRule?.id ?? "none"}`}
+                  point="start"
+                  current={startRule}
+                  candidates={candidates}
+                  editable={editable}
+                  pending={pending}
+                  onChange={(input) => onSetRule(element.id, "start", input)}
+                  onRemove={() => onRemoveRule(element.id, "start")}
+                />
+              )}
+              {endRule || addingEnd ? (
+                <RuleSentence
+                  key={`end-${element.id}-${endRule?.id ?? "none"}`}
+                  point="end"
+                  current={endRule}
+                  candidates={candidates}
+                  editable={editable}
+                  pending={pending}
+                  onChange={(input) => onSetRule(element.id, "end", input)}
+                  onRemove={() => {
+                    setAddingEnd(false)
+                    if (endRule) onRemoveRule(element.id, "end")
+                  }}
+                />
+              ) : (
+                <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-sm">
+                  <span>
+                    Acaba{" "}
+                    <span className="text-muted-foreground">cuando se cumple su duración</span>
+                  </span>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={() => setAddingEnd(true)}
+                      className="text-primary text-xs hover:underline"
+                    >
+                      Fijar el fin a otro elemento
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {dependents.length > 0 && (
+              <section aria-labelledby="inspector-dependents" className="flex flex-col gap-1.5">
+                <h3
+                  id="inspector-dependents"
+                  className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+                >
+                  Si cambia, mueve
+                </h3>
+                <ul className="flex flex-col">
+                  {dependents.map((dependent) => (
+                    <li key={dependent.element.id}>
+                      <button
+                        type="button"
+                        onClick={() => onOpen(dependent.element.id)}
+                        className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
+                      >
+                        <span
+                          aria-hidden
+                          className="size-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: dependent.color }}
+                        />
+                        <span className="truncate">{dependent.element.name}</span>
+                        {dependent.rule && (
+                          <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-[11px]">
+                            {dependent.rule}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
   )
 }

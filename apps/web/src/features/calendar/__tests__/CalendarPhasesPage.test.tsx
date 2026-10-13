@@ -438,15 +438,13 @@ describe("CalendarPhasesPage", () => {
     renderPage()
 
     await userEvent.click(await screen.findByRole("button", { name: "Ver el detalle de Rodaje" }))
-    expect(screen.getByRole("complementary", { name: "Detalle de Rodaje" })).toBeInTheDocument()
+    expect(screen.getByRole("dialog", { name: "Rodaje" })).toBeInTheDocument()
 
     await userEvent.keyboard("{ArrowDown}")
-    expect(
-      screen.getByRole("complementary", { name: "Detalle de Preparación" })
-    ).toBeInTheDocument()
+    expect(screen.getByRole("dialog", { name: "Preparación" })).toBeInTheDocument()
 
     await userEvent.keyboard("{Escape}")
-    expect(screen.queryByRole("complementary", { name: /Detalle de/ })).toBeNull()
+    expect(screen.queryByRole("dialog")).toBeNull()
   })
 
   it("la propietaria genera el calendario si está vacío", async () => {
