@@ -69,6 +69,13 @@ export const timelineX = (day: EpochDay, timeline: Timeline) =>
   (day - timeline.range.start) * timeline.pxPerDay
 
 /**
+ * Hasta dónde desplazar el Gantt para enseñar un día: queda a un tercio del
+ * ancho visible, para que se vea lo que viene después.
+ */
+export const scrollLeftFor = (day: EpochDay, timeline: Timeline, visibleWidth: number) =>
+  Math.max(0, Math.round(timelineX(day, timeline) + timeline.pxPerDay / 2 - visibleWidth / 3))
+
+/**
  * El fondo de todas las filas: los fines de semana sombreados de arriba abajo y
  * las líneas de hoy y de la semana 1. Se calcula una vez y lo comparten todas.
  */

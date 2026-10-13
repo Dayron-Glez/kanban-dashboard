@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
-import { IconChevronsDown, IconChevronsUp, IconTemplate } from "@tabler/icons-react"
+import {
+  IconChevronsDown,
+  IconChevronsUp,
+  IconPointFilled,
+  IconTemplate,
+} from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
 import {
   describePhaseViolation,
@@ -19,10 +24,11 @@ import { buildElementTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
 import { pickView, type CalendarView } from "../lib/calendarViews"
-import { buildTimeline, dragTarget, type BarDrag } from "../lib/timeline"
+import { buildTimeline, dragTarget, scrollLeftFor, type BarDrag } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
+import { GoToDate } from "./GoToDate"
 import { PlanHeader } from "./PlanHeader"
 import { PlanSetup } from "./PlanSetup"
 import { ViewSelector } from "./ViewSelector"
@@ -68,6 +74,34 @@ export function CalendarPage() {
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
   const timeline = useMemo(() => buildTimeline(elements ?? []), [elements])
+
+  // El Gantt abre centrado en hoy, una vez por proyecto: después manda el usuario.
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const goTo = (day: EpochDay, smooth = true) => {
+    const viewport = viewportRef.current
+    if (!viewport || !timeline) return
+    const labels = viewport.querySelector<HTMLElement>("[data-grid-labels]")?.offsetWidth ?? 0
+    const left = scrollLeftFor(day, timeline, viewport.clientWidth - labels)
+    if (viewport.scrollTo) viewport.scrollTo({ left, behavior: smooth ? "smooth" : "auto" })
+    else viewport.scrollLeft = left
+  }
+  const focusedProject = useRef<string | null>(null)
+  useEffect(() => {
+    if (!timeline || view === "tabla" || focusedProject.current === projectId) return
+    focusedProject.current = projectId
+    goTo(timeline.today, false)
+  })
+  const shortcuts = [
+    ...(summary.anchor?.startsOn
+      ? [{ label: `Inicio de ${summary.anchor.name}`, day: fromIsoDate(summary.anchor.startsOn) }]
+      : []),
+    ...(summary.span
+      ? [
+          { label: "Inicio del plan", day: fromIsoDate(summary.span.start) },
+          { label: "Fin del plan", day: fromIsoDate(summary.span.end) },
+        ]
+      : []),
+  ]
 
   const toggle = (elementId: string) =>
     setExpanded((current) => {
@@ -202,19 +236,35 @@ export function CalendarPage() {
           summary={summary}
           actions={
             tree.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground h-8 text-xs"
-                onClick={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
-              >
-                {expanded.size > 0 ? (
-                  <IconChevronsUp className="size-3.5" aria-hidden />
-                ) : (
-                  <IconChevronsDown className="size-3.5" aria-hidden />
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground h-8 text-xs"
+                  onClick={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
+                >
+                  {expanded.size > 0 ? (
+                    <IconChevronsUp className="size-3.5" aria-hidden />
+                  ) : (
+                    <IconChevronsDown className="size-3.5" aria-hidden />
+                  )}
+                  {expanded.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                </Button>
+                {view !== "tabla" && timeline && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-primary h-8 text-xs"
+                      onClick={() => goTo(timeline.today)}
+                    >
+                      <IconPointFilled className="size-3.5" aria-hidden />
+                      Hoy
+                    </Button>
+                    <GoToDate shortcuts={shortcuts} onGo={goTo} />
+                  </>
                 )}
-                {expanded.size > 0 ? "Plegar todo" : "Desplegar todo"}
-              </Button>
+              </>
             )
           }
         />
@@ -255,6 +305,7 @@ export function CalendarPage() {
                 limitDrag={limitDrag}
                 expanded={expanded}
                 onToggle={toggle}
+                viewportRef={viewportRef}
                 selectedId={openId}
                 view={view}
                 timeline={timeline}

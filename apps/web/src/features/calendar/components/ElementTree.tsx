@@ -1,3 +1,4 @@
+import type { Ref } from "react"
 import { IconAnchor, IconChevronRight, IconPin } from "@tabler/icons-react"
 import type {
   CalendarElement,
@@ -36,6 +37,8 @@ interface ElementTreeProps {
     drag: BarDrag,
     days: number
   ) => { days: number; reason: string | null }
+  /** El elemento que hace scroll, para llevar el Gantt a un día. */
+  viewportRef?: Ref<HTMLDivElement>
   /** Lo desplegado. Todo empieza plegado. */
   expanded: ReadonlySet<string>
   onToggle: (elementId: string) => void
@@ -73,6 +76,7 @@ export function ElementTree({
   limitDrag,
   expanded: expandedIds,
   onToggle,
+  viewportRef,
   selectedId = null,
   view = "tabla",
   timeline = null,
@@ -277,6 +281,7 @@ export function ElementTree({
       <div className="border-border bg-background sticky top-0 z-20 flex min-h-9 border-b text-xs font-medium">
         <div
           aria-hidden
+          data-grid-labels
           // Con el Gantt, los títulos van a la altura de la fila de los días.
           className={cn(
             "bg-background text-muted-foreground sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
@@ -303,7 +308,7 @@ export function ElementTree({
   // La cuadrícula ocupa el alto que le dejan y lleva su propio scroll, con la
   // cabecera fija: las dos barras quedan siempre a la vista.
   return (
-    <ScrollArea className="h-full w-full">
+    <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
       {content}
       {showTimeline && <ScrollBar orientation="horizontal" />}
     </ScrollArea>

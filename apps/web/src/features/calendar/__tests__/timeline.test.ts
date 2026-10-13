@@ -1,7 +1,7 @@
 import type { CalendarElement, ElementDependency } from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
-import { barDragModes, buildTimeline, dragDays, dragTarget } from "../lib/timeline"
+import { barDragModes, buildTimeline, dragDays, dragTarget, scrollLeftFor } from "../lib/timeline"
 
 const element = (id: string, overrides: Partial<CalendarElement> = {}): CalendarElement => ({
   id,
@@ -50,6 +50,16 @@ describe("buildTimeline", () => {
     expect(timeline.shootWeek).toBe(fromIsoDate("2027-04-05"))
     const shoot = timeline.weeks.find((week) => week.start === fromIsoDate("2027-04-05"))
     expect(shoot?.number).toBe(1)
+  })
+})
+
+describe("scrollLeftFor", () => {
+  const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
+
+  it("deja el día a un tercio del ancho visible, y nunca antes del principio", () => {
+    // El 5 de abril de 2027 está 175 días después del primer día de la rejilla.
+    expect(scrollLeftFor(fromIsoDate("2027-04-05"), timeline, 900)).toBe(175 * 28 + 14 - 300)
+    expect(scrollLeftFor(timeline.today, timeline, 900)).toBe(0)
   })
 })
 

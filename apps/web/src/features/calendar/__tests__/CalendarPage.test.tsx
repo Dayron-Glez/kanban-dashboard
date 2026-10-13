@@ -6,9 +6,10 @@ import type {
   ElementDependency,
   ProjectSummary,
 } from "@repo/contracts"
+import { fromIsoDate } from "@repo/domain"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { toast } from "sonner"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
 import { CalendarPage } from "../components/CalendarPage"
 
@@ -483,6 +484,45 @@ describe("CalendarPage", () => {
         id: "plan-change",
         description: "Rodaje se metería un 60 % en Postproducción; el máximo es un 25 %",
       })
+    })
+  })
+
+  describe("el foco en hoy", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 9, 13) })
+      Element.prototype.scrollTo = vi.fn()
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    // La rejilla empieza el lunes 12 de octubre de 2026: hoy es su segundo día.
+    const leftOf = (iso: string) => (fromIsoDate(iso) - fromIsoDate("2026-10-12")) * 28 + 14
+
+    it("al abrir se centra en hoy, y «Hoy» e «Ir a fecha» llevan a donde se pide", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({
+            duration: { amount: 6, unit: "weeks" },
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const scrollTo = vi.mocked(Element.prototype.scrollTo)
+      await waitFor(() =>
+        expect(scrollTo).toHaveBeenCalledWith({ left: leftOf("2026-10-13"), behavior: "auto" })
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Ir a fecha" }))
+      await userEvent.click(screen.getByRole("button", { name: "Inicio de Rodaje" }))
+      expect(scrollTo).toHaveBeenLastCalledWith({ left: leftOf("2027-04-05"), behavior: "smooth" })
+
+      await userEvent.click(screen.getByRole("button", { name: "Hoy" }))
+      expect(scrollTo).toHaveBeenLastCalledWith({ left: leftOf("2026-10-13"), behavior: "smooth" })
     })
   })
 
