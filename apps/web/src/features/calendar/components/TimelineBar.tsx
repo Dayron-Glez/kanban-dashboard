@@ -157,7 +157,7 @@ export function TimelineBar({
   const dates = state != null && (state.days !== 0 || state.reason != null) && (
     <span
       aria-hidden
-      className="bg-foreground text-background pointer-events-none absolute -top-1 z-20 -translate-y-full rounded px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap tabular-nums shadow-sm"
+      className="bg-foreground text-background pointer-events-none absolute -top-1 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap tabular-nums shadow-sm"
       style={{ left: x(span.start) }}
     >
       {short(span.start)}
@@ -236,7 +236,7 @@ export function TimelineBar({
           style={{ backgroundColor: color, ...weekendsInside(span.start) }}
         >
           {isPhase && duration && barWidth > 64 && (
-            <span className="text-background absolute inset-y-0 left-2 flex items-center text-[11px] font-semibold whitespace-nowrap">
+            <span className="text-background absolute inset-y-0 left-2 flex items-center text-sm font-semibold whitespace-nowrap">
               {formatDuration(duration)}
             </span>
           )}

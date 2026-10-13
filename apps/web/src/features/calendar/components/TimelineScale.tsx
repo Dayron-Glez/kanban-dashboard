@@ -18,7 +18,7 @@ export function TimelineScale({ timeline, rows }: Readonly<TimelineScaleProps>) 
   const { pxPerDay } = timeline
 
   return (
-    <div aria-hidden className="text-muted-foreground shrink-0 text-[11px] tabular-nums">
+    <div aria-hidden className="text-muted-foreground shrink-0 text-sm tabular-nums">
       {rows.month && (
         <div className="relative h-[26px]" style={{ width: timeline.width }}>
           {timeline.months.map((month, index) => (
@@ -74,7 +74,7 @@ export function TimelineScale({ timeline, rows }: Readonly<TimelineScaleProps>) 
                 style={{ left: x(day.day, timeline), width: pxPerDay }}
               >
                 <span>{day.dayOfMonth}</span>
-                <span className="mt-0.5 text-[9px] opacity-75">{WEEKDAYS[day.weekday]}</span>
+                <span className="mt-0.5 text-[10px] opacity-75">{WEEKDAYS[day.weekday]}</span>
               </span>
             )
           })}

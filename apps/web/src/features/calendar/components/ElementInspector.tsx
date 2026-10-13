@@ -140,7 +140,7 @@ export function ElementInspector({
         onInteractOutside={(event) => event.preventDefault()}
       >
         <SheetHeader className="border-border gap-1 border-b px-5 pt-4 pb-3">
-          <SheetDescription className="flex items-center gap-1.5 pr-6 text-xs">
+          <SheetDescription className="flex items-center gap-1.5 pr-6 text-sm">
             <span
               aria-hidden
               className="size-2 shrink-0 rounded-full"
@@ -150,7 +150,7 @@ export function ElementInspector({
               {[...parents, ELEMENT_KIND_LABELS[element.kind]].join(" › ")}
             </span>
           </SheetDescription>
-          <SheetTitle className="text-sm">{element.name}</SheetTitle>
+          <SheetTitle className="text-base">{element.name}</SheetTitle>
         </SheetHeader>
 
         <ScrollArea className="min-h-0 flex-1">
@@ -169,7 +169,7 @@ export function ElementInspector({
             <section aria-labelledby="inspector-rules" className="flex flex-col gap-2">
               <h3
                 id="inspector-rules"
-                className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+                className="text-muted-foreground text-sm font-semibold tracking-wider uppercase"
               >
                 De qué depende
               </h3>
@@ -190,10 +190,10 @@ export function ElementInspector({
                     />
                   )}
                   <div className="flex flex-col gap-0.5">
-                    <p className="text-sm font-semibold">
+                    <p className="text-base font-semibold">
                       {element.isAnchor ? "La fecha clave del plan" : "Una fecha fija"}
                     </p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-muted-foreground text-sm">
                       {element.isAnchor
                         ? "Todo se calcula desde aquí: si la mueves, el plan entero se mueve con ella."
                         : "Se escribe a mano y no se mueve con el plan."}
@@ -229,7 +229,7 @@ export function ElementInspector({
                   }}
                 />
               ) : (
-                <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-sm">
+                <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-base">
                   <span>
                     Acaba{" "}
                     <span className="text-muted-foreground">cuando se cumple su duración</span>
@@ -238,7 +238,7 @@ export function ElementInspector({
                     <button
                       type="button"
                       onClick={() => setAddingEnd(true)}
-                      className="text-primary text-xs hover:underline"
+                      className="text-primary text-sm hover:underline"
                     >
                       Fijar el fin a otro elemento
                     </button>
@@ -251,7 +251,7 @@ export function ElementInspector({
               <section aria-labelledby="inspector-dependents" className="flex flex-col gap-1.5">
                 <h3
                   id="inspector-dependents"
-                  className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+                  className="text-muted-foreground text-sm font-semibold tracking-wider uppercase"
                 >
                   Si cambia, mueve
                 </h3>
@@ -261,7 +261,7 @@ export function ElementInspector({
                       <button
                         type="button"
                         onClick={() => onOpen(dependent.element.id)}
-                        className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
+                        className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-base"
                       >
                         <span
                           aria-hidden
@@ -270,7 +270,7 @@ export function ElementInspector({
                         />
                         <span className="truncate">{dependent.element.name}</span>
                         {dependent.rule && (
-                          <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-[11px]">
+                          <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-sm">
                             {dependent.rule}
                           </span>
                         )}

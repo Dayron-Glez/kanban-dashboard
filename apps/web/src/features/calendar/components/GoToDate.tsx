@@ -24,7 +24,7 @@ export function GoToDate({ shortcuts, onGo }: Readonly<GoToDateProps>) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="text-muted-foreground h-8 text-xs">
+        <Button variant="outline" size="sm" className="text-muted-foreground h-8 text-sm">
           <IconCalendarSearch className="size-3.5" aria-hidden />
           Ir a fecha
         </Button>
@@ -47,7 +47,7 @@ export function GoToDate({ shortcuts, onGo }: Readonly<GoToDateProps>) {
                 key={shortcut.label}
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs"
+                className="h-7 text-sm"
                 onClick={() => go(shortcut.day)}
               >
                 {shortcut.label}

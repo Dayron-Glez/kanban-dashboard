@@ -107,7 +107,7 @@ export function DurationEditor({
       </PopoverTrigger>
       <PopoverContent className="w-64" align="end">
         <form onSubmit={submit} className="flex flex-col gap-3">
-          <p className="text-sm font-medium">{label}</p>
+          <p className="text-base font-medium">{label}</p>
           <div className="flex gap-2">
             <Input
               aria-label="Cantidad"
@@ -189,8 +189,8 @@ export function DateEditor({
   if (!editable) {
     return fieldLabel ? (
       <div className="px-2.5 py-1.5" title={reason}>
-        <span className="text-muted-foreground block text-[11px]">{fieldLabel}</span>
-        <span className="text-sm font-semibold">{value ? formatLongDate(value) : "—"}</span>
+        <span className="text-muted-foreground block text-sm">{fieldLabel}</span>
+        <span className="text-base font-semibold">{value ? formatLongDate(value) : "—"}</span>
       </div>
     ) : (
       <span title={reason}>{value ? formatPlanDate(value) : "—"}</span>
@@ -213,10 +213,10 @@ export function DateEditor({
         >
           {fieldLabel ? (
             <>
-              <span className="text-muted-foreground block text-[11px]">{fieldLabel}</span>
+              <span className="text-muted-foreground block text-sm">{fieldLabel}</span>
               <span
                 className={cn(
-                  "text-sm font-semibold",
+                  "text-base font-semibold",
                   !value && "text-muted-foreground font-normal"
                 )}
               >

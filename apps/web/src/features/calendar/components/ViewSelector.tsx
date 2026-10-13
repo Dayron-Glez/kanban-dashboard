@@ -22,7 +22,7 @@ export function ViewSelector({ value, onChange }: Readonly<ViewSelectorProps>) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" aria-label={`Vista: ${current.label}`} className="h-8">
-          <span className="text-sm font-semibold">{current.label}</span>
+          <span className="text-base font-semibold">{current.label}</span>
           <IconChevronDown className="text-muted-foreground size-3.5" aria-hidden />
         </Button>
       </DropdownMenuTrigger>
@@ -39,9 +39,9 @@ export function ViewSelector({ value, onChange }: Readonly<ViewSelectorProps>) {
               className="items-start py-2"
             >
               <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">{view.label}</span>
-                <span className="text-muted-foreground text-xs">{view.description}</span>
-                {view.pending && <span className="text-warn text-[11px]">{view.pending}</span>}
+                <span className="text-base font-medium">{view.label}</span>
+                <span className="text-muted-foreground text-sm">{view.description}</span>
+                {view.pending && <span className="text-warn text-sm">{view.pending}</span>}
               </span>
             </DropdownMenuRadioItem>
           ))}

@@ -21,7 +21,7 @@ export function FieldsMenu({ value, onChange }: Readonly<FieldsMenuProps>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="text-muted-foreground h-8 text-xs">
+        <Button variant="outline" size="sm" className="text-muted-foreground h-8 text-sm">
           <IconLayoutList className="size-3.5" aria-hidden />
           Campos visibles
         </Button>
@@ -29,7 +29,7 @@ export function FieldsMenu({ value, onChange }: Readonly<FieldsMenuProps>) {
       <DropdownMenuContent align="end" className="w-52">
         {groups.map((group) => (
           <div key={group}>
-            <DropdownMenuLabel className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+            <DropdownMenuLabel className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
               {group}
             </DropdownMenuLabel>
             {GANTT_FIELDS.filter((field) => field.group === group).map((field) => (

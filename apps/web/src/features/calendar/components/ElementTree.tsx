@@ -62,7 +62,7 @@ const shade = (color: string | null, depth: number) =>
 const MOBILE_TABLE = { gridTemplateColumns: "minmax(0,1fr) 7rem 7rem 7rem" }
 
 const CHIP =
-  "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-[11px] font-medium whitespace-nowrap"
+  "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-sm font-medium whitespace-nowrap"
 
 export function ElementTree({
   nodes,
@@ -175,7 +175,7 @@ export function ElementTree({
         <div
           aria-selected={selected}
           className={cn(
-            "group/row border-border/40 flex h-9 border-b text-sm transition-colors",
+            "group/row border-border/40 flex h-9 border-b text-base transition-colors",
             selected ? "bg-primary/5" : "hover:bg-muted/40"
           )}
         >
@@ -284,7 +284,7 @@ export function ElementTree({
 
   const content = (
     <div className={cn(showTimeline && "w-max min-w-full")}>
-      <div className="border-border bg-background sticky top-0 z-20 flex min-h-9 border-b text-xs font-medium">
+      <div className="border-border bg-background sticky top-0 z-20 flex min-h-9 border-b text-sm font-medium">
         <div
           aria-hidden
           data-grid-labels

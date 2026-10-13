@@ -248,7 +248,7 @@ export function CalendarPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-muted-foreground h-8 text-xs"
+                  className="text-muted-foreground h-8 text-sm"
                   onClick={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
                 >
                   {expanded.size > 0 ? (
@@ -263,7 +263,7 @@ export function CalendarPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-primary h-8 text-xs"
+                      className="text-primary h-8 text-sm"
                       onClick={() => goTo(timeline.today)}
                     >
                       <IconPointFilled className="size-3.5" aria-hidden />
@@ -287,7 +287,7 @@ export function CalendarPage() {
         ) : plan.isError ? (
           <QueryErrorState error={plan.error} onRetry={() => void plan.refetch()} />
         ) : tree.length === 0 ? (
-          <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center text-sm">
+          <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center text-base">
             <p>Este proyecto todavía no tiene fases.</p>
             {isOwner ? (
               <Button size="sm" onClick={() => generate.mutate()} disabled={generate.isPending}>

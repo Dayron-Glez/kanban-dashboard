@@ -49,7 +49,7 @@ const UNIT_OPTIONS = [
 ] as const satisfies readonly { value: Duration["unit"]; label: string }[]
 
 const PILL =
-  "inline-flex h-7 items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 align-middle text-sm font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none disabled:cursor-default disabled:hover:bg-primary/10"
+  "inline-flex h-7 items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 align-middle text-base font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none disabled:cursor-default disabled:hover:bg-primary/10"
 
 function Pill({
   label,
@@ -149,7 +149,7 @@ export function RuleSentence({
       aria-selected={selected}
       onClick={onSelect}
       className={cn(
-        "hover:bg-muted flex w-full items-center rounded-md px-2.5 py-1.5 text-left text-sm",
+        "hover:bg-muted flex w-full items-center rounded-md px-2.5 py-1.5 text-left text-base",
         selected && "text-primary font-medium"
       )}
     >
@@ -208,7 +208,7 @@ export function RuleSentence({
 
   if (!current) {
     return (
-      <div className="border-border bg-card rounded-xl border p-3 text-sm leading-8">
+      <div className="border-border bg-card rounded-xl border p-3 text-base leading-8">
         {verb} con el{" "}
         <span className="text-muted-foreground">{point === "start" ? "inicio" : "fin"}</span> de{" "}
         {elementPill}
@@ -217,7 +217,7 @@ export function RuleSentence({
   }
 
   return (
-    <div className="border-border bg-card group/rule relative rounded-xl border p-3 pr-9 text-sm leading-8">
+    <div className="border-border bg-card group/rule relative rounded-xl border p-3 pr-9 text-base leading-8">
       {verb}{" "}
       {direction !== "same" && (
         <>

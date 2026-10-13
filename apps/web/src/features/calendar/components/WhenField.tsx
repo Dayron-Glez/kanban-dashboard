@@ -65,7 +65,7 @@ export function WhenField({
     // Las fechas encima y la pista debajo: la barra nunca tapa el texto.
     return (
       <div className="flex flex-col gap-1.5 px-1" aria-hidden>
-        <div className="text-muted-foreground flex justify-between gap-2 text-[11px] tabular-nums">
+        <div className="text-muted-foreground flex justify-between gap-2 text-sm tabular-nums">
           <span className="truncate">
             {context.name} · {formatPlanDate(context.start)}
           </span>
@@ -89,7 +89,7 @@ export function WhenField({
     <section aria-labelledby="inspector-when" className="flex flex-col gap-2">
       <h3
         id="inspector-when"
-        className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+        className="text-muted-foreground text-sm font-semibold tracking-wider uppercase"
       >
         Cuándo
       </h3>
@@ -124,7 +124,7 @@ export function WhenField({
 
         {contextBar()}
 
-        <div className="flex items-center gap-2 px-1 text-sm">
+        <div className="flex items-center gap-2 px-1 text-base">
           <span className="text-muted-foreground">Dura</span>
           {duration && editable ? (
             <>
@@ -170,14 +170,14 @@ export function WhenField({
               aria-label="¿Cuánto dura?"
               className="border-warn/40 bg-warn-soft/40 flex flex-1 flex-wrap items-center gap-1.5 rounded-lg border border-dashed px-2.5 py-1.5"
             >
-              <span className="text-warn mr-1 text-xs">¿Cuánto dura?</span>
+              <span className="text-warn mr-1 text-sm">¿Cuánto dura?</span>
               {durationSuggestions(element).map((suggestion) => (
                 <button
                   key={`${suggestion.amount}-${suggestion.unit}`}
                   type="button"
                   disabled={pending}
                   onClick={() => onUpdate({ duration: suggestion })}
-                  className="bg-card border-border hover:bg-muted h-6 rounded-full border px-2.5 text-xs font-medium"
+                  className="bg-card border-border hover:bg-muted h-6 rounded-full border px-2.5 text-sm font-medium"
                 >
                   {formatDuration(suggestion)}
                 </button>
@@ -203,7 +203,7 @@ export function WhenField({
         </div>
       </div>
       {editable && (
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm">
           Escribe cualquier fecha: el plan se recoloca para que salga y te enseña qué más se mueve
           antes de guardar.
         </p>

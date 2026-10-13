@@ -25,14 +25,14 @@ export function PlanSetup({ steps, pending, onUpdate }: Readonly<PlanSetupProps>
     >
       <div className="flex items-center gap-3">
         <div className="flex-1">
-          <h2 id="plan-setup-title" className="text-sm font-semibold">
+          <h2 id="plan-setup-title" className="text-base font-semibold">
             Para que el plan salga solo
           </h2>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm">
             Con la fecha del rodaje y la duración de las fases, el resto de fechas se calcula.
           </p>
         </div>
-        <span className="text-muted-foreground text-xs tabular-nums">
+        <span className="text-muted-foreground text-sm tabular-nums">
           {done} de {steps.length}
         </span>
       </div>
@@ -47,7 +47,7 @@ export function PlanSetup({ steps, pending, onUpdate }: Readonly<PlanSetupProps>
         {steps.map((step) => (
           <li
             key={`${step.element.id}-${step.field}`}
-            className="flex h-8 items-center gap-2.5 text-sm"
+            className="flex h-8 items-center gap-2.5 text-base"
           >
             <span
               aria-hidden
@@ -63,7 +63,7 @@ export function PlanSetup({ steps, pending, onUpdate }: Readonly<PlanSetupProps>
               {step.done && <span className="sr-only"> (hecho)</span>}
             </span>
             {step.done ? (
-              <span className="text-muted-foreground text-xs tabular-nums">
+              <span className="text-muted-foreground text-sm tabular-nums">
                 {step.field === "duration"
                   ? formatDuration(step.element.duration!)
                   : formatPlanDate(step.element.startsOn!)}
