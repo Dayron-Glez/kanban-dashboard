@@ -266,7 +266,7 @@ export function ElementTree({
 
   const content = (
     <div className={cn(showTimeline && "w-max min-w-full")}>
-      <div className="border-border flex h-9 border-b text-xs font-medium">
+      <div className="border-border bg-background sticky top-0 z-20 flex h-9 border-b text-xs font-medium">
         <div
           aria-hidden
           className={cn(
@@ -291,12 +291,12 @@ export function ElementTree({
     </div>
   )
 
-  // Con cronograma, el ancho pasa del de la ventana: scroll horizontal de shadcn.
-  if (!showTimeline) return content
+  // La cuadrícula ocupa el alto que le dejan y lleva su propio scroll, con la
+  // cabecera fija: las dos barras quedan siempre a la vista.
   return (
-    <ScrollArea className="w-full">
+    <ScrollArea className="h-full w-full">
       {content}
-      <ScrollBar orientation="horizontal" />
+      {showTimeline && <ScrollBar orientation="horizontal" />}
     </ScrollArea>
   )
 }

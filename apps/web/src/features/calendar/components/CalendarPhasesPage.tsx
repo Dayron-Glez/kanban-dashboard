@@ -153,9 +153,14 @@ export function CalendarPhasesPage() {
   }
 
   return (
-    <div className="flex w-full min-w-0">
+    <div className="flex min-h-0 w-full min-w-0 flex-1">
       {/* Con el detalle abierto, en pantallas anchas el plan le deja sitio y no queda tapado. */}
-      <div className={cn("flex min-w-0 flex-1 flex-col gap-4 p-6", openId && "xl:pr-[424px]")}>
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
+          openId && "xl:pr-[424px]"
+        )}
+      >
         <PlanHeader
           summary={summary}
           actions={
@@ -220,21 +225,23 @@ export function CalendarPhasesPage() {
         ) : (
           <>
             {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
-            <ElementTree
-              nodes={tree}
-              dependencies={plan.data.dependencies}
-              editable={isOwner}
-              pending={changes.pending}
-              onUpdate={onUpdate}
-              onOpen={setOpenId}
-              onMoveDate={onMoveDate}
-              onDragBar={onDragBar}
-              expanded={expanded}
-              onToggle={toggle}
-              selectedId={openId}
-              view={view}
-              timeline={timeline}
-            />
+            <div className="-mx-6 min-h-0 flex-1 px-6">
+              <ElementTree
+                nodes={tree}
+                dependencies={plan.data.dependencies}
+                editable={isOwner}
+                pending={changes.pending}
+                onUpdate={onUpdate}
+                onOpen={setOpenId}
+                onMoveDate={onMoveDate}
+                onDragBar={onDragBar}
+                expanded={expanded}
+                onToggle={toggle}
+                selectedId={openId}
+                view={view}
+                timeline={timeline}
+              />
+            </div>
             <ChangePreviewDialog plan={plan.data} {...changes.dialog} />
           </>
         )}
