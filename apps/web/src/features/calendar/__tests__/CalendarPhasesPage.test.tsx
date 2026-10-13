@@ -94,15 +94,26 @@ beforeEach(() => {
 })
 
 describe("CalendarPhasesPage", () => {
-  it("muestra las fases abiertas y pliega sus hijos", async () => {
+  it("todo empieza plegado; se despliega fase a fase o todo de una vez", async () => {
     api.elements.getPlan.mockResolvedValue(
-      planOf([element("post", null, "Postproducción"), element("vfx", "post", "VFX")])
+      planOf([
+        element("post", null, "Postproducción"),
+        element("vfx", "post", "VFX"),
+        element("creacion", "vfx", "Creación VFX"),
+      ])
     )
     renderPage()
 
-    expect(await screen.findByText("VFX")).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Plegar Postproducción" }))
+    await screen.findByText("Postproducción")
     expect(screen.queryByText("VFX")).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Desplegar Postproducción" }))
+    expect(screen.getByText("VFX")).toBeInTheDocument()
+    expect(screen.queryByText("Creación VFX")).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "Plegar todo" }))
+    expect(screen.queryByText("VFX")).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Desplegar todo" }))
+    expect(screen.getByText("Creación VFX")).toBeInTheDocument()
   })
 
   it("enseña fechas, duración y la regla de cada elemento", async () => {
@@ -365,7 +376,8 @@ describe("CalendarPhasesPage", () => {
     )
     renderPage()
 
-    const bar = await screen.findByRole("button", { name: "Shooting: 5 abr 2027 → 16 may 2027" })
+    await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+    const bar = screen.getByRole("button", { name: "Shooting: 5 abr 2027 → 16 may 2027" })
     expect(bar).toHaveAttribute("title", expect.stringContaining("Se mueve con Rodaje"))
     bar.focus()
     await userEvent.keyboard("{ArrowRight}")

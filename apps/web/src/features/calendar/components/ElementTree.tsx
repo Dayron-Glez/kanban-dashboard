@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { IconAnchor, IconChevronRight, IconPin } from "@tabler/icons-react"
 import type {
   CalendarElement,
@@ -31,6 +30,9 @@ interface ElementTreeProps {
   onMoveDate: (elementId: string, point: DatePoint, date: string) => void
   /** Una barra arrastrada o movida con las flechas, en días. */
   onDragBar: (elementId: string, drag: BarDrag, days: number) => void
+  /** Lo desplegado. Todo empieza plegado. */
+  expanded: ReadonlySet<string>
+  onToggle: (elementId: string) => void
   selectedId?: string | null
   view?: PlanView
   timeline?: Timeline | null
@@ -62,12 +64,12 @@ export function ElementTree({
   onOpen,
   onMoveDate,
   onDragBar,
+  expanded: expandedIds,
+  onToggle,
   selectedId = null,
   view = "tabla",
   timeline = null,
 }: Readonly<ElementTreeProps>) {
-  // Las fases empiezan abiertas y el resto cerrado: se guarda lo que el usuario cambia.
-  const [toggled, setToggled] = useState<Set<string>>(new Set())
   const showTimeline = view !== "tabla" && timeline != null
   // Lo que contiene al elemento seleccionado se abre solo, para que se vea.
   const selectedPath = new Set<string>()
@@ -90,14 +92,6 @@ export function ElementTree({
     })
   collect(nodes)
   const nameOf = (id: string) => names.get(id) ?? "otro elemento"
-
-  const toggle = (id: string) =>
-    setToggled((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
 
   // Lo vacío no se pinta: el motivo queda para el cursor y los lectores de pantalla.
   const missing = (element: CalendarElement) => {
@@ -154,7 +148,7 @@ export function ElementTree({
 
   const renderNode = (node: ElementNode) => {
     const { element, depth, children } = node
-    const expanded = toggled.has(element.id) !== (depth === 0) || selectedPath.has(element.id)
+    const expanded = expandedIds.has(element.id) || selectedPath.has(element.id)
     const hasChildren = children.length > 0
     const rule = describeRule(element, dependencies, nameOf)
     const selected = element.id === selectedId
@@ -183,7 +177,7 @@ export function ElementTree({
               {hasChildren ? (
                 <button
                   type="button"
-                  onClick={() => toggle(element.id)}
+                  onClick={() => onToggle(element.id)}
                   aria-label={`${expanded ? "Plegar" : "Desplegar"} ${element.name}`}
                   className="text-muted-foreground hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
                 >

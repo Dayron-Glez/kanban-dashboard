@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
-import { IconTemplate } from "@tabler/icons-react"
+import { IconChevronsDown, IconChevronsUp, IconTemplate } from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
 import { fromIsoDate, moveEnd, moveStart, toIsoDate } from "@repo/domain"
 import { toast } from "sonner"
@@ -44,6 +44,11 @@ const pick = <T extends string>(value: string | null, options: readonly T[], fal
 const flattenIds = (nodes: ElementNode[]): string[] =>
   nodes.flatMap((node) => [node.element.id, ...flattenIds(node.children)])
 
+const parentIds = (nodes: ElementNode[]): string[] =>
+  nodes.flatMap((node) =>
+    node.children.length > 0 ? [node.element.id, ...parentIds(node.children)] : []
+  )
+
 const EDIT_ERRORS = {
   "missing-reference": "No se puede calcular: depende de algo que todavía no tiene fecha",
   inverted: "El inicio no puede quedar después del fin",
@@ -55,6 +60,8 @@ export function CalendarPhasesPage() {
   const generate = useGenerateFromTemplate(projectId)
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
+  // Todo empieza plegado: el plan entero de golpe es demasiado.
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
   const isMobile = useIsMobile()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -74,6 +81,14 @@ export function CalendarPhasesPage() {
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
   const timeline = useMemo(() => buildTimeline(elements ?? [], scale), [elements, scale])
+
+  const toggle = (elementId: string) =>
+    setExpanded((current) => {
+      const next = new Set(current)
+      if (next.has(elementId)) next.delete(elementId)
+      else next.add(elementId)
+      return next
+    })
 
   const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
     changes.request({ type: "update", elementId, input })
@@ -143,22 +158,38 @@ export function CalendarPhasesPage() {
         <PlanHeader
           summary={summary}
           actions={
-            !isMobile &&
             tree.length > 0 && (
               <>
-                <SegmentedControl
-                  label="Vista"
-                  value={view}
-                  options={VIEW_OPTIONS}
-                  onChange={(next) => setParam("vista", next)}
-                />
-                {view !== "tabla" && (
-                  <SegmentedControl
-                    label="Escala"
-                    value={scale}
-                    options={SCALE_OPTIONS}
-                    onChange={(next) => setParam("escala", next)}
-                  />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground h-8 text-xs"
+                  onClick={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
+                >
+                  {expanded.size > 0 ? (
+                    <IconChevronsUp className="size-3.5" aria-hidden />
+                  ) : (
+                    <IconChevronsDown className="size-3.5" aria-hidden />
+                  )}
+                  {expanded.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                </Button>
+                {!isMobile && (
+                  <>
+                    <SegmentedControl
+                      label="Vista"
+                      value={view}
+                      options={VIEW_OPTIONS}
+                      onChange={(next) => setParam("vista", next)}
+                    />
+                    {view !== "tabla" && (
+                      <SegmentedControl
+                        label="Escala"
+                        value={scale}
+                        options={SCALE_OPTIONS}
+                        onChange={(next) => setParam("escala", next)}
+                      />
+                    )}
+                  </>
                 )}
               </>
             )
@@ -197,6 +228,8 @@ export function CalendarPhasesPage() {
               onOpen={setOpenId}
               onMoveDate={onMoveDate}
               onDragBar={onDragBar}
+              expanded={expanded}
+              onToggle={toggle}
               selectedId={openId}
               view={view}
               timeline={timeline}
