@@ -221,8 +221,10 @@ function Sidebar({
           // Anclado: el panel deja de ser fixed a la ventana y arranca por
           // debajo de la barra superior en vez de taparla.
           anchored && "absolute h-full",
-          // Superposición: la sombra despega el panel del contenido que cubre.
-          overlay && "group-data-[state=expanded]:shadow-pop",
+          // Superposición: la sombra despega el panel del contenido que cubre, y
+          // va por encima de lo fijo del contenido (columnas sticky) y por
+          // debajo de diálogos y sheets (z-50).
+          overlay && "group-data-[state=expanded]:shadow-pop z-30",
           className
         )}
         {...props}
