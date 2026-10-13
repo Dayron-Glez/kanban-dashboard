@@ -6,11 +6,20 @@ import { CalendarModule } from "./calendar/calendar.module.js"
 import { ConfigModule } from "./config/config.module.js"
 import { DbModule } from "./db/db.module.js"
 import { HealthController } from "./health/health.controller.js"
+import { LoggerModule } from "./logger/logger.module.js"
 import { MeController } from "./me/me.controller.js"
 import { ProjectsModule } from "./projects/projects.module.js"
 
 @Module({
-  imports: [ConfigModule, DbModule, AuthModule, ProjectsModule, BoardModule, CalendarModule],
+  imports: [
+    ConfigModule,
+    LoggerModule,
+    DbModule,
+    AuthModule,
+    ProjectsModule,
+    BoardModule,
+    CalendarModule,
+  ],
   controllers: [HealthController, MeController],
   // Valida cada @Body({ schema }) con los esquemas Zod de @repo/contracts.
   providers: [{ provide: APP_PIPE, useClass: StandardSchemaValidationPipe }],
