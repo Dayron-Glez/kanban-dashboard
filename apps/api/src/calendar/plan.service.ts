@@ -13,6 +13,7 @@ import type {
 } from "@repo/contracts"
 import { wouldCreateCycle } from "@repo/domain"
 import { and, eq } from "drizzle-orm"
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino"
 import { DB, type Database } from "../db/db.module.js"
 import { elementDependencies, elements, projects } from "../db/schema/index.js"
 import { ProjectAccess } from "../projects/project-access.js"
@@ -20,12 +21,18 @@ import type { Transaction } from "./calendar-template.js"
 import { loadPlan, recalculatePlan } from "./plan.js"
 
 type EditableElement = { projectId: string; isAnchor: boolean; isPinned: boolean }
+type EditContext = {
+  elementId: string
+  change: "plan" | "rule" | "removeRule"
+  point?: DatePoint
+}
 
 @Injectable()
 export class PlanService {
   constructor(
     @Inject(DB) private readonly db: Database,
-    @Inject(ProjectAccess) private readonly access: ProjectAccess
+    @Inject(ProjectAccess) private readonly access: ProjectAccess,
+    @InjectPinoLogger(PlanService.name) private readonly logger: PinoLogger
   ) {}
 
   async getPlan(userId: string, projectId: string): Promise<CalendarPlan> {
@@ -52,7 +59,7 @@ export class PlanService {
       )
     }
 
-    return this.edit(element.projectId, async (tx) => {
+    return this.edit(element.projectId, { elementId, change: "plan" }, async (tx) => {
       await tx
         .update(elements)
         .set({
@@ -79,7 +86,7 @@ export class PlanService {
       throw new BadRequestException("El inicio del ancla y de los fijados se escribe a mano")
     }
 
-    return this.edit(element.projectId, async (tx) => {
+    return this.edit(element.projectId, { elementId, change: "rule", point }, async (tx) => {
       const [predecessor] = await tx
         .select({ id: elements.id })
         .from(elements)
@@ -105,6 +112,10 @@ export class PlanService {
           .from(elements)
           .where(eq(elements.projectId, element.projectId))
         const nameOf = new Map(names.map((row) => [row.id, row.name]))
+        this.logger.warn(
+          { projectId: element.projectId, elementId, point, cycle },
+          "Regla rechazada: cerraría un ciclo"
+        )
         throw new ConflictException(
           `Esa regla cerraría un ciclo: ${cycle.map((id) => nameOf.get(id)).join(" → ")}`
         )
@@ -125,7 +136,9 @@ export class PlanService {
 
   async removeRule(userId: string, elementId: string, point: DatePoint): Promise<CalendarPlan> {
     const element = await this.findEditable(userId, elementId)
-    return this.edit(element.projectId, (tx) => this.deleteRule(tx, elementId, point))
+    return this.edit(element.projectId, { elementId, change: "removeRule", point }, (tx) =>
+      this.deleteRule(tx, elementId, point)
+    )
   }
 
   private async findEditable(userId: string, elementId: string): Promise<EditableElement> {
@@ -144,11 +157,13 @@ export class PlanService {
 
   // Cada cambio recalcula el proyecto entero con el proyecto bloqueado: dos
   // ediciones a la vez no pueden dejar fechas calculadas con datos distintos.
-  private edit(
+  private async edit(
     projectId: string,
+    context: EditContext,
     change: (tx: Transaction) => Promise<unknown>
   ): Promise<CalendarPlan> {
-    return this.db.transaction(async (tx) => {
+    const startedAt = performance.now()
+    const plan = await this.db.transaction(async (tx) => {
       await tx
         .select({ id: projects.id })
         .from(projects)
@@ -157,6 +172,16 @@ export class PlanService {
       await change(tx)
       return recalculatePlan(tx, projectId)
     })
+    this.logger.info(
+      {
+        projectId,
+        ...context,
+        elements: plan.elements.length,
+        durationMs: Math.round(performance.now() - startedAt),
+      },
+      "Plan recalculado"
+    )
+    return plan
   }
 
   private deleteRule(tx: Transaction, elementId: string, point: DatePoint) {

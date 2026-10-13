@@ -4,6 +4,7 @@ const EnvSchema = z
   .object({
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     PORT: z.coerce.number().int().positive().default(3000),
+    LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).optional(),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     // La URL pública de la web (no la de Railway): better-auth construye con ella
     // las redirecciones de Google y la cookie es de ese dominio.
