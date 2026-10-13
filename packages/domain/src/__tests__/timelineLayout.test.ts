@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest"
 import { fromIsoDate, toIsoDate } from "../planDates"
 import {
+  dayGridRange,
+  gridDays,
+  monthSegments,
   monthTicks,
   mondayOf,
   positionOf,
   spanOf,
   timelineRange,
   weekNumber,
+  weekSegments,
 } from "../timelineLayout"
 
 const d = fromIsoDate
@@ -78,5 +82,87 @@ describe("monthTicks", () => {
       ["2027-01-01", 0, 2027],
       ["2027-02-01", 1, 2027],
     ])
+  })
+})
+
+describe("dayGridRange", () => {
+  const plan = [
+    { start: d("2026-01-01"), end: d("2026-03-31") },
+    { start: d("2027-04-05"), end: d("2027-10-31") },
+  ]
+
+  it("va del lunes de la primera semana a 14 días después del final", () => {
+    const range = dayGridRange(plan)!
+    // El 1 de enero de 2026 fue jueves: la rejilla empieza el lunes 29 de diciembre.
+    expect(toIsoDate(range.start)).toBe("2025-12-29")
+    expect(toIsoDate(range.end)).toBe("2027-11-14")
+    expect(range.days).toBe(range.end - range.start + 1)
+  })
+
+  it("abarca hoy aunque el plan no lo toque, para poder centrarse en él", () => {
+    const range = dayGridRange(
+      [{ start: d("2027-04-05"), end: d("2027-05-16") }],
+      [d("2026-10-13")]
+    )!
+    expect(toIsoDate(range.start)).toBe("2026-10-12")
+    expect(toIsoDate(range.end)).toBe("2027-05-30")
+  })
+
+  it("sin fechas, no hay rejilla", () => {
+    expect(dayGridRange([{ start: null, end: null }], [d("2026-10-13")])).toBeNull()
+  })
+})
+
+describe("gridDays", () => {
+  it("cada día con su día de la semana, de lunes (0) a domingo (6)", () => {
+    const days = gridDays({ start: d("2026-01-01"), end: d("2026-01-05"), days: 5 })
+    expect(days.map(({ weekday, weekend, dayOfMonth }) => [dayOfMonth, weekday, weekend])).toEqual([
+      [1, 3, false],
+      [2, 4, false],
+      [3, 5, true],
+      [4, 6, true],
+      [5, 0, false],
+    ])
+  })
+})
+
+describe("monthSegments", () => {
+  it("los meses recortados a la rejilla, el primero a medias", () => {
+    const range = { start: d("2025-12-29"), end: d("2026-02-10"), days: 44 }
+    expect(
+      monthSegments(range).map(({ start, days, month, year }) => [
+        toIsoDate(start),
+        days,
+        month,
+        year,
+      ])
+    ).toEqual([
+      ["2025-12-29", 3, 11, 2025],
+      ["2026-01-01", 31, 0, 2026],
+      ["2026-02-01", 10, 1, 2026],
+    ])
+  })
+})
+
+describe("weekSegments", () => {
+  it("semanas de lunes a domingo numeradas desde la del rodaje, sin semana 0", () => {
+    const range = { start: d("2027-03-22"), end: d("2027-04-14"), days: 24 }
+    expect(
+      weekSegments(range, d("2027-04-05")).map(({ start, days, number }) => [
+        toIsoDate(start),
+        days,
+        number,
+      ])
+    ).toEqual([
+      ["2027-03-22", 7, -2],
+      ["2027-03-29", 7, -1],
+      ["2027-04-05", 7, 1],
+      ["2027-04-12", 3, 2],
+    ])
+  })
+
+  it("sin rodaje con fecha, las semanas no llevan número", () => {
+    const range = { start: d("2027-03-22"), end: d("2027-03-28"), days: 7 }
+    expect(weekSegments(range, null)).toEqual([{ start: d("2027-03-22"), days: 7, number: null }])
   })
 })
