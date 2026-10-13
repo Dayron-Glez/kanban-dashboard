@@ -1,6 +1,7 @@
 import type { UpdateElementPlanInput } from "@repo/contracts"
-import { IconWand } from "@tabler/icons-react"
-import type { SetupStep } from "../lib/planFormat"
+import { IconCheck } from "@tabler/icons-react"
+import { cn } from "@/shared/index"
+import { formatDuration, formatPlanDate, type SetupStep } from "../lib/planFormat"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 
 interface PlanSetupProps {
@@ -9,18 +10,21 @@ interface PlanSetupProps {
   onUpdate: (elementId: string, input: UpdateElementPlanInput) => void
 }
 
-/** Lo mínimo para que el plan salga solo. Desaparece cuando ya está todo. */
+/**
+ * Los pasos para que el plan salga solo, con lo hecho marcado. Desaparece
+ * cuando ya está todo.
+ */
 export function PlanSetup({ steps, pending, onUpdate }: Readonly<PlanSetupProps>) {
-  if (steps.length === 0) return null
+  const done = steps.filter((step) => step.done).length
+  if (steps.length === 0 || done === steps.length) return null
 
   return (
     <section
       aria-labelledby="plan-setup-title"
       className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4"
     >
-      <div className="flex items-start gap-2">
-        <IconWand size={18} className="text-primary mt-0.5 shrink-0" />
-        <div>
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
           <h2 id="plan-setup-title" className="text-sm font-semibold">
             Para que el plan salga solo
           </h2>
@@ -28,18 +32,46 @@ export function PlanSetup({ steps, pending, onUpdate }: Readonly<PlanSetupProps>
             Con la fecha del rodaje y la duración de las fases, el resto de fechas se calcula.
           </p>
         </div>
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {done} de {steps.length}
+        </span>
       </div>
-      <ul className="grid gap-1 sm:grid-cols-2">
+      <div className="bg-muted h-1 overflow-hidden rounded-full" aria-hidden>
+        <div
+          className="bg-primary h-full rounded-full transition-[width]"
+          style={{ width: `${(done / steps.length) * 100}%` }}
+        />
+      </div>
+
+      <ol className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
         {steps.map((step) => (
           <li
             key={`${step.element.id}-${step.field}`}
-            className="flex items-center justify-between gap-2 text-sm"
+            className="flex h-8 items-center gap-2.5 text-sm"
           >
-            <span>{step.label}</span>
-            {step.field === "duration" ? (
+            <span
+              aria-hidden
+              className={cn(
+                "flex size-4 shrink-0 items-center justify-center rounded-full border",
+                step.done ? "border-primary bg-primary text-primary-foreground" : "border-border"
+              )}
+            >
+              {step.done && <IconCheck size={11} stroke={3} />}
+            </span>
+            <span className={cn("flex-1 truncate", step.done && "text-muted-foreground")}>
+              {step.label}
+              {step.done && <span className="sr-only"> (hecho)</span>}
+            </span>
+            {step.done ? (
+              <span className="text-muted-foreground text-xs tabular-nums">
+                {step.field === "duration"
+                  ? formatDuration(step.element.duration!)
+                  : formatPlanDate(step.element.startsOn!)}
+              </span>
+            ) : step.field === "duration" ? (
               <DurationEditor
                 label={step.label}
-                value={step.element.duration}
+                value={null}
                 editable
                 pending={pending}
                 onSave={(duration) => onUpdate(step.element.id, { duration })}
@@ -47,7 +79,7 @@ export function PlanSetup({ steps, pending, onUpdate }: Readonly<PlanSetupProps>
             ) : (
               <DateEditor
                 label={step.label}
-                value={step.element.startsOn}
+                value={null}
                 editable
                 pending={pending}
                 onSave={(fixedStart) => onUpdate(step.element.id, { fixedStart })}
@@ -55,7 +87,7 @@ export function PlanSetup({ steps, pending, onUpdate }: Readonly<PlanSetupProps>
             )}
           </li>
         ))}
-      </ul>
+      </ol>
     </section>
   )
 }

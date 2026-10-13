@@ -3,12 +3,14 @@ import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
 import {
   changeForEdit,
+  clampMove,
+  describeChange,
   describeMove,
   describeShift,
   editContext,
-  groupMoves,
   inverseOf,
   previewChange,
+  summarizeMoves,
 } from "../lib/planPreview"
 
 const element = (
@@ -98,7 +100,7 @@ describe("previewChange", () => {
         elementId: "shooting",
         input: { duration: { amount: 3, unit: "weeks" } },
       })
-    ).toEqual({ moved: [], leavesParent: false })
+    ).toEqual({ moved: [], leavesParent: false, broken: [] })
   })
 
   it("ganar fechas que no se tenían no cuenta como moverse", () => {
@@ -112,7 +114,7 @@ describe("previewChange", () => {
       input: { fixedStart: "2027-04-05" },
     })
 
-    expect(preview).toEqual({ moved: [], leavesParent: false })
+    expect(preview).toEqual({ moved: [], leavesParent: false, broken: [] })
   })
 
   it("avisa si el propio elemento pasa a empezar fuera de su fase", () => {
@@ -188,7 +190,7 @@ describe("describeShift", () => {
   })
 })
 
-describe("describeMove y groupMoves", () => {
+describe("describeMove y summarizeMoves", () => {
   const change = (
     before: [number | null, number | null],
     after: [number | null, number | null]
@@ -211,17 +213,58 @@ describe("describeMove y groupMoves", () => {
     expect(describeMove(change([10, 20], [10, null]))).toBe("se queda sin fin")
   })
 
-  it("agrupa lo que se mueve igual, con el verbo en plural", () => {
-    const groups = groupMoves([
-      change([10, 20], [17, 27]),
-      { ...change([10, null], [17, null]), id: "y" },
-      { ...change([10, 20], [10, 23]), id: "z" },
-    ])
+  it("resume por fases: un solo desfase si todo se mueve igual", () => {
+    const summary = summarizeMoves(
+      [
+        { ...change([10, 20], [17, 27]), id: "rodaje" },
+        { ...change([10, 20], [17, 27]), id: "shooting" },
+        { ...change([10, null], [17, null]), id: "rodaje" },
+      ],
+      plan
+    )
 
-    expect(groups.map((group) => [group.label, group.changes.length])).toEqual([
-      ["Se retrasan 1 semana", 2],
-      ["Inicio igual, fin +3 días", 1],
+    expect(summary.headline).toBe("+1 semana")
+    expect(summary.groups).toEqual([
+      { phaseId: "rodaje", name: "rodaje", color: null, count: 3, label: "+1 semana" },
     ])
+  })
+
+  it("sin un desfase común no hay titular, y cada fase dice el suyo", () => {
+    const summary = summarizeMoves(
+      [
+        { ...change([10, 20], [17, 27]), id: "preparacion" },
+        { ...change([10, 20], [10, 23]), id: "shooting" },
+      ],
+      plan
+    )
+
+    expect(summary.headline).toBeNull()
+    expect(summary.groups.map((group) => group.label)).toEqual([
+      "+1 semana",
+      "inicio igual, fin +3 días",
+    ])
+  })
+})
+
+describe("describeChange", () => {
+  it("nombra el cambio que se va a aplicar", () => {
+    expect(
+      describeChange(plan, {
+        type: "update",
+        elementId: "rodaje",
+        input: { fixedStart: "2027-04-12" },
+      })
+    ).toBe("Mover rodaje al 12 abr 2027")
+    expect(
+      describeChange(plan, {
+        type: "update",
+        elementId: "preparacion",
+        input: { duration: null },
+      })
+    ).toBe("Cambiar la duración de preparacion")
+    expect(
+      describeChange(plan, { type: "remove-rule", elementId: "shooting", point: "start" })
+    ).toBe("Quitar una regla de shooting")
   })
 })
 
@@ -288,6 +331,56 @@ describe("inverseOf", () => {
       type: "remove-rule",
       elementId: "shooting",
       point: "end",
+    })
+  })
+})
+
+describe("clampMove: el tope del orden de las fases", () => {
+  // Preparación acaba el día antes de Rodaje (6 semanas, 42 días) y Postproducción
+  // empieza con él: Preparación puede meterse en Rodaje 10 días como mucho.
+  const plan: CalendarPlan = {
+    elements: [
+      element("preparacion", null, {
+        position: 0,
+        duration: { amount: 9, unit: "weeks" },
+        startsOn: "2027-02-01",
+        endsOn: "2027-04-04",
+      }),
+      element("rodaje", null, {
+        position: 1,
+        isAnchor: true,
+        duration: { amount: 6, unit: "weeks" },
+        startsOn: "2027-04-05",
+        endsOn: "2027-05-16",
+      }),
+      element("post", null, {
+        position: 2,
+        duration: { amount: 30, unit: "weeks" },
+        startsOn: "2027-04-05",
+        endsOn: "2027-10-31",
+      }),
+    ],
+    dependencies: [
+      rule("rodaje", "start", "preparacion", "end", -1),
+      rule("rodaje", "start", "post", "start", 0),
+    ],
+  }
+
+  it("si la fecha pedida cumple, se queda como está", () => {
+    expect(clampMove(plan, "preparacion", "end", fromIsoDate("2027-04-10"))).toEqual({
+      date: fromIsoDate("2027-04-10"),
+      limit: null,
+    })
+  })
+
+  it("si se pasa, se para en el último día que cumple y dice por qué", () => {
+    expect(clampMove(plan, "preparacion", "end", fromIsoDate("2027-04-30"))).toEqual({
+      date: fromIsoDate("2027-04-14"),
+      limit: expect.objectContaining({
+        kind: "overlap",
+        phaseId: "preparacion",
+        nextId: "rodaje",
+      }),
     })
   })
 })

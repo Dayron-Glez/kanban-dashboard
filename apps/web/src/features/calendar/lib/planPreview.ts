@@ -8,15 +8,24 @@ import {
   computeSchedule,
   diffSchedules,
   fromIsoDate,
+  moveEnd,
+  moveStart,
+  phaseRuleViolations,
+  phaseSpansOf,
   ScheduleCycleError,
   toIsoDate,
+  type EpochDay,
+  type PhaseRuleViolation,
   type PlanEdit,
   type PlanEditContext,
+  type PlanEditError,
   type ScheduleChange,
+  type ScheduledDates,
   type ScheduleDependency,
   type ScheduleElement,
 } from "@repo/domain"
 import { buildElementTree, type ElementNode } from "./elementTree"
+import { formatPlanDate } from "./planFormat"
 
 /** Un cambio del plan, tal como se manda a la API. */
 export type PlanChange =
@@ -30,6 +39,8 @@ export type PlanPreview =
       moved: ScheduleChange[]
       /** El propio elemento pasa a empezar fuera de su fase. */
       leavesParent: boolean
+      /** Cómo rompería el orden de las fases: la API lo rechazaría. */
+      broken: PhaseRuleViolation[]
     }
   | { cycle: string[] }
 
@@ -127,6 +138,7 @@ export function previewChange(plan: CalendarPlan, change: PlanChange): PlanPrevi
       (id) => parents.get(id) ?? null
     )
     return {
+      broken: violationsIn(plan, after),
       moved: changes.filter(
         (item) =>
           item.id !== change.elementId && (item.before.start != null || item.before.end != null)
@@ -137,6 +149,81 @@ export function previewChange(plan: CalendarPlan, change: PlanChange): PlanPrevi
     if (error instanceof ScheduleCycleError) return { cycle: error.path }
     throw error
   }
+}
+
+// Las fases con las fechas que da el motor, en su orden: lo mismo que mira la API.
+const violationsIn = (plan: CalendarPlan, dates: Map<string, ScheduledDates>) =>
+  phaseRuleViolations(
+    phaseSpansOf(plan.elements).map((phase) => ({
+      id: phase.id,
+      start: dates.get(phase.id)?.start ?? null,
+      end: dates.get(phase.id)?.end ?? null,
+    }))
+  )
+
+export type ClampResult =
+  | {
+      date: EpochDay
+      /** Si hubo que pararse antes de la fecha pedida, por qué. */
+      limit: PhaseRuleViolation | null
+    }
+  | { error: PlanEditError }
+
+/**
+ * La fecha más cercana a la pedida que respeta el orden de las fases. Se busca
+ * entre la fecha actual y la pedida, partiendo el tramo por la mitad, con el
+ * mismo motor: vale aunque mover un elemento arrastre a otras fases.
+ */
+export function clampMove(
+  plan: CalendarPlan,
+  elementId: string,
+  point: DatePoint,
+  target: EpochDay
+): ClampResult {
+  const move = point === "start" ? moveStart : moveEnd
+  const context = editContext(plan, elementId)
+  const broken = (date: EpochDay): PhaseRuleViolation[] | PlanEditError => {
+    const result = move(context, date)
+    if ("error" in result) return result.error
+    const next = applyChange(plan, changeForEdit(plan, elementId, result.edit))
+    try {
+      return violationsIn(plan, computeSchedule(next.elements, next.dependencies))
+    } catch (error) {
+      if (error instanceof ScheduleCycleError) return []
+      throw error
+    }
+  }
+
+  const atTarget = broken(target)
+  if (typeof atTarget === "string") return { error: atTarget }
+  if (atTarget.length === 0) return { date: target, limit: null }
+
+  const current = context.dates.get(elementId)?.[point]
+  // Sin fecha de partida, o con el plan ya roto antes del cambio, no hay a dónde
+  // retroceder: se devuelve la pedida y la vista previa lo rechaza.
+  const atCurrent = current == null ? null : broken(current)
+  if (
+    current == null ||
+    atCurrent == null ||
+    typeof atCurrent === "string" ||
+    atCurrent.length > 0
+  ) {
+    return { date: target, limit: atTarget[0]! }
+  }
+
+  let valid = current
+  let invalid = target
+  let limit = atTarget[0]!
+  while (Math.abs(invalid - valid) > 1) {
+    const middle = Math.round((valid + invalid) / 2)
+    const result = broken(middle)
+    if (typeof result !== "string" && result.length === 0) valid = middle
+    else {
+      invalid = middle
+      if (typeof result !== "string") limit = result[0]!
+    }
+  }
+  return { date: valid, limit }
 }
 
 /** Lo que necesitan moveStart y moveEnd: el elemento, las reglas y las fechas actuales. */
@@ -234,24 +321,6 @@ export function describeMove(change: ScheduleChange, plural = false): string {
   return `cambia${n} de fechas`
 }
 
-export interface MoveGroup {
-  label: string
-  changes: ScheduleChange[]
-}
-
-/** Los cambios agrupados por cómo se mueven: mover el rodaje retrasa casi todo lo mismo. */
-export function groupMoves(changes: ScheduleChange[]): MoveGroup[] {
-  const groups = new Map<string, ScheduleChange[]>()
-  for (const change of changes) {
-    const key = describeMove(change)
-    groups.set(key, [...(groups.get(key) ?? []), change])
-  }
-  return [...groups.values()].map((items) => {
-    const label = describeMove(items[0]!, items.length > 1)
-    return { label: label.charAt(0).toUpperCase() + label.slice(1), changes: items }
-  })
-}
-
 /**
  * El cambio que deshace otro, calculado con el plan de antes de aplicarlo: la
  * duración, la fecha o la regla que había.
@@ -283,4 +352,75 @@ export function inverseOf(plan: CalendarPlan, change: PlanChange): PlanChange {
       lag: previous.lag,
     },
   }
+}
+
+export interface MoveSummary {
+  /** «+1 semana» si todo se mueve igual; si no, null. */
+  headline: string | null
+  /** Por fase: cuántos de sus elementos se mueven y cómo. */
+  groups: { phaseId: string; name: string; color: string | null; count: number; label: string }[]
+}
+
+// Cuánto se desplaza entero, si se desplaza entero: lo que nunca tuvo fin cuenta por su inicio.
+const wholeShift = ({ startShift, endShift, before, after }: ScheduleChange) =>
+  startShift != null && (endShift === startShift || (before.end == null && after.end == null))
+    ? startShift
+    : null
+
+// «−3 semanas» si todos se desplazan lo mismo; si no, cómo se mueven o null.
+function commonLabel(changes: ScheduleChange[]): string | null {
+  const shifts = new Set(changes.map(wholeShift))
+  const [shift] = shifts
+  if (shifts.size === 1 && shift != null) return shiftPart(shift)
+  const moves = new Set(changes.map((change) => describeMove(change)))
+  return moves.size === 1 ? describeMove(changes[0]!) : null
+}
+
+/** Lo que enseña la vista previa plegada: el resumen y un grupo por fase. */
+export function summarizeMoves(changes: ScheduleChange[], plan: CalendarPlan): MoveSummary {
+  const byId = new Map(plan.elements.map((element) => [element.id, element]))
+  const phaseOf = (id: string) => {
+    let current = byId.get(id)
+    while (current?.parentId) current = byId.get(current.parentId)
+    return current
+  }
+  const shifts = new Set(changes.map(wholeShift))
+  const [shift] = shifts
+  const headline = shifts.size === 1 && shift != null ? shiftPart(shift) : null
+
+  const groups = new Map<
+    string,
+    { phase: CalendarPlan["elements"][number]; items: ScheduleChange[] }
+  >()
+  for (const change of changes) {
+    const phase = phaseOf(change.id)
+    if (!phase) continue
+    const group = groups.get(phase.id) ?? { phase, items: [] }
+    group.items.push(change)
+    groups.set(phase.id, group)
+  }
+  return {
+    headline,
+    groups: [...groups.values()].map(({ phase, items }) => ({
+      phaseId: phase.id,
+      name: phase.name,
+      color: phase.color,
+      count: items.length,
+      label: commonLabel(items) ?? "cambian de fechas",
+    })),
+  }
+}
+
+/** El título de la vista previa: qué cambio se va a aplicar. */
+export function describeChange(plan: CalendarPlan, change: PlanChange): string {
+  const name = plan.elements.find((element) => element.id === change.elementId)?.name ?? ""
+  if (change.type === "update") {
+    if (change.input.fixedStart)
+      return `Mover ${name} al ${formatPlanDate(change.input.fixedStart)}`
+    if (change.input.duration !== undefined) return `Cambiar la duración de ${name}`
+    return `Cambiar ${name}`
+  }
+  return change.type === "set-rule"
+    ? `Cambiar de qué depende ${name}`
+    : `Quitar una regla de ${name}`
 }

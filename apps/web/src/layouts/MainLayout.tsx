@@ -32,9 +32,11 @@ export default function KanbanLayout() {
   // Todo lo que no es el tablero scrollea con ScrollArea; el tablero maneja su
   // propia altura y no debe llevar scroll vertical. La tabla vive en la misma
   // ruta que el tablero pero sí es una pantalla que scrollea.
-  const isBoardRoute = /\/projects\/[^/]+$/.test(location.pathname)
+  const isBoardRoute = /\/projects\/[^/]+\/board$/.test(location.pathname)
   const isTable = parseView(searchParams.get(VIEW_PARAM)) === "table"
   const isScrollablePage = !isBoardRoute || isTable
+  // El calendario reparte el alto él mismo: la cuadrícula lleva su propio scroll.
+  const isCalendarRoute = /\/projects\/[^/]+\/calendar$/.test(location.pathname)
 
   const filteredTasks = tasks.filter((task) => {
     const searchTerm = searchValue.trim().toLowerCase()
@@ -86,8 +88,12 @@ export default function KanbanLayout() {
       }}
       className="flex min-h-0 flex-1 flex-col overflow-hidden"
     >
-      {isScrollablePage ? (
-        <ScrollArea className="h-full">
+      {isCalendarRoute ? (
+        <Outlet />
+      ) : isScrollablePage ? (
+        // Radix envuelve el contenido en un display: table que crece con lo más
+        // ancho (el cronograma); en bloque, el ancho lo marca la ventana.
+        <ScrollArea className="h-full [&>[data-slot=scroll-area-viewport]>div]:!block">
           <Outlet />
         </ScrollArea>
       ) : (

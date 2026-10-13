@@ -23,6 +23,10 @@ export function formatDuration({ amount, unit }: Duration): string {
 /** «5 abr 2027». */
 export const formatPlanDate = (iso: string) => format(parseISO(iso), "d MMM yyyy", { locale: es })
 
+/** «lun 5 abr 2027». */
+export const formatLongDate = (iso: string) =>
+  format(parseISO(iso), "EEE d MMM yyyy", { locale: es })
+
 const POINT_LABELS: Record<DatePoint, string> = { start: "inicio", end: "fin" }
 
 const signed = (lag: ElementDependency["lag"]) =>
@@ -100,6 +104,7 @@ export interface SetupStep {
   element: CalendarElement
   field: "fixedStart" | "duration"
   label: string
+  done: boolean
 }
 
 const SETUP: [templateKey: string, field: SetupStep["field"]][] = [
@@ -112,15 +117,92 @@ const SETUP: [templateKey: string, field: SetupStep["field"]][] = [
   ["desarrollo", "duration"],
 ]
 
-/** Lo mínimo que falta para que el plan salga solo, en el orden en que conviene escribirlo. */
-export function missingSetup(elements: CalendarElement[]): SetupStep[] {
+/** Lo mínimo para que el plan salga solo, en el orden en que conviene escribirlo. */
+export function setupSteps(elements: CalendarElement[]): SetupStep[] {
   return SETUP.flatMap(([templateKey, field]) => {
     const element = elements.find((candidate) => candidate.templateKey === templateKey)
     if (!element) return []
-    const missing = field === "duration" ? !element.duration : !element.startsOn
-    if (!missing) return []
+    const done = field === "duration" ? element.duration != null : element.startsOn != null
     const label =
       field === "duration" ? `Duración de ${element.name}` : `Fecha de inicio de ${element.name}`
-    return [{ element, field, label }]
+    return [{ element, field, label, done }]
   })
+}
+
+export interface PlanSummary {
+  anchor: CalendarElement | undefined
+  /** De lo primero que empieza a lo último que acaba, si hay fechas. */
+  span: { start: string; end: string; months: number } | null
+  /** Fases sin duración: lo que el resumen avisa que falta. */
+  phasesWithoutDuration: number
+}
+
+export function summarizePlan(elements: CalendarElement[]): PlanSummary {
+  const days = elements.flatMap((element) =>
+    [element.startsOn, element.endsOn].filter((day): day is string => day != null)
+  )
+  const sorted = [...days].sort()
+  const start = sorted[0]
+  const end = sorted.at(-1)
+  return {
+    anchor: elements.find((element) => element.isAnchor),
+    span:
+      start && end
+        ? {
+            start,
+            end,
+            months: Math.max(
+              1,
+              Math.round(
+                (parseISO(end).getTime() - parseISO(start).getTime()) / (30.4375 * 86_400_000)
+              )
+            ),
+          }
+        : null,
+    phasesWithoutDuration: elements.filter(
+      (element) => element.kind === "phase" && element.duration == null
+    ).length,
+  }
+}
+
+const SUGGESTIONS: Record<"phase" | "process" | "action", Duration[]> = {
+  phase: [
+    { amount: 4, unit: "weeks" },
+    { amount: 3, unit: "months" },
+    { amount: 6, unit: "months" },
+  ],
+  process: [
+    { amount: 1, unit: "weeks" },
+    { amount: 2, unit: "weeks" },
+    { amount: 4, unit: "weeks" },
+  ],
+  action: [
+    { amount: 1, unit: "days" },
+    { amount: 3, unit: "days" },
+    { amount: 1, unit: "weeks" },
+  ],
+}
+
+/** Duraciones habituales para empezar con un clic, según el tipo de elemento. */
+export function durationSuggestions(element: CalendarElement): Duration[] {
+  if (element.kind === "phase") return SUGGESTIONS.phase
+  if (element.kind === "subphase" || element.kind === "process") return SUGGESTIONS.process
+  return SUGGESTIONS.action
+}
+
+/** Cuántos elementos se mueven, directa o indirectamente, si se mueve este. */
+export function countDependents(dependencies: ElementDependency[], elementId: string): number {
+  const seen = new Set<string>()
+  const pending = [elementId]
+  while (pending.length > 0) {
+    const current = pending.pop()!
+    for (const dependency of dependencies) {
+      if (dependency.predecessorId === current && !seen.has(dependency.successorId)) {
+        seen.add(dependency.successorId)
+        pending.push(dependency.successorId)
+      }
+    }
+  }
+  seen.delete(elementId)
+  return seen.size
 }

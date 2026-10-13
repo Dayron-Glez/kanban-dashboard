@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type {
   CalendarElement,
@@ -72,11 +72,11 @@ const preparacionAntesDelRodaje: ElementDependency = {
 
 let api: ReturnType<typeof createFakeApi>
 
-const renderPage = () => {
+const renderPage = (search = "") => {
   const Wrapper = createWrapper(api)
   render(
     <Wrapper>
-      <MemoryRouter initialEntries={[`/projects/${PROJECT_ID}/calendar`]}>
+      <MemoryRouter initialEntries={[`/projects/${PROJECT_ID}/calendar${search}`]}>
         <Routes>
           <Route path="/projects/:id/calendar" element={<CalendarPhasesPage />} />
         </Routes>
@@ -94,15 +94,26 @@ beforeEach(() => {
 })
 
 describe("CalendarPhasesPage", () => {
-  it("muestra las fases abiertas y pliega sus hijos", async () => {
+  it("todo empieza plegado; se despliega fase a fase o todo de una vez", async () => {
     api.elements.getPlan.mockResolvedValue(
-      planOf([element("post", null, "Postproducción"), element("vfx", "post", "VFX")])
+      planOf([
+        element("post", null, "Postproducción"),
+        element("vfx", "post", "VFX"),
+        element("creacion", "vfx", "Creación VFX"),
+      ])
     )
     renderPage()
 
-    expect(await screen.findByText("VFX")).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Plegar Postproducción" }))
+    await screen.findByText("Postproducción")
     expect(screen.queryByText("VFX")).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Desplegar Postproducción" }))
+    expect(screen.getByText("VFX")).toBeInTheDocument()
+    expect(screen.queryByText("Creación VFX")).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "Plegar todo" }))
+    expect(screen.queryByText("VFX")).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Desplegar todo" }))
+    expect(screen.getByText("Creación VFX")).toBeInTheDocument()
   })
 
   it("enseña fechas, duración y la regla de cada elemento", async () => {
@@ -123,14 +134,44 @@ describe("CalendarPhasesPage", () => {
         [preparacionAntesDelRodaje]
       )
     )
-    renderPage()
+    renderPage("?vista=tabla")
 
     const row = within(await screen.findByText("Preparación").then((node) => node.closest("li")!))
     expect(row.getByText("Antes del inicio de Rodaje")).toBeInTheDocument()
     expect(row.getByText("9 semanas")).toBeInTheDocument()
     expect(row.getByText("1 feb 2027")).toBeInTheDocument()
     expect(row.getByText("4 abr 2027")).toBeInTheDocument()
-    expect(within(rowOf("Rodaje")).getByText("Fecha clave")).toBeInTheDocument()
+    expect(within(rowOf("Rodaje")).getByText("clave")).toBeInTheDocument()
+  })
+
+  it("por defecto enseña el cronograma: cada elemento con su barra, y se puede pasar a la tabla", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf(
+        [
+          rodaje({
+            duration: { amount: 6, unit: "weeks" },
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+          preparacion({ startsOn: "2027-02-01" }),
+        ],
+        [preparacionAntesDelRodaje]
+      )
+    )
+    renderPage()
+
+    expect(
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Preparación: 1 feb 2027, sin fin" })
+    ).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Ambos" })).toHaveAttribute("aria-checked", "true")
+
+    await userEvent.click(screen.getByRole("radio", { name: "Tabla" }))
+    expect(screen.queryByRole("button", { name: /Rodaje: 5 abr/ })).toBeNull()
+    expect(screen.getByRole("button", { name: "Inicio de Rodaje" })).toBeInTheDocument()
+    expect(screen.queryByRole("radiogroup", { name: "Escala" })).toBeNull()
   })
 
   it("si falta una fecha, dice por qué al pasar por encima", async () => {
@@ -143,7 +184,7 @@ describe("CalendarPhasesPage", () => {
         [preparacionAntesDelRodaje]
       )
     )
-    renderPage()
+    renderPage("?vista=tabla")
 
     expect(await screen.findByRole("button", { name: "Inicio de Preparación" })).toHaveAttribute(
       "title",
@@ -218,16 +259,20 @@ describe("CalendarPhasesPage", () => {
     }
 
     await changeDuration()
-    const dialog = await screen.findByRole("alertdialog", { name: "Este cambio mueve 1 elemento" })
-    expect(within(dialog).getAllByText("SoftPre").length).toBeGreaterThan(0)
-    expect(within(dialog).getByText("Se adelanta 1 semana")).toBeInTheDocument()
+    const dialog = await screen.findByRole("alertdialog", {
+      name: "Cambiar la duración de Preparación",
+    })
+    expect(dialog).toHaveTextContent("−1 semana para 1 elemento")
+    expect(within(dialog).getByText("SoftPre")).toBeInTheDocument()
     expect(within(dialog).getByRole("button", { name: "Cancelar" })).toHaveFocus()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Ver las 1 fechas" }))
+    expect(within(dialog).getByRole("cell", { name: "SoftPre" })).toBeInTheDocument()
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }))
     expect(api.elements.updatePlan).not.toHaveBeenCalled()
 
     await changeDuration()
-    await userEvent.click(await screen.findByRole("button", { name: "Guardar el cambio" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Aplicar" }))
     expect(api.elements.updatePlan).toHaveBeenCalledWith("preparacion", {
       duration: { amount: 9, unit: "weeks" },
     })
@@ -241,6 +286,206 @@ describe("CalendarPhasesPage", () => {
         duration: { amount: 8, unit: "weeks" },
       })
     )
+  })
+
+  it("las barras se mueven con las flechas: un día, una semana con Mayús, solo el fin con Alt", async () => {
+    const plan = planOf([
+      rodaje({
+        duration: { amount: 6, unit: "weeks" },
+        startsOn: "2027-04-05",
+        endsOn: "2027-05-16",
+      }),
+    ])
+    api.elements.getPlan.mockResolvedValue(plan)
+    api.elements.updatePlan.mockResolvedValue(plan)
+    renderPage()
+
+    const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    bar.focus()
+    await userEvent.keyboard("{Shift>}{ArrowRight}{/Shift}")
+    expect(api.elements.updatePlan).toHaveBeenLastCalledWith("rodaje", { fixedStart: "2027-04-12" })
+
+    await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}")
+    expect(api.elements.updatePlan).toHaveBeenLastCalledWith("rodaje", {
+      duration: { amount: 41, unit: "days" },
+    })
+  })
+
+  it("arrastrar una barra la mueve a la semana más cercana, y soltar sin moverla la abre", async () => {
+    const plan = planOf([
+      rodaje({
+        duration: { amount: 6, unit: "weeks" },
+        startsOn: "2027-04-05",
+        endsOn: "2027-05-16",
+      }),
+    ])
+    api.elements.getPlan.mockResolvedValue(plan)
+    api.elements.updatePlan.mockResolvedValue(plan)
+    renderPage()
+
+    const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    // En «meses» un día mide 2 px: 30 px son 15 días, que se ajustan a 2 semanas.
+    fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
+    fireEvent.pointerMove(bar, { clientX: 130, pointerId: 1 })
+    fireEvent.pointerUp(bar, { clientX: 130, pointerId: 1 })
+    // El clic que sigue a soltar no abre el inspector; un clic sin arrastrar, sí.
+    fireEvent.click(bar)
+    await waitFor(() =>
+      expect(api.elements.updatePlan).toHaveBeenLastCalledWith("rodaje", {
+        fixedStart: "2027-04-19",
+      })
+    )
+    expect(screen.queryByRole("heading", { name: "Rodaje" })).toBeNull()
+    fireEvent.click(bar)
+    expect(screen.getByRole("heading", { name: "Rodaje" })).toBeInTheDocument()
+  })
+
+  it("lo que cuelga de otros por sus dos fechas no se arrastra, y lo dice", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf(
+        [
+          rodaje({
+            duration: { amount: 6, unit: "weeks" },
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+          element("shooting", "rodaje", "Shooting", {
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+        ],
+        [
+          {
+            id: "s1",
+            predecessorId: "rodaje",
+            predecessorPoint: "start",
+            successorId: "shooting",
+            successorPoint: "start",
+            lag: { amount: 0, unit: "days" },
+          },
+          {
+            id: "s2",
+            predecessorId: "rodaje",
+            predecessorPoint: "end",
+            successorId: "shooting",
+            successorPoint: "end",
+            lag: { amount: 0, unit: "days" },
+          },
+        ]
+      )
+    )
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+    const bar = screen.getByRole("button", { name: "Shooting: 5 abr 2027 → 16 may 2027" })
+    expect(bar).toHaveAttribute("title", expect.stringContaining("Se mueve con Rodaje"))
+    bar.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    expect(api.elements.updatePlan).not.toHaveBeenCalled()
+  })
+
+  describe("el orden de las fases", () => {
+    // Preparación acaba el día antes de Rodaje (42 días) y Postproducción empieza
+    // con él: Preparación puede meterse en Rodaje 10 días como mucho.
+    const plan = planOf(
+      [
+        preparacion({
+          position: 0,
+          duration: { amount: 9, unit: "weeks" },
+          startsOn: "2027-02-01",
+          endsOn: "2027-04-04",
+        }),
+        rodaje({
+          position: 1,
+          duration: { amount: 6, unit: "weeks" },
+          startsOn: "2027-04-05",
+          endsOn: "2027-05-16",
+        }),
+        element("post", null, "Postproducción", {
+          position: 2,
+          duration: { amount: 30, unit: "weeks" },
+          startsOn: "2027-04-05",
+          endsOn: "2027-10-31",
+        }),
+      ],
+      [
+        preparacionAntesDelRodaje,
+        {
+          id: "d2",
+          predecessorId: "rodaje",
+          predecessorPoint: "start",
+          successorId: "post",
+          successorPoint: "start",
+          lag: { amount: 0, unit: "days" },
+        },
+      ]
+    )
+
+    it("arrastrar más allá del tope se para en él y lo dice al guardar", async () => {
+      api.elements.getPlan.mockResolvedValue(plan)
+      api.elements.setRule.mockResolvedValue(plan)
+      renderPage()
+
+      const bar = await screen.findByRole("button", {
+        name: "Preparación: 1 feb 2027 → 4 abr 2027",
+      })
+      // En «meses» un día mide 2 px: 60 px son 4 semanas, pero el tope está en 10 días.
+      fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
+      fireEvent.pointerMove(bar, { clientX: 160, pointerId: 1 })
+      expect(screen.getByText(/tope: 25 % de solape/)).toBeInTheDocument()
+      fireEvent.pointerUp(bar, { clientX: 160, pointerId: 1 })
+
+      await waitFor(() =>
+        expect(api.elements.setRule).toHaveBeenCalledWith("preparacion", "end", {
+          predecessorId: "rodaje",
+          predecessorPoint: "start",
+          lag: { amount: 9, unit: "days" },
+        })
+      )
+      const [title, options] = vi.mocked(toast.success).mock.calls.at(-1)!
+      expect(title).toBe("Cambio guardado")
+      expect((options as { description?: string }).description).toBe(
+        "Ajustado al 14 abr 2027: Preparación se metería un 27 % en Rodaje; el máximo es un 25 %."
+      )
+    })
+
+    it("un cambio que no se puede ajustar no se envía, y dice por qué", async () => {
+      api.elements.getPlan.mockResolvedValue(plan)
+      renderPage("?vista=tabla")
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Duración de Postproducción" })
+      )
+      const amount = screen.getByLabelText("Cantidad")
+      await userEvent.clear(amount)
+      await userEvent.type(amount, "10")
+      await userEvent.click(screen.getByRole("button", { name: "Guardar" }))
+
+      expect(api.elements.updatePlan).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenCalledWith("No se puede guardar el cambio", {
+        id: "plan-change",
+        description: "Rodaje se metería un 60 % en Postproducción; el máximo es un 25 %",
+      })
+    })
+  })
+
+  it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({
+          duration: { amount: 6, unit: "weeks" },
+          startsOn: "2027-04-05",
+          endsOn: "2027-05-16",
+        }),
+        preparacion({ startsOn: "2027-02-01" }),
+      ])
+    )
+    renderPage()
+
+    expect(await screen.findByText("Rodaje · 5 abr 2027")).toBeInTheDocument()
+    expect(screen.getByText("1 fase sin duración")).toBeInTheDocument()
+    const setup = screen.getByRole("region", { name: "Para que el plan salga solo" })
+    expect(within(setup).getByText("2 de 3")).toBeInTheDocument()
   })
 
   it("el bloque «Para que el plan salga solo» pide lo que falta y se va cuando está todo", async () => {
@@ -271,6 +516,20 @@ describe("CalendarPhasesPage", () => {
     expect(await screen.findByText("6 semanas")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /Duración de/ })).toBeNull()
     expect(screen.queryByRole("region", { name: "Para que el plan salga solo" })).toBeNull()
+  })
+
+  it("el inspector se acopla al lado, se recorre con ↑ ↓ y se cierra con Esc", async () => {
+    api.elements.getPlan.mockResolvedValue(planOf([rodaje(), preparacion()]))
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ver el detalle de Rodaje" }))
+    expect(screen.getByRole("dialog", { name: "Rodaje" })).toBeInTheDocument()
+
+    await userEvent.keyboard("{ArrowDown}")
+    expect(screen.getByRole("dialog", { name: "Preparación" })).toBeInTheDocument()
+
+    await userEvent.keyboard("{Escape}")
+    expect(screen.queryByRole("dialog")).toBeNull()
   })
 
   it("la propietaria genera el calendario si está vacío", async () => {
