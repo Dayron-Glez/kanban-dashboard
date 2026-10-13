@@ -18,35 +18,14 @@ import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
-import {
-  buildTimeline,
-  dragTarget,
-  PLAN_SCALES,
-  PLAN_VIEWS,
-  type BarDrag,
-  type PlanScale,
-  type PlanView,
-} from "../lib/timeline"
+import { pickView, type CalendarView } from "../lib/calendarViews"
+import { buildTimeline, dragTarget, type BarDrag } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { PlanHeader } from "./PlanHeader"
-import { SegmentedControl } from "./SegmentedControl"
 import { PlanSetup } from "./PlanSetup"
-
-const VIEW_OPTIONS = [
-  { value: "tabla", label: "Tabla" },
-  { value: "ambos", label: "Ambos" },
-  { value: "cronograma", label: "Cronograma" },
-] as const satisfies readonly { value: PlanView; label: string }[]
-
-const SCALE_OPTIONS = [
-  { value: "semanas", label: "Semanas" },
-  { value: "meses", label: "Meses" },
-] as const satisfies readonly { value: PlanScale; label: string }[]
-
-const pick = <T extends string>(value: string | null, options: readonly T[], fallback: T) =>
-  options.includes(value as T) ? (value as T) : fallback
+import { ViewSelector } from "./ViewSelector"
 
 const flattenIds = (nodes: ElementNode[]): string[] =>
   nodes.flatMap((node) => [node.element.id, ...flattenIds(node.children)])
@@ -61,7 +40,7 @@ const EDIT_ERRORS = {
   inverted: "El inicio no puede quedar después del fin",
 } as const
 
-export function CalendarPhasesPage() {
+export function CalendarPage() {
   const { id: projectId = "" } = useParams<{ id: string }>()
   const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
@@ -72,17 +51,19 @@ export function CalendarPhasesPage() {
   const isOwner = useProject(projectId).data?.role === "owner"
   const isMobile = useIsMobile()
   const [searchParams, setSearchParams] = useSearchParams()
-  // En la URL, para que un enlace abra lo mismo que se ve. En el móvil, solo la tabla.
-  const view = isMobile ? "tabla" : pick(searchParams.get("vista"), PLAN_VIEWS, "ambos")
-  const scale = pick(searchParams.get("escala"), PLAN_SCALES, "meses")
-  const setParam = (key: string, value: string) =>
+  // La vista va en la URL, para que un enlace abra lo mismo que se ve.
+  const calendarView = pickView(searchParams.get("vista"))
+  const setCalendarView = (next: CalendarView) =>
     setSearchParams(
       (params) => {
-        params.set(key, value)
+        params.set("vista", next)
         return params
       },
       { replace: true }
     )
+  // En el móvil, el árbol con sus fechas: la rejilla no cabe.
+  const view = isMobile ? "tabla" : "ambos"
+  const scale = "meses"
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
@@ -213,42 +194,28 @@ export function CalendarPhasesPage() {
         )}
       >
         <PlanHeader
+          title={
+            <>
+              <h1 className="sr-only">Calendario</h1>
+              <ViewSelector value={calendarView} onChange={setCalendarView} />
+            </>
+          }
           summary={summary}
           actions={
             tree.length > 0 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground h-8 text-xs"
-                  onClick={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
-                >
-                  {expanded.size > 0 ? (
-                    <IconChevronsUp className="size-3.5" aria-hidden />
-                  ) : (
-                    <IconChevronsDown className="size-3.5" aria-hidden />
-                  )}
-                  {expanded.size > 0 ? "Plegar todo" : "Desplegar todo"}
-                </Button>
-                {!isMobile && (
-                  <>
-                    <SegmentedControl
-                      label="Vista"
-                      value={view}
-                      options={VIEW_OPTIONS}
-                      onChange={(next) => setParam("vista", next)}
-                    />
-                    {view !== "tabla" && (
-                      <SegmentedControl
-                        label="Escala"
-                        value={scale}
-                        options={SCALE_OPTIONS}
-                        onChange={(next) => setParam("escala", next)}
-                      />
-                    )}
-                  </>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground h-8 text-xs"
+                onClick={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
+              >
+                {expanded.size > 0 ? (
+                  <IconChevronsUp className="size-3.5" aria-hidden />
+                ) : (
+                  <IconChevronsDown className="size-3.5" aria-hidden />
                 )}
-              </>
+                {expanded.size > 0 ? "Plegar todo" : "Desplegar todo"}
+              </Button>
             )
           }
         />

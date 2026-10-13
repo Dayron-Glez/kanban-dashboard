@@ -10,9 +10,13 @@ import { MemoryRouter, Route, Routes } from "react-router"
 import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
-import { CalendarPhasesPage } from "../components/CalendarPhasesPage"
+import { CalendarPage } from "../components/CalendarPage"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+
+// En el móvil no hay rejilla: el árbol con sus fechas.
+const device = vi.hoisted(() => ({ mobile: false }))
+vi.mock("@/shared/hooks/use-mobile", () => ({ useIsMobile: () => device.mobile }))
 
 const PROJECT_ID = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b"
 
@@ -78,7 +82,7 @@ const renderPage = (search = "") => {
     <Wrapper>
       <MemoryRouter initialEntries={[`/projects/${PROJECT_ID}/calendar${search}`]}>
         <Routes>
-          <Route path="/projects/:id/calendar" element={<CalendarPhasesPage />} />
+          <Route path="/projects/:id/calendar" element={<CalendarPage />} />
         </Routes>
       </MemoryRouter>
     </Wrapper>
@@ -88,12 +92,13 @@ const renderPage = (search = "") => {
 const rowOf = (name: string) => screen.getByText(name).closest("li")!
 
 beforeEach(() => {
+  device.mobile = false
   vi.mocked(toast.success).mockClear()
   api = createFakeApi()
   api.projects.listMine.mockResolvedValue([summary("owner")])
 })
 
-describe("CalendarPhasesPage", () => {
+describe("CalendarPage", () => {
   it("todo empieza plegado; se despliega fase a fase o todo de una vez", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([
@@ -134,7 +139,8 @@ describe("CalendarPhasesPage", () => {
         [preparacionAntesDelRodaje]
       )
     )
-    renderPage("?vista=tabla")
+    device.mobile = true
+    renderPage()
 
     const row = within(await screen.findByText("Preparación").then((node) => node.closest("li")!))
     expect(row.getByText("Antes del inicio de Rodaje")).toBeInTheDocument()
@@ -144,7 +150,7 @@ describe("CalendarPhasesPage", () => {
     expect(within(rowOf("Rodaje")).getByText("clave")).toBeInTheDocument()
   })
 
-  it("por defecto enseña el cronograma: cada elemento con su barra, y se puede pasar a la tabla", async () => {
+  it("cada elemento con su barra, y el selector ofrece las siete vistas del prototipo", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf(
         [
@@ -166,12 +172,21 @@ describe("CalendarPhasesPage", () => {
     expect(
       screen.getByRole("button", { name: "Preparación: 1 feb 2027, sin fin" })
     ).toBeInTheDocument()
-    expect(screen.getByRole("radio", { name: "Ambos" })).toHaveAttribute("aria-checked", "true")
+    expect(screen.getByRole("heading", { name: "Calendario" })).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole("radio", { name: "Tabla" }))
-    expect(screen.queryByRole("button", { name: /Rodaje: 5 abr/ })).toBeNull()
-    expect(screen.getByRole("button", { name: "Inicio de Rodaje" })).toBeInTheDocument()
-    expect(screen.queryByRole("radiogroup", { name: "Escala" })).toBeNull()
+    await userEvent.click(screen.getByRole("button", { name: "Vista: Gantt (día a día)" }))
+    expect(screen.getAllByRole("menuitemradio")).toHaveLength(7)
+    expect(screen.getByRole("menuitemradio", { name: /Gantt/ })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    )
+    expect(screen.getByRole("menuitemradio", { name: /Mensual/ })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    )
+    expect(screen.getByRole("menuitemradio", { name: /Mensual/ })).toHaveTextContent(
+      "Llega con las acciones"
+    )
   })
 
   it("si falta una fecha, dice por qué al pasar por encima", async () => {
@@ -184,7 +199,8 @@ describe("CalendarPhasesPage", () => {
         [preparacionAntesDelRodaje]
       )
     )
-    renderPage("?vista=tabla")
+    device.mobile = true
+    renderPage()
 
     expect(await screen.findByRole("button", { name: "Inicio de Preparación" })).toHaveAttribute(
       "title",
@@ -451,7 +467,8 @@ describe("CalendarPhasesPage", () => {
 
     it("un cambio que no se puede ajustar no se envía, y dice por qué", async () => {
       api.elements.getPlan.mockResolvedValue(plan)
-      renderPage("?vista=tabla")
+      device.mobile = true
+      renderPage()
 
       await userEvent.click(
         await screen.findByRole("button", { name: "Duración de Postproducción" })

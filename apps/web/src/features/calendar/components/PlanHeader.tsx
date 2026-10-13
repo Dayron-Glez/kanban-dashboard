@@ -4,6 +4,8 @@ import { cn } from "@/shared/index"
 import { formatPlanDate, type PlanSummary } from "../lib/planFormat"
 
 interface PlanHeaderProps {
+  /** El título de la pantalla: el selector de vista. */
+  title: ReactNode
   summary: PlanSummary
   /** Los controles de la vista, a la derecha. */
   actions?: ReactNode
@@ -30,12 +32,12 @@ function Chip({
 }
 
 /** El plan en una línea: su fecha clave, de dónde a dónde va y lo que le falta. */
-export function PlanHeader({ summary, actions }: Readonly<PlanHeaderProps>) {
+export function PlanHeader({ title, summary, actions }: Readonly<PlanHeaderProps>) {
   const { anchor, span, phasesWithoutDuration } = summary
 
   return (
     <header className="flex flex-wrap items-center gap-2">
-      <h1 className="mr-1 text-sm font-semibold">Fases</h1>
+      <div className="mr-1">{title}</div>
       {anchor && (
         <Chip tone={anchor.startsOn ? "anchor" : "warn"} title="La fecha clave del plan">
           <IconAnchor size={13} aria-hidden />

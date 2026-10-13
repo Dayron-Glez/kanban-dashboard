@@ -1,1 +1,1 @@
-export { CalendarPhasesPage } from "./components/CalendarPhasesPage"
+export { CalendarPage } from "./components/CalendarPage"

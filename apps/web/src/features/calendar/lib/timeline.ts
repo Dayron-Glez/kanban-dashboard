@@ -11,11 +11,10 @@ import {
   type TimelineRange,
 } from "@repo/domain"
 
-export const PLAN_VIEWS = ["tabla", "ambos", "cronograma"] as const
-export type PlanView = (typeof PLAN_VIEWS)[number]
+/** Cómo se reparte el árbol: solo la tabla (el móvil), o la tabla y el cronograma. */
+export type PlanView = "tabla" | "ambos" | "cronograma"
 
-export const PLAN_SCALES = ["semanas", "meses"] as const
-export type PlanScale = (typeof PLAN_SCALES)[number]
+export type PlanScale = "semanas" | "meses"
 
 /** Píxeles por día de cada escala: con «semanas» una semana mide 42 px. */
 const PX_PER_DAY: Record<PlanScale, number> = { semanas: 6, meses: 2 }
