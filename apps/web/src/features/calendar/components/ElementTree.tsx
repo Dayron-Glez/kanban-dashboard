@@ -61,6 +61,10 @@ const TABLE_COLUMNS: Record<PlanView, string> = {
   cronograma: "grid-cols-[minmax(0,1fr)] w-[16rem]",
 }
 
+// Lo que ocupa la parte de tabla junto al Gantt: la barra horizontal empieza ahí,
+// porque esa parte no se desplaza.
+const TABLE_WIDTH: Record<PlanView, string> = { tabla: "0", ambos: "24rem", cronograma: "16rem" }
+
 const CHIP =
   "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-[11px] font-medium whitespace-nowrap"
 
@@ -310,7 +314,9 @@ export function ElementTree({
   return (
     <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
       {content}
-      {showTimeline && <ScrollBar orientation="horizontal" />}
+      {showTimeline && (
+        <ScrollBar orientation="horizontal" className="z-30" style={{ left: TABLE_WIDTH[view] }} />
+      )}
     </ScrollArea>
   )
 }
