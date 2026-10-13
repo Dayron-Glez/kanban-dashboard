@@ -6,9 +6,7 @@ import {
   monthSegments,
   monthTicks,
   mondayOf,
-  positionOf,
   spanOf,
-  timelineRange,
   weekNumber,
   weekSegments,
 } from "../timelineLayout"
@@ -41,42 +39,18 @@ describe("weekNumber, como en el prototipo", () => {
   })
 })
 
-describe("timelineRange", () => {
-  it("va de lo primero a lo último, con margen", () => {
-    const range = timelineRange(
-      [
-        { start: d("2026-01-01"), end: d("2026-03-31") },
-        { start: d("2027-11-01"), end: null },
-        { start: null, end: null },
-      ],
-      7
-    )!
-    expect(toIsoDate(range.start)).toBe("2025-12-25")
-    expect(toIsoDate(range.end)).toBe("2027-11-08")
-    expect(range.days).toBe(range.end - range.start + 1)
-  })
-
-  it("sin fechas, no hay cronograma", () => {
-    expect(timelineRange([{ start: null, end: null }])).toBeNull()
-  })
-})
-
-describe("positionOf y spanOf", () => {
+describe("spanOf", () => {
   const range = { start: d("2027-01-01"), end: d("2027-01-10"), days: 10 }
 
-  it("el primer día está en 0 y un día ocupa una décima", () => {
-    expect(positionOf(d("2027-01-01"), range)).toBe(0)
-    expect(positionOf(d("2027-01-06"), range)).toBe(0.5)
+  it("un día ocupa una décima de una rejilla de diez días", () => {
     expect(spanOf(d("2027-01-01"), d("2027-01-01"), range)).toBe(0.1)
-    expect(
-      positionOf(d("2027-01-10"), range) + spanOf(d("2027-01-10"), d("2027-01-10"), range)
-    ).toBe(1)
+    expect(spanOf(d("2027-01-01"), d("2027-01-10"), range)).toBe(1)
   })
 })
 
 describe("monthTicks", () => {
   it("el primer día de cada mes dentro del cronograma", () => {
-    const range = timelineRange([{ start: d("2026-11-15"), end: d("2027-02-10") }], 0)!
+    const range = { start: d("2026-11-15"), end: d("2027-02-10"), days: 88 }
     expect(monthTicks(range).map((tick) => [toIsoDate(tick.day), tick.month, tick.year])).toEqual([
       ["2026-12-01", 11, 2026],
       ["2027-01-01", 0, 2027],

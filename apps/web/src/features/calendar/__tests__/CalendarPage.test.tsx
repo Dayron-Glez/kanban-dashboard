@@ -327,7 +327,7 @@ describe("CalendarPage", () => {
     })
   })
 
-  it("arrastrar una barra la mueve a la semana más cercana, y soltar sin moverla la abre", async () => {
+  it("arrastrar una barra la mueve al día más cercano, y soltar sin moverla la abre", async () => {
     const plan = planOf([
       rodaje({
         duration: { amount: 6, unit: "weeks" },
@@ -340,15 +340,15 @@ describe("CalendarPage", () => {
     renderPage()
 
     const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
-    // En «meses» un día mide 2 px: 30 px son 15 días, que se ajustan a 2 semanas.
+    // Un día mide 28 px: 200 px son 7,1 días, que se quedan en 7.
     fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
-    fireEvent.pointerMove(bar, { clientX: 130, pointerId: 1 })
-    fireEvent.pointerUp(bar, { clientX: 130, pointerId: 1 })
+    fireEvent.pointerMove(bar, { clientX: 300, pointerId: 1 })
+    fireEvent.pointerUp(bar, { clientX: 300, pointerId: 1 })
     // El clic que sigue a soltar no abre el inspector; un clic sin arrastrar, sí.
     fireEvent.click(bar)
     await waitFor(() =>
       expect(api.elements.updatePlan).toHaveBeenLastCalledWith("rodaje", {
-        fixedStart: "2027-04-19",
+        fixedStart: "2027-04-12",
       })
     )
     expect(screen.queryByRole("heading", { name: "Rodaje" })).toBeNull()
@@ -445,11 +445,11 @@ describe("CalendarPage", () => {
       const bar = await screen.findByRole("button", {
         name: "Preparación: 1 feb 2027 → 4 abr 2027",
       })
-      // En «meses» un día mide 2 px: 60 px son 4 semanas, pero el tope está en 10 días.
+      // Un día mide 28 px: 784 px son 4 semanas, pero el tope está en 10 días.
       fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
-      fireEvent.pointerMove(bar, { clientX: 160, pointerId: 1 })
+      fireEvent.pointerMove(bar, { clientX: 884, pointerId: 1 })
       expect(screen.getByText(/tope: 25 % de solape/)).toBeInTheDocument()
-      fireEvent.pointerUp(bar, { clientX: 160, pointerId: 1 })
+      fireEvent.pointerUp(bar, { clientX: 884, pointerId: 1 })
 
       await waitFor(() =>
         expect(api.elements.setRule).toHaveBeenCalledWith("preparacion", "end", {

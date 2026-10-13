@@ -22,26 +22,6 @@ export function weekNumber(day: EpochDay, shootWeekMonday: EpochDay): number {
   return weeks >= 0 ? weeks + 1 : weeks
 }
 
-/**
- * Lo que abarca el cronograma: de lo primero que empieza a lo último que
- * acaba, con margen a los dos lados. Null si nada tiene fechas.
- */
-export function timelineRange(
-  dates: { start: EpochDay | null; end: EpochDay | null }[],
-  marginDays = 14
-): TimelineRange | null {
-  const days = dates.flatMap(({ start, end }) =>
-    [start, end].filter((day): day is EpochDay => day != null)
-  )
-  if (days.length === 0) return null
-  const start = Math.min(...days) - marginDays
-  const end = Math.max(...days) + marginDays
-  return { start, end, days: end - start + 1 }
-}
-
-/** Dónde cae un día en el cronograma, de 0 (su primer día) a 1 (tras el último). */
-export const positionOf = (day: EpochDay, range: TimelineRange) => (day - range.start) / range.days
-
 /** El ancho de algo que va de `start` a `end`, ambos incluidos, como fracción del cronograma. */
 export const spanOf = (start: EpochDay, end: EpochDay, range: TimelineRange) =>
   (end - start + 1) / range.days

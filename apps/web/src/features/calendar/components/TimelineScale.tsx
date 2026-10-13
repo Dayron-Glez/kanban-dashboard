@@ -1,52 +1,76 @@
-import { weekNumber } from "@repo/domain"
-import { timelineX as x, type Timeline } from "../lib/timeline"
+import { toIsoDate } from "@repo/domain"
+import { cn } from "@/shared/index"
+import { formatLongDate } from "../lib/planFormat"
+import { timelineX as x, trackBackground, type Timeline } from "../lib/timeline"
 
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"]
 
 interface TimelineScaleProps {
   timeline: Timeline
 }
 
-/** La escala de arriba: el año en enero, los meses y dónde empieza la semana 1. */
+/** La cabecera del Gantt: el mes (con el año en enero), la semana desde el rodaje y el día. */
 export function TimelineScale({ timeline }: Readonly<TimelineScaleProps>) {
-  const { ticks, shootWeek } = timeline
-  const monthWidth = 30 * timeline.pxPerDay
+  const { pxPerDay } = timeline
 
   return (
-    <div
-      aria-hidden
-      className="text-muted-foreground relative shrink-0 tabular-nums"
-      style={{ width: timeline.width }}
-    >
-      {ticks.map((tick, index) => {
-        // El mes que coincide con la marca de la semana 1 le cede el sitio.
-        const crowded =
-          shootWeek != null && Math.abs(x(tick.day, timeline) - x(shootWeek, timeline)) < 44
-        return crowded && tick.month !== 0 ? null : (
+    <div aria-hidden className="text-muted-foreground shrink-0 text-[11px] tabular-nums">
+      <div className="relative h-[26px]" style={{ width: timeline.width }}>
+        {timeline.months.map((month, index) => (
           <span
-            key={tick.day}
-            className="absolute top-1/2 -translate-y-1/2 pl-1.5 text-[11px] whitespace-nowrap"
-            style={{ left: x(tick.day, timeline) }}
+            key={month.start}
+            className="border-border absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap"
+            style={{ left: x(month.start, timeline), width: month.days * pxPerDay }}
           >
-            {tick.month === 0 || index === 0 ? (
+            {month.month === 0 || index === 0 ? (
               <span className="text-foreground font-semibold">
-                {monthWidth >= 40 ? `${MONTHS[tick.month]} ` : ""}
-                {tick.year}
+                {MONTHS[month.month]} {month.year}
               </span>
             ) : (
-              monthWidth >= 40 && MONTHS[tick.month]
+              MONTHS[month.month]
             )}
           </span>
-        )
-      })}
-      {shootWeek != null && (
-        <span
-          className="bg-primary/10 text-primary absolute top-1/2 -translate-y-1/2 rounded px-1.5 text-[11px] font-semibold whitespace-nowrap"
-          style={{ left: x(shootWeek, timeline) + 2 }}
-        >
-          Sem {weekNumber(shootWeek, shootWeek)}
-        </span>
-      )}
+        ))}
+      </div>
+      <div className="relative h-[26px]" style={{ width: timeline.width }}>
+        {timeline.weeks.map((week) => (
+          <span
+            key={week.start}
+            className={cn(
+              "border-border/60 absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
+              week.number === 1 && "bg-primary/10 text-primary font-semibold"
+            )}
+            style={{ left: x(week.start, timeline), width: week.days * pxPerDay }}
+          >
+            {week.number != null && `Sem ${week.number < 0 ? `−${-week.number}` : week.number}`}
+          </span>
+        ))}
+      </div>
+      <div
+        className="relative isolate h-[34px]"
+        style={{ width: timeline.width, ...trackBackground(timeline) }}
+      >
+        {timeline.days.map((day) => {
+          const today = day.day === timeline.today
+          return (
+            <span
+              key={day.day}
+              title={formatLongDate(toIsoDate(day.day))}
+              className={cn(
+                "absolute inset-y-0 flex flex-col items-center justify-center leading-none",
+                day.weekend && "text-muted-foreground/60",
+                today &&
+                  "text-background before:bg-primary font-bold before:absolute before:inset-[3px] before:-z-10 before:rounded-md"
+              )}
+              style={{ left: x(day.day, timeline), width: pxPerDay }}
+            >
+              <span>{day.dayOfMonth}</span>
+              <span className="mt-0.5 text-[9px] opacity-75">{WEEKDAYS[day.weekday]}</span>
+            </span>
+          )
+        })}
+      </div>
     </div>
   )
 }

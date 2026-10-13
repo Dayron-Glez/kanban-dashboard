@@ -1,103 +1,107 @@
 import type { CSSProperties } from "react"
 import type { CalendarElement, DatePoint, ElementDependency } from "@repo/contracts"
 import {
+  dayGridRange,
   fromIsoDate,
+  gridDays,
   mondayOf,
-  monthTicks,
-  positionOf,
-  timelineRange,
+  monthSegments,
+  weekSegments,
   type EpochDay,
-  type MonthTick,
+  type GridDay,
   type TimelineRange,
 } from "@repo/domain"
 
 /** Cómo se reparte el árbol: solo la tabla (el móvil), o la tabla y el cronograma. */
 export type PlanView = "tabla" | "ambos" | "cronograma"
 
-export type PlanScale = "semanas" | "meses"
-
-/** Píxeles por día de cada escala: con «semanas» una semana mide 42 px. */
-const PX_PER_DAY: Record<PlanScale, number> = { semanas: 6, meses: 2 }
+/** El ancho de cada día del Gantt, en píxeles. */
+export const DAY_WIDTH = 28
 
 export interface Timeline {
   range: TimelineRange
   pxPerDay: number
   width: number
-  ticks: MonthTick[]
+  days: GridDay[]
+  months: ReturnType<typeof monthSegments>
+  weeks: ReturnType<typeof weekSegments>
   /** El lunes de la semana del rodaje, la semana 1. */
   shootWeek: EpochDay | null
   today: EpochDay
-  /** A cuántos días se ajusta un arrastre: días con «semanas», semanas con «meses». */
-  snapDays: number
 }
 
 const day = (iso: string | null) => (iso ? fromIsoDate(iso) : null)
 
-/** Lo que necesita el cronograma para pintarse, o null si nada tiene fechas. */
+const localToday = (today: Date) =>
+  fromIsoDate(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+  )
+
+/** Lo que necesita el Gantt día a día para pintarse, o null si nada tiene fechas. */
 export function buildTimeline(
   elements: CalendarElement[],
-  scale: PlanScale,
-  today: Date = new Date()
+  now: Date = new Date()
 ): Timeline | null {
-  const range = timelineRange(
-    elements.map((element) => ({ start: day(element.startsOn), end: day(element.endsOn) }))
+  const today = localToday(now)
+  const range = dayGridRange(
+    elements.map((element) => ({ start: day(element.startsOn), end: day(element.endsOn) })),
+    [today]
   )
   if (!range) return null
   const shoot =
     elements.find((element) => element.templateKey === "rodaje") ??
     elements.find((element) => element.isAnchor)
-  const pxPerDay = PX_PER_DAY[scale]
+  const shootWeek = shoot?.startsOn ? mondayOf(fromIsoDate(shoot.startsOn)) : null
   return {
     range,
-    pxPerDay,
-    width: range.days * pxPerDay,
-    ticks: monthTicks(range),
-    snapDays: scale === "meses" ? 7 : 1,
-    shootWeek: shoot?.startsOn ? mondayOf(fromIsoDate(shoot.startsOn)) : null,
-    today: fromIsoDate(
-      `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
-    ),
+    pxPerDay: DAY_WIDTH,
+    width: range.days * DAY_WIDTH,
+    days: gridDays(range),
+    months: monthSegments(range),
+    weeks: weekSegments(range, shootWeek),
+    shootWeek,
+    today,
   }
 }
 
-/** Dónde cae un día en el cronograma, en píxeles. */
+/** Dónde empieza un día en el Gantt, en píxeles. */
 export const timelineX = (day: EpochDay, timeline: Timeline) =>
-  positionOf(day, timeline.range) * timeline.width
+  (day - timeline.range.start) * timeline.pxPerDay
 
 /**
- * Las líneas de cada mes, de hoy y de la semana 1, como fondo de las pistas:
- * se calcula una vez y todas las filas lo comparten, sin capas encima.
+ * El fondo de todas las filas: los fines de semana sombreados de arriba abajo y
+ * las líneas de hoy y de la semana 1. Se calcula una vez y lo comparten todas.
  */
 export function trackBackground(timeline: Timeline): CSSProperties {
+  const { pxPerDay } = timeline
+  const line = (at: number, color: string) => ({ at, color })
   const lines = [
-    ...timeline.ticks.map((tick) => ({
-      at: timelineX(tick.day, timeline),
-      color: "var(--border)",
-    })),
     ...(timeline.shootWeek != null
       ? [
-          {
-            at: timelineX(timeline.shootWeek, timeline),
-            color: "color-mix(in oklch, var(--primary) 35%, transparent)",
-          },
+          line(
+            timelineX(timeline.shootWeek, timeline),
+            "color-mix(in oklch, var(--primary) 40%, transparent)"
+          ),
         ]
       : []),
-    { at: timelineX(timeline.today, timeline), color: "var(--primary)" },
-  ].filter((line) => line.at >= 0 && line.at <= timeline.width)
-
+    line(timelineX(timeline.today, timeline) + pxPerDay / 2, "var(--primary)"),
+  ].filter(({ at }) => at >= 0 && at <= timeline.width)
+  // La rejilla empieza en lunes: sábado y domingo son los días 5 y 6 de cada semana.
+  const weekend = `repeating-linear-gradient(90deg, transparent 0 ${5 * pxPerDay}px, var(--weekend) ${5 * pxPerDay}px ${7 * pxPerDay}px)`
   return {
-    backgroundImage: lines
-      .map((line) => `linear-gradient(${line.color}, ${line.color})`)
-      .join(", "),
-    backgroundSize: lines.map(() => "1px 100%").join(", "),
-    backgroundPosition: lines.map((line) => `${line.at}px 0`).join(", "),
-    backgroundRepeat: "no-repeat",
+    backgroundImage: [
+      ...lines.map(({ color }) => `linear-gradient(${color}, ${color})`),
+      weekend,
+    ].join(", "),
+    backgroundSize: [...lines.map(() => "1px 100%"), "auto"].join(", "),
+    backgroundPosition: [...lines.map(({ at }) => `${at}px 0`), "0 0"].join(", "),
+    backgroundRepeat: [...lines.map(() => "no-repeat"), "repeat"].join(", "),
   }
 }
 
-/** Los píxeles arrastrados, en días y ajustados al paso de la escala. */
+/** Los píxeles arrastrados, en días enteros. */
 export const dragDays = (pixels: number, timeline: Timeline) =>
-  Math.round(pixels / timeline.pxPerDay / timeline.snapDays) * timeline.snapDays || 0
+  Math.round(pixels / timeline.pxPerDay) || 0
 
 export type BarDrag = "move" | "start" | "end"
 

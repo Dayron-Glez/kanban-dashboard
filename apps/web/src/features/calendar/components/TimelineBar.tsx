@@ -72,6 +72,15 @@ export function TimelineBar({
   const free = modes != null && !modes.locked ? modes : null
   const draggable = free != null
   const x = (day: EpochDay) => timelineX(day, timeline)
+  // Los fines de semana dentro de la barra, algo más oscuros: la rejilla empieza en
+  // lunes, así que basta con desplazar el patrón el día de la semana del inicio.
+  const weekendsInside = (from: EpochDay) => {
+    const day = timeline.pxPerDay
+    return {
+      backgroundImage: `repeating-linear-gradient(90deg, transparent 0 ${5 * day}px, color-mix(in oklch, var(--background) 22%, transparent) ${5 * day}px ${7 * day}px)`,
+      backgroundPosition: `${-((from - timeline.range.start) % 7) * day}px 0`,
+    }
+  }
   const width = (from: EpochDay, to: EpochDay) =>
     Math.max(spanOf(from, to, timeline.range) * timeline.width, 3)
 
@@ -224,7 +233,7 @@ export function TimelineBar({
             state?.moved && "cursor-grabbing shadow-md",
             selected && "ring-primary ring-offset-background ring-2 ring-offset-1"
           )}
-          style={{ backgroundColor: color }}
+          style={{ backgroundColor: color, ...weekendsInside(span.start) }}
         >
           {isPhase && duration && barWidth > 64 && (
             <span className="text-background absolute inset-y-0 left-2 flex items-center text-[11px] font-semibold whitespace-nowrap">

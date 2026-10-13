@@ -34,17 +34,32 @@ const rule = (
   lag: { amount: 0, unit: "days" },
 })
 
+describe("buildTimeline", () => {
+  // Rodaje del 5 al 18 de abril de 2027; hoy, el 13 de octubre de 2026.
+  const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
+
+  it("una columna de 28 px por día, desde la semana de hoy hasta 14 días tras el final", () => {
+    expect(timeline.pxPerDay).toBe(28)
+    expect(timeline.range.start).toBe(fromIsoDate("2026-10-12"))
+    expect(timeline.range.end).toBe(fromIsoDate("2027-05-02"))
+    expect(timeline.width).toBe(timeline.days.length * 28)
+    expect(timeline.today).toBe(fromIsoDate("2026-10-13"))
+  })
+
+  it("las semanas cuentan desde la del rodaje", () => {
+    expect(timeline.shootWeek).toBe(fromIsoDate("2027-04-05"))
+    const shoot = timeline.weeks.find((week) => week.start === fromIsoDate("2027-04-05"))
+    expect(shoot?.number).toBe(1)
+  })
+})
+
 describe("dragDays", () => {
-  const elements = [element("rodaje")]
+  const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
-  it("ajusta a días con «semanas» y a semanas con «meses»", () => {
-    const weeks = buildTimeline(elements, "semanas")!
-    const months = buildTimeline(elements, "meses")!
-
-    expect(dragDays(20, weeks)).toBe(3)
-    expect(dragDays(20, months)).toBe(7)
-    expect(dragDays(6, months)).toBe(0)
-    expect(dragDays(-30, months)).toBe(-14)
+  it("los píxeles arrastrados, en días enteros", () => {
+    expect(dragDays(20, timeline)).toBe(1)
+    expect(dragDays(13, timeline)).toBe(0)
+    expect(dragDays(-60, timeline)).toBe(-2)
   })
 })
 

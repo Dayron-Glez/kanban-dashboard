@@ -274,13 +274,14 @@ export function ElementTree({
 
   const content = (
     <div className={cn(showTimeline && "w-max min-w-full")}>
-      <div className="border-border bg-background sticky top-0 z-20 flex h-9 border-b text-xs font-medium">
+      <div className="border-border bg-background sticky top-0 z-20 flex min-h-9 border-b text-xs font-medium">
         <div
           aria-hidden
+          // Con el Gantt, los títulos van a la altura de la fila de los días.
           className={cn(
             "bg-background text-muted-foreground sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
             TABLE_COLUMNS[view],
-            showTimeline && "border-border/60 border-r"
+            showTimeline && "border-border/60 items-end border-r pb-2.5"
           )}
         >
           <span className="pl-8">Elemento</span>

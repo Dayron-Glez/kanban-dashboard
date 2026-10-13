@@ -63,12 +63,11 @@ export function CalendarPage() {
     )
   // En el móvil, el árbol con sus fechas: la rejilla no cabe.
   const view = isMobile ? "tabla" : "ambos"
-  const scale = "meses"
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
-  const timeline = useMemo(() => buildTimeline(elements ?? [], scale), [elements, scale])
+  const timeline = useMemo(() => buildTimeline(elements ?? []), [elements])
 
   const toggle = (elementId: string) =>
     setExpanded((current) => {
