@@ -12,6 +12,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   cn,
+  ScrollArea,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/shared/index"
 import { formatPlanDate } from "../lib/planFormat"
 import { summarizeMoves } from "../lib/planPreview"
@@ -54,7 +61,7 @@ export function ChangePreviewDialog({
 
   return (
     <AlertDialog open={pending != null} onOpenChange={(open) => !open && close()}>
-      <AlertDialogContent className="gap-4 sm:max-w-md">
+      <AlertDialogContent className="gap-4 sm:max-w-lg">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-sm font-semibold">{pending?.title}</AlertDialogTitle>
           <AlertDialogDescription className="text-xs">
@@ -121,40 +128,50 @@ export function ChangePreviewDialog({
               />
             </button>
             {showDates && (
-              <div className="border-border max-h-64 overflow-y-auto rounded-lg border">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/60 text-muted-foreground sticky top-0 text-left">
-                    <tr>
-                      <th className="px-2.5 py-1.5 font-medium">Elemento</th>
-                      <th className="px-2.5 py-1.5 font-medium">Antes</th>
-                      <th className="px-2.5 py-1.5 font-medium">Después</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-border divide-y">
+              <ScrollArea className="border-border rounded-lg border [&_[data-slot=table-container]]:overflow-visible [&>[data-slot=scroll-area-viewport]]:max-h-[min(24rem,45vh)]">
+                <Table className="text-xs font-normal">
+                  <TableHeader className="bg-muted/60 sticky top-0 z-10 backdrop-blur">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="h-8 px-3 text-xs">Elemento</TableHead>
+                      <TableHead className="h-8 px-3 text-xs">Antes</TableHead>
+                      <TableHead className="h-8 px-3 text-xs">Después</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {moved.map((change) => {
-                      // La fecha que cambia: el inicio, o el fin si el inicio se queda.
-                      const point = change.startShift ? "start" : "end"
-                      const prefix = point === "end" ? "fin " : ""
+                      // El fin solo se enseña aparte si no se mueve igual que el inicio.
+                      const endApart =
+                        change.after.end != null && change.endShift !== change.startShift
                       return (
-                        <tr
+                        <TableRow
                           key={change.id}
                           className={cn(change.leavesParent && "bg-warn-soft/40 text-warn")}
                         >
-                          <td className="max-w-44 truncate px-2.5 py-1.5">{nameOf(change.id)}</td>
-                          <td className="text-muted-foreground px-2.5 py-1.5 whitespace-nowrap tabular-nums">
-                            {prefix}
-                            <s>{day(change.before[point])}</s>
-                          </td>
-                          <td className="px-2.5 py-1.5 whitespace-nowrap tabular-nums">
-                            {prefix}
-                            {day(change.after[point])}
-                          </td>
-                        </tr>
+                          <TableCell className="max-w-52 truncate px-3 py-2">
+                            {nameOf(change.id)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground px-3 py-2 tabular-nums">
+                            <s>{day(change.before.start)}</s>
+                            {endApart && (
+                              <span className="block">
+                                fin <s>{day(change.before.end)}</s>
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 tabular-nums">
+                            {day(change.after.start)}
+                            {endApart && (
+                              <span className="text-muted-foreground block">
+                                fin {day(change.after.end)}
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
                       )
                     })}
-                  </tbody>
-                </table>
-              </div>
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             )}
           </div>
         )}
