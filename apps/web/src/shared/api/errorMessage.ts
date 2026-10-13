@@ -11,5 +11,10 @@ const MESSAGES: Record<ApiErrorCode, string> = {
   unknown: "Algo ha fallado. Inténtalo de nuevo.",
 }
 
-export const errorMessage = (error: unknown): string =>
-  isApiError(error) ? MESSAGES[error.code] : MESSAGES.unknown
+// Los conflictos los explica la API en español («Esa regla cerraría un ciclo…»,
+// «No se puede: Rodaje se metería…»): ese texto dice más que uno genérico.
+export const errorMessage = (error: unknown): string => {
+  if (!isApiError(error)) return MESSAGES.unknown
+  if (error.code === "conflict" && error.message) return error.message
+  return MESSAGES[error.code]
+}

@@ -384,6 +384,91 @@ describe("CalendarPhasesPage", () => {
     expect(api.elements.updatePlan).not.toHaveBeenCalled()
   })
 
+  describe("el orden de las fases", () => {
+    // Preparación acaba el día antes de Rodaje (42 días) y Postproducción empieza
+    // con él: Preparación puede meterse en Rodaje 10 días como mucho.
+    const plan = planOf(
+      [
+        preparacion({
+          position: 0,
+          duration: { amount: 9, unit: "weeks" },
+          startsOn: "2027-02-01",
+          endsOn: "2027-04-04",
+        }),
+        rodaje({
+          position: 1,
+          duration: { amount: 6, unit: "weeks" },
+          startsOn: "2027-04-05",
+          endsOn: "2027-05-16",
+        }),
+        element("post", null, "Postproducción", {
+          position: 2,
+          duration: { amount: 30, unit: "weeks" },
+          startsOn: "2027-04-05",
+          endsOn: "2027-10-31",
+        }),
+      ],
+      [
+        preparacionAntesDelRodaje,
+        {
+          id: "d2",
+          predecessorId: "rodaje",
+          predecessorPoint: "start",
+          successorId: "post",
+          successorPoint: "start",
+          lag: { amount: 0, unit: "days" },
+        },
+      ]
+    )
+
+    it("arrastrar más allá del tope se para en él y lo dice al guardar", async () => {
+      api.elements.getPlan.mockResolvedValue(plan)
+      api.elements.setRule.mockResolvedValue(plan)
+      renderPage()
+
+      const bar = await screen.findByRole("button", {
+        name: "Preparación: 1 feb 2027 → 4 abr 2027",
+      })
+      // En «meses» un día mide 2 px: 60 px son 4 semanas, pero el tope está en 10 días.
+      fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
+      fireEvent.pointerMove(bar, { clientX: 160, pointerId: 1 })
+      expect(screen.getByText(/tope: 25 % de solape/)).toBeInTheDocument()
+      fireEvent.pointerUp(bar, { clientX: 160, pointerId: 1 })
+
+      await waitFor(() =>
+        expect(api.elements.setRule).toHaveBeenCalledWith("preparacion", "end", {
+          predecessorId: "rodaje",
+          predecessorPoint: "start",
+          lag: { amount: 9, unit: "days" },
+        })
+      )
+      const [title, options] = vi.mocked(toast.success).mock.calls.at(-1)!
+      expect(title).toBe("Cambio guardado")
+      expect((options as { description?: string }).description).toBe(
+        "Ajustado al 14 abr 2027: Preparación se metería un 27 % en Rodaje; el máximo es un 25 %."
+      )
+    })
+
+    it("un cambio que no se puede ajustar no se envía, y dice por qué", async () => {
+      api.elements.getPlan.mockResolvedValue(plan)
+      renderPage("?vista=tabla")
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Duración de Postproducción" })
+      )
+      const amount = screen.getByLabelText("Cantidad")
+      await userEvent.clear(amount)
+      await userEvent.type(amount, "10")
+      await userEvent.click(screen.getByRole("button", { name: "Guardar" }))
+
+      expect(api.elements.updatePlan).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenCalledWith("No se puede guardar el cambio", {
+        id: "plan-change",
+        description: "Rodaje se metería un 60 % en Postproducción; el máximo es un 25 %",
+      })
+    })
+  })
+
   it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([

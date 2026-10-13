@@ -8,11 +8,19 @@ import {
   computeSchedule,
   diffSchedules,
   fromIsoDate,
+  moveEnd,
+  moveStart,
+  phaseRuleViolations,
+  phaseSpansOf,
   ScheduleCycleError,
   toIsoDate,
+  type EpochDay,
+  type PhaseRuleViolation,
   type PlanEdit,
   type PlanEditContext,
+  type PlanEditError,
   type ScheduleChange,
+  type ScheduledDates,
   type ScheduleDependency,
   type ScheduleElement,
 } from "@repo/domain"
@@ -31,6 +39,8 @@ export type PlanPreview =
       moved: ScheduleChange[]
       /** El propio elemento pasa a empezar fuera de su fase. */
       leavesParent: boolean
+      /** Cómo rompería el orden de las fases: la API lo rechazaría. */
+      broken: PhaseRuleViolation[]
     }
   | { cycle: string[] }
 
@@ -128,6 +138,7 @@ export function previewChange(plan: CalendarPlan, change: PlanChange): PlanPrevi
       (id) => parents.get(id) ?? null
     )
     return {
+      broken: violationsIn(plan, after),
       moved: changes.filter(
         (item) =>
           item.id !== change.elementId && (item.before.start != null || item.before.end != null)
@@ -138,6 +149,81 @@ export function previewChange(plan: CalendarPlan, change: PlanChange): PlanPrevi
     if (error instanceof ScheduleCycleError) return { cycle: error.path }
     throw error
   }
+}
+
+// Las fases con las fechas que da el motor, en su orden: lo mismo que mira la API.
+const violationsIn = (plan: CalendarPlan, dates: Map<string, ScheduledDates>) =>
+  phaseRuleViolations(
+    phaseSpansOf(plan.elements).map((phase) => ({
+      id: phase.id,
+      start: dates.get(phase.id)?.start ?? null,
+      end: dates.get(phase.id)?.end ?? null,
+    }))
+  )
+
+export type ClampResult =
+  | {
+      date: EpochDay
+      /** Si hubo que pararse antes de la fecha pedida, por qué. */
+      limit: PhaseRuleViolation | null
+    }
+  | { error: PlanEditError }
+
+/**
+ * La fecha más cercana a la pedida que respeta el orden de las fases. Se busca
+ * entre la fecha actual y la pedida, partiendo el tramo por la mitad, con el
+ * mismo motor: vale aunque mover un elemento arrastre a otras fases.
+ */
+export function clampMove(
+  plan: CalendarPlan,
+  elementId: string,
+  point: DatePoint,
+  target: EpochDay
+): ClampResult {
+  const move = point === "start" ? moveStart : moveEnd
+  const context = editContext(plan, elementId)
+  const broken = (date: EpochDay): PhaseRuleViolation[] | PlanEditError => {
+    const result = move(context, date)
+    if ("error" in result) return result.error
+    const next = applyChange(plan, changeForEdit(plan, elementId, result.edit))
+    try {
+      return violationsIn(plan, computeSchedule(next.elements, next.dependencies))
+    } catch (error) {
+      if (error instanceof ScheduleCycleError) return []
+      throw error
+    }
+  }
+
+  const atTarget = broken(target)
+  if (typeof atTarget === "string") return { error: atTarget }
+  if (atTarget.length === 0) return { date: target, limit: null }
+
+  const current = context.dates.get(elementId)?.[point]
+  // Sin fecha de partida, o con el plan ya roto antes del cambio, no hay a dónde
+  // retroceder: se devuelve la pedida y la vista previa lo rechaza.
+  const atCurrent = current == null ? null : broken(current)
+  if (
+    current == null ||
+    atCurrent == null ||
+    typeof atCurrent === "string" ||
+    atCurrent.length > 0
+  ) {
+    return { date: target, limit: atTarget[0]! }
+  }
+
+  let valid = current
+  let invalid = target
+  let limit = atTarget[0]!
+  while (Math.abs(invalid - valid) > 1) {
+    const middle = Math.round((valid + invalid) / 2)
+    const result = broken(middle)
+    if (typeof result !== "string" && result.length === 0) valid = middle
+    else {
+      invalid = middle
+      if (typeof result !== "string") limit = result[0]!
+    }
+  }
+  return { date: valid, limit }
 }
 
 /** Lo que necesitan moveStart y moveEnd: el elemento, las reglas y las fechas actuales. */

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { CalendarPlan } from "@repo/contracts"
+import { describePhaseViolation } from "@repo/domain"
 import { toast } from "sonner"
 import type { PendingChange } from "../components/ChangePreviewDialog"
 import { describeChange, inverseOf, previewChange, type PlanChange } from "../lib/planPreview"
@@ -36,11 +37,12 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
   }
 
   // Solo el último cambio: deshacer no se puede deshacer.
-  const save = (change: PlanChange, inverse: PlanChange) =>
+  const save = (change: PlanChange, inverse: PlanChange, note?: string) =>
     send(change, () =>
       toast.success("Cambio guardado", {
         id: "plan-change",
         duration: 8000,
+        description: note,
         action: {
           label: "Deshacer",
           onClick: () =>
@@ -49,13 +51,23 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
       })
     )
 
-  const request = (change: PlanChange, title?: string) => {
+  /** `note`: algo que el usuario debe saber del cambio, como que se ajustó al tope. */
+  const request = (change: PlanChange, title?: string, note?: string) => {
     if (!plan) return
     const preview = previewChange(plan, change)
     if ("cycle" in preview) {
       const nameOf = (id: string) => plan.elements.find((element) => element.id === id)?.name
       toast.error("Esa regla cerraría un ciclo", {
         description: preview.cycle.map(nameOf).join(" → "),
+      })
+      return
+    }
+    const [broken] = preview.broken
+    if (broken) {
+      const nameOf = (id: string) => plan.elements.find((element) => element.id === id)?.name ?? id
+      toast.error("No se puede guardar el cambio", {
+        id: "plan-change",
+        description: describePhaseViolation(broken, nameOf),
       })
       return
     }
@@ -73,7 +85,7 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
 
     const inverse = inverseOf(plan, change)
     if (preview.moved.length === 0 && outside.length === 0) {
-      save(change, inverse)
+      save(change, inverse, note)
       return
     }
     setWaiting({
@@ -81,6 +93,7 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
       inverse,
       preview: {
         title: title ?? describeChange(plan, change),
+        note,
         moved: preview.moved,
         outside: [...outside, ...others],
       },
@@ -93,7 +106,7 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
     dialog: {
       pending: waiting?.preview ?? null,
       onConfirm: () => {
-        if (waiting) save(waiting.change, waiting.inverse)
+        if (waiting) save(waiting.change, waiting.inverse, waiting.preview.note)
         setWaiting(null)
       },
       onCancel: () => setWaiting(null),

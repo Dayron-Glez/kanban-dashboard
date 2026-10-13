@@ -26,10 +26,13 @@ const failQuery = (hasData: boolean, error: unknown = new ApiError("forbidden", 
     .catch(() => {})
 }
 
-const failMutation = (meta?: { errorMessage?: string; silent?: boolean }) =>
+const failMutation = (
+  meta?: { errorMessage?: string; silent?: boolean },
+  error: unknown = networkError()
+) =>
   queryClient
     .getMutationCache()
-    .build(queryClient, { mutationFn: () => Promise.reject(networkError()), meta })
+    .build(queryClient, { mutationFn: () => Promise.reject(error), meta })
     .execute(undefined)
     .catch(() => {})
 
@@ -52,6 +55,18 @@ describe("política de toasts", () => {
     expect(toast.error).toHaveBeenCalledWith(
       "No se pudo crear el proyecto",
       expect.objectContaining({ description: expect.stringMatching(/conexión/) })
+    )
+  })
+
+  it("en un conflicto, el detalle es lo que explica la API", async () => {
+    const conflict = new ApiError(
+      "conflict",
+      "No se puede: Rodaje se metería un 60 % en Postproducción; el máximo es un 25 %"
+    )
+    await failMutation({ errorMessage: "No se pudo guardar el cambio" }, conflict)
+    expect(toast.error).toHaveBeenCalledWith(
+      "No se pudo guardar el cambio",
+      expect.objectContaining({ description: conflict.message })
     )
   })
 

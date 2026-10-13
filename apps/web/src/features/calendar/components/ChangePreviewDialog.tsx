@@ -1,7 +1,7 @@
 import { useState } from "react"
 import type { CalendarPlan } from "@repo/contracts"
 import { toIsoDate, type ScheduleChange } from "@repo/domain"
-import { IconAlertTriangle, IconChevronDown } from "@tabler/icons-react"
+import { IconAlertTriangle, IconChevronDown, IconInfoCircle } from "@tabler/icons-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,8 @@ import { summarizeMoves } from "../lib/planPreview"
 export interface PendingChange {
   /** Qué se va a cambiar: «Mover Rodaje al 12 abr 2027». */
   title: string
+  /** Algo que saber del cambio, como que se ajustó al tope del orden de las fases. */
+  note?: string
   moved: ScheduleChange[]
   /** Nombres de lo que pasa a empezar fuera de su fase, con la fase. */
   outside: { name: string; parent: string }[]
@@ -68,6 +70,13 @@ export function ChangePreviewDialog({
             Revisa lo que cambia antes de aplicarlo.
           </AlertDialogDescription>
         </AlertDialogHeader>
+
+        {pending?.note && (
+          <p className="text-muted-foreground border-border flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
+            <IconInfoCircle size={14} className="mt-px shrink-0" aria-hidden />
+            {pending.note}
+          </p>
+        )}
 
         {moved.length > 0 && (
           <div className="bg-muted/50 rounded-lg px-3 py-2.5 text-sm">

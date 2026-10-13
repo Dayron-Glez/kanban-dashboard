@@ -3,6 +3,7 @@ import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
 import {
   changeForEdit,
+  clampMove,
   describeChange,
   describeMove,
   describeShift,
@@ -99,7 +100,7 @@ describe("previewChange", () => {
         elementId: "shooting",
         input: { duration: { amount: 3, unit: "weeks" } },
       })
-    ).toEqual({ moved: [], leavesParent: false })
+    ).toEqual({ moved: [], leavesParent: false, broken: [] })
   })
 
   it("ganar fechas que no se tenían no cuenta como moverse", () => {
@@ -113,7 +114,7 @@ describe("previewChange", () => {
       input: { fixedStart: "2027-04-05" },
     })
 
-    expect(preview).toEqual({ moved: [], leavesParent: false })
+    expect(preview).toEqual({ moved: [], leavesParent: false, broken: [] })
   })
 
   it("avisa si el propio elemento pasa a empezar fuera de su fase", () => {
@@ -330,6 +331,56 @@ describe("inverseOf", () => {
       type: "remove-rule",
       elementId: "shooting",
       point: "end",
+    })
+  })
+})
+
+describe("clampMove: el tope del orden de las fases", () => {
+  // Preparación acaba el día antes de Rodaje (6 semanas, 42 días) y Postproducción
+  // empieza con él: Preparación puede meterse en Rodaje 10 días como mucho.
+  const plan: CalendarPlan = {
+    elements: [
+      element("preparacion", null, {
+        position: 0,
+        duration: { amount: 9, unit: "weeks" },
+        startsOn: "2027-02-01",
+        endsOn: "2027-04-04",
+      }),
+      element("rodaje", null, {
+        position: 1,
+        isAnchor: true,
+        duration: { amount: 6, unit: "weeks" },
+        startsOn: "2027-04-05",
+        endsOn: "2027-05-16",
+      }),
+      element("post", null, {
+        position: 2,
+        duration: { amount: 30, unit: "weeks" },
+        startsOn: "2027-04-05",
+        endsOn: "2027-10-31",
+      }),
+    ],
+    dependencies: [
+      rule("rodaje", "start", "preparacion", "end", -1),
+      rule("rodaje", "start", "post", "start", 0),
+    ],
+  }
+
+  it("si la fecha pedida cumple, se queda como está", () => {
+    expect(clampMove(plan, "preparacion", "end", fromIsoDate("2027-04-10"))).toEqual({
+      date: fromIsoDate("2027-04-10"),
+      limit: null,
+    })
+  })
+
+  it("si se pasa, se para en el último día que cumple y dice por qué", () => {
+    expect(clampMove(plan, "preparacion", "end", fromIsoDate("2027-04-30"))).toEqual({
+      date: fromIsoDate("2027-04-14"),
+      limit: expect.objectContaining({
+        kind: "overlap",
+        phaseId: "preparacion",
+        nextId: "rodaje",
+      }),
     })
   })
 })

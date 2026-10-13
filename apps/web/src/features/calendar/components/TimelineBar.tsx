@@ -23,13 +23,19 @@ interface TimelineBarProps {
   modes: BarDragModes | null
   onOpen: () => void
   onDrag: (drag: BarDrag, days: number) => void
+  /** Hasta dónde se puede llegar: el arrastre se para en el tope y dice por qué. */
+  limit?: (drag: BarDrag, days: number) => { days: number; reason: string | null }
 }
 
 interface DragState {
   drag: BarDrag
   originX: number
   days: number
+  /** Los días que pide el puntero, antes del tope. */
+  wanted: number
   moved: boolean
+  /** Por qué se ha parado antes de donde está el puntero. */
+  reason: string | null
 }
 
 const short = (day: EpochDay) => formatPlanDate(toIsoDate(day)).replace(/ \d{4}$/, "")
@@ -54,6 +60,7 @@ export function TimelineBar({
   modes,
   onOpen,
   onDrag,
+  limit,
 }: Readonly<TimelineBarProps>) {
   const [state, setState] = useState<DragState | null>(null)
   const dragged = useRef<boolean>(false)
@@ -71,7 +78,7 @@ export function TimelineBar({
   const begin = (drag: BarDrag) => (event: PointerEvent<HTMLElement>) => {
     if (!draggable || event.button !== 0) return
     event.stopPropagation()
-    setState({ drag, originX: event.clientX, days: 0, moved: false })
+    setState({ drag, originX: event.clientX, days: 0, wanted: 0, moved: false, reason: null })
     try {
       event.currentTarget.setPointerCapture?.(event.pointerId)
     } catch {
@@ -82,9 +89,17 @@ export function TimelineBar({
   const move = (event: PointerEvent<HTMLElement>) => {
     if (!state) return
     const pixels = event.clientX - state.originX
+    const wanted = dragDays(pixels, timeline)
+    // El tope solo se busca al saltar de día o de semana, no en cada píxel.
+    const limited =
+      wanted === state.wanted
+        ? { days: state.days, reason: state.reason }
+        : (limit?.(state.drag, wanted) ?? { days: wanted, reason: null })
     setState({
       ...state,
-      days: dragDays(pixels, timeline),
+      wanted,
+      days: limited.days,
+      reason: limited.reason,
       moved: state.moved || Math.abs(pixels) > 3,
     })
   }
@@ -93,7 +108,8 @@ export function TimelineBar({
     if (!state) return
     // Un arrastre no abre el inspector al soltar.
     dragged.current = state.moved
-    if (state.moved && state.days !== 0) onDrag(state.drag, state.days)
+    // Lo que pidió el puntero: la página lo recorta igual y así puede decir que lo ajustó.
+    if (state.moved && state.wanted !== 0) onDrag(state.drag, state.wanted)
     setState(null)
   }
 
@@ -129,7 +145,7 @@ export function TimelineBar({
     />
   )
 
-  const dates = state != null && state.days !== 0 && (
+  const dates = state != null && (state.days !== 0 || state.reason != null) && (
     <span
       aria-hidden
       className="bg-foreground text-background pointer-events-none absolute -top-1 z-20 -translate-y-full rounded px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap tabular-nums shadow-sm"
@@ -137,6 +153,7 @@ export function TimelineBar({
     >
       {short(span.start)}
       {span.end != null && ` → ${short(span.end)}`}
+      {state?.reason && ` · tope: ${state.reason}`}
     </span>
   )
 

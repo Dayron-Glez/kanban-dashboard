@@ -30,6 +30,12 @@ interface ElementTreeProps {
   onMoveDate: (elementId: string, point: DatePoint, date: string) => void
   /** Una barra arrastrada o movida con las flechas, en días. */
   onDragBar: (elementId: string, drag: BarDrag, days: number) => void
+  /** Hasta dónde puede llegar un arrastre sin romper el orden de las fases. */
+  limitDrag?: (
+    elementId: string,
+    drag: BarDrag,
+    days: number
+  ) => { days: number; reason: string | null }
   /** Lo desplegado. Todo empieza plegado. */
   expanded: ReadonlySet<string>
   onToggle: (elementId: string) => void
@@ -64,6 +70,7 @@ export function ElementTree({
   onOpen,
   onMoveDate,
   onDragBar,
+  limitDrag,
   expanded: expandedIds,
   onToggle,
   selectedId = null,
@@ -142,6 +149,7 @@ export function ElementTree({
         modes={editable && !pending ? modes : null}
         onOpen={() => onOpen(element.id)}
         onDrag={(drag, days) => onDragBar(element.id, drag, days)}
+        limit={limitDrag && ((drag, days) => limitDrag(element.id, drag, days))}
       />
     )
   }
