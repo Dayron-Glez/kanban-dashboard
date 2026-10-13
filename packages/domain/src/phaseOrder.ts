@@ -1,10 +1,30 @@
-import type { EpochDay } from "./planDates.js"
+import { fromIsoDate, type EpochDay } from "./planDates.js"
 
 /** Una fase con sus fechas. Se pasan en el orden del plan. */
 export interface PhaseSpan {
   id: string
   start: EpochDay | null
   end: EpochDay | null
+}
+
+/** Las fases de un plan (los elementos sin padre) en su orden, con sus fechas. */
+export function phaseSpansOf(
+  elements: readonly {
+    id: string
+    parentId: string | null
+    position: number
+    startsOn: string | null
+    endsOn: string | null
+  }[]
+): PhaseSpan[] {
+  return elements
+    .filter((element) => element.parentId == null)
+    .sort((a, b) => a.position - b.position)
+    .map((element) => ({
+      id: element.id,
+      start: element.startsOn ? fromIsoDate(element.startsOn) : null,
+      end: element.endsOn ? fromIsoDate(element.endsOn) : null,
+    }))
 }
 
 /** Lo más que una fase puede meterse en la siguiente: el 25 % de lo que dura esa siguiente. */

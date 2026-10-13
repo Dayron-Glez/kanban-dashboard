@@ -11,7 +11,12 @@ import type {
   SetElementRuleInput,
   UpdateElementPlanInput,
 } from "@repo/contracts"
-import { wouldCreateCycle } from "@repo/domain"
+import {
+  describePhaseViolation,
+  phaseRuleViolations,
+  phaseSpansOf,
+  wouldCreateCycle,
+} from "@repo/domain"
 import { and, eq } from "drizzle-orm"
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino"
 import { DB, type Database } from "../db/db.module.js"
@@ -157,6 +162,7 @@ export class PlanService {
 
   // Cada cambio recalcula el proyecto entero con el proyecto bloqueado: dos
   // ediciones a la vez no pueden dejar fechas calculadas con datos distintos.
+  // Si el resultado rompe el orden de las fases, se deshace entero.
   private async edit(
     projectId: string,
     context: EditContext,
@@ -170,7 +176,18 @@ export class PlanService {
         .where(eq(projects.id, projectId))
         .for("update")
       await change(tx)
-      return recalculatePlan(tx, projectId)
+      const recalculated = await recalculatePlan(tx, projectId)
+      const [violation] = phaseRuleViolations(phaseSpansOf(recalculated.elements))
+      if (violation) {
+        const nameOf = (id: string) =>
+          recalculated.elements.find((element) => element.id === id)?.name ?? id
+        this.logger.warn(
+          { projectId, ...context, violation },
+          "Cambio rechazado: rompe el orden de las fases"
+        )
+        throw new ConflictException(`No se puede: ${describePhaseViolation(violation, nameOf)}`)
+      }
+      return recalculated
     })
     this.logger.info(
       {

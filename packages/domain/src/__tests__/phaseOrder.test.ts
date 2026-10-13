@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { buildCalendarTemplate, buildTemplateDependencies } from "../calendarTemplate"
 import { EXAMPLE_PROJECT, withExampleRules } from "../exampleProject"
-import { describePhaseViolation, phaseRuleViolations, type PhaseSpan } from "../phaseOrder"
+import {
+  describePhaseViolation,
+  phaseRuleViolations,
+  phaseSpansOf,
+  type PhaseSpan,
+} from "../phaseOrder"
 import { fromIsoDate } from "../planDates"
 import { computeSchedule } from "../schedule"
 
@@ -108,5 +113,23 @@ describe("phaseRuleViolations", () => {
       .map((element) => ({ id: element.key, ...dates.get(element.key)! }))
 
     expect(phaseRuleViolations(phases)).toEqual([])
+  })
+})
+
+describe("phaseSpansOf", () => {
+  it("toma las fases (sin padre) en su orden, con sus fechas", () => {
+    const element = (id: string, parentId: string | null, position: number) => ({
+      id,
+      parentId,
+      position,
+      startsOn: "2027-04-05",
+      endsOn: null,
+    })
+    expect(
+      phaseSpansOf([element("b", null, 1), element("hijo", "a", 0), element("a", null, 0)])
+    ).toEqual([
+      { id: "a", start: fromIsoDate("2027-04-05"), end: null },
+      { id: "b", start: fromIsoDate("2027-04-05"), end: null },
+    ])
   })
 })

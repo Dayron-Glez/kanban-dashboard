@@ -152,6 +152,27 @@ describe("el plan con fechas", () => {
     expect((await patch("rodaje", { fixedStart: "2027-06-07" }, luis)).status).toBe(404)
   })
 
+  it("una fase no puede quedar por delante de la siguiente: se rechaza sin cambiar nada", async () => {
+    const response = await patch("desarrollo", { fixedStart: "2028-01-03" })
+
+    expect(response.status).toBe(409)
+    expect((response.body as { message: string }).message).toBe(
+      "No se puede: SoftPre empezaría antes que Desarrollo"
+    )
+    expect(datesOf(await planOf(ana), "desarrollo")).toEqual(EXPECTED.desarrollo)
+  })
+
+  it("una fase no puede meterse más del 25 % en la siguiente", async () => {
+    // Rodaje (6 semanas) se metería entero en una Postproducción de 10: un 60 %.
+    const response = await patch("postproduccion", { duration: { amount: 10, unit: "weeks" } })
+
+    expect(response.status).toBe(409)
+    expect((response.body as { message: string }).message).toBe(
+      "No se puede: Rodaje se metería un 60 % en Postproducción; el máximo es un 25 %"
+    )
+    expect(byKey(await planOf(ana), "postproduccion").duration).toEqual(DURATIONS.postproduccion)
+  })
+
   it("un elemento que no existe da 404", async () => {
     const response = await as(ana).patch(`/elements/${crypto.randomUUID()}/plan`, {
       duration: null,
