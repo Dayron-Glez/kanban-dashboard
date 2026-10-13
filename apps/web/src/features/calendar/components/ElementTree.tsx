@@ -5,7 +5,7 @@ import type {
   ElementDependency,
   UpdateElementPlanInput,
 } from "@repo/contracts"
-import { cn } from "@/shared/index"
+import { cn, ScrollArea, ScrollBar } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
 import {
@@ -264,32 +264,39 @@ export function ElementTree({
     )
   }
 
-  return (
-    <div className={cn("relative", showTimeline && "overflow-x-auto")}>
-      <div className={cn(showTimeline && "w-max min-w-full")}>
-        <div className="border-border flex h-9 border-b text-xs font-medium">
-          <div
-            aria-hidden
-            className={cn(
-              "bg-background text-muted-foreground sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
-              TABLE_COLUMNS[view],
-              showTimeline && "border-border/60 border-r"
-            )}
-          >
-            <span className="pl-8">Elemento</span>
-            {view !== "cronograma" && <span className="px-1.5">Duración</span>}
-            {view === "tabla" && <span className="px-1.5">Inicio</span>}
-            {view === "tabla" && <span className="px-1.5">Fin</span>}
-          </div>
-          {showTimeline && <TimelineScale timeline={timeline} />}
+  const content = (
+    <div className={cn(showTimeline && "w-max min-w-full")}>
+      <div className="border-border flex h-9 border-b text-xs font-medium">
+        <div
+          aria-hidden
+          className={cn(
+            "bg-background text-muted-foreground sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
+            TABLE_COLUMNS[view],
+            showTimeline && "border-border/60 border-r"
+          )}
+        >
+          <span className="pl-8">Elemento</span>
+          {view !== "cronograma" && <span className="px-1.5">Duración</span>}
+          {view === "tabla" && <span className="px-1.5">Inicio</span>}
+          {view === "tabla" && <span className="px-1.5">Fin</span>}
         </div>
+        {showTimeline && <TimelineScale timeline={timeline} />}
+      </div>
 
-        <div>
-          <ul role="tree" aria-label="Fases del proyecto">
-            {nodes.map(renderNode)}
-          </ul>
-        </div>
+      <div>
+        <ul role="tree" aria-label="Fases del proyecto">
+          {nodes.map(renderNode)}
+        </ul>
       </div>
     </div>
+  )
+
+  // Con cronograma, el ancho pasa del de la ventana: scroll horizontal de shadcn.
+  if (!showTimeline) return content
+  return (
+    <ScrollArea className="w-full">
+      {content}
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   )
 }

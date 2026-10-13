@@ -62,22 +62,25 @@ export function WhenField({
     const total = daysBetween(context.start, context.end)
     const left = ((fromIsoDate(element.startsOn) - fromIsoDate(context.start)) / total) * 100
     const width = element.endsOn ? (daysBetween(element.startsOn, element.endsOn) / total) * 100 : 1
+    // Las fechas encima y la pista debajo: la barra nunca tapa el texto.
     return (
-      <div className="bg-muted/50 relative h-7 overflow-hidden rounded-md" aria-hidden>
-        <div className="text-muted-foreground absolute inset-0 flex items-center justify-between px-2 text-[11px]">
+      <div className="flex flex-col gap-1.5 px-1" aria-hidden>
+        <div className="text-muted-foreground flex justify-between gap-2 text-[11px] tabular-nums">
           <span className="truncate">
             {context.name} · {formatPlanDate(context.start)}
           </span>
-          <span>{formatPlanDate(context.end)}</span>
+          <span className="shrink-0">{formatPlanDate(context.end)}</span>
         </div>
-        <div
-          className="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-sm"
-          style={{
-            left: `${Math.min(Math.max(left, 0), 99)}%`,
-            width: `${Math.max(Math.min(width, 100 - Math.max(left, 0)), 1)}%`,
-            backgroundColor: color ?? "var(--primary)",
-          }}
-        />
+        <div className="bg-muted relative h-1.5 overflow-hidden rounded-full">
+          <div
+            className="absolute inset-y-0 rounded-full"
+            style={{
+              left: `${Math.min(Math.max(left, 0), 99)}%`,
+              width: `${Math.max(Math.min(width, 100 - Math.max(left, 0)), 1)}%`,
+              backgroundColor: color ?? "var(--primary)",
+            }}
+          />
+        </div>
       </div>
     )
   }
