@@ -617,6 +617,50 @@ describe("CalendarPage", () => {
     expect(days[2]).not.toHaveAttribute("data-hovered")
   })
 
+  it("se eligen celdas con clic, arrastrando y con el teclado", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({ position: 1, startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+        preparacion({ position: 0, startsOn: "2027-02-01", endsOn: "2027-04-04" }),
+      ])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    const [first, second] = document.querySelectorAll<HTMLElement>("[data-track]")
+    const status = () => screen.getByRole("status").textContent
+    // Solo una fila entra en el orden del tabulador.
+    expect(first).toHaveAttribute("tabindex", "0")
+    expect(second).toHaveAttribute("tabindex", "-1")
+
+    // En jsdom la pista empieza en x = 0: 60 px es el tercer día de la rejilla.
+    fireEvent.pointerDown(first!, { button: 0, clientX: 60, pointerType: "mouse" })
+    fireEvent.pointerUp(first!)
+    expect(first).toHaveFocus()
+    const start = status()
+    expect(start).toMatch(/^Preparación: \d+ \w+$/)
+
+    // Arrastrar hasta el quinto día marca tres.
+    fireEvent.pointerDown(first!, { button: 0, clientX: 60, pointerType: "mouse" })
+    fireEvent.pointerMove(first!, { clientX: 120, pointerType: "mouse" })
+    fireEvent.pointerUp(first!)
+    expect(status()).toMatch(/· 3 días$/)
+    expect(first!.querySelector("[data-cell-selection]")).toHaveTextContent("3 días")
+
+    // → vuelve a una sola celda; Mayús + → la alarga; ↓ baja de fila.
+    fireEvent.keyDown(first!, { key: "ArrowRight" })
+    expect(status()).toMatch(/^Preparación: \d+ \w+$/)
+    fireEvent.keyDown(first!, { key: "ArrowRight", shiftKey: true })
+    expect(status()).toMatch(/· 2 días$/)
+    fireEvent.keyDown(first!, { key: "ArrowDown" })
+    expect(second).toHaveFocus()
+    expect(second).toHaveAttribute("tabindex", "0")
+    expect(status()).toMatch(/^Rodaje: /)
+
+    fireEvent.keyDown(second!, { key: "Escape" })
+    expect(status()).toBe("")
+  })
+
   it("las fases sin duración llevan su aviso, y la cabecera dice cuántas son", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([

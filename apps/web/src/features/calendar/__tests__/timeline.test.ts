@@ -6,6 +6,8 @@ import {
   buildTimeline,
   cellAt,
   cellAtX,
+  cellSpan,
+  cellStep,
   dragDays,
   dragTarget,
   scrollLeftFor,
@@ -140,6 +142,23 @@ describe("las celdas", () => {
     expect(cellAtX(at("dia"), 3 * 28 + 5).start).toBe(day)
     expect(cellAtX(at("dia"), -40).start).toBe(at("dia").range.start)
     expect(cellAtX(at("dia"), 1e7).start).toBe(at("dia").range.end)
+  })
+
+  it("la celda de al lado, sin salir de la rejilla", () => {
+    const week = at("semana")
+    expect(cellStep(week, cellAt(week, day), 1).start).toBe(fromIsoDate("2026-10-19"))
+    expect(cellStep(week, cellAt(week, day), -1)).toEqual(cellAt(week, day))
+    const month = at("mes")
+    expect(cellStep(month, cellAt(month, day), 1)).toEqual({
+      start: fromIsoDate("2026-11-01"),
+      days: 30,
+    })
+  })
+
+  it("un tramo de celdas, en cualquier orden", () => {
+    const tramo = { start: fromIsoDate("2026-10-12"), days: 14 }
+    expect(cellSpan(at("semana"), fromIsoDate("2026-10-20"), day)).toEqual(tramo)
+    expect(cellSpan(at("dia"), day, day - 2)).toEqual({ start: day - 2, days: 3 })
   })
 
   it("con semana y mes, las líneas van por semana o al empezar cada mes", () => {

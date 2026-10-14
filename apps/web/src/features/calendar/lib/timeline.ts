@@ -124,13 +124,26 @@ export function cellAt(timeline: Timeline, day: EpochDay): TimelineCell {
   return { start, days: Math.min(mondayOf(day) + 7, range.end + 1) - start }
 }
 
-/** La celda bajo un punto del Gantt, en píxeles desde su borde izquierdo. */
-export const cellAtX = (timeline: Timeline, px: number) =>
-  cellAt(
-    timeline,
-    timeline.range.start +
-      Math.min(Math.max(Math.floor(px / timeline.pxPerDay), 0), timeline.range.days - 1)
-  )
+/** El día bajo un punto del Gantt, en píxeles desde su borde izquierdo. */
+export const dayAtX = (timeline: Timeline, px: number): EpochDay =>
+  timeline.range.start +
+  Math.min(Math.max(Math.floor(px / timeline.pxPerDay), 0), timeline.range.days - 1)
+
+/** La celda bajo un punto del Gantt. */
+export const cellAtX = (timeline: Timeline, px: number) => cellAt(timeline, dayAtX(timeline, px))
+
+/** La celda de al lado; en el borde de la rejilla, la misma. */
+export function cellStep(timeline: Timeline, cell: TimelineCell, step: -1 | 1): TimelineCell {
+  const day = step > 0 ? cell.start + cell.days : cell.start - 1
+  return day < timeline.range.start || day > timeline.range.end ? cell : cellAt(timeline, day)
+}
+
+/** Las celdas de un día a otro, en cualquier orden, como un solo tramo. */
+export function cellSpan(timeline: Timeline, a: EpochDay, b: EpochDay): TimelineCell {
+  const first = cellAt(timeline, Math.min(a, b))
+  const last = cellAt(timeline, Math.max(a, b))
+  return { start: first.start, days: last.start + last.days - first.start }
+}
 
 /**
  * El fondo de todas las filas: las líneas entre celdas, los fines de semana

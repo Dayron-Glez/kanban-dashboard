@@ -1,9 +1,9 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
 import type { CalendarElement, Duration } from "@repo/contracts"
-import { fromIsoDate, spanOf, toIsoDate, type EpochDay } from "@repo/domain"
+import { fromIsoDate, spanOf, type EpochDay } from "@repo/domain"
 import { cn } from "@/shared/index"
 import { PHASE_TEXT, type PhaseTint } from "../lib/phaseColors"
-import { formatDuration, formatPlanDate } from "../lib/planFormat"
+import { formatDuration, formatShortDay as short } from "../lib/planFormat"
 import {
   dragDays,
   timelineX,
@@ -41,8 +41,6 @@ interface DragState {
   /** Por qué se ha parado antes de donde está el puntero. */
   reason: string | null
 }
-
-const short = (day: EpochDay) => formatPlanDate(toIsoDate(day)).replace(/ \d{4}$/, "")
 
 // Las fechas mientras se arrastra: el borde que se suelta no cruza el otro.
 function draggedSpan(start: EpochDay, end: EpochDay | null, state: DragState | null) {
@@ -202,6 +200,7 @@ export function TimelineBar({
         <button
           {...common}
           {...pointer}
+          data-bar
           className={cn(
             "phase-ink absolute top-[13px] flex -translate-y-1/2 touch-none items-center",
             draggable && "cursor-grab",
@@ -227,6 +226,7 @@ export function TimelineBar({
       {dates}
       <div
         {...pointer}
+        data-bar
         className="absolute top-[13px] -translate-y-1/2 touch-none"
         style={{ left: x(span.start), width: barWidth, height: isPhase ? 18 : 14 }}
       >

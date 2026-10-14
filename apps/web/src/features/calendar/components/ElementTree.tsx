@@ -1,4 +1,4 @@
-import { useState, type PointerEvent, type Ref } from "react"
+import type { Ref } from "react"
 import {
   IconAlertTriangle,
   IconAnchor,
@@ -22,13 +22,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/shared/index"
+import { useGanttCells } from "../hooks/useGanttCells"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
 import { phaseTint } from "../lib/phaseColors"
-import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
+import { describeIssue, describeRule, formatPlanDate, formatShortDay } from "../lib/planFormat"
 import {
   barDragModes,
-  cellAtX,
+  cellAt,
   timelineX,
   trackBackground,
   type BarDrag,
@@ -119,18 +120,16 @@ export function ElementTree({
     })
   if (selectedId) findPath(nodes, [])
   const background = showTimeline ? trackBackground(timeline, marks) : undefined
-  const [hovered, setHovered] = useState<{ id: string; cell: TimelineCell } | null>(null)
-
-  // La celda bajo el ratón, fuera de las barras; solo cambia el estado al cambiar de celda.
-  const hoverCell = (id: string) => (event: PointerEvent<HTMLDivElement>) => {
-    if (!timeline || event.pointerType === "touch") return
-    if ((event.target as HTMLElement).closest("button")) {
-      setHovered(null)
-      return
-    }
-    const cell = cellAtX(timeline, event.clientX - event.currentTarget.getBoundingClientRect().left)
-    if (hovered?.id !== id || hovered.cell.start !== cell.start) setHovered({ id, cell })
-  }
+  const isOpen = (id: string) => expandedIds.has(id) || selectedPath.has(id)
+  const visibleIds = (list: ElementNode[]): string[] =>
+    list.flatMap((node) => [
+      node.element.id,
+      ...(isOpen(node.element.id) ? visibleIds(node.children) : []),
+    ])
+  const { hovered, selection, span, trackProps } = useGanttCells(
+    showTimeline ? timeline : null,
+    visibleIds(nodes)
+  )
 
   const names = new Map<string, string>()
   const collect = (list: ElementNode[]) =>
@@ -140,6 +139,15 @@ export function ElementTree({
     })
   collect(nodes)
   const nameOf = (id: string) => names.get(id) ?? "otro elemento"
+
+  const cellDays = (start: number) => (timeline ? cellAt(timeline, start).days : 1)
+  const spanLabel = (cell: TimelineCell) => {
+    const end = cell.start + cell.days - 1
+    const days = `${cell.days} ${cell.days === 1 ? "día" : "días"}`
+    return cell.days === 1
+      ? formatShortDay(cell.start)
+      : `${formatShortDay(cell.start)} → ${formatShortDay(end)} · ${days}`
+  }
 
   // Lo vacío no se pinta: el motivo queda para el cursor y los lectores de pantalla.
   const missing = (element: CalendarElement) => {
@@ -198,7 +206,7 @@ export function ElementTree({
 
   const renderNode = (node: ElementNode) => {
     const { element, depth, children } = node
-    const expanded = expandedIds.has(element.id) || selectedPath.has(element.id)
+    const expanded = isOpen(element.id)
     const hasChildren = children.length > 0
     const rule = describeRule(element, dependencies, nameOf)
     const selected = element.id === selectedId
@@ -327,11 +335,10 @@ export function ElementTree({
 
           {showTimeline && (
             <div
-              data-track
-              className="relative shrink-0"
+              {...trackProps(element.id)}
+              aria-label={`Días de ${element.name}`}
+              className="relative shrink-0 outline-none"
               style={{ width: timeline.width, ...background }}
-              onPointerMove={hoverCell(element.id)}
-              onPointerLeave={() => setHovered(null)}
             >
               {hovered?.id === element.id && (
                 <span
@@ -342,6 +349,23 @@ export function ElementTree({
                     width: hovered.cell.days * timeline.pxPerDay,
                   }}
                 />
+              )}
+              {selection?.id === element.id && span && (
+                <span
+                  aria-hidden
+                  data-cell-selection
+                  className="bg-primary/15 ring-primary pointer-events-none absolute inset-y-0 rounded-[3px] ring-2 ring-inset"
+                  style={{
+                    left: timelineX(span.start, timeline),
+                    width: span.days * timeline.pxPerDay,
+                  }}
+                >
+                  {span.days > cellDays(span.start) && (
+                    <span className="bg-primary text-primary-foreground absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap tabular-nums shadow-sm">
+                      {spanLabel(span)}
+                    </span>
+                  )}
+                </span>
               )}
               {bar(node, rule)}
             </div>
@@ -418,6 +442,10 @@ export function ElementTree({
       </div>
 
       <div>
+        {/* Lo elegido en el Gantt, para los lectores de pantalla. */}
+        <span role="status" className="sr-only">
+          {selection && span && `${names.get(selection.id) ?? ""}: ${spanLabel(span)}`}
+        </span>
         <ul role="tree" aria-label="Fases del proyecto">
           {nodes.map(renderNode)}
         </ul>
