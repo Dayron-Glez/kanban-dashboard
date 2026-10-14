@@ -599,6 +599,22 @@ describe("CalendarPage", () => {
     ).toBeInTheDocument()
   })
 
+  it("las fases sin duración llevan su aviso, y la cabecera dice cuántas son", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({ position: 1, duration: { amount: 6, unit: "weeks" }, startsOn: "2027-04-05" }),
+        preparacion({ position: 0, startsOn: "2027-02-01" }),
+      ])
+    )
+    renderPage()
+
+    const row = within(await screen.findByText("Preparación").then((node) => node.closest("li")!))
+    expect(row.getByLabelText("Sin duración")).toBeInTheDocument()
+    expect(within(rowOf("Rodaje")).queryByLabelText("Sin duración")).toBeNull()
+
+    expect(screen.getByText("1 fase sin duración")).toBeInTheDocument()
+  })
+
   it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([
@@ -634,6 +650,8 @@ describe("CalendarPage", () => {
 
     await screen.findByRole("button", { name: "Ver el detalle de Preparación" })
     expect(screen.queryByRole("region", { name: "Para que el plan salga solo" })).toBeNull()
+    // Con todas las fases con duración, el aviso de la cabecera se va.
+    expect(screen.queryByText(/sin duración/)).toBeNull()
   })
 
   it("un miembro ve el plan pero no puede editarlo", async () => {

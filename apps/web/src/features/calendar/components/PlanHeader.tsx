@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { IconAlertTriangle, IconAnchor } from "@tabler/icons-react"
-import { cn } from "@/shared/index"
+import { Badge, cn } from "@/shared/index"
 import { formatPlanDate, type PlanSummary } from "../lib/planFormat"
 
 interface PlanHeaderProps {
@@ -12,9 +12,8 @@ interface PlanHeaderProps {
 }
 
 /**
- * Qué se está viendo: el selector de vista como título, lo único que pide acción
- * (las fases sin duración) en color y, debajo, el resumen del plan como
- * subtítulo, que es información y no se pulsa.
+ * Qué se está viendo: el selector de vista como título, el aviso de lo que falta
+ * (solo si falta algo) y, debajo, el resumen del plan como subtítulo.
  */
 export function PlanHeader({ title, summary, actions }: Readonly<PlanHeaderProps>) {
   const { anchor, span, phasesWithoutDuration } = summary
@@ -25,12 +24,15 @@ export function PlanHeader({ title, summary, actions }: Readonly<PlanHeaderProps
         <div className="flex flex-wrap items-center gap-2">
           {title}
           {phasesWithoutDuration > 0 && (
-            <span className="bg-warn-soft text-warn border-warn/30 inline-flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-sm font-medium whitespace-nowrap">
-              <IconAlertTriangle size={13} aria-hidden />
+            <Badge
+              variant="outline"
+              className="bg-warn-soft text-warn border-warn/30 h-6 px-2.5 text-sm [&>svg]:size-3.5"
+            >
+              <IconAlertTriangle aria-hidden />
               {phasesWithoutDuration === 1
                 ? "1 fase sin duración"
                 : `${phasesWithoutDuration} fases sin duración`}
-            </span>
+            </Badge>
           )}
         </div>
         {(anchor || span) && (

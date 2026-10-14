@@ -1,5 +1,6 @@
 import type { Ref } from "react"
 import {
+  IconAlertTriangle,
   IconAnchor,
   IconChevronRight,
   IconChevronsDown,
@@ -274,6 +275,23 @@ export function ElementTree({
                     {rule}
                   </span>
                 )
+              )}
+              {depth === 0 && element.duration == null && (
+                // Solo el icono: con texto, el badge cortaba el nombre de la fase.
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      tabIndex={0}
+                      aria-label="Sin duración"
+                      className="bg-warn-soft text-warn border-warn/30 flex size-5 shrink-0 items-center justify-center rounded-full border"
+                    >
+                      <IconAlertTriangle size={11} aria-hidden />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Sin duración: no tiene fin, y lo que depende de ella tampoco
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
 
