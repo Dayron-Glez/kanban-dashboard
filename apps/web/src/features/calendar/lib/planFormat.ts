@@ -32,6 +32,10 @@ export const formatShortDay = (day: EpochDay) =>
 export const formatLongDate = (iso: string) =>
   format(parseISO(iso), "EEE d MMM yyyy", { locale: es })
 
+/** «miércoles, 14 de octubre de 2026»: el título del panel de un día. */
+export const formatFullDate = (iso: string) =>
+  format(parseISO(iso), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })
+
 const POINT_LABELS: Record<DatePoint, string> = { start: "inicio", end: "fin" }
 
 const signed = (lag: ElementDependency["lag"]) =>

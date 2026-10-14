@@ -33,7 +33,11 @@ const xIn = (event: PointerEvent<HTMLElement>) =>
  * arrastrar, un tramo de la misma fila; con el teclado, ← → cambian de celda,
  * ↑ ↓ de fila, Mayús alarga el tramo y Esc lo quita.
  */
-export function useGanttCells(timeline: Timeline | null, rowIds: readonly string[]) {
+export function useGanttCells(
+  timeline: Timeline | null,
+  rowIds: readonly string[],
+  onOpenDay?: (day: EpochDay) => void
+) {
   const [hovered, setHovered] = useState<{ id: string; cell: TimelineCell } | null>(null)
   const [selection, setSelection] = useState<CellSelection | null>(null)
   // El menú de las celdas elegidas: se abre al soltar el ratón o con Enter.
@@ -100,6 +104,7 @@ export function useGanttCells(timeline: Timeline | null, rowIds: readonly string
       }
       if (event.key === "Enter") {
         event.preventDefault()
+        if (event.shiftKey && onOpenDay) return onOpenDay(cellAt(timeline, selection.focus).start)
         return setMenuOpen(true)
       }
       setMenuOpen(false)

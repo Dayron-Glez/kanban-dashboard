@@ -30,6 +30,7 @@ import {
   type PlanZoom,
 } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
+import { DaySheet } from "./DaySheet"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { GanttLegendStrip } from "./GanttLegend"
@@ -57,6 +58,16 @@ export function CalendarPage() {
   const createAction = useCreateAction(projectId)
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
+  // A la derecha va un panel cada vez: el de un elemento o el de un día.
+  const [openDay, setOpenDay] = useState<EpochDay | null>(null)
+  const openElement = (id: string) => {
+    setOpenDay(null)
+    setOpenId(id)
+  }
+  const openDayPanel = (day: EpochDay) => {
+    setOpenId(null)
+    setOpenDay(day)
+  }
   // Todo empieza plegado: el plan entero de golpe es demasiado.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
@@ -249,7 +260,7 @@ export function CalendarPage() {
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
-          openId && "xl:pr-[424px]"
+          (openId || openDay != null) && "xl:pr-[424px]"
         )}
       >
         <PlanHeader
@@ -311,7 +322,8 @@ export function CalendarPage() {
                 editable={isOwner}
                 pending={changes.pending}
                 onUpdate={onUpdate}
-                onOpen={setOpenId}
+                onOpen={openElement}
+                onOpenDay={openDayPanel}
                 onMoveDate={onMoveDate}
                 onDragBar={onDragBar}
                 limitDrag={limitDrag}
@@ -346,8 +358,23 @@ export function CalendarPage() {
           onMoveDate={onMoveDate}
           onSetRule={onSetRule}
           onRemoveRule={onRemoveRule}
-          onOpen={setOpenId}
+          onOpen={openElement}
           planSpan={summary.span}
+        />
+      )}
+      {timeline && openDay != null && (
+        <DaySheet
+          day={openDay}
+          tree={tree}
+          timeline={timeline}
+          canCreate={isOwner}
+          creating={createAction.isPending}
+          onDay={setOpenDay}
+          onClose={() => setOpenDay(null)}
+          onOpen={openElement}
+          onCreateAction={(parentId, input, done) =>
+            createAction.mutate({ parentId, input }, { onSuccess: done })
+          }
         />
       )}
     </div>

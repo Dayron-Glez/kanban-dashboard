@@ -833,6 +833,82 @@ describe("CalendarPage", () => {
       expect(screen.queryByRole("button", { name: /Nueva acción/ })).toBeNull()
     })
 
+    it("el panel del día: sus acciones y lo que está en curso; se pasa de día y se crea", async () => {
+      const plan = planOf([
+        rodaje({ startsOn: "2026-10-12", endsOn: "2026-11-22" }),
+        element("lectura", "rodaje", "Lectura de guion", {
+          kind: "meeting",
+          startsOn: "2026-10-14",
+          endsOn: "2026-10-14",
+          isPinned: true,
+        }),
+        element("shooting", "rodaje", "Shooting", {
+          kind: "process",
+          position: 1,
+          startsOn: "2026-10-12",
+          endsOn: "2026-10-30",
+        }),
+      ])
+      api.elements.getPlan.mockResolvedValue(plan)
+      api.elements.createAction.mockResolvedValue(plan)
+      renderPage()
+
+      await userEvent.click(await screen.findByTitle("mié 14 oct 2026"))
+      const panel = await screen.findByRole("dialog")
+      expect(
+        within(panel).getByRole("heading", { name: /14 de octubre de 2026/ })
+      ).toBeInTheDocument()
+      const actions = within(panel).getByRole("region", { name: "Acciones del día" })
+      expect(within(actions).getByRole("button", { name: /Lectura de guion/ })).toHaveTextContent(
+        "Rodaje"
+      )
+      const running = within(panel).getByRole("region", { name: "En curso" })
+      expect(within(running).getByRole("button", { name: /Shooting/ })).toBeInTheDocument()
+
+      // Desde aquí se crea colgando, por defecto, de lo más concreto en curso.
+      await userEvent.click(within(panel).getByRole("button", { name: "Nueva acción" }))
+      expect(within(panel).getByRole("combobox", { name: "Cuelga de" })).toHaveTextContent(
+        "Shooting"
+      )
+      await userEvent.click(within(panel).getByRole("menuitem", { name: /Recordatorio/ }))
+      await userEvent.type(within(panel).getByRole("textbox", { name: "Nombre" }), "Fotos{Enter}")
+      await waitFor(() =>
+        expect(api.elements.createAction).toHaveBeenCalledWith("shooting", {
+          kind: "reminder",
+          name: "Fotos",
+          startsOn: "2026-10-14",
+          endsOn: null,
+        })
+      )
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Día siguiente" }))
+      expect(
+        within(panel).getByRole("heading", { name: /15 de octubre de 2026/ })
+      ).toBeInTheDocument()
+      expect(within(panel).getByText("Nada este día.")).toBeInTheDocument()
+
+      // Abrir un elemento cambia el panel por el suyo.
+      await userEvent.click(within(panel).getByRole("button", { name: /Shooting/ }))
+      expect(await screen.findByRole("heading", { name: "Shooting" })).toBeInTheDocument()
+      expect(screen.queryByRole("heading", { name: /15 de octubre/ })).toBeNull()
+    })
+
+    it("con el teclado, ⇧ Enter en una celda abre su día", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.focus(track)
+      fireEvent.keyDown(track, { key: "ArrowRight" })
+      fireEvent.keyDown(track, { key: "Enter", shiftKey: true })
+      expect(
+        await screen.findByRole("heading", { name: /miércoles, 14 de octubre de 2026/i })
+      ).toBeInTheDocument()
+    })
+
     it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {
       api.projects.listMine.mockResolvedValue([summary("member")])
       api.elements.getPlan.mockResolvedValue(

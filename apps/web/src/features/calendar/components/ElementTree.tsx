@@ -27,6 +27,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/shared/index"
+import type { EpochDay } from "@repo/domain"
 import { useGanttCells } from "../hooks/useGanttCells"
 import { actionsInSpan, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
@@ -69,6 +70,8 @@ interface ElementTreeProps {
   ) => { days: number; reason: string | null }
   /** Crear una acción en las celdas elegidas; `done` cierra el menú si sale bien. */
   onCreateAction?: (parentId: string, input: CreateActionInput, done: () => void) => void
+  /** Abrir el panel con todo el proyecto en un día. */
+  onOpenDay?: (day: EpochDay) => void
   creating?: boolean
   /** El elemento que hace scroll, para llevar el Gantt a un día. */
   viewportRef?: Ref<HTMLDivElement>
@@ -105,6 +108,7 @@ export function ElementTree({
   onDragBar,
   limitDrag,
   onCreateAction,
+  onOpenDay,
   creating = false,
   expanded: expandedIds,
   onToggle,
@@ -141,7 +145,8 @@ export function ElementTree({
     ])
   const { hovered, selection, span, trackProps, menuOpen, closeMenu } = useGanttCells(
     showTimeline ? timeline : null,
-    visibleIds(nodes)
+    visibleIds(nodes),
+    onOpenDay
   )
 
   const names = new Map<string, string>()
@@ -265,6 +270,13 @@ export function ElementTree({
               onOpen(id)
             }}
             onCancel={closeMenu}
+            onOpenDay={
+              onOpenDay &&
+              (() => {
+                closeMenu()
+                onOpenDay(span.start)
+              })
+            }
             onCreate={(input) => onCreateAction?.(element.id, input, closeMenu)}
           />
         </PopoverContent>
@@ -516,6 +528,7 @@ export function ElementTree({
             rows={headerRows}
             marks={marks}
             hovered={hovered?.cell.start ?? null}
+            onOpenDay={onOpenDay}
           />
         )}
       </div>

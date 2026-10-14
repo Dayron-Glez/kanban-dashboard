@@ -19,6 +19,8 @@ interface TimelineScaleProps {
   marks?: TimelineMarks
   /** El inicio de la celda bajo el ratón: su día, semana o mes se resalta. */
   hovered?: EpochDay | null
+  /** Pulsar un día, una semana o un mes abre el panel del día (el primero). */
+  onOpenDay?: (day: EpochDay) => void
 }
 
 const HOT = "bg-primary/10 text-foreground"
@@ -29,10 +31,17 @@ export function TimelineScale({
   rows,
   marks = { today: true, week1: true, weekends: true },
   hovered = null,
+  onOpenDay,
 }: Readonly<TimelineScaleProps>) {
   const { pxPerDay, zoom } = timeline
   // Lejos (semana, mes) el año va en su propia fila; de cerca, con enero.
   const yearRow = zoom !== "dia"
+  // La cabecera es para el ratón: con el teclado, el día se abre con ⇧ Enter en la celda.
+  const opens = (day: EpochDay) =>
+    onOpenDay && {
+      onClick: () => onOpenDay(day),
+      className: "cursor-pointer hover:bg-muted hover:text-foreground",
+    }
 
   return (
     <div aria-hidden className="text-muted-foreground shrink-0 text-sm tabular-nums">
@@ -56,8 +65,10 @@ export function TimelineScale({
               key={month.start}
               className={cn(
                 "border-border absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
-                zoom === "mes" && month.start === hovered && HOT
+                zoom === "mes" && month.start === hovered && HOT,
+                zoom === "mes" && opens(month.start)?.className
               )}
+              onClick={zoom === "mes" ? opens(month.start)?.onClick : undefined}
               style={{ left: x(month.start, timeline), width: month.days * pxPerDay }}
             >
               {!yearRow && (month.month === 0 || index === 0) ? (
@@ -80,8 +91,10 @@ export function TimelineScale({
               className={cn(
                 "border-border/60 absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
                 marks.week1 && week.number === 1 && "bg-primary/10 text-primary font-semibold",
-                zoom === "semana" && week.start === hovered && HOT
+                zoom === "semana" && week.start === hovered && HOT,
+                zoom === "semana" && opens(week.start)?.className
               )}
+              onClick={zoom === "semana" ? opens(week.start)?.onClick : undefined}
               style={{ left: x(week.start, timeline), width: week.days * pxPerDay }}
             >
               {week.number != null &&
@@ -106,9 +119,11 @@ export function TimelineScale({
                   "absolute inset-y-0 flex flex-col items-center justify-center leading-none",
                   marks.weekends && day.weekend && "text-muted-foreground/60",
                   day.day === hovered && !today && "bg-primary/10 text-foreground rounded-md",
+                  opens(day.day) && "hover:bg-muted cursor-pointer rounded-md",
                   today &&
                     "text-background before:bg-primary font-bold before:absolute before:inset-[3px] before:-z-10 before:rounded-md"
                 )}
+                onClick={opens(day.day)?.onClick}
                 style={{ left: x(day.day, timeline), width: pxPerDay }}
               >
                 <span>{day.dayOfMonth}</span>

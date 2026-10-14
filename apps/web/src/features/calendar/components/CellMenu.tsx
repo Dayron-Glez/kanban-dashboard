@@ -7,7 +7,7 @@ import {
   type CreateActionInput,
 } from "@repo/contracts"
 import { toIsoDate } from "@repo/domain"
-import { IconPlus } from "@tabler/icons-react"
+import { IconCalendarEvent, IconPlus } from "@tabler/icons-react"
 import { Button, Input } from "@/shared/index"
 import { ELEMENT_KIND_LABELS } from "../lib/elementTree"
 import { formatLongDate, formatShortDay } from "../lib/planFormat"
@@ -31,6 +31,8 @@ interface CellMenuProps {
   canCreate: boolean
   pending: boolean
   onOpen: (elementId: string) => void
+  /** Ver el día completo: el primero de los elegidos. */
+  onOpenDay?: () => void
   onCreate: (input: CreateActionInput) => void
   onCancel: () => void
 }
@@ -47,6 +49,7 @@ export function CellMenu({
   canCreate,
   pending,
   onOpen,
+  onOpenDay,
   onCreate,
   onCancel,
 }: Readonly<CellMenuProps>) {
@@ -58,6 +61,22 @@ export function CellMenu({
     days === 1
       ? formatLongDate(toIsoDate(start))
       : `${formatShortDay(start)} → ${formatShortDay(end)} · ${days} días`
+
+  const dayLink = onOpenDay && (
+    <div className="border-border mt-1 border-t pt-1">
+      <button
+        type="button"
+        onClick={onOpenDay}
+        className="hover:bg-muted focus-visible:bg-muted flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm outline-none"
+      >
+        <IconCalendarEvent className="text-muted-foreground size-3.5" aria-hidden />
+        Ver el día completo
+        <kbd className="text-muted-foreground border-border ml-auto rounded border px-1 text-[10px]">
+          ⇧ Enter
+        </kbd>
+      </button>
+    </div>
+  )
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -141,6 +160,7 @@ export function CellMenu({
             </button>
           </div>
         )}
+        {dayLink}
       </div>
     )
   }
@@ -183,6 +203,7 @@ export function CellMenu({
           )
         })}
       </div>
+      {dayLink}
     </div>
   )
 }
