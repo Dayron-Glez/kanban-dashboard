@@ -28,24 +28,54 @@ const outside = (event: { target: EventTarget; currentTarget: HTMLElement }) =>
 const xIn = (event: PointerEvent<HTMLElement>) =>
   event.clientX - event.currentTarget.getBoundingClientRect().left
 
+/** El panel del día abierto: qué día y desde qué fila, si se abrió desde una. */
+export interface DayPanel {
+  day: EpochDay
+  rowId: string | null
+}
+
 /**
  * La celda bajo el ratón y las elegidas en el Gantt. Clic elige una celda y
  * arrastrar, un tramo de la misma fila; con el teclado, ← → cambian de celda,
- * ↑ ↓ de fila, Mayús alarga el tramo y Esc lo quita.
+ * ↑ ↓ de fila, Mayús alarga el tramo y Esc lo quita. Con el panel del día
+ * abierto van juntos: la celda elegida es la de su día, y elegir otra lo cambia.
  */
 export function useGanttCells(
   timeline: Timeline | null,
   rowIds: readonly string[],
-  onOpenDay?: (day: EpochDay) => void
+  onOpenDay?: (day: EpochDay, rowId: string | null) => void,
+  dayPanel: DayPanel | null = null
 ) {
   const [hovered, setHovered] = useState<{ id: string; cell: TimelineCell } | null>(null)
-  const [selection, setSelection] = useState<CellSelection | null>(null)
+  const [chosen, setChosen] = useState<CellSelection | null>(null)
   // El menú de las celdas elegidas: se abre al soltar el ratón o con Enter.
   const [menuOpen, setMenuOpen] = useState<boolean>(false)
   const dragging = useRef(false)
 
-  const select = (next: CellSelection | null) =>
-    setSelection((current) =>
+  // Con el panel abierto manda su día: lo elegido se respeta si acaba en él (un
+  // tramo sigue siendo un tramo); si no, la celda de ese día en su fila.
+  const linkedId = dayPanel ? (dayPanel.rowId ?? chosen?.id ?? null) : null
+  const selection: CellSelection | null =
+    !dayPanel || !timeline
+      ? chosen
+      : chosen &&
+          chosen.id === linkedId &&
+          cellAt(timeline, chosen.focus).start === cellAt(timeline, dayPanel.day).start
+        ? chosen
+        : linkedId
+          ? { id: linkedId, anchor: dayPanel.day, focus: dayPanel.day }
+          : null
+
+  // Lo que se elige desde el panel se queda al cerrarlo: al cambiar su día, la
+  // selección propia pasa a ser la de ese día (ajuste durante el render, sin efecto).
+  const [lastPanel, setLastPanel] = useState<DayPanel | null>(dayPanel)
+  if (dayPanel !== lastPanel) {
+    setLastPanel(dayPanel)
+    if (dayPanel && selection !== chosen) setChosen(selection)
+  }
+
+  const select = (next: CellSelection | null) => {
+    setChosen((current) =>
       current &&
       next &&
       current.id === next.id &&
@@ -54,6 +84,11 @@ export function useGanttCells(
         ? current
         : next
     )
+    if (dayPanel && next && timeline && onOpenDay) {
+      const day = cellAt(timeline, next.focus).start
+      if (day !== dayPanel.day || next.id !== dayPanel.rowId) onOpenDay(day, next.id)
+    }
+  }
 
   const focusRow = (from: HTMLElement, id: string) =>
     from
@@ -104,7 +139,9 @@ export function useGanttCells(
       }
       if (event.key === "Enter") {
         event.preventDefault()
-        if (event.shiftKey && onOpenDay) return onOpenDay(cellAt(timeline, selection.focus).start)
+        if (event.shiftKey && onOpenDay) {
+          return onOpenDay(cellAt(timeline, selection.focus).start, id)
+        }
         return setMenuOpen(true)
       }
       setMenuOpen(false)

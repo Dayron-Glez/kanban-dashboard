@@ -93,6 +93,8 @@ const renderPage = (search = "") => {
 const rowOf = (name: string) => screen.getByText(name).closest("li")!
 
 beforeEach(() => {
+  // cmdk (el buscador de «Cuelga de») desplaza la opción activa a la vista.
+  Element.prototype.scrollIntoView ??= () => {}
   device.mobile = false
   localStorage.clear()
   vi.mocked(toast.success).mockClear()
@@ -879,9 +881,12 @@ describe("CalendarPage", () => {
 
       // Desde aquí se crea colgando, por defecto, de lo más concreto en curso.
       await userEvent.click(within(panel).getByRole("button", { name: "Nueva acción" }))
-      expect(within(panel).getByRole("combobox", { name: "Cuelga de" })).toHaveTextContent(
-        "Shooting"
-      )
+      const picker = within(panel).getByRole("button", { name: "Cuelga de" })
+      expect(picker).toHaveTextContent("Shooting")
+      // Se puede colgar de cualquier fase, subfase o proceso, también de la fase.
+      await userEvent.click(picker)
+      expect(await screen.findByRole("option", { name: /Rodaje/ })).toBeInTheDocument()
+      await userEvent.click(screen.getByRole("option", { name: /Shooting/ }))
       await userEvent.click(within(panel).getByRole("menuitem", { name: /Recordatorio/ }))
       await userEvent.type(within(panel).getByRole("textbox", { name: "Nombre" }), "Fotos{Enter}")
       await waitFor(() =>
@@ -905,7 +910,54 @@ describe("CalendarPage", () => {
       expect(screen.queryByRole("heading", { name: /15 de octubre/ })).toBeNull()
     })
 
-    it("con el teclado, ⇧ Enter en una celda abre su día", async () => {
+    it("desde una fila, el panel cuelga de su fase y no de las hermanas; sus flechas mueven la celda", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          preparacion({ position: 0, startsOn: "2026-10-12", endsOn: "2026-11-22" }),
+          element("ensayos", "preparacion", "Ensayos", {
+            kind: "process",
+            startsOn: "2026-10-12",
+            endsOn: "2026-10-30",
+          }),
+          rodaje({ position: 1, startsOn: "2026-10-12", endsOn: "2026-11-22" }),
+          element("shooting", "rodaje", "Shooting", {
+            kind: "process",
+            startsOn: "2026-10-12",
+            endsOn: "2026-10-30",
+          }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const shooting = document.querySelector<HTMLElement>('[data-track="shooting"]')!
+      fireEvent.pointerDown(shooting, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(shooting)
+      await userEvent.keyboard("{Escape}")
+      fireEvent.keyDown(shooting, { key: "Enter", shiftKey: true })
+
+      const panel = await screen.findByRole("dialog")
+      await userEvent.click(within(panel).getByRole("button", { name: "Nueva acción" }))
+      const picker = within(panel).getByRole("button", { name: "Cuelga de" })
+      expect(picker).toHaveTextContent("Shooting")
+      await userEvent.click(picker)
+      expect(await screen.findByRole("option", { name: /Rodaje/ })).toBeInTheDocument()
+      expect(screen.queryByRole("option", { name: /Preparación/ })).toBeNull()
+      expect(screen.queryByRole("option", { name: /Ensayos/ })).toBeNull()
+      await userEvent.keyboard("{Escape}")
+
+      // Las flechas del panel mueven también la celda elegida.
+      expect(screen.getByRole("status")).toHaveTextContent("Shooting: 14 oct")
+      await userEvent.click(within(panel).getByRole("button", { name: "Día siguiente" }))
+      expect(screen.getByRole("status")).toHaveTextContent("Shooting: 15 oct")
+
+      // Al cerrar el panel sin hacer nada, la celda se queda en el día al que se llegó.
+      await userEvent.click(within(panel).getByRole("button", { name: "Cerrar" }))
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+      expect(screen.getByRole("status")).toHaveTextContent("Shooting: 15 oct")
+    })
+
+    it("con el teclado, Mayús + Enter en una celda abre su día", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
       )

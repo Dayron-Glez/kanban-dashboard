@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { IconChevronLeft, IconChevronRight, IconPlus } from "@tabler/icons-react"
+import { IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus } from "@tabler/icons-react"
 import {
   ACTION_KINDS,
   ACTION_PARENT_KINDS,
@@ -10,12 +10,15 @@ import { fromIsoDate, mondayOf, toIsoDate, weekNumber, type EpochDay } from "@re
 import {
   Button,
   cn,
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   ScrollArea,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -31,6 +34,8 @@ import { CellMenu } from "./CellMenu"
 
 interface DaySheetProps {
   day: EpochDay
+  /** La fila desde la que se abrió: se crea dentro de su fase. */
+  rowId: string | null
   tree: ElementNode[]
   timeline: Timeline
   canCreate: boolean
@@ -49,6 +54,7 @@ const signed = (n: number) => (n < 0 ? `−${-n}` : String(n))
  */
 export function DaySheet({
   day,
+  rowId,
   tree,
   timeline,
   canCreate,
@@ -60,6 +66,7 @@ export function DaySheet({
 }: Readonly<DaySheetProps>) {
   // Lo que se está creando vale para un día: al pasar a otro, se olvida.
   const [addingOn, setAddingOn] = useState<EpochDay | null>(null)
+  const [picking, setPicking] = useState<boolean>(false)
   const [chosen, setChosen] = useState<{ day: EpochDay; id: string } | null>(null)
   const adding = addingOn === day
   const setAdding = (on: boolean) => setAddingOn(on ? day : null)
@@ -79,12 +86,28 @@ export function DaySheet({
   }
   const actions = all.filter((node) => isAction(node.element) && touches(node))
   const active = all.filter((node) => !isAction(node.element) && touches(node))
-  const parents = active.filter((node) => ACTION_PARENT_KINDS.includes(node.element.kind))
-  // Por defecto, lo más concreto que esté en curso: el proceso antes que la fase.
-  const fallback = parents.reduce<ElementNode | null>(
-    (deepest, node) => (deepest == null || node.depth > deepest.depth ? node : deepest),
-    null
+  const activeIds = new Set(active.map((node) => node.element.id))
+  // Se cuelga de la fase de la fila de la que se vino, o de lo que la forma; nunca
+  // de una fase hermana. Desde la cabecera, de las fases en curso ese día.
+  const rowPhase = rowId
+    ? tree.find((phase) => flattenTree([phase]).some((node) => node.element.id === rowId))
+    : undefined
+  const inCourse = tree.filter((phase) => activeIds.has(phase.element.id))
+  const scope = rowPhase ? [rowPhase] : inCourse.length > 0 ? inCourse : tree
+  const parents = flattenTree(scope).filter((node) =>
+    ACTION_PARENT_KINDS.includes(node.element.kind)
   )
+  // Por defecto, la propia fila; si no, lo más concreto que esté en curso.
+  const fallback =
+    parents.find((node) => node.element.id === rowId) ??
+    parents
+      .filter((node) => activeIds.has(node.element.id))
+      .reduce<ElementNode | null>(
+        (deepest, node) => (deepest == null || node.depth > deepest.depth ? node : deepest),
+        null
+      ) ??
+    parents[0] ??
+    null
   const parent = parents.find((node) => node.element.id === parentId) ?? fallback
   const nameOf = (id: string | null) => all.find((node) => node.element.id === id)?.element.name
 
@@ -190,51 +213,92 @@ export function DaySheet({
                   variant="outline"
                   size="sm"
                   className="text-primary mt-1"
-                  disabled={!parent}
                   onClick={() => setAdding(true)}
                 >
                   <IconPlus aria-hidden />
                   Nueva acción
                 </Button>
               )}
-              {canCreate && !parent && (
-                <p className="text-muted-foreground text-sm">
-                  Ninguna fase ni proceso está en curso este día.
-                </p>
-              )}
-              {canCreate && adding && parent && (
+              {canCreate && adding && (
                 <div className="border-border flex flex-col gap-2 rounded-lg border p-2">
-                  <label className="text-muted-foreground flex flex-col gap-1 px-1 text-xs">
-                    Cuelga de
-                    <Select value={parent.element.id} onValueChange={setParentId}>
-                      <SelectTrigger aria-label="Cuelga de" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {parents.map((node) => (
-                          <SelectItem key={node.element.id} value={node.element.id}>
-                            <span style={{ paddingLeft: node.depth * 12 }}>
-                              {node.element.name}
+                  <div className="flex flex-col gap-1 px-1">
+                    <span className="text-muted-foreground text-xs">Cuelga de</span>
+                    <Popover open={picking} onOpenChange={setPicking}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          aria-label="Cuelga de"
+                          className="w-full justify-between font-normal"
+                        >
+                          {parent ? (
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Mark node={parent} />
+                              <span className="truncate">{parent.element.name}</span>
                             </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  <CellMenu
-                    key={parent.element.id}
-                    start={day}
-                    end={day}
-                    parentName={parent.element.name}
-                    actions={[]}
-                    canCreate
-                    pending={creating}
-                    onOpen={onOpen}
-                    onCancel={() => setAdding(false)}
-                    onCreate={(input) =>
-                      onCreateAction(parent.element.id, input, () => setAdding(false))
-                    }
-                  />
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Elige una fase, subfase o proceso
+                            </span>
+                          )}
+                          <IconChevronDown className="opacity-60" aria-hidden />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        className="w-(--radix-popover-trigger-width) p-0"
+                      >
+                        <Command>
+                          <CommandInput placeholder="Buscar…" />
+                          <CommandList>
+                            <CommandEmpty>No hay ninguno con ese nombre.</CommandEmpty>
+                            {parents.map((node) => (
+                              <CommandItem
+                                key={node.element.id}
+                                value={node.element.name + " " + node.element.id}
+                                onSelect={() => {
+                                  setParentId(node.element.id)
+                                  setPicking(false)
+                                }}
+                              >
+                                <span
+                                  className="flex min-w-0 flex-1 items-center gap-2"
+                                  style={{ paddingLeft: node.depth * 12 }}
+                                >
+                                  <Mark node={node} />
+                                  <span
+                                    className={cn("truncate", node.depth === 0 && "font-semibold")}
+                                  >
+                                    {node.element.name}
+                                  </span>
+                                </span>
+                                {activeIds.has(node.element.id) && (
+                                  <span className="text-muted-foreground shrink-0 text-xs">
+                                    en curso
+                                  </span>
+                                )}
+                              </CommandItem>
+                            ))}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {parent && (
+                    <CellMenu
+                      key={parent.element.id}
+                      start={day}
+                      end={day}
+                      parentName={parent.element.name}
+                      actions={[]}
+                      canCreate
+                      pending={creating}
+                      onOpen={onOpen}
+                      onCancel={() => setAdding(false)}
+                      onCreate={(input) =>
+                        onCreateAction(parent.element.id, input, () => setAdding(false))
+                      }
+                    />
+                  )}
                 </div>
               )}
             </section>
@@ -244,7 +308,6 @@ export function DaySheet({
                 En curso · {active.length}
               </h3>
               {active.map((node) => {
-                const tint = phaseTint(node.phaseColor, node.depth === 0)
                 return (
                   <button
                     key={node.element.id}
@@ -253,15 +316,7 @@ export function DaySheet({
                     className="hover:bg-muted focus-visible:bg-muted flex items-center gap-2 rounded-md py-1.5 pr-1.5 text-left outline-none"
                     style={{ paddingLeft: node.depth * 14 + 6 }}
                   >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "shrink-0 rounded-full",
-                        node.depth === 0 ? "h-3 w-1" : "size-1.5",
-                        tint.className
-                      )}
-                      style={tint.style}
-                    />
+                    <Mark node={node} />
                     <span
                       className={cn(
                         "min-w-0 truncate text-sm",
@@ -283,5 +338,21 @@ export function DaySheet({
         </ScrollArea>
       </SheetContent>
     </Sheet>
+  )
+}
+
+// El color de su fase: una barrita en las fases, un punto en lo demás.
+function Mark({ node }: Readonly<{ node: ElementNode }>) {
+  const tint = phaseTint(node.phaseColor, node.depth === 0)
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "shrink-0 rounded-full",
+        node.depth === 0 ? "h-3 w-1" : "size-1.5",
+        tint.className
+      )}
+      style={tint.style}
+    />
   )
 }

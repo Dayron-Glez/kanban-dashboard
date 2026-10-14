@@ -1,4 +1,4 @@
-import type { Ref } from "react"
+import { useEffect, type Ref } from "react"
 import {
   IconAlertTriangle,
   IconAnchor,
@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
 } from "@/shared/index"
 import type { EpochDay } from "@repo/domain"
-import { useGanttCells } from "../hooks/useGanttCells"
+import { useGanttCells, type DayPanel } from "../hooks/useGanttCells"
 import { actionsInSpan, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
 import { phaseTint } from "../lib/phaseColors"
@@ -71,7 +71,9 @@ interface ElementTreeProps {
   /** Crear una acción en las celdas elegidas; `done` cierra el menú si sale bien. */
   onCreateAction?: (parentId: string, input: CreateActionInput, done: () => void) => void
   /** Abrir el panel con todo el proyecto en un día. */
-  onOpenDay?: (day: EpochDay) => void
+  onOpenDay?: (day: EpochDay, rowId: string | null) => void
+  /** El panel del día abierto: la celda elegida lo sigue. */
+  dayPanel?: DayPanel | null
   creating?: boolean
   /** El elemento que hace scroll, para llevar el Gantt a un día. */
   viewportRef?: Ref<HTMLDivElement>
@@ -109,6 +111,7 @@ export function ElementTree({
   limitDrag,
   onCreateAction,
   onOpenDay,
+  dayPanel = null,
   creating = false,
   expanded: expandedIds,
   onToggle,
@@ -146,8 +149,18 @@ export function ElementTree({
   const { hovered, selection, span, trackProps, menuOpen, closeMenu } = useGanttCells(
     showTimeline ? timeline : null,
     visibleIds(nodes),
-    onOpenDay
+    onOpenDay,
+    dayPanel
   )
+
+  // Al pasar de día en el panel, su celda se lleva a la vista si se sale.
+  const panelDay = dayPanel?.day
+  useEffect(() => {
+    if (panelDay == null) return
+    document
+      .querySelector("[data-cell-selection]")
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" })
+  }, [panelDay])
 
   const names = new Map<string, string>()
   const collect = (list: ElementNode[]) =>
@@ -282,7 +295,7 @@ export function ElementTree({
               onOpenDay &&
               (() => {
                 closeMenu()
-                onOpenDay(span.start)
+                onOpenDay(span.start, element.id)
               })
             }
             onCreate={(input) => onCreateAction?.(element.id, input, closeMenu)}
@@ -455,6 +468,8 @@ export function ElementTree({
                   style={{
                     left: timelineX(span.start, timeline),
                     width: span.days * timeline.pxPerDay,
+                    // Al llevarla a la vista, que no quede bajo la columna fija.
+                    scrollMarginLeft: ganttTable.width,
                   }}
                 >
                   {span.days > cellDays(span.start) && (
@@ -545,7 +560,7 @@ export function ElementTree({
             rows={headerRows}
             marks={marks}
             hovered={hovered?.cell.start ?? null}
-            onOpenDay={onOpenDay}
+            onOpenDay={onOpenDay && ((day) => onOpenDay(day, null))}
           />
         )}
       </div>

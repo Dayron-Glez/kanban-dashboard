@@ -31,6 +31,7 @@ import {
 } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { DaySheet } from "./DaySheet"
+import type { DayPanel } from "../hooks/useGanttCells"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { GanttLegendStrip } from "./GanttLegend"
@@ -59,14 +60,14 @@ export function CalendarPage() {
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
   // A la derecha va un panel cada vez: el de un elemento o el de un día.
-  const [openDay, setOpenDay] = useState<EpochDay | null>(null)
+  const [openDay, setOpenDay] = useState<DayPanel | null>(null)
   const openElement = (id: string) => {
     setOpenDay(null)
     setOpenId(id)
   }
-  const openDayPanel = (day: EpochDay) => {
+  const openDayPanel = (day: EpochDay, rowId: string | null) => {
     setOpenId(null)
-    setOpenDay(day)
+    setOpenDay({ day, rowId })
   }
   // Todo empieza plegado: el plan entero de golpe es demasiado.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
@@ -324,6 +325,7 @@ export function CalendarPage() {
                 onUpdate={onUpdate}
                 onOpen={openElement}
                 onOpenDay={openDayPanel}
+                dayPanel={openDay}
                 onMoveDate={onMoveDate}
                 onDragBar={onDragBar}
                 limitDrag={limitDrag}
@@ -364,12 +366,13 @@ export function CalendarPage() {
       )}
       {timeline && openDay != null && (
         <DaySheet
-          day={openDay}
+          day={openDay.day}
+          rowId={openDay.rowId}
           tree={tree}
           timeline={timeline}
           canCreate={isOwner}
           creating={createAction.isPending}
-          onDay={setOpenDay}
+          onDay={(day) => setOpenDay({ ...openDay, day })}
           onClose={() => setOpenDay(null)}
           onOpen={openElement}
           onCreateAction={(parentId, input, done) =>
