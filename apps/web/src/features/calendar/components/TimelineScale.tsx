@@ -5,6 +5,9 @@ import { formatLongDate } from "../lib/planFormat"
 import { timelineX as x, trackBackground, type Timeline, type TimelineMarks } from "../lib/timeline"
 
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+// Con el signo menos tipográfico: «−27», no «-27».
+const signed = (n: number) => (n < 0 ? `−${-n}` : String(n))
+
 const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"]
 
 interface TimelineScaleProps {
@@ -21,10 +24,25 @@ export function TimelineScale({
   rows,
   marks = { today: true, week1: true, weekends: true },
 }: Readonly<TimelineScaleProps>) {
-  const { pxPerDay } = timeline
+  const { pxPerDay, zoom } = timeline
+  // Lejos (semana, mes) el año va en su propia fila; de cerca, con enero.
+  const yearRow = zoom !== "dia"
 
   return (
     <div aria-hidden className="text-muted-foreground shrink-0 text-sm tabular-nums">
+      {yearRow && (
+        <div className="relative h-[26px]" style={{ width: timeline.width }}>
+          {timeline.years.map((year) => (
+            <span
+              key={year.start}
+              className="border-border text-foreground absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 font-semibold whitespace-nowrap"
+              style={{ left: x(year.start, timeline), width: year.days * pxPerDay }}
+            >
+              {year.year}
+            </span>
+          ))}
+        </div>
+      )}
       {rows.month && (
         <div className="relative h-[26px]" style={{ width: timeline.width }}>
           {timeline.months.map((month, index) => (
@@ -33,7 +51,7 @@ export function TimelineScale({
               className="border-border absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap"
               style={{ left: x(month.start, timeline), width: month.days * pxPerDay }}
             >
-              {month.month === 0 || index === 0 ? (
+              {!yearRow && (month.month === 0 || index === 0) ? (
                 <span className="text-foreground font-semibold">
                   {MONTHS[month.month]} {month.year}
                 </span>
@@ -44,23 +62,25 @@ export function TimelineScale({
           ))}
         </div>
       )}
-      {rows.week && (
+      {rows.week && zoom !== "mes" && (
         <div className="relative h-[26px]" style={{ width: timeline.width }}>
           {timeline.weeks.map((week) => (
             <span
               key={week.start}
+              title={week.number != null ? `Semana ${signed(week.number)}` : undefined}
               className={cn(
                 "border-border/60 absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
                 marks.week1 && week.number === 1 && "bg-primary/10 text-primary font-semibold"
               )}
               style={{ left: x(week.start, timeline), width: week.days * pxPerDay }}
             >
-              {week.number != null && `Sem ${week.number < 0 ? `−${-week.number}` : week.number}`}
+              {week.number != null &&
+                (zoom === "dia" ? `Sem ${signed(week.number)}` : signed(week.number))}
             </span>
           ))}
         </div>
       )}
-      {rows.day && (
+      {rows.day && zoom === "dia" && (
         <div
           className="relative isolate h-[34px]"
           style={{ width: timeline.width, ...trackBackground(timeline, marks) }}

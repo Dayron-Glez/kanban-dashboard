@@ -21,7 +21,14 @@ import { changeForEdit, clampMove, describeShift, editContext } from "../lib/pla
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { loadLegend, saveLegend, type GanttLegend } from "../lib/ganttLegend"
-import { buildTimeline, dragTarget, scrollLeftFor, type BarDrag } from "../lib/timeline"
+import {
+  buildTimeline,
+  dragTarget,
+  PLAN_ZOOMS,
+  scrollLeftFor,
+  type BarDrag,
+  type PlanZoom,
+} from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
@@ -31,6 +38,7 @@ import { PlanHeader } from "./PlanHeader"
 import { PlanSetup } from "./PlanSetup"
 import { ViewOptionsMenu } from "./ViewOptionsMenu"
 import { ViewSelector } from "./ViewSelector"
+import { ZoomControl } from "./ZoomControl"
 
 const flattenIds = (nodes: ElementNode[]): string[] =>
   nodes.flatMap((node) => [node.element.id, ...flattenIds(node.children)])
@@ -66,6 +74,16 @@ export function CalendarPage() {
       },
       { replace: true }
     )
+  // El zoom también va en la URL.
+  const zoom = PLAN_ZOOMS.find((value) => value === searchParams.get("zoom")) ?? "dia"
+  const setZoom = (next: PlanZoom) =>
+    setSearchParams(
+      (params) => {
+        params.set("zoom", next)
+        return params
+      },
+      { replace: true }
+    )
   // En el móvil, el árbol con sus fechas: la rejilla no cabe.
   const view = isMobile ? "tabla" : "gantt"
   // Los campos visibles se recuerdan en este navegador.
@@ -83,7 +101,7 @@ export function CalendarPage() {
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
-  const timeline = useMemo(() => buildTimeline(elements ?? []), [elements])
+  const timeline = useMemo(() => buildTimeline(elements ?? [], undefined, zoom), [elements, zoom])
 
   // El Gantt abre centrado en hoy, una vez por proyecto: después manda el usuario.
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -249,6 +267,7 @@ export function CalendarPage() {
               <>
                 {view !== "tabla" && timeline && (
                   <>
+                    <ZoomControl value={zoom} onChange={setZoom} />
                     <GoToDate shortcuts={shortcuts} today={timeline.today} onGo={goTo} />
                     <ViewOptionsMenu
                       fields={fields}

@@ -579,6 +579,26 @@ describe("CalendarPage", () => {
     })
   })
 
+  it("el zoom cambia la rejilla: día a día, por semanas o por meses", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    const dayCells = () => screen.queryAllByTitle(/^(lun|mar|mié|jue|vie|sáb|dom) [0-9]/)
+    expect(screen.getByRole("radio", { name: "Día" })).toHaveAttribute("aria-checked", "true")
+    expect(dayCells().length).toBeGreaterThan(0)
+
+    await userEvent.click(screen.getByRole("radio", { name: "Mes" }))
+    expect(screen.getByRole("radio", { name: "Mes" })).toHaveAttribute("aria-checked", "true")
+    expect(dayCells()).toHaveLength(0)
+    // La barra sigue ahí: el mismo plan, más lejos.
+    expect(
+      screen.getByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    ).toBeInTheDocument()
+  })
+
   it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([

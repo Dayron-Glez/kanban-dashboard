@@ -15,15 +15,31 @@ import {
 /** Cómo se ve el árbol: solo la tabla (el móvil), o la tabla junto al Gantt. */
 export type PlanView = "tabla" | "gantt"
 
-/** El ancho de cada día del Gantt, en píxeles. */
-export const DAY_WIDTH = 28
+export const PLAN_ZOOMS = ["dia", "semana", "mes"] as const
+/** Lo cerca que se ve el Gantt: una columna por día, por semana o por mes. */
+export type PlanZoom = (typeof PLAN_ZOOMS)[number]
+
+// Píxeles por día y a cuántos días se ajusta un arrastre: con «semana» una semana
+// mide 56 px, con «mes» un mes unos 90.
+const ZOOM: Record<PlanZoom, { pxPerDay: number; snapDays: number }> = {
+  dia: { pxPerDay: 28, snapDays: 1 },
+  semana: { pxPerDay: 8, snapDays: 7 },
+  mes: { pxPerDay: 3, snapDays: 7 },
+}
+
+/** El ancho de cada día del Gantt con el zoom «día», en píxeles. */
+export const DAY_WIDTH = ZOOM.dia.pxPerDay
 
 export interface Timeline {
+  zoom: PlanZoom
   range: TimelineRange
   pxPerDay: number
+  /** A cuántos días se ajusta un arrastre. */
+  snapDays: number
   width: number
   days: GridDay[]
   months: ReturnType<typeof monthSegments>
+  years: { start: EpochDay; days: number; year: number }[]
   weeks: ReturnType<typeof weekSegments>
   /** El lunes de la semana del rodaje, la semana 1. */
   shootWeek: EpochDay | null
@@ -40,7 +56,8 @@ const localToday = (today: Date) =>
 /** Lo que necesita el Gantt día a día para pintarse, o null si nada tiene fechas. */
 export function buildTimeline(
   elements: CalendarElement[],
-  now: Date = new Date()
+  now: Date = new Date(),
+  zoom: PlanZoom = "dia"
 ): Timeline | null {
   const today = localToday(now)
   const range = dayGridRange(
@@ -52,17 +69,31 @@ export function buildTimeline(
     elements.find((element) => element.templateKey === "rodaje") ??
     elements.find((element) => element.isAnchor)
   const shootWeek = shoot?.startsOn ? mondayOf(fromIsoDate(shoot.startsOn)) : null
+  const { pxPerDay, snapDays } = ZOOM[zoom]
+  const months = monthSegments(range)
   return {
+    zoom,
     range,
-    pxPerDay: DAY_WIDTH,
-    width: range.days * DAY_WIDTH,
+    pxPerDay,
+    snapDays,
+    width: range.days * pxPerDay,
     days: gridDays(range),
-    months: monthSegments(range),
+    months,
+    years: yearSegments(months),
     weeks: weekSegments(range, shootWeek),
     shootWeek,
     today,
   }
 }
+
+// Los años, juntando los meses de la rejilla: la cabecera de «semana» y «mes».
+const yearSegments = (months: ReturnType<typeof monthSegments>) =>
+  months.reduce<{ start: EpochDay; days: number; year: number }[]>((years, month) => {
+    const last = years.at(-1)
+    if (last?.year === month.year) last.days += month.days
+    else years.push({ start: month.start, days: month.days, year: month.year })
+    return years
+  }, [])
 
 /** Dónde empieza un día en el Gantt, en píxeles. */
 export const timelineX = (day: EpochDay, timeline: Timeline) =>
@@ -107,6 +138,7 @@ export function trackBackground(
       : []),
   ].filter(({ at }) => at >= 0 && at <= timeline.width)
   // La rejilla empieza en lunes: sábado y domingo son los días 5 y 6 de cada semana.
+  // Solo con «día»: más lejos, el sombreado serían rayas de 8 o 3 px.
   const weekend = `repeating-linear-gradient(90deg, transparent 0 ${5 * pxPerDay}px, var(--weekend) ${5 * pxPerDay}px ${7 * pxPerDay}px)`
   const layers = [
     ...lines.map(({ at, color }) => ({
@@ -115,7 +147,7 @@ export function trackBackground(
       position: `${at}px 0`,
       repeat: "no-repeat",
     })),
-    ...(marks.weekends
+    ...(marks.weekends && timeline.zoom === "dia"
       ? [{ image: weekend, size: "auto", position: "0 0", repeat: "repeat" }]
       : []),
   ]
@@ -128,9 +160,9 @@ export function trackBackground(
   }
 }
 
-/** Los píxeles arrastrados, en días enteros. */
+/** Los píxeles arrastrados, en días y ajustados al paso del zoom. */
 export const dragDays = (pixels: number, timeline: Timeline) =>
-  Math.round(pixels / timeline.pxPerDay) || 0
+  Math.round(pixels / timeline.pxPerDay / timeline.snapDays) * timeline.snapDays || 0
 
 export type BarDrag = "move" | "start" | "end"
 

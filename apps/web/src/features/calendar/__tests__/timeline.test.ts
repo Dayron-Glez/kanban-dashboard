@@ -85,6 +85,34 @@ describe("trackBackground", () => {
   })
 })
 
+describe("el zoom", () => {
+  const rodaje = [element("rodaje", { startsOn: "2027-04-05", endsOn: "2027-05-16" })]
+  const at = (zoom: "dia" | "semana" | "mes") => buildTimeline(rodaje, new Date(2026, 9, 13), zoom)!
+
+  it("una columna por día (28 px), por semana (56 px) o por mes (unos 90 px)", () => {
+    expect(at("dia").pxPerDay * 7).toBe(196)
+    expect(at("semana").pxPerDay * 7).toBe(56)
+    expect(at("mes").pxPerDay * 30).toBe(90)
+  })
+
+  it("con semana y mes, el arrastre se ajusta a semanas", () => {
+    expect(dragDays(30, at("semana"))).toBe(7)
+    expect(dragDays(20, at("semana"))).toBe(0)
+    expect(dragDays(-70, at("mes"))).toBe(-21)
+  })
+
+  it("los años de la rejilla, para la cabecera de semana y mes", () => {
+    expect(at("mes").years.map(({ year }) => year)).toEqual([2026, 2027])
+    const days = at("mes").years.reduce((total, year) => total + year.days, 0)
+    expect(days).toBe(at("mes").range.days)
+  })
+
+  it("los fines de semana solo se sombrean con día", () => {
+    expect(trackBackground(at("dia")).backgroundImage).toMatch(/repeating-linear-gradient/)
+    expect(trackBackground(at("semana")).backgroundImage).not.toMatch(/repeating-linear-gradient/)
+  })
+})
+
 describe("dragDays", () => {
   const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 

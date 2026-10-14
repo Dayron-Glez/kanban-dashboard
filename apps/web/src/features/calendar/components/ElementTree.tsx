@@ -175,7 +175,7 @@ export function ElementTree({
         onOpen={() => onOpen(element.id)}
         onDrag={(drag, days) => onDragBar(element.id, drag, days)}
         limit={limitDrag && ((drag, days) => limitDrag(element.id, drag, days))}
-        weekends={marks?.weekends ?? true}
+        weekends={(marks?.weekends ?? true) && timeline.zoom === "dia"}
       />
     )
   }
