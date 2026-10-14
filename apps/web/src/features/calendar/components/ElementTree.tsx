@@ -43,6 +43,7 @@ import {
   cellAt,
   ROW_HEIGHT,
   timelineX,
+  todayX,
   trackBackground,
   type BarDrag,
   type PlanView,
@@ -153,6 +154,7 @@ export function ElementTree({
     })
   if (selectedId) findPath(nodes, [])
   const background = showTimeline ? trackBackground(timeline, marks) : undefined
+  const todayLeft = showTimeline && (marks?.today ?? true) ? todayX(timeline) : null
   const isOpen = (id: string) => expandedIds.has(id) || selectedPath.has(id)
   // Con el Gantt, un elemento con acciones se despliega aunque no tenga hijos: debajo
   // va su fila «Acciones».
@@ -375,6 +377,15 @@ export function ElementTree({
           </span>
         )}
         {content}
+        {todayLeft != null && (
+          // Por encima de las barras, para que se vea de arriba abajo; las acciones,
+          // encima de ella.
+          <span
+            aria-hidden
+            className="bg-primary pointer-events-none absolute inset-y-0 z-[1] w-[1.5px] -translate-x-1/2"
+            style={{ left: todayLeft }}
+          />
+        )}
       </div>
     )
 

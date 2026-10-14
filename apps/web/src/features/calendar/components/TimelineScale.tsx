@@ -120,13 +120,19 @@ export function TimelineScale({
                   marks.weekends && day.weekend && "text-muted-foreground/60",
                   day.day === hovered && !today && "bg-primary/10 text-foreground rounded-md",
                   opens(day.day) && "hover:bg-muted cursor-pointer rounded-md",
-                  today &&
-                    "text-background before:bg-primary font-bold before:absolute before:inset-[3px] before:-z-10 before:rounded-md"
+                  today && "text-foreground"
                 )}
                 onClick={opens(day.day)?.onClick}
                 style={{ left: x(day.day, timeline), width: pxPerDay }}
               >
-                <span>{day.dayOfMonth}</span>
+                {/* Hoy: el recuadro solo en el número; la letra, debajo y en su color. */}
+                <span
+                  className={cn(
+                    today && "bg-primary text-background rounded-md px-1.5 py-0.5 font-bold"
+                  )}
+                >
+                  {day.dayOfMonth}
+                </span>
                 <span className="mt-0.5 text-[10px] opacity-75">{WEEKDAYS[day.weekday]}</span>
               </span>
             )

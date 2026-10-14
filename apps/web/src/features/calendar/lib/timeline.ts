@@ -147,9 +147,15 @@ export function cellSpan(timeline: Timeline, a: EpochDay, b: EpochDay): Timeline
 
 /**
  * El fondo de todas las filas: las líneas entre celdas, los fines de semana
- * sombreados de arriba abajo y las líneas de hoy y de la semana 1. Se calcula
- * una vez y lo comparten todas.
+ * sombreados de arriba abajo y la línea de la semana 1. Se calcula una vez y lo
+ * comparten todas. La de hoy va aparte (todayX), por encima de las barras.
  */
+/** Dónde va la línea de hoy, en píxeles; null si hoy queda fuera de la rejilla. */
+export function todayX(timeline: Timeline): number | null {
+  const at = timelineX(timeline.today, timeline) + timeline.pxPerDay / 2
+  return at >= 0 && at <= timeline.width ? at : null
+}
+
 export interface TimelineMarks {
   today: boolean
   week1: boolean
@@ -172,9 +178,6 @@ export function trackBackground(
             "color-mix(in oklch, var(--primary) 40%, transparent)"
           ),
         ]
-      : []),
-    ...(marks.today
-      ? [line(timelineX(timeline.today, timeline) + pxPerDay / 2, "var(--primary)")]
       : []),
   ].filter(({ at }) => at >= 0 && at <= timeline.width)
   // La rejilla empieza en lunes: sábado y domingo son los días 5 y 6 de cada semana.

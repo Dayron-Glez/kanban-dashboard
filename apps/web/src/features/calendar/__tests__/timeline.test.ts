@@ -11,6 +11,7 @@ import {
   dragDays,
   dragTarget,
   scrollLeftFor,
+  todayX,
   trackBackground,
 } from "../lib/timeline"
 
@@ -77,11 +78,17 @@ describe("scrollLeftFor", () => {
 describe("trackBackground", () => {
   const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
-  it("pinta hoy, la semana 1 y los fines de semana, y la leyenda puede apagarlos", () => {
-    expect(trackBackground(timeline).backgroundImage?.split("gradient(")).toHaveLength(5)
+  it("pinta la semana 1 y los fines de semana, y la leyenda puede apagarlos", () => {
+    expect(trackBackground(timeline).backgroundImage?.split("gradient(")).toHaveLength(4)
     expect(
       trackBackground(timeline, { today: false, week1: false, weekends: true }).backgroundImage
     ).toMatch(/^repeating-linear-gradient/)
+  })
+
+  it("hoy va aparte, en el centro de su día, para pintarse por encima de las barras", () => {
+    expect(todayX(timeline)).toBe((fromIsoDate("2026-10-13") - timeline.range.start) * 48 + 24)
+    const lejos = buildTimeline([element("rodaje")], new Date(2030, 0, 1))!
+    expect(todayX({ ...lejos, today: lejos.range.end + 10 })).toBeNull()
   })
 
   it("las líneas entre celdas no se apagan: una por día", () => {
