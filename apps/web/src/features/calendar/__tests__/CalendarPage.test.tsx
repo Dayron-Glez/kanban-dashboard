@@ -765,6 +765,74 @@ describe("CalendarPage", () => {
       expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
     })
 
+    it("una celda con acciones enseña su lista, con lo de dentro si la fila está plegada", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+          element("shooting", "rodaje", "Shooting", { kind: "process", position: 1 }),
+          element("permisos", "shooting", "Pedir permisos", {
+            kind: "task",
+            startsOn: "2026-10-13",
+            endsOn: "2026-10-16",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Reunión: Lectura de guion, 14 oct" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+
+      const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
+      expect(within(list).getByRole("menuitem", { name: /Lectura de guion/ })).toHaveTextContent(
+        "Reunión"
+      )
+      // La tarea es de Shooting, que cuelga de Rodaje, plegado.
+      expect(within(list).getByRole("menuitem", { name: /Pedir permisos/ })).toHaveTextContent(
+        "Shooting"
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Nueva acción en este día" }))
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+      await userEvent.keyboard("{Escape}")
+
+      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      await userEvent.click(await screen.findByRole("menuitem", { name: /Lectura de guion/ }))
+      expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
+    })
+
+    it("quien no es propietaria ve la lista de la celda, sin «Nueva acción»", async () => {
+      api.projects.listMine.mockResolvedValue([summary("member")])
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Reunión: Lectura de guion, 14 oct" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      expect(await screen.findByRole("menu", { name: "Acciones de la celda" })).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /Nueva acción/ })).toBeNull()
+    })
+
     it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {
       api.projects.listMine.mockResolvedValue([summary("member")])
       api.elements.getPlan.mockResolvedValue(

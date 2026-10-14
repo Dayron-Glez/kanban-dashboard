@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react"
 import {
   ACTION_KINDS,
+  type CalendarElement,
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CreateActionInput,
 } from "@repo/contracts"
 import { toIsoDate } from "@repo/domain"
+import { IconPlus } from "@tabler/icons-react"
 import { Button, Input } from "@/shared/index"
 import { ELEMENT_KIND_LABELS } from "../lib/elementTree"
 import { formatLongDate, formatShortDay } from "../lib/planFormat"
@@ -24,24 +26,32 @@ interface CellMenuProps {
   start: number
   end: number
   parentName: string
+  /** Lo que ya hay en esas celdas; `owner`, de qué cuelga si no es de la fila. */
+  actions: { element: CalendarElement; owner: string | null }[]
+  canCreate: boolean
   pending: boolean
+  onOpen: (elementId: string) => void
   onCreate: (input: CreateActionInput) => void
   onCancel: () => void
 }
 
 /**
- * Crear en las celdas elegidas: primero el tipo y, en el mismo menú, el nombre.
- * El día, el periodo y de qué cuelga ya vienen puestos.
+ * Las celdas elegidas: si hay acciones, su lista; para crear, primero el tipo y,
+ * en el mismo menú, el nombre. El día, el periodo y de qué cuelga ya vienen puestos.
  */
 export function CellMenu({
   start,
   end,
   parentName,
+  actions,
+  canCreate,
   pending,
+  onOpen,
   onCreate,
   onCancel,
 }: Readonly<CellMenuProps>) {
   const [kind, setKind] = useState<ActionKind | null>(null)
+  const [choosing, setChoosing] = useState<boolean>(actions.length === 0)
   const [name, setName] = useState<string>("")
   const days = end - start + 1
   const when =
@@ -86,6 +96,52 @@ export function CellMenu({
           </Button>
         </div>
       </form>
+    )
+  }
+
+  if (!choosing) {
+    return (
+      <div className="flex flex-col">
+        <div className="px-2 pt-1 pb-2">
+          <p className="text-base font-semibold first-letter:uppercase">{when}</p>
+          <p className="text-muted-foreground text-sm">en {parentName}</p>
+        </div>
+        <div
+          role="menu"
+          aria-label="Acciones de la celda"
+          className="border-border flex flex-col border-t pt-1"
+        >
+          {actions.map(({ element, owner }) => (
+            <button
+              key={element.id}
+              type="button"
+              role="menuitem"
+              onClick={() => onOpen(element.id)}
+              className="hover:bg-muted focus-visible:bg-muted flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm outline-none"
+            >
+              <span className="text-muted-foreground flex w-[18px] justify-center">
+                <ActionGlyph kind={element.kind as ActionKind} />
+              </span>
+              <span className="min-w-0 truncate">{element.name}</span>
+              <span className="text-muted-foreground ml-auto shrink-0 text-xs">
+                {owner ?? ELEMENT_KIND_LABELS[element.kind]}
+              </span>
+            </button>
+          ))}
+        </div>
+        {canCreate && (
+          <div className="border-border mt-1 border-t pt-1">
+            <button
+              type="button"
+              onClick={() => setChoosing(true)}
+              className="text-primary hover:bg-muted focus-visible:bg-muted flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm font-medium outline-none"
+            >
+              <IconPlus className="size-3.5" aria-hidden />
+              {days === 1 ? "Nueva acción en este día" : "Nueva acción en estos días"}
+            </button>
+          </div>
+        )}
+      </div>
     )
   }
 

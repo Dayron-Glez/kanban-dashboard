@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
 } from "@/shared/index"
 import { useGanttCells } from "../hooks/useGanttCells"
-import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
+import { actionsInSpan, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
 import { phaseTint } from "../lib/phaseColors"
 import { describeIssue, describeRule, formatPlanDate, formatShortDay } from "../lib/planFormat"
@@ -217,6 +217,61 @@ export function ElementTree({
     )
   }
 
+  // Lo que hay en las celdas elegidas y, si se puede, crear ahí.
+  const cellMenu = (node: ElementNode, expanded: boolean) => {
+    const { element } = node
+    if (!menuOpen || selection?.id !== element.id || !span || !timeline) return null
+    const end = span.days === cellDays(span.start) ? span.start : span.start + span.days - 1
+    const inCell = actionsInSpan(node, expanded, span.start, span.start + span.days - 1)
+    const canCreate =
+      editable && onCreateAction != null && ACTION_PARENT_KINDS.includes(element.kind)
+    if (inCell.length === 0 && !canCreate) return null
+    return (
+      <Popover open onOpenChange={(open) => !open && closeMenu()}>
+        <PopoverAnchor asChild>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0"
+            style={{
+              left: timelineX(span.start, timeline),
+              width: span.days * timeline.pxPerDay,
+            }}
+          />
+        </PopoverAnchor>
+        <PopoverContent
+          align="start"
+          className="w-80 p-2"
+          // Al cerrarse, el foco vuelve a la fila, para seguir con el teclado.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            document
+              .querySelector<HTMLElement>(`[data-track="${element.id}"]`)
+              ?.focus({ preventScroll: true })
+          }}
+        >
+          <CellMenu
+            start={span.start}
+            end={end}
+            parentName={element.name}
+            actions={inCell.map((action) => ({
+              element: action.element,
+              owner:
+                action.element.parentId === element.id ? null : nameOf(action.element.parentId!),
+            }))}
+            canCreate={canCreate}
+            pending={creating}
+            onOpen={(id) => {
+              closeMenu()
+              onOpen(id)
+            }}
+            onCancel={closeMenu}
+            onCreate={(input) => onCreateAction?.(element.id, input, closeMenu)}
+          />
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
   const renderNode = (node: ElementNode) => {
     const { element, depth, children } = node
     const expanded = isOpen(element.id)
@@ -387,49 +442,7 @@ export function ElementTree({
                   )}
                 </span>
               )}
-              {menuOpen &&
-                selection?.id === element.id &&
-                span &&
-                editable &&
-                onCreateAction &&
-                ACTION_PARENT_KINDS.includes(element.kind) && (
-                  <Popover open onOpenChange={(open) => !open && closeMenu()}>
-                    <PopoverAnchor asChild>
-                      <span
-                        aria-hidden
-                        className="pointer-events-none absolute inset-y-0"
-                        style={{
-                          left: timelineX(span.start, timeline),
-                          width: span.days * timeline.pxPerDay,
-                        }}
-                      />
-                    </PopoverAnchor>
-                    <PopoverContent
-                      align="start"
-                      className="w-80 p-2"
-                      // Al cerrarse, el foco vuelve a la fila, para seguir con el teclado.
-                      onCloseAutoFocus={(event) => {
-                        event.preventDefault()
-                        document
-                          .querySelector<HTMLElement>(`[data-track="${element.id}"]`)
-                          ?.focus({ preventScroll: true })
-                      }}
-                    >
-                      <CellMenu
-                        start={span.start}
-                        end={
-                          span.days === cellDays(span.start)
-                            ? span.start
-                            : span.start + span.days - 1
-                        }
-                        parentName={element.name}
-                        pending={creating}
-                        onCancel={closeMenu}
-                        onCreate={(input) => onCreateAction(element.id, input, closeMenu)}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
+              {cellMenu(node, expanded)}
               {bar(node, rule)}
               <ActionMarks node={node} expanded={expanded} timeline={timeline} onOpen={onOpen} />
             </div>

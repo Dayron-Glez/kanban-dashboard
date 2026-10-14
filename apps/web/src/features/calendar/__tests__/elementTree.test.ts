@@ -1,6 +1,7 @@
 import type { CalendarElement } from "@repo/contracts"
 import { describe, expect, it } from "vitest"
-import { buildElementTree, descendantActions, flattenTree } from "../lib/elementTree"
+import { fromIsoDate } from "@repo/domain"
+import { actionsInSpan, buildElementTree, descendantActions, flattenTree } from "../lib/elementTree"
 
 const element = (
   id: string,
@@ -72,5 +73,31 @@ describe("buildElementTree", () => {
       "shooting",
       "ensayo",
     ])
+  })
+
+  it("las acciones que tocan unos días; plegada, también las de dentro", () => {
+    const [rodaje] = buildElementTree([
+      element("rodaje", null, 0),
+      element("lectura", "rodaje", 0, {
+        kind: "meeting",
+        startsOn: "2026-10-14",
+        endsOn: "2026-10-14",
+      }),
+      element("shooting", "rodaje", 1),
+      element("jefa", "shooting", 0, { kind: "hiring", startsOn: "2026-10-01" }),
+      element("antes", "shooting", 1, {
+        kind: "task",
+        startsOn: "2026-10-01",
+        endsOn: "2026-10-02",
+      }),
+    ])
+    const ids = (expanded: boolean) =>
+      actionsInSpan(rodaje!, expanded, fromIsoDate("2026-10-14"), fromIsoDate("2026-10-14")).map(
+        (node) => node.element.id
+      )
+
+    // Una contratación sin baja sigue en curso.
+    expect(ids(false)).toEqual(["lectura", "jefa"])
+    expect(ids(true)).toEqual(["lectura"])
   })
 })

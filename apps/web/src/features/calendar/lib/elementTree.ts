@@ -1,4 +1,5 @@
 import { ACTION_KINDS, type CalendarElement, type ElementKind } from "@repo/contracts"
+import { fromIsoDate, type EpochDay } from "@repo/domain"
 
 export interface ElementNode {
   element: CalendarElement
@@ -17,6 +18,25 @@ export const isAction = (element: CalendarElement) =>
 /** Las acciones de lo que cuelga de un elemento, a cualquier profundidad. */
 export const descendantActions = (node: ElementNode): ElementNode[] =>
   node.children.flatMap((child) => [...child.actions, ...descendantActions(child)])
+
+/**
+ * Las acciones de una fila que tocan unos días: las suyas y, si está plegada, las
+ * de lo que cuelga de ella. Una contratación sin baja sigue en curso.
+ */
+export function actionsInSpan(
+  node: ElementNode,
+  expanded: boolean,
+  from: EpochDay,
+  to: EpochDay
+): ElementNode[] {
+  const all = expanded ? node.actions : [...node.actions, ...descendantActions(node)]
+  return all.filter(({ element }) => {
+    if (!element.startsOn) return false
+    const start = fromIsoDate(element.startsOn)
+    const end = element.endsOn ? fromIsoDate(element.endsOn) : Infinity
+    return start <= to && end >= from
+  })
+}
 
 /** Todos los elementos en el orden del árbol, cada acción tras su padre. */
 export const flattenTree = (nodes: ElementNode[]): ElementNode[] =>
