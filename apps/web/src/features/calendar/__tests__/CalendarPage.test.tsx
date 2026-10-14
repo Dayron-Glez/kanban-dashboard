@@ -518,6 +518,9 @@ describe("CalendarPage", () => {
         expect(scrollTo).toHaveBeenCalledWith({ left: leftOf("2026-10-13"), behavior: "auto" })
       )
 
+      // El calendario va solo con icono: su nombre sale en un tooltip.
+      await userEvent.hover(screen.getByRole("button", { name: "Ir a fecha" }))
+      expect(await screen.findByRole("tooltip")).toHaveTextContent("Ir a fecha")
       await userEvent.click(screen.getByRole("button", { name: "Ir a fecha" }))
       await userEvent.click(screen.getByRole("button", { name: "Inicio de Rodaje" }))
       expect(scrollTo).toHaveBeenLastCalledWith({ left: leftOf("2027-04-05"), behavior: "smooth" })

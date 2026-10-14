@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
-import {
-  IconChevronsDown,
-  IconChevronsUp,
-  IconPointFilled,
-  IconTemplate,
-} from "@tabler/icons-react"
+import { IconChevronsDown, IconChevronsUp, IconTemplate } from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
 import {
   describePhaseViolation,
@@ -267,16 +262,7 @@ export function CalendarPage() {
                 </Button>
                 {view !== "tabla" && timeline && (
                   <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-primary h-8 text-sm"
-                      onClick={() => goTo(timeline.today)}
-                    >
-                      <IconPointFilled className="size-3.5" aria-hidden />
-                      Hoy
-                    </Button>
-                    <GoToDate shortcuts={shortcuts} onGo={goTo} />
+                    <GoToDate shortcuts={shortcuts} today={timeline.today} onGo={goTo} />
                     <ViewOptionsMenu
                       fields={fields}
                       onFieldsChange={changeFields}
