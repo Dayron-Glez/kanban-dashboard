@@ -30,6 +30,7 @@ import { describeIssue, describeRule, formatPlanDate, formatShortDay } from "../
 import {
   barDragModes,
   cellAt,
+  ROW_HEIGHT,
   timelineX,
   trackBackground,
   type BarDrag,
@@ -216,9 +217,10 @@ export function ElementTree({
         <div
           aria-selected={selected}
           className={cn(
-            "group/row border-border/40 flex h-10 border-b text-base transition-colors",
+            "group/row border-border/40 flex border-b text-base transition-colors",
             selected ? "bg-primary/5" : "hover:bg-muted/40"
           )}
+          style={{ height: ROW_HEIGHT }}
         >
           <div
             className={cn(

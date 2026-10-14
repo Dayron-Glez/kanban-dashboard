@@ -19,16 +19,16 @@ export const PLAN_ZOOMS = ["dia", "semana", "mes"] as const
 /** Lo cerca que se ve el Gantt: una columna por día, por semana o por mes. */
 export type PlanZoom = (typeof PLAN_ZOOMS)[number]
 
+/** El alto de cada fila del Gantt: con el zoom «día», el ancho de un día, para que las celdas sean cuadradas. */
+export const ROW_HEIGHT = 40
+
 // Píxeles por día y a cuántos días se ajusta un arrastre: con «semana» una semana
 // mide 56 px, con «mes» un mes unos 90.
 const ZOOM: Record<PlanZoom, { pxPerDay: number; snapDays: number }> = {
-  dia: { pxPerDay: 28, snapDays: 1 },
+  dia: { pxPerDay: ROW_HEIGHT, snapDays: 1 },
   semana: { pxPerDay: 8, snapDays: 7 },
   mes: { pxPerDay: 3, snapDays: 7 },
 }
-
-/** El ancho de cada día del Gantt con el zoom «día», en píxeles. */
-export const DAY_WIDTH = ZOOM.dia.pxPerDay
 
 export interface Timeline {
   zoom: PlanZoom

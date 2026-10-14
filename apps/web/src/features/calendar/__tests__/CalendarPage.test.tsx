@@ -342,10 +342,10 @@ describe("CalendarPage", () => {
     renderPage()
 
     const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
-    // Un día mide 28 px: 200 px son 7,1 días, que se quedan en 7.
+    // Un día mide 40 px: 290 px son 7,25 días, que se quedan en 7.
     fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
-    fireEvent.pointerMove(bar, { clientX: 300, pointerId: 1 })
-    fireEvent.pointerUp(bar, { clientX: 300, pointerId: 1 })
+    fireEvent.pointerMove(bar, { clientX: 390, pointerId: 1 })
+    fireEvent.pointerUp(bar, { clientX: 390, pointerId: 1 })
     // El clic que sigue a soltar no abre el inspector; un clic sin arrastrar, sí.
     fireEvent.click(bar)
     await waitFor(() =>
@@ -447,7 +447,7 @@ describe("CalendarPage", () => {
       const bar = await screen.findByRole("button", {
         name: "Preparación: 1 feb 2027 → 4 abr 2027",
       })
-      // Un día mide 28 px: 784 px son 4 semanas, pero el tope está en 10 días.
+      // Un día mide 40 px: 784 px son casi 3 semanas, pero el tope está en 10 días.
       fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
       fireEvent.pointerMove(bar, { clientX: 884, pointerId: 1 })
       expect(screen.getByText(/tope: 25 % de solape/)).toBeInTheDocument()
@@ -498,7 +498,7 @@ describe("CalendarPage", () => {
     })
 
     // La rejilla empieza el lunes 12 de octubre de 2026: hoy es su segundo día.
-    const leftOf = (iso: string) => (fromIsoDate(iso) - fromIsoDate("2026-10-12")) * 28 + 14
+    const leftOf = (iso: string) => (fromIsoDate(iso) - fromIsoDate("2026-10-12")) * 40 + 20
 
     it("al abrir se centra en hoy, y «Hoy» e «Ir a fecha» llevan a donde se pide", async () => {
       api.elements.getPlan.mockResolvedValue(
@@ -608,10 +608,10 @@ describe("CalendarPage", () => {
     await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
     const track = document.querySelector<HTMLElement>("[data-track]")!
     const days = screen.getAllByTitle(/^(lun|mar|mié|jue|vie|sáb|dom) [0-9]/)
-    // En jsdom la pista empieza en x = 0: el tercer día queda entre 56 y 84 px.
-    fireEvent.pointerMove(track, { clientX: 60, pointerType: "mouse" })
+    // En jsdom la pista empieza en x = 0: el tercer día queda entre 80 y 120 px.
+    fireEvent.pointerMove(track, { clientX: 90, pointerType: "mouse" })
     expect(days[2]).toHaveAttribute("data-hovered", "true")
-    expect(track.querySelector(".ring-1")).toHaveStyle({ left: "56px", width: "28px" })
+    expect(track.querySelector(".ring-1")).toHaveStyle({ left: "80px", width: "40px" })
 
     fireEvent.pointerLeave(track)
     expect(days[2]).not.toHaveAttribute("data-hovered")
@@ -633,16 +633,16 @@ describe("CalendarPage", () => {
     expect(first).toHaveAttribute("tabindex", "0")
     expect(second).toHaveAttribute("tabindex", "-1")
 
-    // En jsdom la pista empieza en x = 0: 60 px es el tercer día de la rejilla.
-    fireEvent.pointerDown(first!, { button: 0, clientX: 60, pointerType: "mouse" })
+    // En jsdom la pista empieza en x = 0: 90 px es el tercer día de la rejilla.
+    fireEvent.pointerDown(first!, { button: 0, clientX: 90, pointerType: "mouse" })
     fireEvent.pointerUp(first!)
     expect(first).toHaveFocus()
     const start = status()
     expect(start).toMatch(/^Preparación: \d+ \w+$/)
 
     // Arrastrar hasta el quinto día marca tres.
-    fireEvent.pointerDown(first!, { button: 0, clientX: 60, pointerType: "mouse" })
-    fireEvent.pointerMove(first!, { clientX: 120, pointerType: "mouse" })
+    fireEvent.pointerDown(first!, { button: 0, clientX: 90, pointerType: "mouse" })
+    fireEvent.pointerMove(first!, { clientX: 170, pointerType: "mouse" })
     fireEvent.pointerUp(first!)
     expect(status()).toMatch(/· 3 días$/)
     expect(first!.querySelector("[data-cell-selection]")).toHaveTextContent("3 días")
