@@ -7,6 +7,8 @@ import {
 } from "@nestjs/common"
 import {
   ACTION_PARENT_KINDS,
+  SINGLE_DAY_ACTION_KINDS,
+  type ActionKind,
   type CalendarPlan,
   type CreateActionInput,
   type DatePoint,
@@ -35,6 +37,8 @@ type EditableElement = {
   isAnchor: boolean
   isPinned: boolean
 }
+const isSingleDay = (kind: string) => SINGLE_DAY_ACTION_KINDS.includes(kind as ActionKind)
+
 type EditContext = {
   elementId: string
   change: "plan" | "rule" | "removeRule" | "createAction"
@@ -65,6 +69,13 @@ export class PlanService {
     }
     if (input.isPinned && !input.fixedStart) {
       throw new BadRequestException("Para fijar un elemento hace falta su fecha")
+    }
+    if (
+      isSingleDay(element.kind) &&
+      input.duration != null &&
+      (input.duration.amount !== 1 || input.duration.unit !== "days")
+    ) {
+      throw new BadRequestException("Las reuniones y los recordatorios duran un solo día")
     }
     const writesStart = element.isAnchor || element.isPinned || input.isPinned
     if (input.fixedStart !== undefined && !writesStart) {
@@ -135,6 +146,11 @@ export class PlanService {
     const element = await this.findEditable(userId, elementId)
     if (point === "start" && (element.isAnchor || element.isPinned)) {
       throw new BadRequestException("El inicio del ancla y de los fijados se escribe a mano")
+    }
+    if (point === "end" && isSingleDay(element.kind)) {
+      throw new BadRequestException(
+        "Las reuniones y los recordatorios duran un día: su fin no depende de otro elemento"
+      )
     }
 
     return this.edit(element.projectId, { elementId, change: "rule", point }, async (tx) => {

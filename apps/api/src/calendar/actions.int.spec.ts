@@ -110,6 +110,24 @@ describe("crear acciones", () => {
     ).toBe(400)
   })
 
+  it("una reunión no se alarga después: ni con su duración ni con una regla en el fin", async () => {
+    const meeting = actionNamed(await planOf(), "Reunión de cierre")
+    const longer = await as(ana).patch(`/elements/${meeting.id}/plan`, {
+      duration: { amount: 2, unit: "days" },
+    })
+    expect(longer.status).toBe(400)
+    const oneDay = await as(ana).patch(`/elements/${meeting.id}/plan`, {
+      duration: { amount: 1, unit: "days" },
+    })
+    expect(oneDay.status).toBe(200)
+    const rule = await as(ana).put(`/elements/${meeting.id}/rules/end`, {
+      predecessorId: await idOf("rodaje"),
+      predecessorPoint: "end",
+      lag: { amount: 0, unit: "days" },
+    })
+    expect(rule.status).toBe(400)
+  })
+
   it("una acción cuelga de una fase, subfase o proceso, no de otra acción", async () => {
     const meeting = actionNamed(await planOf(), "Reunión de cierre")
     const response = await as(ana).post(`/elements/${meeting.id}/actions`, {
