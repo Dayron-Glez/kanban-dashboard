@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react"
+import { useState, type FormEvent, type KeyboardEvent } from "react"
 import {
   ACTION_KINDS,
   type CalendarElement,
@@ -72,11 +72,18 @@ export function CellMenu({
         <IconCalendarEvent className="text-muted-foreground size-3.5" aria-hidden />
         Ver el día completo
         <kbd className="text-muted-foreground border-border ml-auto rounded border px-1 text-[10px]">
-          ⇧ Enter
+          Mayús + Enter
         </kbd>
       </button>
     </div>
   )
+
+  // Lo que promete la pista del enlace: Mayús + Enter abre el día desde cualquier punto del menú.
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Enter" || !event.shiftKey || !onOpenDay) return
+    event.preventDefault()
+    onOpenDay()
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -120,7 +127,12 @@ export function CellMenu({
 
   if (!choosing) {
     return (
-      <div className="flex flex-col">
+      <div
+        data-cell-menu
+        tabIndex={-1}
+        className="flex flex-col outline-none"
+        onKeyDown={onKeyDown}
+      >
         <div className="px-2 pt-1 pb-2">
           <p className="text-base font-semibold first-letter:uppercase">{when}</p>
           <p className="text-muted-foreground text-sm">en {parentName}</p>
@@ -166,7 +178,7 @@ export function CellMenu({
   }
 
   return (
-    <div className="flex flex-col">
+    <div data-cell-menu tabIndex={-1} className="flex flex-col outline-none" onKeyDown={onKeyDown}>
       <div className="px-2 pt-1 pb-2">
         <p className="text-base font-semibold first-letter:uppercase">
           {days === 1

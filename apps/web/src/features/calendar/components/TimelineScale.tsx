@@ -36,7 +36,7 @@ export function TimelineScale({
   const { pxPerDay, zoom } = timeline
   // Lejos (semana, mes) el año va en su propia fila; de cerca, con enero.
   const yearRow = zoom !== "dia"
-  // La cabecera es para el ratón: con el teclado, el día se abre con ⇧ Enter en la celda.
+  // La cabecera es para el ratón: con el teclado, el día se abre con Mayús + Enter en la celda.
   const opens = (day: EpochDay) =>
     onOpenDay && {
       onClick: () => onOpenDay(day),

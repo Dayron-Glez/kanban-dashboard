@@ -246,6 +246,14 @@ export function ElementTree({
         <PopoverContent
           align="start"
           className="w-80 p-2"
+          // Al abrirse, el foco va al menú y no a su primera opción: si no, Enter
+          // abriría esa acción sin haberla elegido.
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+            ;(event.currentTarget as HTMLElement | null)
+              ?.querySelector<HTMLElement>("[data-cell-menu]")
+              ?.focus()
+          }}
           // Al cerrarse, el foco vuelve a la fila, para seguir con el teclado.
           onCloseAutoFocus={(event) => {
             event.preventDefault()

@@ -800,7 +800,19 @@ describe("CalendarPage", () => {
         "Shooting"
       )
 
-      await userEvent.click(screen.getByRole("button", { name: "Nueva acción en este día" }))
+      // Mayús + Enter hace lo que dice su pista, aunque el foco esté en la lista.
+      // Al abrirse no hay nada elegido: Enter no abre la primera acción.
+      await userEvent.keyboard("{Enter}")
+      expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
+      await userEvent.keyboard("{Shift>}{Enter}{/Shift}")
+      expect(
+        await screen.findByRole("heading", { name: /miércoles, 14 de octubre de 2026/i })
+      ).toBeInTheDocument()
+      await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
+
+      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      await userEvent.click(await screen.findByRole("button", { name: "Nueva acción en este día" }))
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
       await userEvent.keyboard("{Escape}")
 
