@@ -1,6 +1,6 @@
 import type { CalendarElement } from "@repo/contracts"
 import { describe, expect, it } from "vitest"
-import { buildElementTree } from "../lib/elementTree"
+import { buildElementTree, descendantActions, flattenTree } from "../lib/elementTree"
 
 const element = (
   id: string,
@@ -47,11 +47,30 @@ describe("buildElementTree", () => {
       element("dia-1", "shooting", 0, { kind: "task" }),
     ])
 
-    expect(tree[0]?.children[0]?.children[0]?.phaseColor).toBe("#81DAD9")
+    expect(tree[0]?.children[0]?.actions[0]?.phaseColor).toBe("#81DAD9")
   })
 
   it("una acción suelta, sin fase, no tiene color", () => {
     const tree = buildElementTree([element("reunion", null, 0, { kind: "meeting" })])
     expect(tree[0]?.phaseColor).toBeNull()
+  })
+
+  it("las acciones no son filas: van aparte, en su padre, y se recorren tras él", () => {
+    const tree = buildElementTree([
+      element("rodaje", null, 0),
+      element("lectura", "rodaje", 0, { kind: "meeting" }),
+      element("shooting", "rodaje", 1),
+      element("ensayo", "shooting", 0, { kind: "task" }),
+    ])
+
+    expect(tree[0]?.children.map((node) => node.element.id)).toEqual(["shooting"])
+    expect(tree[0]?.actions.map((node) => node.element.id)).toEqual(["lectura"])
+    expect(descendantActions(tree[0]!).map((node) => node.element.id)).toEqual(["ensayo"])
+    expect(flattenTree(tree).map((node) => node.element.id)).toEqual([
+      "rodaje",
+      "lectura",
+      "shooting",
+      "ensayo",
+    ])
   })
 })

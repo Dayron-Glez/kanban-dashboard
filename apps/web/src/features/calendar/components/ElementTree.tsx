@@ -44,6 +44,7 @@ import {
   type TimelineCell,
   type TimelineMarks,
 } from "../lib/timeline"
+import { ActionMarks } from "./ActionMarks"
 import { CellMenu } from "./CellMenu"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { TimelineBar } from "./TimelineBar"
@@ -312,6 +313,12 @@ export function ElementTree({
                   </span>
                 )
               )}
+              {view === "tabla" && node.actions.length > 0 && (
+                // Sin rejilla (el móvil), las acciones de la fila se cuentan.
+                <span className={cn(CHIP, "bg-muted text-muted-foreground")}>
+                  {node.actions.length} {node.actions.length === 1 ? "acción" : "acciones"}
+                </span>
+              )}
               {depth === 0 && element.duration == null && (
                 // Solo el icono: con texto, el badge cortaba el nombre de la fase.
                 <Tooltip>
@@ -424,6 +431,7 @@ export function ElementTree({
                   </Popover>
                 )}
               {bar(node, rule)}
+              <ActionMarks node={node} expanded={expanded} timeline={timeline} onOpen={onOpen} />
             </div>
           )}
         </div>

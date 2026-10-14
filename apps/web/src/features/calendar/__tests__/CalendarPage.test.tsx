@@ -719,6 +719,52 @@ describe("CalendarPage", () => {
       )
     })
 
+    it("las acciones van en la celda de su padre; plegado, el padre cuenta las de dentro", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+          element("shooting", "rodaje", "Shooting", {
+            kind: "process",
+            position: 1,
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+          element("aviso", "shooting", "Pedir permisos", {
+            kind: "reminder",
+            startsOn: "2026-10-15",
+            endsOn: "2026-10-15",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      const meeting = await screen.findByRole("button", {
+        name: "Reunión: Lectura de guion, 14 oct",
+      })
+      // No es una fila del árbol.
+      expect(screen.queryByRole("treeitem", { name: /Lectura de guion/ })).toBeNull()
+      // Rodaje está plegado: el recordatorio de Shooting sube como un número.
+      expect(
+        screen.getByLabelText("1 acción: Recordatorio: Pedir permisos, 15 oct")
+      ).toHaveTextContent("1")
+
+      await userEvent.click(screen.getByRole("button", { name: "Desplegar Rodaje" }))
+      expect(
+        screen.getByRole("button", { name: "Recordatorio: Pedir permisos, 15 oct" })
+      ).toBeInTheDocument()
+      expect(screen.queryByLabelText(/^1 acción/)).toBeNull()
+
+      await userEvent.click(meeting)
+      expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
+    })
+
     it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {
       api.projects.listMine.mockResolvedValue([summary("member")])
       api.elements.getPlan.mockResolvedValue(

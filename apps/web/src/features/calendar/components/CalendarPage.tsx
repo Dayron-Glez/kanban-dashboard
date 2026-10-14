@@ -15,7 +15,7 @@ import { Button, cn, QueryErrorState, Skeleton, useIsMobile } from "@/shared/ind
 import { useProject } from "@/features/project"
 import { useCreateAction, useGenerateFromTemplate, usePlan } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
-import { buildElementTree, type ElementNode } from "../lib/elementTree"
+import { buildElementTree, flattenTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
 import { pickView, type CalendarView } from "../lib/calendarViews"
@@ -39,9 +39,6 @@ import { PlanSetup } from "./PlanSetup"
 import { ViewOptionsMenu } from "./ViewOptionsMenu"
 import { ViewSelector } from "./ViewSelector"
 import { ZoomControl } from "./ZoomControl"
-
-const flattenIds = (nodes: ElementNode[]): string[] =>
-  nodes.flatMap((node) => [node.element.id, ...flattenIds(node.children)])
 
 const parentIds = (nodes: ElementNode[]): string[] =>
   nodes.flatMap((node) =>
@@ -150,7 +147,7 @@ export function CalendarPage() {
   // Con el inspector abierto: ↑ ↓ pasan al elemento de arriba o de abajo, Esc cierra.
   useEffect(() => {
     if (!openId || !elements) return
-    const order = flattenIds(tree)
+    const order = flattenTree(tree).map((node) => node.element.id)
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
       if (
