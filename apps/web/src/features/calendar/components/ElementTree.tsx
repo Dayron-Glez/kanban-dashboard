@@ -12,7 +12,15 @@ import type {
   ElementDependency,
   UpdateElementPlanInput,
 } from "@repo/contracts"
-import { cn, ScrollArea, ScrollBar, Tooltip, TooltipContent, TooltipTrigger } from "@/shared/index"
+import {
+  Button,
+  cn,
+  ScrollArea,
+  ScrollBar,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/shared/index"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
 import { phaseTint } from "../lib/phaseColors"
@@ -312,25 +320,25 @@ export function ElementTree({
             {onToggleAll ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
                     onClick={onToggleAll}
                     aria-label={expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
-                    className="hover:text-foreground hover:bg-muted flex size-6 items-center justify-center rounded"
                   >
                     {expandedIds.size > 0 ? (
-                      <IconChevronsUp size={14} aria-hidden />
+                      <IconChevronsUp aria-hidden />
                     ) : (
-                      <IconChevronsDown size={14} aria-hidden />
+                      <IconChevronsDown aria-hidden />
                     )}
-                  </button>
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   {expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <span className="size-6" />
+              <span className="size-8" />
             )}
             <span aria-hidden>Elemento</span>
           </span>
