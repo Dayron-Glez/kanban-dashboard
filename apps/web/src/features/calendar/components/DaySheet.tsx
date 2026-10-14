@@ -25,12 +25,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/shared/index"
-import { ELEMENT_KIND_LABELS, flattenTree, isAction, type ElementNode } from "../lib/elementTree"
+import {
+  ELEMENT_KIND_LABELS,
+  flattenTree,
+  isAction,
+  type ElementNode,
+  lacksDuration,
+} from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
 import { formatFullDate, formatShortDay } from "../lib/planFormat"
 import type { Timeline } from "../lib/timeline"
 import { ActionGlyph } from "./ActionGlyph"
 import { CellMenu } from "./CellMenu"
+import { MissingDurationHint } from "./MissingDurationHint"
 
 interface DaySheetProps {
   day: EpochDay
@@ -196,12 +203,13 @@ export function DaySheet({
                         <span className="text-muted-foreground flex w-[18px] justify-center">
                           <ActionGlyph kind={element.kind as ActionKind} />
                         </span>
-                        <span className="min-w-0">
+                        <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm">{element.name}</span>
                           <span className="text-muted-foreground block truncate text-xs">
                             {nameOf(element.parentId)}
                           </span>
                         </span>
+                        {lacksDuration(element) && <MissingDurationHint />}
                       </button>
                     ))}
                   </div>

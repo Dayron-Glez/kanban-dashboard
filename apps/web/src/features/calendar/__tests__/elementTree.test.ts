@@ -90,13 +90,14 @@ describe("buildElementTree", () => {
         startsOn: "2026-10-01",
         endsOn: "2026-10-02",
       }),
+      element("sin-fin", "shooting", 2, { kind: "task", startsOn: "2026-10-01" }),
     ])
     const ids = (expanded: boolean) =>
       actionsInSpan(rodaje!, expanded, fromIsoDate("2026-10-14"), fromIsoDate("2026-10-14")).map(
         (node) => node.element.id
       )
 
-    // Una contratación sin baja sigue en curso.
+    // Una contratación sin baja sigue en curso; una tarea sin duración, no.
     expect(ids(false)).toEqual(["lectura", "jefa"])
     expect(ids(true)).toEqual(["lectura"])
   })

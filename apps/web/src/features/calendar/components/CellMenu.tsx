@@ -9,9 +9,10 @@ import {
 import { toIsoDate } from "@repo/domain"
 import { IconCalendarEvent, IconPlus } from "@tabler/icons-react"
 import { Button, Input } from "@/shared/index"
-import { ELEMENT_KIND_LABELS } from "../lib/elementTree"
+import { ELEMENT_KIND_LABELS, lacksDuration } from "../lib/elementTree"
 import { formatLongDate, formatShortDay } from "../lib/planFormat"
 import { ActionGlyph } from "./ActionGlyph"
+import { MissingDurationHint } from "./MissingDurationHint"
 
 const HINTS: Record<ActionKind, string> = {
   event: "un día o periodo",
@@ -154,8 +155,11 @@ export function CellMenu({
                 <ActionGlyph kind={element.kind as ActionKind} />
               </span>
               <span className="min-w-0 truncate">{element.name}</span>
-              <span className="text-muted-foreground ml-auto shrink-0 text-xs">
-                {owner ?? ELEMENT_KIND_LABELS[element.kind]}
+              <span className="ml-auto flex shrink-0 items-center gap-1.5">
+                {lacksDuration(element) && <MissingDurationHint />}
+                <span className="text-muted-foreground text-xs">
+                  {owner ?? ELEMENT_KIND_LABELS[element.kind]}
+                </span>
               </span>
             </button>
           ))}

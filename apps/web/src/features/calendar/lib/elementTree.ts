@@ -15,13 +15,18 @@ export interface ElementNode {
 export const isAction = (element: CalendarElement) =>
   (ACTION_KINDS as readonly string[]).includes(element.kind)
 
+/** Sin fin y sin ser una contratación (cuya baja puede no conocerse): le falta la duración. */
+export const lacksDuration = (element: CalendarElement) =>
+  element.endsOn == null && element.kind !== "hiring"
+
 /** Las acciones de lo que cuelga de un elemento, a cualquier profundidad. */
 export const descendantActions = (node: ElementNode): ElementNode[] =>
   node.children.flatMap((child) => [...child.actions, ...descendantActions(child)])
 
 /**
  * Las acciones de una fila que tocan unos días: las suyas y, si está plegada, las
- * de lo que cuelga de ella. Una contratación sin baja sigue en curso.
+ * de lo que cuelga de ella. Una contratación sin baja sigue en curso; lo demás sin
+ * fin (le falta la duración) solo ocupa su día de inicio.
  */
 export function actionsInSpan(
   node: ElementNode,
@@ -33,7 +38,11 @@ export function actionsInSpan(
   return all.filter(({ element }) => {
     if (!element.startsOn) return false
     const start = fromIsoDate(element.startsOn)
-    const end = element.endsOn ? fromIsoDate(element.endsOn) : Infinity
+    const end = element.endsOn
+      ? fromIsoDate(element.endsOn)
+      : element.kind === "hiring"
+        ? Infinity
+        : start
     return start <= to && end >= from
   })
 }

@@ -824,6 +824,36 @@ describe("CalendarPage", () => {
       expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
     })
 
+    it("una acción sin duración solo está en su día, y en él lleva su aviso", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("calendario", "rodaje", "Elaboración de calendario", {
+            kind: "task",
+            startsOn: "2026-10-12",
+            endsOn: null,
+            issue: { code: "missing-duration" },
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      // Dos días después ya no está: la celda está vacía y se ofrece crear.
+      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+      await userEvent.keyboard("{Escape}")
+
+      // En su día, la lista la enseña con el aviso.
+      fireEvent.pointerDown(track, { button: 0, clientX: 10, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
+      const item = within(list).getByRole("menuitem", { name: /Elaboración de calendario/ })
+      expect(within(item).getByLabelText("Sin duración")).toBeInTheDocument()
+    })
+
     it("quien no es propietaria ve la lista de la celda, sin «Nueva acción»", async () => {
       api.projects.listMine.mockResolvedValue([summary("member")])
       api.elements.getPlan.mockResolvedValue(
