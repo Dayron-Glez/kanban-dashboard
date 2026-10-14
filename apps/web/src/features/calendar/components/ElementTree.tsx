@@ -458,7 +458,16 @@ export function ElementTree({
               )}
               {cellMenu(node, expanded)}
               {bar(node, rule)}
-              <ActionMarks node={node} expanded={expanded} timeline={timeline} onOpen={onOpen} />
+              <ActionMarks
+                node={node}
+                expanded={expanded}
+                timeline={timeline}
+                onOpen={onOpen}
+                editable={editable && !pending}
+                dependencies={dependencies}
+                onDrag={onDragBar}
+                limit={limitDrag}
+              />
             </div>
           )}
         </div>

@@ -909,6 +909,63 @@ describe("CalendarPage", () => {
       ).toBeInTheDocument()
     })
 
+    it("las acciones se arrastran: el cuerpo las mueve y el borde alarga, salvo las de un día", async () => {
+      const plan = planOf([
+        rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+        element("lectura", "rodaje", "Lectura de guion", {
+          kind: "meeting",
+          duration: { amount: 1, unit: "days" },
+          startsOn: "2026-10-14",
+          endsOn: "2026-10-14",
+          isPinned: true,
+        }),
+        element("ensayos", "rodaje", "Ensayos", {
+          kind: "task",
+          position: 1,
+          duration: { amount: 3, unit: "days" },
+          startsOn: "2026-10-19",
+          endsOn: "2026-10-21",
+          isPinned: true,
+        }),
+      ])
+      api.elements.getPlan.mockResolvedValue(plan)
+      api.elements.updatePlan.mockResolvedValue(plan)
+      renderPage()
+
+      // Un día mide 40 px: 85 px son 2 días más tarde.
+      const meeting = await screen.findByRole("button", {
+        name: "Reunión: Lectura de guion, 14 oct",
+      })
+      fireEvent.pointerDown(meeting, { button: 0, clientX: 100, pointerId: 1 })
+      fireEvent.pointerMove(meeting, { clientX: 185, pointerId: 1 })
+      fireEvent.pointerUp(meeting, { clientX: 185, pointerId: 1 })
+      await waitFor(() =>
+        expect(api.elements.updatePlan).toHaveBeenLastCalledWith("lectura", {
+          fixedStart: "2026-10-16",
+        })
+      )
+      // Soltar no abre el detalle.
+      fireEvent.click(meeting)
+      expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
+
+      // Una reunión no se alarga: Alt + → no hace nada.
+      const calls = api.elements.updatePlan.mock.calls.length
+      fireEvent.keyDown(meeting, { key: "ArrowRight", altKey: true })
+      expect(api.elements.updatePlan).toHaveBeenCalledTimes(calls)
+
+      // El borde del fin de la tarea la alarga un día.
+      const task = screen.getByRole("button", { name: "Tarea: Ensayos, 19 oct → 21 oct" })
+      const edge = task.querySelector("span")!
+      fireEvent.pointerDown(edge, { button: 0, clientX: 300, pointerId: 2 })
+      fireEvent.pointerMove(edge, { clientX: 345, pointerId: 2 })
+      fireEvent.pointerUp(edge, { clientX: 345, pointerId: 2 })
+      await waitFor(() =>
+        expect(api.elements.updatePlan).toHaveBeenLastCalledWith("ensayos", {
+          duration: { amount: 4, unit: "days" },
+        })
+      )
+    })
+
     it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {
       api.projects.listMine.mockResolvedValue([summary("member")])
       api.elements.getPlan.mockResolvedValue(
