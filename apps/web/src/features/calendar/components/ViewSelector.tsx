@@ -21,7 +21,12 @@ export function ViewSelector({ value, onChange }: Readonly<ViewSelectorProps>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" aria-label={`Vista: ${current.label}`} className="h-8">
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label={`Calendario: ${current.label}`}
+          className="h-8"
+        >
           <span className="text-base font-semibold">{current.label}</span>
           <IconChevronDown className="text-muted-foreground size-3.5" aria-hidden />
         </Button>

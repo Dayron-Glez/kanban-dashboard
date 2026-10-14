@@ -30,11 +30,11 @@ import { buildTimeline, dragTarget, scrollLeftFor, type BarDrag } from "../lib/t
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
-import { FieldsMenu } from "./FieldsMenu"
-import { GanttLegendStrip, LegendMenu } from "./GanttLegend"
+import { GanttLegendStrip } from "./GanttLegend"
 import { GoToDate } from "./GoToDate"
 import { PlanHeader } from "./PlanHeader"
 import { PlanSetup } from "./PlanSetup"
+import { ViewOptionsMenu } from "./ViewOptionsMenu"
 import { ViewSelector } from "./ViewSelector"
 
 const flattenIds = (nodes: ElementNode[]): string[] =>
@@ -277,8 +277,12 @@ export function CalendarPage() {
                       Hoy
                     </Button>
                     <GoToDate shortcuts={shortcuts} onGo={goTo} />
-                    <FieldsMenu value={fields} onChange={changeFields} />
-                    <LegendMenu value={legend} onChange={changeLegend} />
+                    <ViewOptionsMenu
+                      fields={fields}
+                      onFieldsChange={changeFields}
+                      legend={legend}
+                      onLegendChange={changeLegend}
+                    />
                   </>
                 )}
               </>

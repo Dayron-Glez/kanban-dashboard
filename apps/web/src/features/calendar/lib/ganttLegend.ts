@@ -49,12 +49,3 @@ export function saveLegend(legend: GanttLegend) {
     // Sin almacenamiento (modo privado): la elección dura lo que la pestaña.
   }
 }
-
-/** «Ver todo» enciende las seis partes si falta alguna; si están todas, las apaga. */
-export function toggleAllParts(legend: GanttLegend): GanttLegend {
-  const all = LEGEND_PARTS.every((part) => legend[part.key])
-  return {
-    ...legend,
-    ...Object.fromEntries(LEGEND_PARTS.map((part) => [part.key, !all])),
-  }
-}

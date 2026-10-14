@@ -1,78 +1,8 @@
 import type { CSSProperties, ReactNode } from "react"
-import { IconAnchor, IconChevronDown, IconLayoutBottombar, IconPin } from "@tabler/icons-react"
-import {
-  Button,
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  ScrollArea,
-  ScrollBar,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  cn,
-} from "@/shared/index"
-import { LEGEND_PARTS, toggleAllParts, type GanttLegend } from "../lib/ganttLegend"
+import { IconAnchor, IconPin } from "@tabler/icons-react"
+import { ScrollArea, ScrollBar, Tooltip, TooltipContent, TooltipTrigger, cn } from "@/shared/index"
+import type { GanttLegend } from "../lib/ganttLegend"
 import { phaseTint } from "../lib/phaseColors"
-
-interface LegendMenuProps {
-  value: GanttLegend
-  onChange: (legend: GanttLegend) => void
-}
-
-/** «Leyenda»: un clic la muestra u oculta entera; ▾ elige qué partes se ven. */
-export function LegendMenu({ value, onChange }: Readonly<LegendMenuProps>) {
-  const all = LEGEND_PARTS.every((part) => value[part.key])
-  return (
-    <div className="flex">
-      <Button
-        variant="outline"
-        size="sm"
-        aria-pressed={value.visible}
-        onClick={() => onChange({ ...value, visible: !value.visible })}
-        className={cn("h-8 rounded-r-none text-sm", !value.visible && "text-muted-foreground")}
-      >
-        <IconLayoutBottombar className="size-3.5" aria-hidden />
-        Leyenda
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label="Qué partes de la leyenda se ven"
-            className="h-8 rounded-l-none border-l-0 px-2"
-          >
-            <IconChevronDown className="size-3.5" aria-hidden />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuCheckboxItem
-            checked={all}
-            onSelect={(event) => event.preventDefault()}
-            onCheckedChange={() => onChange(toggleAllParts(value))}
-            className="font-medium"
-          >
-            Ver todo
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuSeparator />
-          {LEGEND_PARTS.map((part) => (
-            <DropdownMenuCheckboxItem
-              key={part.key}
-              checked={value[part.key]}
-              onSelect={(event) => event.preventDefault()}
-              onCheckedChange={(checked) => onChange({ ...value, [part.key]: checked })}
-            >
-              {part.label}
-            </DropdownMenuCheckboxItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  )
-}
 
 const Swatch = ({ className, style }: { className?: string; style?: CSSProperties }) => (
   <span

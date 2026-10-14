@@ -176,7 +176,7 @@ describe("CalendarPage", () => {
     ).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Calendario" })).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole("button", { name: "Vista: Gantt (día a día)" }))
+    await userEvent.click(screen.getByRole("button", { name: "Calendario: Gantt (día a día)" }))
     expect(screen.getAllByRole("menuitemradio")).toHaveLength(7)
     expect(screen.getByRole("menuitemradio", { name: /Gantt/ })).toHaveAttribute(
       "aria-checked",
@@ -527,7 +527,7 @@ describe("CalendarPage", () => {
     })
   })
 
-  it("en «Campos visibles» se añaden columnas junto al Gantt, y se recuerda", async () => {
+  it("en el menú «Vista» se añaden columnas junto al Gantt, y se recuerda", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
     )
@@ -536,7 +536,7 @@ describe("CalendarPage", () => {
     await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
     expect(screen.queryByRole("button", { name: "Inicio de Rodaje" })).toBeNull()
 
-    await userEvent.click(screen.getByRole("button", { name: "Campos visibles" }))
+    await userEvent.click(screen.getByRole("button", { name: "Vista" }))
     await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Inicio" }))
     expect(screen.getByRole("menuitemcheckbox", { name: "Inicio" })).toHaveAttribute(
       "aria-checked",
@@ -563,12 +563,12 @@ describe("CalendarPage", () => {
     )
     await userEvent.unhover(within(legend).getByText("Semana 1"))
 
-    await userEvent.click(screen.getByRole("button", { name: "Qué partes de la leyenda se ven" }))
+    // Las partes y la propia leyenda se eligen en el menú «Vista».
+    await userEvent.click(screen.getByRole("button", { name: "Vista" }))
     await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Hoy (y su línea)" }))
-    await userEvent.keyboard("{Escape}")
     expect(within(legend).queryByText("Hoy")).toBeNull()
-
-    await userEvent.click(screen.getByRole("button", { name: "Leyenda" }))
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Mostrar la leyenda" }))
+    await userEvent.keyboard("{Escape}")
     expect(screen.queryByRole("note", { name: "Leyenda" })).toBeNull()
     expect(JSON.parse(localStorage.getItem("cauce.gantt.leyenda")!)).toMatchObject({
       visible: false,
