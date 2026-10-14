@@ -23,12 +23,18 @@ const label = (action: ElementNode) => {
 }
 const short = (iso: string) => formatShortDay(fromIsoDate(iso))
 
-// Un día o un periodo: lo que dura más de un día, o la contratación sin baja.
-const isPeriod = (action: ElementNode) =>
-  action.element.endsOn == null || action.element.endsOn !== action.element.startsOn
+// En el centro de la celda pueden caer sobre la barra del elemento: un halo del
+// color del fondo las separa de ella.
+const HALO =
+  "[filter:drop-shadow(0_0_1px_var(--background))_drop-shadow(0_0_1px_var(--background))]"
+
+// Un periodo: lo que dura más de un día, o la contratación sin baja. Lo demás
+// sin fin (le falta la duración) se pinta en su día.
+const isPeriod = ({ element }: ElementNode) =>
+  element.endsOn == null ? element.kind === "hiring" : element.endsOn !== element.startsOn
 
 /**
- * Las acciones de una fila, en la franja de abajo de sus celdas. Los periodos son
+ * Las acciones de una fila, en el centro de sus celdas. Los periodos son
  * barras finas; los días, una forma por tipo. Si en una celda hay varias, o son de
  * lo que cuelga de una fila plegada, un número.
  */
@@ -57,7 +63,8 @@ export function ActionMarks({ node, expanded, timeline, onOpen }: Readonly<Actio
         ? 3 * cellAt(timeline, start).days * timeline.pxPerDay
         : (end - start + 1) * timeline.pxPerDay
     const shape = cn(
-      "absolute top-[27px] h-1.5 rounded-full",
+      "absolute top-1/2 z-[11] h-1.5 -translate-y-1/2 rounded-full",
+      HALO,
       action.element.kind === "hiring"
         ? "bg-[repeating-linear-gradient(90deg,currentColor_0_6px,transparent_6px_9px)]"
         : "bg-current",
@@ -97,7 +104,10 @@ export function ActionMarks({ node, expanded, timeline, onOpen }: Readonly<Actio
               aria-label={label(single)}
               title={label(single)}
               onClick={() => onOpen(single.element.id)}
-              className="absolute top-[24px] flex h-3 -translate-x-1/2 cursor-pointer items-center justify-center hover:scale-125"
+              className={cn(
+                "absolute top-1/2 z-[11] flex size-4 -translate-1/2 cursor-pointer items-center justify-center hover:scale-125",
+                HALO
+              )}
               style={{ left: x(start) + width / 2 }}
             >
               <ActionGlyph kind={single.element.kind as ActionKind} />
@@ -110,7 +120,7 @@ export function ActionMarks({ node, expanded, timeline, onOpen }: Readonly<Actio
             key={start}
             title={names}
             aria-label={`${total} ${total === 1 ? "acción" : "acciones"}: ${names}`}
-            className="bg-background border-border text-foreground pointer-events-none absolute top-[23px] flex h-[15px] min-w-[18px] -translate-x-1/2 items-center justify-center rounded-full border px-1 text-[10px] font-bold tabular-nums"
+            className="bg-background border-border text-foreground pointer-events-none absolute top-1/2 z-[11] flex h-[15px] min-w-[18px] -translate-1/2 items-center justify-center rounded-full border px-1 text-[10px] font-bold tabular-nums"
             style={{ left: x(start) + width / 2 }}
           >
             {total}

@@ -412,7 +412,9 @@ export function ElementTree({
             <div
               {...trackProps(element.id)}
               aria-label={`Días de ${element.name}`}
-              className="relative shrink-0 outline-none"
+              // isolate: lo que se pinta dentro (barras, acciones) no pasa por encima
+              // de la columna fija de la tabla al desplazar el Gantt.
+              className="relative isolate shrink-0 outline-none"
               style={{ width: timeline.width, ...background }}
             >
               {hovered?.id === element.id && (
