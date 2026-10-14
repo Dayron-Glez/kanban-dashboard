@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
-import { IconChevronsDown, IconChevronsUp, IconTemplate } from "@tabler/icons-react"
+import { IconTemplate } from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
 import {
   describePhaseViolation,
@@ -247,19 +247,6 @@ export function CalendarPage() {
           actions={
             tree.length > 0 && (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground h-8 text-sm"
-                  onClick={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
-                >
-                  {expanded.size > 0 ? (
-                    <IconChevronsUp className="size-3.5" aria-hidden />
-                  ) : (
-                    <IconChevronsDown className="size-3.5" aria-hidden />
-                  )}
-                  {expanded.size > 0 ? "Plegar todo" : "Desplegar todo"}
-                </Button>
                 {view !== "tabla" && timeline && (
                   <>
                     <GoToDate shortcuts={shortcuts} today={timeline.today} onGo={goTo} />
@@ -313,6 +300,7 @@ export function CalendarPage() {
                 limitDrag={limitDrag}
                 expanded={expanded}
                 onToggle={toggle}
+                onToggleAll={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
                 viewportRef={viewportRef}
                 fields={fields}
                 headerRows={fields}

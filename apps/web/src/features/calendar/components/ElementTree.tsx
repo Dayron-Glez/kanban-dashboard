@@ -1,12 +1,18 @@
 import type { Ref } from "react"
-import { IconAnchor, IconChevronRight, IconPin } from "@tabler/icons-react"
+import {
+  IconAnchor,
+  IconChevronRight,
+  IconChevronsDown,
+  IconChevronsUp,
+  IconPin,
+} from "@tabler/icons-react"
 import type {
   CalendarElement,
   DatePoint,
   ElementDependency,
   UpdateElementPlanInput,
 } from "@repo/contracts"
-import { cn, ScrollArea, ScrollBar } from "@/shared/index"
+import { cn, ScrollArea, ScrollBar, Tooltip, TooltipContent, TooltipTrigger } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
 import { phaseTint } from "../lib/phaseColors"
@@ -42,6 +48,8 @@ interface ElementTreeProps {
   ) => { days: number; reason: string | null }
   /** El elemento que hace scroll, para llevar el Gantt a un día. */
   viewportRef?: Ref<HTMLDivElement>
+  /** Desplegar todo, o plegarlo si hay algo abierto: va en la cabecera de la columna. */
+  onToggleAll?: () => void
   /** Lo desplegado. Todo empieza plegado. */
   expanded: ReadonlySet<string>
   onToggle: (elementId: string) => void
@@ -74,6 +82,7 @@ export function ElementTree({
   limitDrag,
   expanded: expandedIds,
   onToggle,
+  onToggleAll,
   viewportRef,
   selectedId = null,
   view = "tabla",
@@ -290,7 +299,6 @@ export function ElementTree({
     <div className={cn(showTimeline && "w-max min-w-full")}>
       <div className="border-border bg-background sticky top-0 z-20 flex min-h-9 border-b text-sm font-medium">
         <div
-          aria-hidden
           data-grid-labels
           // Con el Gantt, los títulos van a la altura de la fila de los días.
           className={cn(
@@ -300,10 +308,47 @@ export function ElementTree({
           )}
           style={table}
         >
-          <span className="pl-8">Elemento</span>
-          {columns.duration && <span className="px-1.5">Duración</span>}
-          {columns.start && <span className="px-1.5">Inicio</span>}
-          {columns.end && <span className="px-1.5">Fin</span>}
+          <span className="flex items-center gap-1 pl-1">
+            {onToggleAll ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={onToggleAll}
+                    aria-label={expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                    className="hover:text-foreground hover:bg-muted flex size-6 items-center justify-center rounded"
+                  >
+                    {expandedIds.size > 0 ? (
+                      <IconChevronsUp size={14} aria-hidden />
+                    ) : (
+                      <IconChevronsDown size={14} aria-hidden />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span className="size-6" />
+            )}
+            <span aria-hidden>Elemento</span>
+          </span>
+          {columns.duration && (
+            <span aria-hidden className="px-1.5">
+              Duración
+            </span>
+          )}
+          {columns.start && (
+            <span aria-hidden className="px-1.5">
+              Inicio
+            </span>
+          )}
+          {columns.end && (
+            <span aria-hidden className="px-1.5">
+              Fin
+            </span>
+          )}
         </div>
         {showTimeline && <TimelineScale timeline={timeline} rows={headerRows} marks={marks} />}
       </div>
