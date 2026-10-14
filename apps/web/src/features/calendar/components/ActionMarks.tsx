@@ -18,8 +18,10 @@ const label = (action: ElementNode) => {
 const countLabel = (list: ElementNode[]) =>
   `${list.length} ${list.length === 1 ? "acción" : "acciones"}: ${list.map(label).join("\n")}`
 
+// Invertido (fondo del color del texto): se lee en los dos temas y no compite con
+// los colores de las fases ni con el cian de hoy y de la selección.
 const COUNT =
-  "bg-background border-border text-foreground pointer-events-none absolute flex -translate-1/2 items-center justify-center rounded-full border font-bold tabular-nums"
+  "bg-foreground text-background pointer-events-none absolute flex -translate-1/2 items-center justify-center rounded-full font-bold tabular-nums"
 
 const periodShape = (kind: string, endless: boolean) =>
   cn(
@@ -102,7 +104,7 @@ export function ActionLane({
             key={start}
             title={list.map(label).join("\n")}
             aria-label={countLabel(list)}
-            className={cn(COUNT, "h-[15px] min-w-[18px] px-1 text-[10px]")}
+            className={cn(COUNT, "h-[18px] min-w-5 px-1.5 text-xs")}
             style={{ left: cellCenter(start, timeline), top: POINT_Y }}
           >
             {list.length}
@@ -159,7 +161,7 @@ export function ActionRollup({
             key={start}
             title={list.map(label).join("\n")}
             aria-label={countLabel(list)}
-            className={cn(COUNT, "h-[13px] min-w-[15px] px-1 text-[9px]")}
+            className={cn(COUNT, "h-4 min-w-[18px] px-1.5 text-[10px]")}
             style={{ left: cellCenter(start, timeline), top: 34 }}
           >
             {list.length}
