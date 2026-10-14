@@ -1,4 +1,4 @@
-import type { Ref } from "react"
+import { useState, type PointerEvent, type Ref } from "react"
 import {
   IconAlertTriangle,
   IconAnchor,
@@ -28,10 +28,13 @@ import { phaseTint } from "../lib/phaseColors"
 import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
 import {
   barDragModes,
+  cellAtX,
+  timelineX,
   trackBackground,
   type BarDrag,
   type PlanView,
   type Timeline,
+  type TimelineCell,
   type TimelineMarks,
 } from "../lib/timeline"
 import { DateEditor, DurationEditor } from "./PlanEditors"
@@ -116,6 +119,18 @@ export function ElementTree({
     })
   if (selectedId) findPath(nodes, [])
   const background = showTimeline ? trackBackground(timeline, marks) : undefined
+  const [hovered, setHovered] = useState<{ id: string; cell: TimelineCell } | null>(null)
+
+  // La celda bajo el ratón, fuera de las barras; solo cambia el estado al cambiar de celda.
+  const hoverCell = (id: string) => (event: PointerEvent<HTMLDivElement>) => {
+    if (!timeline || event.pointerType === "touch") return
+    if ((event.target as HTMLElement).closest("button")) {
+      setHovered(null)
+      return
+    }
+    const cell = cellAtX(timeline, event.clientX - event.currentTarget.getBoundingClientRect().left)
+    if (hovered?.id !== id || hovered.cell.start !== cell.start) setHovered({ id, cell })
+  }
 
   const names = new Map<string, string>()
   const collect = (list: ElementNode[]) =>
@@ -193,7 +208,7 @@ export function ElementTree({
         <div
           aria-selected={selected}
           className={cn(
-            "group/row border-border/40 flex h-9 border-b text-base transition-colors",
+            "group/row border-border/40 flex h-10 border-b text-base transition-colors",
             selected ? "bg-primary/5" : "hover:bg-muted/40"
           )}
         >
@@ -311,7 +326,23 @@ export function ElementTree({
           </div>
 
           {showTimeline && (
-            <div className="relative shrink-0" style={{ width: timeline.width, ...background }}>
+            <div
+              data-track
+              className="relative shrink-0"
+              style={{ width: timeline.width, ...background }}
+              onPointerMove={hoverCell(element.id)}
+              onPointerLeave={() => setHovered(null)}
+            >
+              {hovered?.id === element.id && (
+                <span
+                  aria-hidden
+                  className="bg-primary/10 ring-primary/60 pointer-events-none absolute inset-y-0 rounded-[3px] ring-1 ring-inset"
+                  style={{
+                    left: timelineX(hovered.cell.start, timeline),
+                    width: hovered.cell.days * timeline.pxPerDay,
+                  }}
+                />
+              )}
               {bar(node, rule)}
             </div>
           )}
@@ -376,7 +407,14 @@ export function ElementTree({
             </span>
           )}
         </div>
-        {showTimeline && <TimelineScale timeline={timeline} rows={headerRows} marks={marks} />}
+        {showTimeline && (
+          <TimelineScale
+            timeline={timeline}
+            rows={headerRows}
+            marks={marks}
+            hovered={hovered?.cell.start ?? null}
+          />
+        )}
       </div>
 
       <div>

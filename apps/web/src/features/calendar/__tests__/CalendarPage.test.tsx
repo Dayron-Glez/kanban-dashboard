@@ -599,6 +599,24 @@ describe("CalendarPage", () => {
     ).toBeInTheDocument()
   })
 
+  it("una celda por día: al pasar el ratón se resaltan la celda y su día en la cabecera", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    const track = document.querySelector<HTMLElement>("[data-track]")!
+    const days = screen.getAllByTitle(/^(lun|mar|mié|jue|vie|sáb|dom) [0-9]/)
+    // En jsdom la pista empieza en x = 0: el tercer día queda entre 56 y 84 px.
+    fireEvent.pointerMove(track, { clientX: 60, pointerType: "mouse" })
+    expect(days[2]).toHaveAttribute("data-hovered", "true")
+    expect(track.querySelector(".ring-1")).toHaveStyle({ left: "56px", width: "28px" })
+
+    fireEvent.pointerLeave(track)
+    expect(days[2]).not.toHaveAttribute("data-hovered")
+  })
+
   it("las fases sin duración llevan su aviso, y la cabecera dice cuántas son", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([

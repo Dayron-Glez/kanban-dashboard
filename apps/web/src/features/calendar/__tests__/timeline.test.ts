@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest"
 import {
   barDragModes,
   buildTimeline,
+  cellAt,
+  cellAtX,
   dragDays,
   dragTarget,
   scrollLeftFor,
@@ -74,14 +76,19 @@ describe("trackBackground", () => {
   const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
   it("pinta hoy, la semana 1 y los fines de semana, y la leyenda puede apagarlos", () => {
-    expect(trackBackground(timeline).backgroundImage?.split("gradient(")).toHaveLength(4)
-    expect(trackBackground(timeline, { today: false, week1: false, weekends: true })).toEqual({
-      backgroundImage: expect.stringMatching(/^repeating-linear-gradient/),
-      backgroundSize: "auto",
+    expect(trackBackground(timeline).backgroundImage?.split("gradient(")).toHaveLength(5)
+    expect(
+      trackBackground(timeline, { today: false, week1: false, weekends: true }).backgroundImage
+    ).toMatch(/^repeating-linear-gradient/)
+  })
+
+  it("las líneas entre celdas no se apagan: una por día", () => {
+    expect(trackBackground(timeline, { today: false, week1: false, weekends: false })).toEqual({
+      backgroundImage: "linear-gradient(90deg, var(--grid-cell) 1px, transparent 1px)",
+      backgroundSize: "28px 100%",
       backgroundPosition: "0 0",
-      backgroundRepeat: "repeat",
+      backgroundRepeat: "repeat-x",
     })
-    expect(trackBackground(timeline, { today: false, week1: false, weekends: false })).toEqual({})
   })
 })
 
@@ -110,6 +117,36 @@ describe("el zoom", () => {
   it("los fines de semana solo se sombrean con día", () => {
     expect(trackBackground(at("dia")).backgroundImage).toMatch(/repeating-linear-gradient/)
     expect(trackBackground(at("semana")).backgroundImage).not.toMatch(/repeating-linear-gradient/)
+  })
+})
+
+describe("las celdas", () => {
+  const rodaje = [element("rodaje", { startsOn: "2027-04-05", endsOn: "2027-05-16" })]
+  const at = (zoom: "dia" | "semana" | "mes") => buildTimeline(rodaje, new Date(2026, 9, 13), zoom)!
+  const day = fromIsoDate("2026-10-15")
+
+  it("una celda es un día, una semana desde el lunes o un mes", () => {
+    expect(cellAt(at("dia"), day)).toEqual({ start: day, days: 1 })
+    expect(cellAt(at("semana"), day)).toEqual({ start: fromIsoDate("2026-10-12"), days: 7 })
+    // El primer mes empieza con la rejilla, el lunes 12.
+    expect(cellAt(at("mes"), day)).toEqual({ start: fromIsoDate("2026-10-12"), days: 20 })
+    expect(cellAt(at("mes"), fromIsoDate("2026-11-20"))).toEqual({
+      start: fromIsoDate("2026-11-01"),
+      days: 30,
+    })
+  })
+
+  it("la celda bajo un punto, sin salirse de la rejilla", () => {
+    expect(cellAtX(at("dia"), 3 * 28 + 5).start).toBe(day)
+    expect(cellAtX(at("dia"), -40).start).toBe(at("dia").range.start)
+    expect(cellAtX(at("dia"), 1e7).start).toBe(at("dia").range.end)
+  })
+
+  it("con semana y mes, las líneas van por semana o al empezar cada mes", () => {
+    const none = { today: false, week1: false, weekends: false }
+    expect(trackBackground(at("semana"), none).backgroundSize).toBe("56px 100%")
+    const months = trackBackground(at("mes"), none)
+    expect(months.backgroundRepeat?.split(", ")).toHaveLength(at("mes").months.length)
   })
 })
 

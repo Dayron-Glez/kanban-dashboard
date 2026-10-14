@@ -3,6 +3,7 @@ import { cn } from "@/shared/index"
 import type { GanttFields } from "../lib/ganttFields"
 import { formatLongDate } from "../lib/planFormat"
 import { timelineX as x, trackBackground, type Timeline, type TimelineMarks } from "../lib/timeline"
+import type { EpochDay } from "@repo/domain"
 
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 // Con el signo menos tipográfico: «−27», no «-27».
@@ -16,13 +17,18 @@ interface TimelineScaleProps {
   rows: Pick<GanttFields, "month" | "week" | "day">
   /** Hoy, la semana 1 y los fines de semana se pueden apagar desde la leyenda. */
   marks?: TimelineMarks
+  /** El inicio de la celda bajo el ratón: su día, semana o mes se resalta. */
+  hovered?: EpochDay | null
 }
+
+const HOT = "bg-primary/10 text-foreground"
 
 /** La cabecera del Gantt: el mes (con el año en enero), la semana desde el rodaje y el día. */
 export function TimelineScale({
   timeline,
   rows,
   marks = { today: true, week1: true, weekends: true },
+  hovered = null,
 }: Readonly<TimelineScaleProps>) {
   const { pxPerDay, zoom } = timeline
   // Lejos (semana, mes) el año va en su propia fila; de cerca, con enero.
@@ -48,7 +54,10 @@ export function TimelineScale({
           {timeline.months.map((month, index) => (
             <span
               key={month.start}
-              className="border-border absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap"
+              className={cn(
+                "border-border absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
+                zoom === "mes" && month.start === hovered && HOT
+              )}
               style={{ left: x(month.start, timeline), width: month.days * pxPerDay }}
             >
               {!yearRow && (month.month === 0 || index === 0) ? (
@@ -70,7 +79,8 @@ export function TimelineScale({
               title={week.number != null ? `Semana ${signed(week.number)}` : undefined}
               className={cn(
                 "border-border/60 absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
-                marks.week1 && week.number === 1 && "bg-primary/10 text-primary font-semibold"
+                marks.week1 && week.number === 1 && "bg-primary/10 text-primary font-semibold",
+                zoom === "semana" && week.start === hovered && HOT
               )}
               style={{ left: x(week.start, timeline), width: week.days * pxPerDay }}
             >
@@ -91,9 +101,11 @@ export function TimelineScale({
               <span
                 key={day.day}
                 title={formatLongDate(toIsoDate(day.day))}
+                data-hovered={day.day === hovered || undefined}
                 className={cn(
                   "absolute inset-y-0 flex flex-col items-center justify-center leading-none",
                   marks.weekends && day.weekend && "text-muted-foreground/60",
+                  day.day === hovered && !today && "bg-primary/10 text-foreground rounded-md",
                   today &&
                     "text-background before:bg-primary font-bold before:absolute before:inset-[3px] before:-z-10 before:rounded-md"
                 )}

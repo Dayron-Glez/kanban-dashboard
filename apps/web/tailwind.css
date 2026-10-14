@@ -57,6 +57,8 @@ body,
   --warn-soft: hsl(48 96% 89%);
   /* Fines de semana en el Gantt. */
   --weekend: hsl(215 25% 40% / 0.06);
+  /* Las líneas entre celdas del Gantt. */
+  --grid-cell: hsl(215 25% 40% / 0.12);
 
   /* priority */
   --p0: hsl(0 84% 60%);
@@ -133,6 +135,7 @@ body,
   --warn: hsl(45 96% 56%);
   --warn-soft: hsl(45 96% 56% / 0.1);
   --weekend: hsl(0 0% 100% / 0.03);
+  --grid-cell: hsl(0 0% 100% / 0.06);
 
   --p0: hsl(0 84% 71%);
   --p0-soft: hsl(0 84% 71% / 0.1);

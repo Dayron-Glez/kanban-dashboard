@@ -106,9 +106,36 @@ export const timelineX = (day: EpochDay, timeline: Timeline) =>
 export const scrollLeftFor = (day: EpochDay, timeline: Timeline, visibleWidth: number) =>
   Math.max(0, Math.round(timelineX(day, timeline) + timeline.pxPerDay / 2 - visibleWidth / 3))
 
+/** Una celda del Gantt: un día, una semana o un mes, según el zoom. */
+export interface TimelineCell {
+  start: EpochDay
+  days: number
+}
+
+/** La celda que contiene un día. */
+export function cellAt(timeline: Timeline, day: EpochDay): TimelineCell {
+  const { range, zoom } = timeline
+  if (zoom === "mes") {
+    const month = timeline.months.find((m) => day >= m.start && day < m.start + m.days)
+    if (month) return { start: month.start, days: month.days }
+  }
+  if (zoom === "dia") return { start: day, days: 1 }
+  const start = Math.max(mondayOf(day), range.start)
+  return { start, days: Math.min(mondayOf(day) + 7, range.end + 1) - start }
+}
+
+/** La celda bajo un punto del Gantt, en píxeles desde su borde izquierdo. */
+export const cellAtX = (timeline: Timeline, px: number) =>
+  cellAt(
+    timeline,
+    timeline.range.start +
+      Math.min(Math.max(Math.floor(px / timeline.pxPerDay), 0), timeline.range.days - 1)
+  )
+
 /**
- * El fondo de todas las filas: los fines de semana sombreados de arriba abajo y
- * las líneas de hoy y de la semana 1. Se calcula una vez y lo comparten todas.
+ * El fondo de todas las filas: las líneas entre celdas, los fines de semana
+ * sombreados de arriba abajo y las líneas de hoy y de la semana 1. Se calcula
+ * una vez y lo comparten todas.
  */
 export interface TimelineMarks {
   today: boolean
@@ -151,13 +178,29 @@ export function trackBackground(
       ? [{ image: weekend, size: "auto", position: "0 0", repeat: "repeat" }]
       : []),
   ]
-  if (layers.length === 0) return {}
+  layers.push(...cellLines(timeline))
   return {
     backgroundImage: layers.map((layer) => layer.image).join(", "),
     backgroundSize: layers.map((layer) => layer.size).join(", "),
     backgroundPosition: layers.map((layer) => layer.position).join(", "),
     backgroundRepeat: layers.map((layer) => layer.repeat).join(", "),
   }
+}
+
+// Una línea al empezar cada celda: cada día o cada semana se repiten; los meses,
+// que no miden lo mismo, van uno a uno.
+function cellLines(timeline: Timeline) {
+  const line = "linear-gradient(90deg, var(--grid-cell) 1px, transparent 1px)"
+  if (timeline.zoom !== "mes") {
+    const size = timeline.pxPerDay * (timeline.zoom === "dia" ? 1 : 7)
+    return [{ image: line, size: `${size}px 100%`, position: "0 0", repeat: "repeat-x" }]
+  }
+  return timeline.months.map((month) => ({
+    image: "linear-gradient(var(--grid-cell), var(--grid-cell))",
+    size: "1px 100%",
+    position: `${timelineX(month.start, timeline)}px 0`,
+    repeat: "no-repeat",
+  }))
 }
 
 /** Los píxeles arrastrados, en días y ajustados al paso del zoom. */
