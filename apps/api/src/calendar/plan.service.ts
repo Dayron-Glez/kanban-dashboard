@@ -5,19 +5,23 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common"
-import type {
-  CalendarPlan,
-  DatePoint,
-  SetElementRuleInput,
-  UpdateElementPlanInput,
+import {
+  ACTION_PARENT_KINDS,
+  type CalendarPlan,
+  type CreateActionInput,
+  type DatePoint,
+  type ElementKind,
+  type SetElementRuleInput,
+  type UpdateElementPlanInput,
 } from "@repo/contracts"
 import {
   describePhaseViolation,
+  fromIsoDate,
   phaseRuleViolations,
   phaseSpansOf,
   wouldCreateCycle,
 } from "@repo/domain"
-import { and, eq } from "drizzle-orm"
+import { and, eq, max } from "drizzle-orm"
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino"
 import { DB, type Database } from "../db/db.module.js"
 import { elementDependencies, elements, projects } from "../db/schema/index.js"
@@ -25,10 +29,15 @@ import { ProjectAccess } from "../projects/project-access.js"
 import type { Transaction } from "./calendar-template.js"
 import { loadPlan, recalculatePlan } from "./plan.js"
 
-type EditableElement = { projectId: string; isAnchor: boolean; isPinned: boolean }
+type EditableElement = {
+  projectId: string
+  kind: string
+  isAnchor: boolean
+  isPinned: boolean
+}
 type EditContext = {
   elementId: string
-  change: "plan" | "rule" | "removeRule"
+  change: "plan" | "rule" | "removeRule" | "createAction"
   point?: DatePoint
 }
 
@@ -77,6 +86,43 @@ export class PlanService {
         })
         .where(eq(elements.id, elementId))
     })
+  }
+
+  // Una acción es un elemento fijado en su fecha, con su duración en días, al
+  // final de lo que cuelga de su padre.
+  async createAction(
+    userId: string,
+    parentId: string,
+    input: CreateActionInput
+  ): Promise<CalendarPlan> {
+    const parent = await this.findEditable(userId, parentId)
+    if (!ACTION_PARENT_KINDS.includes(parent.kind as ElementKind)) {
+      throw new BadRequestException("Una acción cuelga de una fase, una subfase o un proceso")
+    }
+    const endsOn = input.endsOn ?? (input.kind === "hiring" ? null : input.startsOn)
+    const days = endsOn == null ? null : fromIsoDate(endsOn) - fromIsoDate(input.startsOn) + 1
+
+    return this.edit(
+      parent.projectId,
+      { elementId: parentId, change: "createAction" },
+      async (tx) => {
+        const [last] = await tx
+          .select({ position: max(elements.position) })
+          .from(elements)
+          .where(eq(elements.parentId, parentId))
+        await tx.insert(elements).values({
+          projectId: parent.projectId,
+          kind: input.kind,
+          parentId,
+          position: last?.position == null ? 0 : last.position + 1,
+          name: input.name,
+          durationAmount: days,
+          durationUnit: days == null ? null : "days",
+          startsOn: input.startsOn,
+          isPinned: true,
+        })
+      }
+    )
   }
 
   // Sustituye la regla que hubiera en ese extremo.
@@ -150,6 +196,7 @@ export class PlanService {
     const [element] = await this.db
       .select({
         projectId: elements.projectId,
+        kind: elements.kind,
         isAnchor: elements.isAnchor,
         isPinned: elements.isPinned,
       })

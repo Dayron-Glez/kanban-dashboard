@@ -8,13 +8,16 @@ import {
   ParseEnumPipe,
   ParseUUIDPipe,
   Patch,
+  Post,
   Put,
 } from "@nestjs/common"
 import {
+  CreateActionInputSchema,
   DATE_POINTS,
   SetElementRuleInputSchema,
   UpdateElementPlanInputSchema,
   type CalendarPlan,
+  type CreateActionInput,
   type DatePoint,
   type SetElementRuleInput,
   type UpdateElementPlanInput,
@@ -44,6 +47,15 @@ export class PlanController {
     @Body({ schema: UpdateElementPlanInputSchema }) input: UpdateElementPlanInput
   ): Promise<CalendarPlan> {
     return this.plan.updateElementPlan(user.id, elementId, input)
+  }
+
+  @Post("elements/:parentId/actions")
+  createAction(
+    @CurrentUser() user: AuthUser,
+    @Param("parentId", ParseUUIDPipe) parentId: string,
+    @Body({ schema: CreateActionInputSchema }) input: CreateActionInput
+  ): Promise<CalendarPlan> {
+    return this.plan.createAction(user.id, parentId, input)
   }
 
   @Put("elements/:elementId/rules/:point")

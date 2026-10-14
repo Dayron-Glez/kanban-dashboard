@@ -1,5 +1,11 @@
 import * as z from "zod"
-import { DatePointSchema, DurationUnitSchema, ElementKindSchema } from "./enums.js"
+import {
+  ActionKindSchema,
+  DatePointSchema,
+  DurationUnitSchema,
+  ElementKindSchema,
+  SINGLE_DAY_ACTION_KINDS,
+} from "./enums.js"
 
 /** Por qué a un elemento le falta alguna fecha. */
 export const ScheduleIssueSchema = z.discriminatedUnion("code", [
@@ -62,6 +68,25 @@ export const UpdateElementPlanInputSchema = z.object({
   isPinned: z.boolean().optional(),
 })
 export type UpdateElementPlanInput = z.infer<typeof UpdateElementPlanInputSchema>
+
+/**
+ * Una acción nueva en un día o un periodo. Sin fin, dura un día; una contratación
+ * sin fin es una baja que aún no se conoce. Reuniones y recordatorios, un solo día.
+ */
+export const CreateActionInputSchema = z
+  .object({
+    kind: ActionKindSchema,
+    name: z.string().trim().min(1).max(200),
+    startsOn: z.iso.date(),
+    endsOn: z.iso.date().nullable().optional(),
+  })
+  .refine(({ startsOn, endsOn }) => endsOn == null || endsOn >= startsOn, { path: ["endsOn"] })
+  .refine(
+    ({ kind, startsOn, endsOn }) =>
+      !SINGLE_DAY_ACTION_KINDS.includes(kind) || endsOn == null || endsOn === startsOn,
+    { path: ["endsOn"] }
+  )
+export type CreateActionInput = z.infer<typeof CreateActionInputSchema>
 
 /** De qué elemento depende un extremo, de qué punto de ese elemento y con qué desfase. */
 export const SetElementRuleInputSchema = z.object({
