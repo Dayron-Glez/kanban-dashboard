@@ -97,8 +97,10 @@ export function DaySheet({
   const activeIds = new Set(active.map((node) => node.element.id))
   // Se cuelga de la fase de la fila de la que se vino, o de lo que la forma; nunca
   // de una fase hermana. Desde la cabecera, de las fases en curso ese día.
-  const rowPhase = rowId
-    ? tree.find((phase) => flattenTree([phase]).some((node) => node.element.id === rowId))
+  // La fila «Acciones» de un elemento cuenta como el propio elemento.
+  const fromRow = rowId?.replace(/#acciones$/, "") ?? null
+  const rowPhase = fromRow
+    ? tree.find((phase) => flattenTree([phase]).some((node) => node.element.id === fromRow))
     : undefined
   const inCourse = tree.filter((phase) => activeIds.has(phase.element.id))
   const scope = rowPhase ? [rowPhase] : inCourse.length > 0 ? inCourse : tree
@@ -107,7 +109,7 @@ export function DaySheet({
   )
   // Por defecto, la propia fila; si no, lo más concreto que esté en curso.
   const fallback =
-    parents.find((node) => node.element.id === rowId) ??
+    parents.find((node) => node.element.id === fromRow) ??
     parents
       .filter((node) => activeIds.has(node.element.id))
       .reduce<ElementNode | null>(

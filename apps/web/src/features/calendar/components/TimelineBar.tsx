@@ -80,7 +80,7 @@ export function TimelineBar({
   const ghost = state != null && state.days !== 0 && (
     <span
       aria-hidden
-      className="border-foreground/40 bg-foreground/5 absolute top-[13px] -translate-y-1/2 rounded-[5px] border border-dashed"
+      className="border-foreground/40 bg-foreground/5 absolute top-[12px] -translate-y-1/2 rounded-[5px] border border-dashed"
       style={{
         left: x(start),
         width: end == null ? 10 : width(start, end),
@@ -121,7 +121,7 @@ export function TimelineBar({
           {...pointer}
           data-bar
           className={cn(
-            "phase-ink absolute top-[13px] flex -translate-y-1/2 touch-none items-center",
+            "phase-ink absolute top-[12px] flex -translate-y-1/2 touch-none items-center",
             draggable && "cursor-grab",
             state?.moved && "cursor-grabbing"
           )}
@@ -146,7 +146,7 @@ export function TimelineBar({
       <div
         {...pointer}
         data-bar
-        className="absolute top-[13px] -translate-y-1/2 touch-none"
+        className="absolute top-[12px] -translate-y-1/2 touch-none"
         style={{ left: x(span.start), width: barWidth, height: isPhase ? 18 : 14 }}
       >
         <button

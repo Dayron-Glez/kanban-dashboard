@@ -1,29 +1,12 @@
 import { SINGLE_DAY_ACTION_KINDS, type ActionKind, type ElementDependency } from "@repo/contracts"
 import { fromIsoDate, type EpochDay } from "@repo/domain"
 import { cn } from "@/shared/index"
-import { useBarDrag, draggedSpan } from "../hooks/useBarDrag"
-import { descendantActions, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
-import { phaseVars } from "../lib/phaseColors"
+import { draggedSpan, useBarDrag } from "../hooks/useBarDrag"
+import { isPeriod, layoutActions, periodSpan } from "../lib/actionLayout"
+import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { formatShortDay } from "../lib/planFormat"
 import { barDragModes, cellAt, timelineX, type BarDrag, type Timeline } from "../lib/timeline"
 import { ActionGlyph } from "./ActionGlyph"
-
-interface ActionMarksProps {
-  node: ElementNode
-  /** Plegada, la fila enseña también las acciones de lo que cuelga de ella. */
-  expanded: boolean
-  timeline: Timeline
-  onOpen: (elementId: string) => void
-  /** Si se pueden arrastrar: la propietaria, y sin otro cambio guardándose. */
-  editable?: boolean
-  dependencies?: ElementDependency[]
-  onDrag?: (elementId: string, drag: BarDrag, days: number) => void
-  limit?: (
-    elementId: string,
-    drag: BarDrag,
-    days: number
-  ) => { days: number; reason: string | null }
-}
 
 const short = (iso: string) => formatShortDay(fromIsoDate(iso))
 const label = (action: ElementNode) => {
@@ -32,115 +15,157 @@ const label = (action: ElementNode) => {
     endsOn && endsOn !== startsOn ? `${short(startsOn!)} → ${short(endsOn)}` : short(startsOn!)
   return `${ELEMENT_KIND_LABELS[kind]}: ${name}, ${when}`
 }
+const countLabel = (list: ElementNode[]) =>
+  `${list.length} ${list.length === 1 ? "acción" : "acciones"}: ${list.map(label).join("\n")}`
 
-// En el centro de la celda pueden caer sobre la barra del elemento: un halo del
-// color del fondo las separa de ella.
-const HALO =
-  "[filter:drop-shadow(0_0_1px_var(--background))_drop-shadow(0_0_1px_var(--background))]"
-
-// Un periodo: lo que dura más de un día, o la contratación sin baja. Lo demás
-// sin fin (le falta la duración) se pinta en su día.
-const isPeriod = ({ element }: ElementNode) =>
-  element.endsOn == null ? element.kind === "hiring" : element.endsOn !== element.startsOn
+const COUNT =
+  "bg-background border-border text-foreground pointer-events-none absolute flex -translate-1/2 items-center justify-center rounded-full border font-bold tabular-nums"
 
 const periodShape = (kind: string, endless: boolean) =>
   cn(
-    "absolute top-1/2 z-[11] h-1.5 -translate-y-1/2 rounded-full",
-    HALO,
+    "absolute rounded-full",
     kind === "hiring"
       ? "bg-[repeating-linear-gradient(90deg,currentColor_0_6px,transparent_6px_9px)]"
       : "bg-current",
     endless && "[mask-image:linear-gradient(90deg,#000_50%,transparent)]"
   )
 
+const cellCenter = (start: EpochDay, timeline: Timeline) =>
+  timelineX(start, timeline) + (cellAt(timeline, start).days * timeline.pxPerDay) / 2
+
+interface ActionLaneProps {
+  /** El elemento cuyas acciones se pintan, en su fila «Acciones». */
+  node: ElementNode
+  timeline: Timeline
+  onOpen: (elementId: string) => void
+  /** Si se pueden arrastrar: la propietaria, y sin otro cambio guardándose. */
+  editable: boolean
+  dependencies: ElementDependency[]
+  onDrag: (elementId: string, drag: BarDrag, days: number) => void
+  limit?: (
+    elementId: string,
+    drag: BarDrag,
+    days: number
+  ) => { days: number; reason: string | null }
+}
+
+// En la fila de 40 px: las de un día y los números arriba, los periodos en dos carriles debajo.
+const POINT_Y = 13
+const LANE_Y = [24, 31]
+
 /**
- * Las acciones de una fila, en el centro de sus celdas. Los periodos son
- * barras finas; los días, una forma por tipo. Si en una celda hay varias, o son de
- * lo que cuelga de una fila plegada, un número. Las propias se arrastran como las
- * barras: el cuerpo las mueve y el borde del fin las alarga.
+ * La fila «Acciones» de un elemento: las de un día con la forma de su tipo, los
+ * periodos como líneas en dos carriles y, donde no caben, un número. Se arrastran
+ * como las barras: el cuerpo las mueve y el borde del fin las alarga.
  */
-export function ActionMarks({
+export function ActionLane({
   node,
-  expanded,
   timeline,
   onOpen,
-  editable = false,
-  dependencies = [],
+  editable,
+  dependencies,
   onDrag,
   limit,
-}: Readonly<ActionMarksProps>) {
-  const own = node.actions.filter((action) => action.element.startsOn)
-  const hidden = expanded ? [] : descendantActions(node).filter((action) => action.element.startsOn)
-  if (own.length === 0 && hidden.length === 0) return null
+}: Readonly<ActionLaneProps>) {
+  const { lanes, cells } = layoutActions(node.actions, timeline, LANE_Y.length)
 
-  const x = (day: EpochDay) => timelineX(day, timeline)
-  const cells = new Map<EpochDay, { own: ElementNode[]; hidden: ElementNode[] }>()
-  const addPoint = (action: ElementNode, group: "own" | "hidden") => {
-    const start = cellAt(timeline, fromIsoDate(action.element.startsOn!)).start
-    const cell = cells.get(start) ?? { own: [], hidden: [] }
-    cell[group].push(action)
-    cells.set(start, cell)
-  }
-  own.filter((action) => !isPeriod(action)).forEach((action) => addPoint(action, "own"))
-  hidden.filter((action) => !isPeriod(action)).forEach((action) => addPoint(action, "hidden"))
-
-  // Qué se puede arrastrar de una acción: como en las barras, pero reuniones y
-  // recordatorios no se alargan, porque son de un solo día.
+  // Como en las barras, pero reuniones y recordatorios no se alargan: son de un día.
   const freeOf = (action: ElementNode) => {
-    if (!editable || !onDrag) return null
+    if (!editable) return null
     const modes = barDragModes(action.element, dependencies)
     if (modes.locked) return null
     const single = SINGLE_DAY_ACTION_KINDS.includes(action.element.kind as ActionKind)
     return { start: false, end: modes.end && !single }
   }
-  const markProps = (action: ElementNode) => ({
+  const markProps = (action: ElementNode, y: number) => ({
     action,
     timeline,
+    y,
     free: freeOf(action),
     onOpen: () => onOpen(action.element.id),
-    onDrag: (drag: BarDrag, days: number) => onDrag?.(action.element.id, drag, days),
+    onDrag: (drag: BarDrag, days: number) => onDrag(action.element.id, drag, days),
     limit: limit && ((drag: BarDrag, days: number) => limit(action.element.id, drag, days)),
   })
 
   return (
-    <div className="phase-ink" style={phaseVars(node.phaseColor)}>
-      {own.filter(isPeriod).map((action) => (
-        <ActionMark key={action.element.id} {...markProps(action)} />
-      ))}
-      {hidden.filter(isPeriod).map((action) => {
-        const start = fromIsoDate(action.element.startsOn!)
-        const end = action.element.endsOn ? fromIsoDate(action.element.endsOn) : null
-        const width =
-          end == null
-            ? 3 * cellAt(timeline, start).days * timeline.pxPerDay
-            : (end - start + 1) * timeline.pxPerDay
+    <div className="text-foreground">
+      {lanes.map((lane, index) =>
+        lane.map((action) => (
+          <ActionMark key={action.element.id} {...markProps(action, LANE_Y[index]!)} />
+        ))
+      )}
+      {[...cells].map(([start, list]) =>
+        list.length === 1 && timeline.zoom === "dia" && !isPeriod(list[0]!) ? (
+          <ActionMark key={start} {...markProps(list[0]!, POINT_Y)} />
+        ) : (
+          <span
+            key={start}
+            title={list.map(label).join("\n")}
+            aria-label={countLabel(list)}
+            className={cn(COUNT, "h-[15px] min-w-[18px] px-1 text-[10px]")}
+            style={{ left: cellCenter(start, timeline), top: POINT_Y }}
+          >
+            {list.length}
+          </span>
+        )
+      )}
+    </div>
+  )
+}
+
+/**
+ * El resumen de lo que hay dentro de una fila plegada, debajo de su barra: marcas
+ * pequeñas y una línea fina por periodo. No se toca: para eso se despliega.
+ */
+export function ActionRollup({
+  actions,
+  timeline,
+}: Readonly<{ actions: ElementNode[]; timeline: Timeline }>) {
+  if (actions.length === 0) return null
+  const { lanes, cells } = layoutActions(actions, timeline, 1)
+  return (
+    <div className="text-foreground/70 pointer-events-none">
+      {lanes[0]?.map((action) => {
+        const { start, end } = periodSpan(action, timeline)
         return (
           <span
             key={action.element.id}
-            aria-hidden
-            className={cn(periodShape(action.element.kind, end == null), "opacity-50")}
-            style={{ left: x(start) + 3, width: Math.max(width - 6, 6) }}
+            role="img"
+            aria-label={label(action)}
+            title={label(action)}
+            className={cn(periodShape(action.element.kind, !action.element.endsOn), "h-[3px]")}
+            style={{
+              top: 34,
+              left: timelineX(start, timeline) + 4,
+              width: Math.max((end - start + 1) * timeline.pxPerDay - 8, 4),
+            }}
           />
         )
       })}
-      {[...cells].map(([start, cell]) => {
-        const total = cell.own.length + cell.hidden.length
-        const single = total === 1 && cell.own[0] && timeline.zoom === "dia" ? cell.own[0] : null
-        if (single) return <ActionMark key={start} {...markProps(single)} />
-        const width = cellAt(timeline, start).days * timeline.pxPerDay
-        const names = [...cell.own, ...cell.hidden].map(label).join("\n")
-        return (
+      {[...cells].map(([start, list]) =>
+        list.length === 1 && timeline.zoom === "dia" ? (
           <span
             key={start}
-            title={names}
-            aria-label={`${total} ${total === 1 ? "acción" : "acciones"}: ${names}`}
-            className="bg-background border-border text-foreground pointer-events-none absolute top-1/2 z-[11] flex h-[15px] min-w-[18px] -translate-1/2 items-center justify-center rounded-full border px-1 text-[10px] font-bold tabular-nums"
-            style={{ left: x(start) + width / 2 }}
+            role="img"
+            aria-label={label(list[0]!)}
+            title={label(list[0]!)}
+            className="absolute flex -translate-1/2 items-center justify-center"
+            style={{ left: cellCenter(start, timeline), top: 28 }}
           >
-            {total}
+            <ActionGlyph kind={list[0]!.element.kind as ActionKind} className="scale-75" />
+          </span>
+        ) : (
+          <span
+            key={start}
+            title={list.map(label).join("\n")}
+            aria-label={countLabel(list)}
+            className={cn(COUNT, "h-[13px] min-w-[15px] px-1 text-[9px]")}
+            style={{ left: cellCenter(start, timeline), top: 28 }}
+          >
+            {list.length}
           </span>
         )
-      })}
+      )}
     </div>
   )
 }
@@ -148,14 +173,24 @@ export function ActionMarks({
 interface ActionMarkProps {
   action: ElementNode
   timeline: Timeline
+  /** El centro vertical, en píxeles desde arriba de la fila. */
+  y: number
   free: { start: boolean; end: boolean } | null
   onOpen: () => void
   onDrag: (drag: BarDrag, days: number) => void
   limit?: (drag: BarDrag, days: number) => { days: number; reason: string | null }
 }
 
-// Una acción propia: un periodo (barra fina) o un día (su forma), que se arrastra.
-function ActionMark({ action, timeline, free, onOpen, onDrag, limit }: Readonly<ActionMarkProps>) {
+// Una acción: un periodo (línea) o un día (su forma), que se abre y se arrastra.
+function ActionMark({
+  action,
+  timeline,
+  y,
+  free,
+  onOpen,
+  onDrag,
+  limit,
+}: Readonly<ActionMarkProps>) {
   const { state, begin, pointer, onKeyDown, onClick } = useBarDrag({
     timeline,
     free,
@@ -167,7 +202,6 @@ function ActionMark({ action, timeline, free, onOpen, onDrag, limit }: Readonly<
   const end = action.element.endsOn ? fromIsoDate(action.element.endsOn) : null
   const span = draggedSpan(start, end, state)
   const x = (day: EpochDay) => timelineX(day, timeline)
-  const period = isPeriod(action)
   const moving = state != null && state.days !== 0
 
   const common = {
@@ -193,20 +227,18 @@ function ActionMark({ action, timeline, free, onOpen, onDrag, limit }: Readonly<
     </span>
   )
 
-  if (!period) {
-    const width = cellAt(timeline, span.start).days * timeline.pxPerDay
+  if (!isPeriod(action)) {
     return (
       <>
         {dates}
         <button
           {...common}
           className={cn(
-            "absolute top-1/2 z-[11] flex size-4 -translate-1/2 touch-none items-center justify-center hover:scale-125",
-            HALO,
+            "absolute z-[2] flex size-4 -translate-1/2 touch-none items-center justify-center hover:scale-125",
             free ? "cursor-grab" : "cursor-pointer",
             moving && "cursor-grabbing"
           )}
-          style={{ left: x(span.start) + width / 2 }}
+          style={{ left: cellCenter(span.start, timeline), top: y }}
         >
           <ActionGlyph kind={action.element.kind as ActionKind} />
         </button>
@@ -225,11 +257,11 @@ function ActionMark({ action, timeline, free, onOpen, onDrag, limit }: Readonly<
         {...common}
         className={cn(
           periodShape(action.element.kind, span.end == null),
-          "touch-none hover:h-2",
+          "z-[2] h-1 -translate-y-1/2 touch-none hover:h-1.5",
           free ? "cursor-grab" : "cursor-pointer",
-          moving && "h-2 cursor-grabbing"
+          moving && "h-1.5 cursor-grabbing"
         )}
-        style={{ left: x(span.start) + 3, width: Math.max(width - 6, 6) }}
+        style={{ top: y + 2, left: x(span.start) + 4, width: Math.max(width - 8, 6) }}
       >
         {free?.end && (
           <span

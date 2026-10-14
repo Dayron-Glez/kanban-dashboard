@@ -42,10 +42,12 @@ import { ViewOptionsMenu } from "./ViewOptionsMenu"
 import { ViewSelector } from "./ViewSelector"
 import { ZoomControl } from "./ZoomControl"
 
+// Lo que se despliega: lo que tiene hijos o acciones (su fila «Acciones»).
 const parentIds = (nodes: ElementNode[]): string[] =>
-  nodes.flatMap((node) =>
-    node.children.length > 0 ? [node.element.id, ...parentIds(node.children)] : []
-  )
+  nodes.flatMap((node) => [
+    ...(node.children.length > 0 || node.actions.length > 0 ? [node.element.id] : []),
+    ...parentIds(node.children),
+  ])
 
 const EDIT_ERRORS = {
   "missing-reference": "No se puede calcular: depende de algo que todavía no tiene fecha",

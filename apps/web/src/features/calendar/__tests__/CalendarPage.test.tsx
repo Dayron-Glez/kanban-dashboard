@@ -721,7 +721,7 @@ describe("CalendarPage", () => {
       )
     })
 
-    it("las acciones van en la celda de su padre; plegado, el padre cuenta las de dentro", async () => {
+    it("desplegado, las acciones van en la fila «Acciones» de su padre; plegado, resumidas bajo su barra", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([
           rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
@@ -747,21 +747,34 @@ describe("CalendarPage", () => {
       )
       renderPage()
 
-      const meeting = await screen.findByRole("button", {
+      // Rodaje plegado: lo de dentro, resumido bajo su barra, y sin poder tocarse.
+      expect(
+        await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("img", { name: "Recordatorio: Pedir permisos, 15 oct" })
+      ).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /Lectura de guion, 14 oct/ })).toBeNull()
+
+      // Desplegado: la reunión, en la fila «Acciones» de Rodaje; el recordatorio,
+      // resumido en Shooting, que sigue plegado.
+      await userEvent.click(screen.getByRole("button", { name: "Desplegar Rodaje" }))
+      const actionsRow = screen.getByRole("treeitem", { name: "Acciones de Rodaje" })
+      expect(actionsRow).toHaveTextContent("Acciones · 1")
+      const meeting = within(actionsRow).getByRole("button", {
         name: "Reunión: Lectura de guion, 14 oct",
       })
-      // No es una fila del árbol.
-      expect(screen.queryByRole("treeitem", { name: /Lectura de guion/ })).toBeNull()
-      // Rodaje está plegado: el recordatorio de Shooting sube como un número.
+      expect(screen.queryByRole("img", { name: /Lectura de guion/ })).toBeNull()
       expect(
-        screen.getByLabelText("1 acción: Recordatorio: Pedir permisos, 15 oct")
-      ).toHaveTextContent("1")
-
-      await userEvent.click(screen.getByRole("button", { name: "Desplegar Rodaje" }))
-      expect(
-        screen.getByRole("button", { name: "Recordatorio: Pedir permisos, 15 oct" })
+        screen.getByRole("img", { name: "Recordatorio: Pedir permisos, 15 oct" })
       ).toBeInTheDocument()
-      expect(screen.queryByLabelText(/^1 acción/)).toBeNull()
+
+      await userEvent.click(screen.getByRole("button", { name: "Desplegar Shooting" }))
+      expect(
+        within(screen.getByRole("treeitem", { name: "Acciones de Shooting" })).getByRole("button", {
+          name: "Recordatorio: Pedir permisos, 15 oct",
+        })
+      ).toBeInTheDocument()
 
       await userEvent.click(meeting)
       expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
@@ -788,7 +801,7 @@ describe("CalendarPage", () => {
       )
       renderPage()
 
-      await screen.findByRole("button", { name: "Reunión: Lectura de guion, 14 oct" })
+      await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
       const track = document.querySelector<HTMLElement>("[data-track]")!
       fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
       fireEvent.pointerUp(track)
@@ -854,6 +867,35 @@ describe("CalendarPage", () => {
       expect(within(item).getByLabelText("Sin duración")).toBeInTheDocument()
     })
 
+    it("desplegado, la celda de la fila «Acciones» enseña las suyas; la del elemento, crear", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const actions = document.querySelector<HTMLElement>('[data-track="rodaje#acciones"]')!
+      fireEvent.pointerDown(actions, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(actions)
+      const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
+      expect(within(list).getByRole("menuitem", { name: /Lectura de guion/ })).toBeInTheDocument()
+      await userEvent.keyboard("{Escape}")
+
+      // En la fila de Rodaje, desplegada, sus acciones ya tienen su fila: se ofrece crear.
+      const row = document.querySelector<HTMLElement>('[data-track="rodaje"]')!
+      fireEvent.pointerDown(row, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(row)
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+    })
+
     it("quien no es propietaria ve la lista de la celda, sin «Nueva acción»", async () => {
       api.projects.listMine.mockResolvedValue([summary("member")])
       api.elements.getPlan.mockResolvedValue(
@@ -869,7 +911,7 @@ describe("CalendarPage", () => {
       )
       renderPage()
 
-      await screen.findByRole("button", { name: "Reunión: Lectura de guion, 14 oct" })
+      await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
       const track = document.querySelector<HTMLElement>("[data-track]")!
       fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
       fireEvent.pointerUp(track)
@@ -1026,10 +1068,9 @@ describe("CalendarPage", () => {
       api.elements.updatePlan.mockResolvedValue(plan)
       renderPage()
 
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
       // Un día mide 40 px: 85 px son 2 días más tarde.
-      const meeting = await screen.findByRole("button", {
-        name: "Reunión: Lectura de guion, 14 oct",
-      })
+      const meeting = screen.getByRole("button", { name: "Reunión: Lectura de guion, 14 oct" })
       fireEvent.pointerDown(meeting, { button: 0, clientX: 100, pointerId: 1 })
       fireEvent.pointerMove(meeting, { clientX: 185, pointerId: 1 })
       fireEvent.pointerUp(meeting, { clientX: 185, pointerId: 1 })

@@ -1,4 +1,4 @@
-import { useEffect, type Ref } from "react"
+import { useEffect, type ReactNode, type Ref } from "react"
 import {
   IconAlertTriangle,
   IconAnchor,
@@ -29,7 +29,12 @@ import {
 } from "@/shared/index"
 import type { EpochDay } from "@repo/domain"
 import { useGanttCells, type DayPanel } from "../hooks/useGanttCells"
-import { actionsInSpan, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
+import {
+  actionsInSpan,
+  descendantActions,
+  ELEMENT_KIND_LABELS,
+  type ElementNode,
+} from "../lib/elementTree"
 import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
 import { phaseTint } from "../lib/phaseColors"
 import { describeIssue, describeRule, formatPlanDate, formatShortDay } from "../lib/planFormat"
@@ -45,7 +50,7 @@ import {
   type TimelineCell,
   type TimelineMarks,
 } from "../lib/timeline"
-import { ActionMarks } from "./ActionMarks"
+import { ActionLane, ActionRollup } from "./ActionMarks"
 import { CellMenu } from "./CellMenu"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { TimelineBar } from "./TimelineBar"
@@ -97,6 +102,9 @@ interface ElementTreeProps {
 // En el móvil, la tabla con todas sus columnas; junto al Gantt, las que se elijan.
 const MOBILE_TABLE = { gridTemplateColumns: "minmax(0,1fr) 7rem 7rem 7rem" }
 
+// La fila «Acciones» de un elemento, en la rejilla y en la selección.
+const actionsRow = (id: string) => `${id}#acciones`
+
 const CHIP =
   "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-sm font-medium whitespace-nowrap"
 
@@ -137,15 +145,27 @@ export function ElementTree({
         path.forEach((id) => selectedPath.add(id))
         return true
       }
+      if (node.actions.some((action) => action.element.id === selectedId)) {
+        ;[...path, node.element.id].forEach((id) => selectedPath.add(id))
+        return true
+      }
       return findPath(node.children, [...path, node.element.id])
     })
   if (selectedId) findPath(nodes, [])
   const background = showTimeline ? trackBackground(timeline, marks) : undefined
   const isOpen = (id: string) => expandedIds.has(id) || selectedPath.has(id)
+  // Con el Gantt, un elemento con acciones se despliega aunque no tenga hijos: debajo
+  // va su fila «Acciones».
+  const hasActionsRow = (node: ElementNode) => showTimeline && node.actions.length > 0
   const visibleIds = (list: ElementNode[]): string[] =>
     list.flatMap((node) => [
       node.element.id,
-      ...(isOpen(node.element.id) ? visibleIds(node.children) : []),
+      ...(isOpen(node.element.id)
+        ? [
+            ...(hasActionsRow(node) ? [actionsRow(node.element.id)] : []),
+            ...visibleIds(node.children),
+          ]
+        : []),
     ])
   const { hovered, selection, span, trackProps, menuOpen, closeMenu } = useGanttCells(
     showTimeline ? timeline : null,
@@ -167,6 +187,7 @@ export function ElementTree({
   const collect = (list: ElementNode[]) =>
     list.forEach((node) => {
       names.set(node.element.id, node.element.name)
+      names.set(actionsRow(node.element.id), `Acciones de ${node.element.name}`)
       collect(node.children)
     })
   collect(nodes)
@@ -237,11 +258,19 @@ export function ElementTree({
   }
 
   // Lo que hay en las celdas elegidas y, si se puede, crear ahí.
-  const cellMenu = (node: ElementNode, expanded: boolean) => {
+  // En la fila de acciones, las suyas; en la del elemento, plegado, todo lo de dentro
+  // (lo que resume su rollup) y, desplegado, nada: sus acciones tienen su fila.
+  const cellMenu = (node: ElementNode, row: string, expanded: boolean) => {
     const { element } = node
-    if (!menuOpen || selection?.id !== element.id || !span || !timeline) return null
+    if (!menuOpen || selection?.id !== row || !span || !timeline) return null
     const end = span.days === cellDays(span.start) ? span.start : span.start + span.days - 1
-    const inCell = actionsInSpan(node, expanded, span.start, span.start + span.days - 1)
+    const last = span.start + span.days - 1
+    const inCell =
+      row === actionsRow(element.id)
+        ? actionsInSpan(node, true, span.start, last)
+        : expanded
+          ? []
+          : actionsInSpan(node, false, span.start, last)
     const canCreate =
       editable && onCreateAction != null && ACTION_PARENT_KINDS.includes(element.kind)
     if (inCell.length === 0 && !canCreate) return null
@@ -272,7 +301,7 @@ export function ElementTree({
           onCloseAutoFocus={(event) => {
             event.preventDefault()
             document
-              .querySelector<HTMLElement>(`[data-track="${element.id}"]`)
+              .querySelector<HTMLElement>(`[data-track="${row}"]`)
               ?.focus({ preventScroll: true })
           }}
         >
@@ -296,7 +325,7 @@ export function ElementTree({
               onOpenDay &&
               (() => {
                 closeMenu()
-                onOpenDay(span.start, element.id)
+                onOpenDay(span.start, row)
               })
             }
             onCreate={(input) => onCreateAction?.(element.id, input, closeMenu)}
@@ -306,10 +335,96 @@ export function ElementTree({
     )
   }
 
+  const track = (row: string, label: string, content: ReactNode) =>
+    timeline && (
+      <div
+        {...trackProps(row)}
+        aria-label={label}
+        // isolate: lo que se pinta dentro (barras, acciones) no pasa por encima
+        // de la columna fija de la tabla al desplazar el Gantt.
+        className="relative isolate shrink-0 outline-none"
+        style={{ width: timeline.width, ...background }}
+      >
+        {hovered?.id === row && (
+          <span
+            aria-hidden
+            className="bg-primary/10 ring-primary/60 pointer-events-none absolute inset-y-0 rounded-[3px] ring-1 ring-inset"
+            style={{
+              left: timelineX(hovered.cell.start, timeline),
+              width: hovered.cell.days * timeline.pxPerDay,
+            }}
+          />
+        )}
+        {selection?.id === row && span && (
+          <span
+            aria-hidden
+            data-cell-selection
+            className="bg-primary/15 ring-primary pointer-events-none absolute inset-y-0 rounded-[3px] ring-2 ring-inset"
+            style={{
+              left: timelineX(span.start, timeline),
+              width: span.days * timeline.pxPerDay,
+              // Al llevarla a la vista, que no quede bajo la columna fija.
+              scrollMarginLeft: ganttTable.width,
+            }}
+          >
+            {span.days > cellDays(span.start) && (
+              <span className="bg-primary text-primary-foreground absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap tabular-nums shadow-sm">
+                {spanLabel(span)}
+              </span>
+            )}
+          </span>
+        )}
+        {content}
+      </div>
+    )
+
+  // La fila «Acciones» de un elemento desplegado: sus acciones, sin las de sus hijos.
+  const renderActionsRow = (node: ElementNode) => {
+    const row = actionsRow(node.element.id)
+    return (
+      <li key={row} role="treeitem" aria-label={`Acciones de ${node.element.name}`}>
+        <div
+          className="border-border/40 bg-muted/20 flex border-b text-base"
+          style={{ height: ROW_HEIGHT }}
+        >
+          <div
+            className="bg-background border-border/60 sticky left-0 z-10 grid shrink-0 items-center gap-2 border-r pr-2"
+            style={table}
+          >
+            <span
+              className="text-muted-foreground text-sm"
+              style={{ paddingLeft: `${(node.depth + 1) * 20 + 32}px` }}
+            >
+              Acciones · {node.actions.length}
+            </span>
+          </div>
+          {track(
+            row,
+            `Días de las acciones de ${node.element.name}`,
+            <>
+              {cellMenu(node, row, true)}
+              {timeline && (
+                <ActionLane
+                  node={node}
+                  timeline={timeline}
+                  onOpen={onOpen}
+                  editable={editable && !pending}
+                  dependencies={dependencies}
+                  onDrag={onDragBar}
+                  limit={limitDrag}
+                />
+              )}
+            </>
+          )}
+        </div>
+      </li>
+    )
+  }
+
   const renderNode = (node: ElementNode) => {
     const { element, depth, children } = node
     const expanded = isOpen(element.id)
-    const hasChildren = children.length > 0
+    const hasChildren = children.length > 0 || hasActionsRow(node)
     const rule = describeRule(element, dependencies, nameOf)
     const selected = element.id === selectedId
 
@@ -441,60 +556,28 @@ export function ElementTree({
             {columns.end && dateCell(element, "end")}
           </div>
 
-          {showTimeline && (
-            <div
-              {...trackProps(element.id)}
-              aria-label={`Días de ${element.name}`}
-              // isolate: lo que se pinta dentro (barras, acciones) no pasa por encima
-              // de la columna fija de la tabla al desplazar el Gantt.
-              className="relative isolate shrink-0 outline-none"
-              style={{ width: timeline.width, ...background }}
-            >
-              {hovered?.id === element.id && (
-                <span
-                  aria-hidden
-                  className="bg-primary/10 ring-primary/60 pointer-events-none absolute inset-y-0 rounded-[3px] ring-1 ring-inset"
-                  style={{
-                    left: timelineX(hovered.cell.start, timeline),
-                    width: hovered.cell.days * timeline.pxPerDay,
-                  }}
-                />
-              )}
-              {selection?.id === element.id && span && (
-                <span
-                  aria-hidden
-                  data-cell-selection
-                  className="bg-primary/15 ring-primary pointer-events-none absolute inset-y-0 rounded-[3px] ring-2 ring-inset"
-                  style={{
-                    left: timelineX(span.start, timeline),
-                    width: span.days * timeline.pxPerDay,
-                    // Al llevarla a la vista, que no quede bajo la columna fija.
-                    scrollMarginLeft: ganttTable.width,
-                  }}
-                >
-                  {span.days > cellDays(span.start) && (
-                    <span className="bg-primary text-primary-foreground absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap tabular-nums shadow-sm">
-                      {spanLabel(span)}
-                    </span>
-                  )}
-                </span>
-              )}
-              {cellMenu(node, expanded)}
-              {bar(node, rule)}
-              <ActionMarks
-                node={node}
-                expanded={expanded}
-                timeline={timeline}
-                onOpen={onOpen}
-                editable={editable && !pending}
-                dependencies={dependencies}
-                onDrag={onDragBar}
-                limit={limitDrag}
-              />
-            </div>
-          )}
+          {showTimeline &&
+            track(
+              element.id,
+              `Días de ${element.name}`,
+              <>
+                {cellMenu(node, element.id, expanded)}
+                {bar(node, rule)}
+                {!expanded && timeline && (
+                  <ActionRollup
+                    actions={[...node.actions, ...descendantActions(node)]}
+                    timeline={timeline}
+                  />
+                )}
+              </>
+            )}
         </div>
-        {hasChildren && expanded && <ul role="group">{children.map(renderNode)}</ul>}
+        {hasChildren && expanded && (
+          <ul role="group">
+            {hasActionsRow(node) && renderActionsRow(node)}
+            {children.map(renderNode)}
+          </ul>
+        )}
       </li>
     )
   }
