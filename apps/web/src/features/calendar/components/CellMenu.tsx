@@ -13,6 +13,7 @@ import { ELEMENT_KIND_LABELS, lacksDuration } from "../lib/elementTree"
 import { formatLongDate, formatShortDay } from "../lib/planFormat"
 import { ActionGlyph } from "./ActionGlyph"
 import { MissingDurationHint } from "./MissingDurationHint"
+import { TruncatedText } from "./TruncatedText"
 
 const HINTS: Record<ActionKind, string> = {
   event: "un día o periodo",
@@ -154,7 +155,7 @@ export function CellMenu({
               <span className="text-muted-foreground flex w-[18px] justify-center">
                 <ActionGlyph kind={element.kind as ActionKind} />
               </span>
-              <span className="min-w-0 truncate">{element.name}</span>
+              <TruncatedText text={element.name} />
               <span className="ml-auto flex shrink-0 items-center gap-1.5">
                 {lacksDuration(element) && <MissingDurationHint />}
                 <span className="text-muted-foreground text-xs">

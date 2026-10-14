@@ -50,6 +50,7 @@ import { CellMenu } from "./CellMenu"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { TimelineBar } from "./TimelineBar"
 import { TimelineScale } from "./TimelineScale"
+import { TruncatedText } from "./TruncatedText"
 
 interface ElementTreeProps {
   nodes: ElementNode[]
@@ -364,13 +365,12 @@ export function ElementTree({
                 type="button"
                 onClick={() => onOpen(element.id)}
                 aria-label={`Ver el detalle de ${element.name}`}
-                title={element.name}
                 className={cn(
-                  "hover:text-primary min-w-0 truncate text-left transition-colors",
+                  "hover:text-primary flex min-w-0 text-left transition-colors",
                   depth === 0 && "font-semibold"
                 )}
               >
-                {element.name}
+                <TruncatedText text={element.name} />
               </button>
               {element.isAnchor ? (
                 <span

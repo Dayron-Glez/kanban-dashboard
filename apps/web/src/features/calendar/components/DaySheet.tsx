@@ -38,6 +38,7 @@ import type { Timeline } from "../lib/timeline"
 import { ActionGlyph } from "./ActionGlyph"
 import { CellMenu } from "./CellMenu"
 import { MissingDurationHint } from "./MissingDurationHint"
+import { TruncatedText } from "./TruncatedText"
 
 interface DaySheetProps {
   day: EpochDay
@@ -203,11 +204,12 @@ export function DaySheet({
                         <span className="text-muted-foreground flex w-[18px] justify-center">
                           <ActionGlyph kind={element.kind as ActionKind} />
                         </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm">{element.name}</span>
-                          <span className="text-muted-foreground block truncate text-xs">
-                            {nameOf(element.parentId)}
-                          </span>
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <TruncatedText text={element.name} className="text-sm" />
+                          <TruncatedText
+                            text={nameOf(element.parentId) ?? ""}
+                            className="text-muted-foreground text-xs"
+                          />
                         </span>
                         {lacksDuration(element) && <MissingDurationHint />}
                       </button>
@@ -241,7 +243,7 @@ export function DaySheet({
                           {parent ? (
                             <span className="flex min-w-0 items-center gap-2">
                               <Mark node={parent} />
-                              <span className="truncate">{parent.element.name}</span>
+                              <TruncatedText text={parent.element.name} />
                             </span>
                           ) : (
                             <span className="text-muted-foreground">
@@ -273,11 +275,10 @@ export function DaySheet({
                                   style={{ paddingLeft: node.depth * 12 }}
                                 >
                                   <Mark node={node} />
-                                  <span
-                                    className={cn("truncate", node.depth === 0 && "font-semibold")}
-                                  >
-                                    {node.element.name}
-                                  </span>
+                                  <TruncatedText
+                                    text={node.element.name}
+                                    className={cn(node.depth === 0 && "font-semibold")}
+                                  />
                                 </span>
                                 {activeIds.has(node.element.id) && (
                                   <span className="text-muted-foreground shrink-0 text-xs">
@@ -325,14 +326,10 @@ export function DaySheet({
                     style={{ paddingLeft: node.depth * 14 + 6 }}
                   >
                     <Mark node={node} />
-                    <span
-                      className={cn(
-                        "min-w-0 truncate text-sm",
-                        node.depth === 0 && "font-semibold"
-                      )}
-                    >
-                      {node.element.name}
-                    </span>
+                    <TruncatedText
+                      text={node.element.name}
+                      className={cn("text-sm", node.depth === 0 && "font-semibold")}
+                    />
                     <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">
                       {formatShortDay(fromIsoDate(node.element.startsOn!))}
                       {node.element.endsOn &&
