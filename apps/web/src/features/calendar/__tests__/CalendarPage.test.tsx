@@ -344,10 +344,10 @@ describe("CalendarPage", () => {
     renderPage()
 
     const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
-    // Un día mide 40 px: 290 px son 7,25 días, que se quedan en 7.
+    // Un día mide 48 px: 340 px son 7,08 días, que se quedan en 7.
     fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
-    fireEvent.pointerMove(bar, { clientX: 390, pointerId: 1 })
-    fireEvent.pointerUp(bar, { clientX: 390, pointerId: 1 })
+    fireEvent.pointerMove(bar, { clientX: 440, pointerId: 1 })
+    fireEvent.pointerUp(bar, { clientX: 440, pointerId: 1 })
     // El clic que sigue a soltar no abre el inspector; un clic sin arrastrar, sí.
     fireEvent.click(bar)
     await waitFor(() =>
@@ -449,7 +449,7 @@ describe("CalendarPage", () => {
       const bar = await screen.findByRole("button", {
         name: "Preparación: 1 feb 2027 → 4 abr 2027",
       })
-      // Un día mide 40 px: 784 px son casi 3 semanas, pero el tope está en 10 días.
+      // Un día mide 48 px: 784 px son más de 2 semanas, pero el tope está en 10 días.
       fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
       fireEvent.pointerMove(bar, { clientX: 884, pointerId: 1 })
       expect(screen.getByText(/tope: 25 % de solape/)).toBeInTheDocument()
@@ -500,7 +500,7 @@ describe("CalendarPage", () => {
     })
 
     // La rejilla empieza el lunes 12 de octubre de 2026: hoy es su segundo día.
-    const leftOf = (iso: string) => (fromIsoDate(iso) - fromIsoDate("2026-10-12")) * 40 + 20
+    const leftOf = (iso: string) => (fromIsoDate(iso) - fromIsoDate("2026-10-12")) * 48 + 24
 
     it("al abrir se centra en hoy, y «Hoy» e «Ir a fecha» llevan a donde se pide", async () => {
       api.elements.getPlan.mockResolvedValue(
@@ -610,10 +610,10 @@ describe("CalendarPage", () => {
     await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
     const track = document.querySelector<HTMLElement>("[data-track]")!
     const days = screen.getAllByTitle(/^(lun|mar|mié|jue|vie|sáb|dom) [0-9]/)
-    // En jsdom la pista empieza en x = 0: el tercer día queda entre 80 y 120 px.
-    fireEvent.pointerMove(track, { clientX: 90, pointerType: "mouse" })
+    // En jsdom la pista empieza en x = 0: el tercer día queda entre 96 y 144 px.
+    fireEvent.pointerMove(track, { clientX: 110, pointerType: "mouse" })
     expect(days[2]).toHaveAttribute("data-hovered", "true")
-    expect(track.querySelector(".ring-1")).toHaveStyle({ left: "80px", width: "40px" })
+    expect(track.querySelector(".ring-1")).toHaveStyle({ left: "96px", width: "48px" })
 
     fireEvent.pointerLeave(track)
     expect(days[2]).not.toHaveAttribute("data-hovered")
@@ -637,16 +637,16 @@ describe("CalendarPage", () => {
     expect(first).toHaveAttribute("tabindex", "0")
     expect(second).toHaveAttribute("tabindex", "-1")
 
-    // En jsdom la pista empieza en x = 0: 90 px es el tercer día de la rejilla.
-    fireEvent.pointerDown(first!, { button: 0, clientX: 90, pointerType: "mouse" })
+    // En jsdom la pista empieza en x = 0: 110 px es el tercer día de la rejilla.
+    fireEvent.pointerDown(first!, { button: 0, clientX: 110, pointerType: "mouse" })
     fireEvent.pointerUp(first!)
     expect(first).toHaveFocus()
     const start = status()
     expect(start).toMatch(/^Preparación: \d+ \w+$/)
 
     // Arrastrar hasta el quinto día marca tres.
-    fireEvent.pointerDown(first!, { button: 0, clientX: 90, pointerType: "mouse" })
-    fireEvent.pointerMove(first!, { clientX: 170, pointerType: "mouse" })
+    fireEvent.pointerDown(first!, { button: 0, clientX: 110, pointerType: "mouse" })
+    fireEvent.pointerMove(first!, { clientX: 200, pointerType: "mouse" })
     fireEvent.pointerUp(first!)
     expect(status()).toMatch(/· 3 días$/)
     expect(first!.querySelector("[data-cell-selection]")).toHaveTextContent("3 días")
@@ -682,8 +682,8 @@ describe("CalendarPage", () => {
 
       await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
       const track = document.querySelector<HTMLElement>("[data-track]")!
-      // 90 px es el tercer día de la rejilla: el miércoles 14.
-      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      // 110 px es el tercer día de la rejilla: el miércoles 14.
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
 
       const menu = await screen.findByRole("menu", { name: "Tipo de acción" })
@@ -704,8 +704,8 @@ describe("CalendarPage", () => {
       await waitFor(() => expect(screen.queryByRole("textbox", { name: "Nombre" })).toBeNull())
 
       // Un periodo: reunión y recordatorio no se ofrecen; una tarea lleva su fin.
-      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
-      fireEvent.pointerMove(track, { clientX: 170, pointerType: "mouse" })
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerMove(track, { clientX: 200, pointerType: "mouse" })
       fireEvent.pointerUp(track)
       const range = await screen.findByRole("menu", { name: "Tipo de acción" })
       expect(within(range).getByRole("menuitem", { name: /Reunión/ })).toBeDisabled()
@@ -803,7 +803,7 @@ describe("CalendarPage", () => {
 
       await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
       const track = document.querySelector<HTMLElement>("[data-track]")!
-      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
 
       const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
@@ -825,13 +825,13 @@ describe("CalendarPage", () => {
       ).toBeInTheDocument()
       await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
 
-      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
       await userEvent.click(await screen.findByRole("button", { name: "Nueva acción en este día" }))
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
       await userEvent.keyboard("{Escape}")
 
-      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
       await userEvent.click(await screen.findByRole("menuitem", { name: /Lectura de guion/ }))
       expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
@@ -854,7 +854,7 @@ describe("CalendarPage", () => {
       await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
       const track = document.querySelector<HTMLElement>("[data-track]")!
       // Dos días después ya no está: la celda está vacía y se ofrece crear.
-      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
       await userEvent.keyboard("{Escape}")
@@ -883,7 +883,7 @@ describe("CalendarPage", () => {
 
       await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
       const actions = document.querySelector<HTMLElement>('[data-track="rodaje#acciones"]')!
-      fireEvent.pointerDown(actions, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(actions, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(actions)
       const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
       expect(within(list).getByRole("menuitem", { name: /Lectura de guion/ })).toBeInTheDocument()
@@ -891,7 +891,7 @@ describe("CalendarPage", () => {
 
       // En la fila de Rodaje, desplegada, sus acciones ya tienen su fila: se ofrece crear.
       const row = document.querySelector<HTMLElement>('[data-track="rodaje"]')!
-      fireEvent.pointerDown(row, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(row, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(row)
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
     })
@@ -913,7 +913,7 @@ describe("CalendarPage", () => {
 
       await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
       const track = document.querySelector<HTMLElement>("[data-track]")!
-      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
       expect(await screen.findByRole("menu", { name: "Acciones de la celda" })).toBeInTheDocument()
       expect(screen.queryByRole("button", { name: /Nueva acción/ })).toBeNull()
@@ -1003,7 +1003,7 @@ describe("CalendarPage", () => {
 
       await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
       const shooting = document.querySelector<HTMLElement>('[data-track="shooting"]')!
-      fireEvent.pointerDown(shooting, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(shooting, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(shooting)
       await userEvent.keyboard("{Escape}")
       fireEvent.keyDown(shooting, { key: "Enter", shiftKey: true })
@@ -1069,11 +1069,11 @@ describe("CalendarPage", () => {
       renderPage()
 
       await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
-      // Un día mide 40 px: 85 px son 2 días más tarde.
+      // Un día mide 48 px: 100 px son 2 días más tarde.
       const meeting = screen.getByRole("button", { name: "Reunión: Lectura de guion, 14 oct" })
       fireEvent.pointerDown(meeting, { button: 0, clientX: 100, pointerId: 1 })
-      fireEvent.pointerMove(meeting, { clientX: 185, pointerId: 1 })
-      fireEvent.pointerUp(meeting, { clientX: 185, pointerId: 1 })
+      fireEvent.pointerMove(meeting, { clientX: 200, pointerId: 1 })
+      fireEvent.pointerUp(meeting, { clientX: 200, pointerId: 1 })
       await waitFor(() =>
         expect(api.elements.updatePlan).toHaveBeenLastCalledWith("lectura", {
           fixedStart: "2026-10-16",
@@ -1110,7 +1110,7 @@ describe("CalendarPage", () => {
 
       await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
       const track = document.querySelector<HTMLElement>("[data-track]")!
-      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
       expect(screen.getByRole("status")).toHaveTextContent("Rodaje: 14 oct")
       expect(screen.queryByRole("menu", { name: "Tipo de acción" })).toBeNull()

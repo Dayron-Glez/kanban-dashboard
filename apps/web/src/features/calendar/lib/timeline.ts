@@ -20,7 +20,7 @@ export const PLAN_ZOOMS = ["dia", "semana", "mes"] as const
 export type PlanZoom = (typeof PLAN_ZOOMS)[number]
 
 /** El alto de cada fila del Gantt: con el zoom «día», el ancho de un día, para que las celdas sean cuadradas. */
-export const ROW_HEIGHT = 40
+export const ROW_HEIGHT = 48
 
 // Píxeles por día y a cuántos días se ajusta un arrastre: con «semana» una semana
 // mide 56 px, con «mes» un mes unos 90.

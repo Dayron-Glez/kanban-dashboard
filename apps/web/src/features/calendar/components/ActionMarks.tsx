@@ -49,9 +49,9 @@ interface ActionLaneProps {
   ) => { days: number; reason: string | null }
 }
 
-// En la fila de 40 px: las de un día y los números arriba, los periodos en dos carriles debajo.
-const POINT_Y = 13
-const LANE_Y = [24, 31]
+// En la fila de 48 px: las de un día y los números arriba, los periodos en dos carriles debajo.
+const POINT_Y = 17
+const LANE_Y = [31, 39]
 
 /**
  * La fila «Acciones» de un elemento: las de un día con la forma de su tipo, los
@@ -135,7 +135,7 @@ export function ActionRollup({
             title={label(action)}
             className={cn(periodShape(action.element.kind, !action.element.endsOn), "h-[3px]")}
             style={{
-              top: 34,
+              top: 42,
               left: timelineX(start, timeline) + 4,
               width: Math.max((end - start + 1) * timeline.pxPerDay - 8, 4),
             }}
@@ -150,7 +150,7 @@ export function ActionRollup({
             aria-label={label(list[0]!)}
             title={label(list[0]!)}
             className="absolute flex -translate-1/2 items-center justify-center"
-            style={{ left: cellCenter(start, timeline), top: 28 }}
+            style={{ left: cellCenter(start, timeline), top: 34 }}
           >
             <ActionGlyph kind={list[0]!.element.kind as ActionKind} className="scale-75" />
           </span>
@@ -160,7 +160,7 @@ export function ActionRollup({
             title={list.map(label).join("\n")}
             aria-label={countLabel(list)}
             className={cn(COUNT, "h-[13px] min-w-[15px] px-1 text-[9px]")}
-            style={{ left: cellCenter(start, timeline), top: 28 }}
+            style={{ left: cellCenter(start, timeline), top: 34 }}
           >
             {list.length}
           </span>

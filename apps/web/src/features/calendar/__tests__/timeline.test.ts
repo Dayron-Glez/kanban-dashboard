@@ -49,11 +49,11 @@ describe("buildTimeline", () => {
   // Rodaje del 5 al 18 de abril de 2027; hoy, el 13 de octubre de 2026.
   const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
-  it("una columna de 40 px por día, desde la semana de hoy hasta 14 días tras el final", () => {
-    expect(timeline.pxPerDay).toBe(40)
+  it("una columna de 48 px por día, desde la semana de hoy hasta 14 días tras el final", () => {
+    expect(timeline.pxPerDay).toBe(48)
     expect(timeline.range.start).toBe(fromIsoDate("2026-10-12"))
     expect(timeline.range.end).toBe(fromIsoDate("2027-05-02"))
-    expect(timeline.width).toBe(timeline.days.length * 40)
+    expect(timeline.width).toBe(timeline.days.length * 48)
     expect(timeline.today).toBe(fromIsoDate("2026-10-13"))
   })
 
@@ -69,7 +69,7 @@ describe("scrollLeftFor", () => {
 
   it("deja el día a un tercio del ancho visible, y nunca antes del principio", () => {
     // El 5 de abril de 2027 está 175 días después del primer día de la rejilla.
-    expect(scrollLeftFor(fromIsoDate("2027-04-05"), timeline, 900)).toBe(175 * 40 + 20 - 300)
+    expect(scrollLeftFor(fromIsoDate("2027-04-05"), timeline, 900)).toBe(175 * 48 + 24 - 300)
     expect(scrollLeftFor(timeline.today, timeline, 900)).toBe(0)
   })
 })
@@ -87,7 +87,7 @@ describe("trackBackground", () => {
   it("las líneas entre celdas no se apagan: una por día", () => {
     expect(trackBackground(timeline, { today: false, week1: false, weekends: false })).toEqual({
       backgroundImage: "linear-gradient(90deg, var(--grid-cell) 1px, transparent 1px)",
-      backgroundSize: "40px 100%",
+      backgroundSize: "48px 100%",
       backgroundPosition: "0 0",
       backgroundRepeat: "repeat-x",
     })
@@ -98,8 +98,8 @@ describe("el zoom", () => {
   const rodaje = [element("rodaje", { startsOn: "2027-04-05", endsOn: "2027-05-16" })]
   const at = (zoom: "dia" | "semana" | "mes") => buildTimeline(rodaje, new Date(2026, 9, 13), zoom)!
 
-  it("una columna por día (40 px), por semana (56 px) o por mes (unos 90 px)", () => {
-    expect(at("dia").pxPerDay * 7).toBe(280)
+  it("una columna por día (48 px), por semana (56 px) o por mes (unos 90 px)", () => {
+    expect(at("dia").pxPerDay * 7).toBe(336)
     expect(at("semana").pxPerDay * 7).toBe(56)
     expect(at("mes").pxPerDay * 30).toBe(90)
   })
@@ -139,7 +139,7 @@ describe("las celdas", () => {
   })
 
   it("la celda bajo un punto, sin salirse de la rejilla", () => {
-    expect(cellAtX(at("dia"), 3 * 40 + 5).start).toBe(day)
+    expect(cellAtX(at("dia"), 3 * 48 + 5).start).toBe(day)
     expect(cellAtX(at("dia"), -40).start).toBe(at("dia").range.start)
     expect(cellAtX(at("dia"), 1e7).start).toBe(at("dia").range.end)
   })
