@@ -1,102 +1,166 @@
 import type { CSSProperties } from "react"
 import type { CalendarElement, DatePoint, ElementDependency } from "@repo/contracts"
 import {
+  dayGridRange,
   fromIsoDate,
+  gridDays,
   mondayOf,
-  monthTicks,
-  positionOf,
-  timelineRange,
+  monthSegments,
+  weekSegments,
   type EpochDay,
-  type MonthTick,
+  type GridDay,
   type TimelineRange,
 } from "@repo/domain"
 
-export const PLAN_VIEWS = ["tabla", "ambos", "cronograma"] as const
-export type PlanView = (typeof PLAN_VIEWS)[number]
+/** Cómo se ve el árbol: solo la tabla (el móvil), o la tabla junto al Gantt. */
+export type PlanView = "tabla" | "gantt"
 
-export const PLAN_SCALES = ["semanas", "meses"] as const
-export type PlanScale = (typeof PLAN_SCALES)[number]
+export const PLAN_ZOOMS = ["dia", "semana", "mes"] as const
+/** Lo cerca que se ve el Gantt: una columna por día, por semana o por mes. */
+export type PlanZoom = (typeof PLAN_ZOOMS)[number]
 
-/** Píxeles por día de cada escala: con «semanas» una semana mide 42 px. */
-const PX_PER_DAY: Record<PlanScale, number> = { semanas: 6, meses: 2 }
+// Píxeles por día y a cuántos días se ajusta un arrastre: con «semana» una semana
+// mide 56 px, con «mes» un mes unos 90.
+const ZOOM: Record<PlanZoom, { pxPerDay: number; snapDays: number }> = {
+  dia: { pxPerDay: 28, snapDays: 1 },
+  semana: { pxPerDay: 8, snapDays: 7 },
+  mes: { pxPerDay: 3, snapDays: 7 },
+}
+
+/** El ancho de cada día del Gantt con el zoom «día», en píxeles. */
+export const DAY_WIDTH = ZOOM.dia.pxPerDay
 
 export interface Timeline {
+  zoom: PlanZoom
   range: TimelineRange
   pxPerDay: number
+  /** A cuántos días se ajusta un arrastre. */
+  snapDays: number
   width: number
-  ticks: MonthTick[]
+  days: GridDay[]
+  months: ReturnType<typeof monthSegments>
+  years: { start: EpochDay; days: number; year: number }[]
+  weeks: ReturnType<typeof weekSegments>
   /** El lunes de la semana del rodaje, la semana 1. */
   shootWeek: EpochDay | null
   today: EpochDay
-  /** A cuántos días se ajusta un arrastre: días con «semanas», semanas con «meses». */
-  snapDays: number
 }
 
 const day = (iso: string | null) => (iso ? fromIsoDate(iso) : null)
 
-/** Lo que necesita el cronograma para pintarse, o null si nada tiene fechas. */
+const localToday = (today: Date) =>
+  fromIsoDate(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+  )
+
+/** Lo que necesita el Gantt día a día para pintarse, o null si nada tiene fechas. */
 export function buildTimeline(
   elements: CalendarElement[],
-  scale: PlanScale,
-  today: Date = new Date()
+  now: Date = new Date(),
+  zoom: PlanZoom = "dia"
 ): Timeline | null {
-  const range = timelineRange(
-    elements.map((element) => ({ start: day(element.startsOn), end: day(element.endsOn) }))
+  const today = localToday(now)
+  const range = dayGridRange(
+    elements.map((element) => ({ start: day(element.startsOn), end: day(element.endsOn) })),
+    [today]
   )
   if (!range) return null
   const shoot =
     elements.find((element) => element.templateKey === "rodaje") ??
     elements.find((element) => element.isAnchor)
-  const pxPerDay = PX_PER_DAY[scale]
+  const shootWeek = shoot?.startsOn ? mondayOf(fromIsoDate(shoot.startsOn)) : null
+  const { pxPerDay, snapDays } = ZOOM[zoom]
+  const months = monthSegments(range)
   return {
+    zoom,
     range,
     pxPerDay,
+    snapDays,
     width: range.days * pxPerDay,
-    ticks: monthTicks(range),
-    snapDays: scale === "meses" ? 7 : 1,
-    shootWeek: shoot?.startsOn ? mondayOf(fromIsoDate(shoot.startsOn)) : null,
-    today: fromIsoDate(
-      `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
-    ),
+    days: gridDays(range),
+    months,
+    years: yearSegments(months),
+    weeks: weekSegments(range, shootWeek),
+    shootWeek,
+    today,
   }
 }
 
-/** Dónde cae un día en el cronograma, en píxeles. */
+// Los años, juntando los meses de la rejilla: la cabecera de «semana» y «mes».
+const yearSegments = (months: ReturnType<typeof monthSegments>) =>
+  months.reduce<{ start: EpochDay; days: number; year: number }[]>((years, month) => {
+    const last = years.at(-1)
+    if (last?.year === month.year) last.days += month.days
+    else years.push({ start: month.start, days: month.days, year: month.year })
+    return years
+  }, [])
+
+/** Dónde empieza un día en el Gantt, en píxeles. */
 export const timelineX = (day: EpochDay, timeline: Timeline) =>
-  positionOf(day, timeline.range) * timeline.width
+  (day - timeline.range.start) * timeline.pxPerDay
 
 /**
- * Las líneas de cada mes, de hoy y de la semana 1, como fondo de las pistas:
- * se calcula una vez y todas las filas lo comparten, sin capas encima.
+ * Hasta dónde desplazar el Gantt para enseñar un día: queda a un tercio del
+ * ancho visible, para que se vea lo que viene después.
  */
-export function trackBackground(timeline: Timeline): CSSProperties {
+export const scrollLeftFor = (day: EpochDay, timeline: Timeline, visibleWidth: number) =>
+  Math.max(0, Math.round(timelineX(day, timeline) + timeline.pxPerDay / 2 - visibleWidth / 3))
+
+/**
+ * El fondo de todas las filas: los fines de semana sombreados de arriba abajo y
+ * las líneas de hoy y de la semana 1. Se calcula una vez y lo comparten todas.
+ */
+export interface TimelineMarks {
+  today: boolean
+  week1: boolean
+  weekends: boolean
+}
+
+const ALL_MARKS: TimelineMarks = { today: true, week1: true, weekends: true }
+
+export function trackBackground(
+  timeline: Timeline,
+  marks: TimelineMarks = ALL_MARKS
+): CSSProperties {
+  const { pxPerDay } = timeline
+  const line = (at: number, color: string) => ({ at, color })
   const lines = [
-    ...timeline.ticks.map((tick) => ({
-      at: timelineX(tick.day, timeline),
-      color: "var(--border)",
-    })),
-    ...(timeline.shootWeek != null
+    ...(marks.week1 && timeline.shootWeek != null
       ? [
-          {
-            at: timelineX(timeline.shootWeek, timeline),
-            color: "color-mix(in oklch, var(--primary) 35%, transparent)",
-          },
+          line(
+            timelineX(timeline.shootWeek, timeline),
+            "color-mix(in oklch, var(--primary) 40%, transparent)"
+          ),
         ]
       : []),
-    { at: timelineX(timeline.today, timeline), color: "var(--primary)" },
-  ].filter((line) => line.at >= 0 && line.at <= timeline.width)
-
+    ...(marks.today
+      ? [line(timelineX(timeline.today, timeline) + pxPerDay / 2, "var(--primary)")]
+      : []),
+  ].filter(({ at }) => at >= 0 && at <= timeline.width)
+  // La rejilla empieza en lunes: sábado y domingo son los días 5 y 6 de cada semana.
+  // Solo con «día»: más lejos, el sombreado serían rayas de 8 o 3 px.
+  const weekend = `repeating-linear-gradient(90deg, transparent 0 ${5 * pxPerDay}px, var(--weekend) ${5 * pxPerDay}px ${7 * pxPerDay}px)`
+  const layers = [
+    ...lines.map(({ at, color }) => ({
+      image: `linear-gradient(${color}, ${color})`,
+      size: "1px 100%",
+      position: `${at}px 0`,
+      repeat: "no-repeat",
+    })),
+    ...(marks.weekends && timeline.zoom === "dia"
+      ? [{ image: weekend, size: "auto", position: "0 0", repeat: "repeat" }]
+      : []),
+  ]
+  if (layers.length === 0) return {}
   return {
-    backgroundImage: lines
-      .map((line) => `linear-gradient(${line.color}, ${line.color})`)
-      .join(", "),
-    backgroundSize: lines.map(() => "1px 100%").join(", "),
-    backgroundPosition: lines.map((line) => `${line.at}px 0`).join(", "),
-    backgroundRepeat: "no-repeat",
+    backgroundImage: layers.map((layer) => layer.image).join(", "),
+    backgroundSize: layers.map((layer) => layer.size).join(", "),
+    backgroundPosition: layers.map((layer) => layer.position).join(", "),
+    backgroundRepeat: layers.map((layer) => layer.repeat).join(", "),
   }
 }
 
-/** Los píxeles arrastrados, en días y ajustados al paso de la escala. */
+/** Los píxeles arrastrados, en días y ajustados al paso del zoom. */
 export const dragDays = (pixels: number, timeline: Timeline) =>
   Math.round(pixels / timeline.pxPerDay / timeline.snapDays) * timeline.snapDays || 0
 

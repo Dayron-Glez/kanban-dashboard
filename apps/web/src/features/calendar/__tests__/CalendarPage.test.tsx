@@ -6,13 +6,18 @@ import type {
   ElementDependency,
   ProjectSummary,
 } from "@repo/contracts"
+import { fromIsoDate } from "@repo/domain"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { toast } from "sonner"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
-import { CalendarPhasesPage } from "../components/CalendarPhasesPage"
+import { CalendarPage } from "../components/CalendarPage"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+
+// En el móvil no hay rejilla: el árbol con sus fechas.
+const device = vi.hoisted(() => ({ mobile: false }))
+vi.mock("@/shared/hooks/use-mobile", () => ({ useIsMobile: () => device.mobile }))
 
 const PROJECT_ID = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b"
 
@@ -78,7 +83,7 @@ const renderPage = (search = "") => {
     <Wrapper>
       <MemoryRouter initialEntries={[`/projects/${PROJECT_ID}/calendar${search}`]}>
         <Routes>
-          <Route path="/projects/:id/calendar" element={<CalendarPhasesPage />} />
+          <Route path="/projects/:id/calendar" element={<CalendarPage />} />
         </Routes>
       </MemoryRouter>
     </Wrapper>
@@ -88,12 +93,14 @@ const renderPage = (search = "") => {
 const rowOf = (name: string) => screen.getByText(name).closest("li")!
 
 beforeEach(() => {
+  device.mobile = false
+  localStorage.clear()
   vi.mocked(toast.success).mockClear()
   api = createFakeApi()
   api.projects.listMine.mockResolvedValue([summary("owner")])
 })
 
-describe("CalendarPhasesPage", () => {
+describe("CalendarPage", () => {
   it("todo empieza plegado; se despliega fase a fase o todo de una vez", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([
@@ -134,7 +141,8 @@ describe("CalendarPhasesPage", () => {
         [preparacionAntesDelRodaje]
       )
     )
-    renderPage("?vista=tabla")
+    device.mobile = true
+    renderPage()
 
     const row = within(await screen.findByText("Preparación").then((node) => node.closest("li")!))
     expect(row.getByText("Antes del inicio de Rodaje")).toBeInTheDocument()
@@ -144,7 +152,7 @@ describe("CalendarPhasesPage", () => {
     expect(within(rowOf("Rodaje")).getByText("clave")).toBeInTheDocument()
   })
 
-  it("por defecto enseña el cronograma: cada elemento con su barra, y se puede pasar a la tabla", async () => {
+  it("cada elemento con su barra, y el selector ofrece las siete vistas del prototipo", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf(
         [
@@ -166,12 +174,21 @@ describe("CalendarPhasesPage", () => {
     expect(
       screen.getByRole("button", { name: "Preparación: 1 feb 2027, sin fin" })
     ).toBeInTheDocument()
-    expect(screen.getByRole("radio", { name: "Ambos" })).toHaveAttribute("aria-checked", "true")
+    expect(screen.getByRole("heading", { name: "Calendario" })).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole("radio", { name: "Tabla" }))
-    expect(screen.queryByRole("button", { name: /Rodaje: 5 abr/ })).toBeNull()
-    expect(screen.getByRole("button", { name: "Inicio de Rodaje" })).toBeInTheDocument()
-    expect(screen.queryByRole("radiogroup", { name: "Escala" })).toBeNull()
+    await userEvent.click(screen.getByRole("button", { name: "Calendario: Gantt (día a día)" }))
+    expect(screen.getAllByRole("menuitemradio")).toHaveLength(7)
+    expect(screen.getByRole("menuitemradio", { name: /Gantt/ })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    )
+    expect(screen.getByRole("menuitemradio", { name: /Mensual/ })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    )
+    expect(screen.getByRole("menuitemradio", { name: /Mensual/ })).toHaveTextContent(
+      "Llega con las acciones"
+    )
   })
 
   it("si falta una fecha, dice por qué al pasar por encima", async () => {
@@ -184,7 +201,8 @@ describe("CalendarPhasesPage", () => {
         [preparacionAntesDelRodaje]
       )
     )
-    renderPage("?vista=tabla")
+    device.mobile = true
+    renderPage()
 
     expect(await screen.findByRole("button", { name: "Inicio de Preparación" })).toHaveAttribute(
       "title",
@@ -311,7 +329,7 @@ describe("CalendarPhasesPage", () => {
     })
   })
 
-  it("arrastrar una barra la mueve a la semana más cercana, y soltar sin moverla la abre", async () => {
+  it("arrastrar una barra la mueve al día más cercano, y soltar sin moverla la abre", async () => {
     const plan = planOf([
       rodaje({
         duration: { amount: 6, unit: "weeks" },
@@ -324,15 +342,15 @@ describe("CalendarPhasesPage", () => {
     renderPage()
 
     const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
-    // En «meses» un día mide 2 px: 30 px son 15 días, que se ajustan a 2 semanas.
+    // Un día mide 28 px: 200 px son 7,1 días, que se quedan en 7.
     fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
-    fireEvent.pointerMove(bar, { clientX: 130, pointerId: 1 })
-    fireEvent.pointerUp(bar, { clientX: 130, pointerId: 1 })
+    fireEvent.pointerMove(bar, { clientX: 300, pointerId: 1 })
+    fireEvent.pointerUp(bar, { clientX: 300, pointerId: 1 })
     // El clic que sigue a soltar no abre el inspector; un clic sin arrastrar, sí.
     fireEvent.click(bar)
     await waitFor(() =>
       expect(api.elements.updatePlan).toHaveBeenLastCalledWith("rodaje", {
-        fixedStart: "2027-04-19",
+        fixedStart: "2027-04-12",
       })
     )
     expect(screen.queryByRole("heading", { name: "Rodaje" })).toBeNull()
@@ -429,11 +447,11 @@ describe("CalendarPhasesPage", () => {
       const bar = await screen.findByRole("button", {
         name: "Preparación: 1 feb 2027 → 4 abr 2027",
       })
-      // En «meses» un día mide 2 px: 60 px son 4 semanas, pero el tope está en 10 días.
+      // Un día mide 28 px: 784 px son 4 semanas, pero el tope está en 10 días.
       fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
-      fireEvent.pointerMove(bar, { clientX: 160, pointerId: 1 })
+      fireEvent.pointerMove(bar, { clientX: 884, pointerId: 1 })
       expect(screen.getByText(/tope: 25 % de solape/)).toBeInTheDocument()
-      fireEvent.pointerUp(bar, { clientX: 160, pointerId: 1 })
+      fireEvent.pointerUp(bar, { clientX: 884, pointerId: 1 })
 
       await waitFor(() =>
         expect(api.elements.setRule).toHaveBeenCalledWith("preparacion", "end", {
@@ -451,7 +469,8 @@ describe("CalendarPhasesPage", () => {
 
     it("un cambio que no se puede ajustar no se envía, y dice por qué", async () => {
       api.elements.getPlan.mockResolvedValue(plan)
-      renderPage("?vista=tabla")
+      device.mobile = true
+      renderPage()
 
       await userEvent.click(
         await screen.findByRole("button", { name: "Duración de Postproducción" })
@@ -467,6 +486,133 @@ describe("CalendarPhasesPage", () => {
         description: "Rodaje se metería un 60 % en Postproducción; el máximo es un 25 %",
       })
     })
+  })
+
+  describe("el foco en hoy", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 9, 13) })
+      Element.prototype.scrollTo = vi.fn()
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    // La rejilla empieza el lunes 12 de octubre de 2026: hoy es su segundo día.
+    const leftOf = (iso: string) => (fromIsoDate(iso) - fromIsoDate("2026-10-12")) * 28 + 14
+
+    it("al abrir se centra en hoy, y «Hoy» e «Ir a fecha» llevan a donde se pide", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({
+            duration: { amount: 6, unit: "weeks" },
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const scrollTo = vi.mocked(Element.prototype.scrollTo)
+      await waitFor(() =>
+        expect(scrollTo).toHaveBeenCalledWith({ left: leftOf("2026-10-13"), behavior: "auto" })
+      )
+
+      // El calendario va solo con icono: su nombre sale en un tooltip.
+      await userEvent.hover(screen.getByRole("button", { name: "Ir a fecha" }))
+      expect(await screen.findByRole("tooltip")).toHaveTextContent("Ir a fecha")
+      await userEvent.click(screen.getByRole("button", { name: "Ir a fecha" }))
+      await userEvent.click(screen.getByRole("button", { name: "Inicio de Rodaje" }))
+      expect(scrollTo).toHaveBeenLastCalledWith({ left: leftOf("2027-04-05"), behavior: "smooth" })
+
+      await userEvent.click(screen.getByRole("button", { name: "Hoy" }))
+      expect(scrollTo).toHaveBeenLastCalledWith({ left: leftOf("2026-10-13"), behavior: "smooth" })
+    })
+  })
+
+  it("en el menú «Vista» se añaden columnas junto al Gantt, y se recuerda", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    expect(screen.queryByRole("button", { name: "Inicio de Rodaje" })).toBeNull()
+
+    await userEvent.click(screen.getByRole("button", { name: "Vista" }))
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Inicio" }))
+    expect(screen.getByRole("menuitemcheckbox", { name: "Inicio" })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    )
+    await userEvent.keyboard("{Escape}")
+    expect(screen.getByRole("button", { name: "Inicio de Rodaje" })).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem("cauce.gantt.campos")!)).toMatchObject({ start: true })
+  })
+
+  it("la leyenda, en una línea, explica el Gantt; se oculta entera o por partes, y se recuerda", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    const legend = await screen.findByRole("note", { name: "Leyenda" })
+    expect(within(legend).getByText("Hoy")).toBeInTheDocument()
+    expect(within(legend).getByText("Subfase o proceso")).toBeInTheDocument()
+    // Las explicaciones largas, en el tooltip.
+    await userEvent.hover(within(legend).getByText("Semana 1"))
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "La semana en la que empieza el rodaje: de ahí se cuentan las demás"
+    )
+    await userEvent.unhover(within(legend).getByText("Semana 1"))
+
+    // Las partes y la propia leyenda se eligen en el menú «Vista».
+    await userEvent.click(screen.getByRole("button", { name: "Vista" }))
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Hoy (y su línea)" }))
+    expect(within(legend).queryByText("Hoy")).toBeNull()
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Mostrar la leyenda" }))
+    await userEvent.keyboard("{Escape}")
+    expect(screen.queryByRole("note", { name: "Leyenda" })).toBeNull()
+    expect(JSON.parse(localStorage.getItem("cauce.gantt.leyenda")!)).toMatchObject({
+      visible: false,
+      today: false,
+    })
+  })
+
+  it("el zoom cambia la rejilla: día a día, por semanas o por meses", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    const dayCells = () => screen.queryAllByTitle(/^(lun|mar|mié|jue|vie|sáb|dom) [0-9]/)
+    expect(screen.getByRole("radio", { name: "Día" })).toHaveAttribute("aria-checked", "true")
+    expect(dayCells().length).toBeGreaterThan(0)
+
+    await userEvent.click(screen.getByRole("radio", { name: "Mes" }))
+    expect(screen.getByRole("radio", { name: "Mes" })).toHaveAttribute("aria-checked", "true")
+    expect(dayCells()).toHaveLength(0)
+    // La barra sigue ahí: el mismo plan, más lejos.
+    expect(
+      screen.getByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    ).toBeInTheDocument()
+  })
+
+  it("las fases sin duración llevan su aviso, y la cabecera dice cuántas son", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({ position: 1, duration: { amount: 6, unit: "weeks" }, startsOn: "2027-04-05" }),
+        preparacion({ position: 0, startsOn: "2027-02-01" }),
+      ])
+    )
+    renderPage()
+
+    const row = within(await screen.findByText("Preparación").then((node) => node.closest("li")!))
+    expect(row.getByLabelText("Sin duración")).toBeInTheDocument()
+    expect(within(rowOf("Rodaje")).queryByLabelText("Sin duración")).toBeNull()
+
+    expect(screen.getByText("1 fase sin duración")).toBeInTheDocument()
   })
 
   it("la cabecera resume el plan y los pasos marcan lo hecho", async () => {
@@ -502,8 +648,10 @@ describe("CalendarPhasesPage", () => {
     api.elements.getPlan.mockResolvedValue(planOf([rodaje(written), preparacion(written)]))
     renderPage()
 
-    await screen.findByText("Preparación")
+    await screen.findByRole("button", { name: "Ver el detalle de Preparación" })
     expect(screen.queryByRole("region", { name: "Para que el plan salga solo" })).toBeNull()
+    // Con todas las fases con duración, el aviso de la cabecera se va.
+    expect(screen.queryByText(/sin duración/)).toBeNull()
   })
 
   it("un miembro ve el plan pero no puede editarlo", async () => {

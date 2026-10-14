@@ -55,6 +55,8 @@ body,
   --success-soft: hsl(160 84% 95%);
   --warn: hsl(30 86% 36%);
   --warn-soft: hsl(48 96% 89%);
+  /* Fines de semana en el Gantt. */
+  --weekend: hsl(215 25% 40% / 0.06);
 
   /* priority */
   --p0: hsl(0 84% 60%);
@@ -130,6 +132,7 @@ body,
   --success-soft: hsl(158 64% 52% / 0.1);
   --warn: hsl(45 96% 56%);
   --warn-soft: hsl(45 96% 56% / 0.1);
+  --weekend: hsl(0 0% 100% / 0.03);
 
   --p0: hsl(0 84% 71%);
   --p0-soft: hsl(0 84% 71% / 0.1);
@@ -264,4 +267,40 @@ body,
       background-color: white !important;
     }
   }
+}
+
+/*
+ * Colores de fase (ver features/calendar/lib/phaseColors.ts): el elemento recibe
+ * los dos juegos como variables y estas clases eligen el del tema. En claro, el
+ * borde separa el relleno pastel del fondo; en oscuro no hace falta.
+ */
+.phase-fill {
+  background-color: var(--phase-fill);
+}
+.phase-child-fill {
+  background-color: var(--phase-child-fill);
+}
+.phase-edge {
+  outline: 1px solid var(--phase-edge);
+  outline-offset: -1px;
+}
+.phase-child-edge {
+  outline: 1px solid var(--phase-child-edge);
+  outline-offset: -1px;
+}
+.phase-ink {
+  color: var(--phase-ink);
+}
+.dark .phase-fill {
+  background-color: var(--phase-fill-dark);
+}
+.dark .phase-child-fill {
+  background-color: var(--phase-child-fill-dark);
+}
+.dark .phase-edge,
+.dark .phase-child-edge {
+  outline: none;
+}
+.dark .phase-ink {
+  color: var(--phase-ink-dark);
 }

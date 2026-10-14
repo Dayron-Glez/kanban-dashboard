@@ -17,6 +17,7 @@ import type {
 } from "@repo/contracts"
 import { validPredecessors } from "@repo/domain"
 import { buildElementTree, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
+import { phaseTint } from "../lib/phaseColors"
 import { countDependents, describeIssue, describeRule } from "../lib/planFormat"
 import { RuleSentence } from "./RuleSentence"
 import { WhenField } from "./WhenField"
@@ -39,12 +40,6 @@ interface ElementInspectorProps {
 
 const flatten = (nodes: ElementNode[]): ElementNode[] =>
   nodes.flatMap((node) => [node, ...flatten(node.children)])
-
-// Los hijos toman el color de su fase, más claro cuanto más hondo.
-const shade = (color: string | null, depth: number) =>
-  color
-    ? `color-mix(in oklch, ${color} ${Math.max(100 - depth * 25, 30)}%, transparent)`
-    : undefined
 
 /**
  * El inspector de un elemento, en un Sheet a la derecha. No es modal: el plan
@@ -90,13 +85,13 @@ export function ElementInspector({
     )
   )
   const ordered = flatten(buildElementTree(plan.elements))
-  const colorOf = (id: string) => {
+  const tintOf = (id: string) => {
     const found = ordered.find((candidate) => candidate.element.id === id)
-    return found ? shade(found.phaseColor, found.depth) : undefined
+    return phaseTint(found?.phaseColor, found?.depth === 0)
   }
   const candidates = ordered
     .filter((node) => allowed.has(node.element.id))
-    .map((node) => ({ element: node.element, depth: node.depth, color: colorOf(node.element.id) }))
+    .map((node) => ({ element: node.element, depth: node.depth, tint: tintOf(node.element.id) }))
   const movesCount = countDependents(plan.dependencies, element.id)
   const dependents = ordered
     .filter((node) =>
@@ -107,7 +102,7 @@ export function ElementInspector({
     )
     .map((node) => ({
       element: node.element,
-      color: colorOf(node.element.id),
+      tint: tintOf(node.element.id),
       rule: describeRule(node.element, plan.dependencies, nameOf),
     }))
   const parents: string[] = []
@@ -120,7 +115,7 @@ export function ElementInspector({
   const node = flatten(buildElementTree(plan.elements)).find(
     (candidate) => candidate.element.id === element.id
   )
-  const color = node ? shade(node.phaseColor, node.depth) : undefined
+  const tint = phaseTint(node?.phaseColor, node?.depth === 0)
   const parent = plan.elements.find((candidate) => candidate.id === element.parentId)
   const context =
     parent?.startsOn && parent.endsOn
@@ -140,17 +135,17 @@ export function ElementInspector({
         onInteractOutside={(event) => event.preventDefault()}
       >
         <SheetHeader className="border-border gap-1 border-b px-5 pt-4 pb-3">
-          <SheetDescription className="flex items-center gap-1.5 pr-6 text-xs">
+          <SheetDescription className="flex items-center gap-1.5 pr-6 text-sm">
             <span
               aria-hidden
-              className="size-2 shrink-0 rounded-full"
-              style={{ backgroundColor: color }}
+              className={cn("size-2 shrink-0 rounded-full", tint.className)}
+              style={tint.style}
             />
             <span className="truncate">
               {[...parents, ELEMENT_KIND_LABELS[element.kind]].join(" › ")}
             </span>
           </SheetDescription>
-          <SheetTitle className="text-sm">{element.name}</SheetTitle>
+          <SheetTitle className="text-base">{element.name}</SheetTitle>
         </SheetHeader>
 
         <ScrollArea className="min-h-0 flex-1">
@@ -158,7 +153,7 @@ export function ElementInspector({
             <WhenField
               element={element}
               context={context}
-              color={color}
+              tint={tint}
               editable={editable}
               pending={pending}
               reason={reason}
@@ -169,7 +164,7 @@ export function ElementInspector({
             <section aria-labelledby="inspector-rules" className="flex flex-col gap-2">
               <h3
                 id="inspector-rules"
-                className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+                className="text-muted-foreground text-sm font-semibold tracking-wider uppercase"
               >
                 De qué depende
               </h3>
@@ -190,10 +185,10 @@ export function ElementInspector({
                     />
                   )}
                   <div className="flex flex-col gap-0.5">
-                    <p className="text-sm font-semibold">
+                    <p className="text-base font-semibold">
                       {element.isAnchor ? "La fecha clave del plan" : "Una fecha fija"}
                     </p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-muted-foreground text-sm">
                       {element.isAnchor
                         ? "Todo se calcula desde aquí: si la mueves, el plan entero se mueve con ella."
                         : "Se escribe a mano y no se mueve con el plan."}
@@ -229,7 +224,7 @@ export function ElementInspector({
                   }}
                 />
               ) : (
-                <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-sm">
+                <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-base">
                   <span>
                     Acaba{" "}
                     <span className="text-muted-foreground">cuando se cumple su duración</span>
@@ -238,7 +233,7 @@ export function ElementInspector({
                     <button
                       type="button"
                       onClick={() => setAddingEnd(true)}
-                      className="text-primary text-xs hover:underline"
+                      className="text-primary text-sm hover:underline"
                     >
                       Fijar el fin a otro elemento
                     </button>
@@ -251,7 +246,7 @@ export function ElementInspector({
               <section aria-labelledby="inspector-dependents" className="flex flex-col gap-1.5">
                 <h3
                   id="inspector-dependents"
-                  className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase"
+                  className="text-muted-foreground text-sm font-semibold tracking-wider uppercase"
                 >
                   Si cambia, mueve
                 </h3>
@@ -261,16 +256,16 @@ export function ElementInspector({
                       <button
                         type="button"
                         onClick={() => onOpen(dependent.element.id)}
-                        className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
+                        className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-base"
                       >
                         <span
                           aria-hidden
-                          className="size-1.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: dependent.color }}
+                          className={cn("size-1.5 shrink-0 rounded-full", dependent.tint.className)}
+                          style={dependent.tint.style}
                         />
                         <span className="truncate">{dependent.element.name}</span>
                         {dependent.rule && (
-                          <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-[11px]">
+                          <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-sm">
                             {dependent.rule}
                           </span>
                         )}

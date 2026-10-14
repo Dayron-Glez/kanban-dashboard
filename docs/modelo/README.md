@@ -54,7 +54,7 @@ Hoy la base (Neon) tiene las tablas en `public` e `identity` (ver `apps/api/src/
 | El calendario laboral y el motor de fechas: ancla, duraciones, dependencias y contadores de días | 5b        |
 | Atributos comunes: equipo, departamentos, responsables, invitados, avisos, repetición, links     | 5c        |
 | Documentos adjuntos (`core.files`), cuando haya almacenamiento                                   | posterior |
-| Vistas del Calendario: Gantt, mensual, semanal                                                   | 6 y 8     |
+| Vistas del Calendario: las siete del prototipo, empezando por el Gantt                           | 6 y 8     |
 
 El antiguo PR 7 (subtareas y WBS) queda absorbido por el árbol, y el PR 9 (equipo) por el 5c.
 
@@ -137,12 +137,25 @@ Cualquier fecha se puede escribir a mano, también las calculadas. La app no la 
 - **Arrastrar una barra del cronograma es escribir una fecha**, con las mismas reglas:
   - el cuerpo la mueve entera: escribe el inicio o, si solo depende de su fin, reescribe ese desfase;
   - el borde del fin cambia solo el fin; el del inicio solo se ofrece si el fin se queda donde está (el inicio no tiene regla);
-  - se ajusta a días en la escala de semanas y a semanas en la de meses; con el teclado, ← → mueven un día, con Mayús una semana y con Alt solo el fin;
+  - se ajusta a días en el zoom por día y a semanas en los de semana y mes; con el teclado, ← → mueven un día, con Mayús una semana y con Alt solo el fin;
   - lo que tiene sus dos fechas atadas a otros (el Shooting a Rodaje) no se arrastra: se mueve con ellos.
 - **Antes de guardar, la app enseña qué más se mueve**: el cambio («Mover Rodaje 1 semana más tarde»), cuánto se desplaza el plan («+1 semana para 45 elementos»), cuánto cada fase, lo que pasa a empezar fuera de su fase y, si se pide, la tabla de fechas de antes y después. Si no se mueve nada más, se guarda sin preguntar. La vista previa sale del mismo motor que el servidor.
 - **Cambiar una regla** (de qué elemento depende un extremo, de qué punto y con qué desfase) pasa por la misma vista previa. Una regla que cerraría un ciclo no se puede elegir, y si llega a la API se rechaza con el camino que lo forma.
 - **El último cambio se puede deshacer**: se aplica el cambio contrario (la duración, el desfase o la regla de antes). No hay historial de cambios.
+- **Las fases no cambian de orden, y cada una solo puede solaparse con la siguiente hasta el 25 % de la duración de esa siguiente.** Es una restricción, no un aviso: el motor la comprueba, la API rechaza el cambio con un 409 que dice qué fase la incumple, y al arrastrar la barra se para en el tope.
 - **Si un cambio deja un elemento empezando fuera de su fase, la app avisa**, pero no lo cambia de fase: eso es mover el elemento en el árbol, y lo decide quien planifica.
+
+## Vistas del Calendario
+
+La pantalla es «Calendario», con un selector entre las siete vistas del prototipo: Gantt (día a día), Semanal 1, Vertical, Mensual, Scroll, Semanal 3 y Semanal 2. De momento solo está el Gantt; las demás esperan a las acciones, las contrataciones y los festivos de los que viven.
+
+- **El Gantt es día a día y se abre centrado en hoy**, con zoom por día, semana o mes. La vista y el zoom van en la URL (`?vista=`, `?zoom=`).
+- **La semana 1 es la del inicio de Rodaje**, como en el motor; los fines de semana se sombrean solo en el zoom por día.
+- **Cada fase tiene un color**, y de él salen los de los dos temas con el mismo tono (en OKLCH): el relleno es el mismo pastel en los dos y, en claro, lleva un borde más oscuro del mismo tono. El texto de las barras es oscuro en los dos temas. Las subfases, procesos y acciones llevan una versión más suave del color de su fase.
+- **Una fase sin duración lo dice**: un aviso en su fila y, en la cabecera, cuántas hay.
+- **Qué columnas y filas de la cabecera se ven, y la leyenda**, son preferencias de cada persona, en su navegador.
+- **En el móvil**, solo el árbol, sin rejilla.
+- **«Fases» pasará a ser la sección de configuración** (añadir, renombrar, borrar, bloques y colores), con las siete fases en su orden fijo.
 
 ## Decidido con el productor
 
@@ -175,6 +188,11 @@ Cualquier fecha se puede escribir a mano, también las calculadas. La app no la 
 1. **El tablero no pasa al Calendario.** El prototipo no tiene columnas, estados, orden manual ni velocidad. Se revierte la decisión del 9 de octubre de llevar estado, prioridad y tamaño a cualquier elemento: el tablero queda congelado en `public`, como vista secundaria, por si vuelve a hacer falta.
 2. **Las acciones cuelgan siempre de un elemento**, solo las tareas se completan y la prioridad llega con los conflictos.
 3. **El proyecto se abre en el Calendario.**
+
+**13 de octubre de 2026:**
+
+1. **Las fases no cambian de orden**, y el solape con la siguiente es como mucho el 25 % de la duración de esa siguiente.
+2. **Las siete vistas del prototipo**, con selector. El Gantt, día a día con foco en hoy, y con zoom por semana y por mes, que también le gustaron.
 
 ## Pendiente
 

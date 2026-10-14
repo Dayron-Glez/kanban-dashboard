@@ -65,21 +65,21 @@ export function ChangePreviewDialog({
     <AlertDialog open={pending != null} onOpenChange={(open) => !open && close()}>
       <AlertDialogContent className="gap-4 sm:max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-sm font-semibold">{pending?.title}</AlertDialogTitle>
-          <AlertDialogDescription className="text-xs">
+          <AlertDialogTitle className="text-base font-semibold">{pending?.title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm">
             Revisa lo que cambia antes de aplicarlo.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         {pending?.note && (
-          <p className="text-muted-foreground border-border flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
+          <p className="text-muted-foreground border-border flex items-start gap-2 rounded-lg border px-3 py-2 text-sm">
             <IconInfoCircle size={14} className="mt-px shrink-0" aria-hidden />
             {pending.note}
           </p>
         )}
 
         {moved.length > 0 && (
-          <div className="bg-muted/50 rounded-lg px-3 py-2.5 text-sm">
+          <div className="bg-muted/50 rounded-lg px-3 py-2.5 text-base">
             {summary.headline ? (
               <>
                 <span className="font-semibold tabular-nums">{summary.headline}</span>
@@ -92,7 +92,7 @@ export function ChangePreviewDialog({
         )}
 
         {summary.groups.length > 0 && (
-          <ul aria-label="Por fases" className="flex flex-col gap-1.5 text-sm">
+          <ul aria-label="Por fases" className="flex flex-col gap-1.5 text-base">
             {summary.groups.map((group) => (
               <li key={group.phaseId} className="flex items-center gap-2">
                 <span
@@ -104,7 +104,7 @@ export function ChangePreviewDialog({
                   {group.name}
                   <span className="text-muted-foreground"> · {elementsLabel(group.count)}</span>
                 </span>
-                <span className="text-muted-foreground text-xs tabular-nums">{group.label}</span>
+                <span className="text-muted-foreground text-sm tabular-nums">{group.label}</span>
               </li>
             ))}
           </ul>
@@ -113,7 +113,7 @@ export function ChangePreviewDialog({
         {pending && pending.outside.length > 0 && (
           <ul className="flex flex-col gap-1">
             {pending.outside.map(({ name, parent }) => (
-              <li key={name} className="text-warn flex items-start gap-2 text-xs">
+              <li key={name} className="text-warn flex items-start gap-2 text-sm">
                 <IconAlertTriangle size={14} className="mt-px shrink-0" aria-hidden />
                 {name} pasa a empezar fuera de {parent}.
               </li>
@@ -127,7 +127,7 @@ export function ChangePreviewDialog({
               type="button"
               aria-expanded={showDates}
               onClick={() => setShowDates((open) => !open)}
-              className="text-primary flex w-fit items-center gap-1 text-xs font-medium hover:underline"
+              className="text-primary flex w-fit items-center gap-1 text-sm font-medium hover:underline"
             >
               {showDates ? "Ocultar las fechas" : `Ver las ${moved.length} fechas`}
               <IconChevronDown
@@ -138,12 +138,12 @@ export function ChangePreviewDialog({
             </button>
             {showDates && (
               <ScrollArea className="border-border rounded-lg border [&_[data-slot=table-container]]:overflow-visible [&>[data-slot=scroll-area-viewport]]:max-h-[min(24rem,45vh)]">
-                <Table className="text-xs font-normal">
+                <Table className="text-sm font-normal">
                   <TableHeader className="bg-muted/60 sticky top-0 z-10 backdrop-blur">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="h-8 px-3 text-xs">Elemento</TableHead>
-                      <TableHead className="h-8 px-3 text-xs">Antes</TableHead>
-                      <TableHead className="h-8 px-3 text-xs">Después</TableHead>
+                      <TableHead className="h-8 px-3 text-sm">Elemento</TableHead>
+                      <TableHead className="h-8 px-3 text-sm">Antes</TableHead>
+                      <TableHead className="h-8 px-3 text-sm">Después</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

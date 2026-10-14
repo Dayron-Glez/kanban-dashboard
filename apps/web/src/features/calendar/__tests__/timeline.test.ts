@@ -1,7 +1,14 @@
 import type { CalendarElement, ElementDependency } from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
-import { barDragModes, buildTimeline, dragDays, dragTarget } from "../lib/timeline"
+import {
+  barDragModes,
+  buildTimeline,
+  dragDays,
+  dragTarget,
+  scrollLeftFor,
+  trackBackground,
+} from "../lib/timeline"
 
 const element = (id: string, overrides: Partial<CalendarElement> = {}): CalendarElement => ({
   id,
@@ -34,17 +41,85 @@ const rule = (
   lag: { amount: 0, unit: "days" },
 })
 
+describe("buildTimeline", () => {
+  // Rodaje del 5 al 18 de abril de 2027; hoy, el 13 de octubre de 2026.
+  const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
+
+  it("una columna de 28 px por día, desde la semana de hoy hasta 14 días tras el final", () => {
+    expect(timeline.pxPerDay).toBe(28)
+    expect(timeline.range.start).toBe(fromIsoDate("2026-10-12"))
+    expect(timeline.range.end).toBe(fromIsoDate("2027-05-02"))
+    expect(timeline.width).toBe(timeline.days.length * 28)
+    expect(timeline.today).toBe(fromIsoDate("2026-10-13"))
+  })
+
+  it("las semanas cuentan desde la del rodaje", () => {
+    expect(timeline.shootWeek).toBe(fromIsoDate("2027-04-05"))
+    const shoot = timeline.weeks.find((week) => week.start === fromIsoDate("2027-04-05"))
+    expect(shoot?.number).toBe(1)
+  })
+})
+
+describe("scrollLeftFor", () => {
+  const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
+
+  it("deja el día a un tercio del ancho visible, y nunca antes del principio", () => {
+    // El 5 de abril de 2027 está 175 días después del primer día de la rejilla.
+    expect(scrollLeftFor(fromIsoDate("2027-04-05"), timeline, 900)).toBe(175 * 28 + 14 - 300)
+    expect(scrollLeftFor(timeline.today, timeline, 900)).toBe(0)
+  })
+})
+
+describe("trackBackground", () => {
+  const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
+
+  it("pinta hoy, la semana 1 y los fines de semana, y la leyenda puede apagarlos", () => {
+    expect(trackBackground(timeline).backgroundImage?.split("gradient(")).toHaveLength(4)
+    expect(trackBackground(timeline, { today: false, week1: false, weekends: true })).toEqual({
+      backgroundImage: expect.stringMatching(/^repeating-linear-gradient/),
+      backgroundSize: "auto",
+      backgroundPosition: "0 0",
+      backgroundRepeat: "repeat",
+    })
+    expect(trackBackground(timeline, { today: false, week1: false, weekends: false })).toEqual({})
+  })
+})
+
+describe("el zoom", () => {
+  const rodaje = [element("rodaje", { startsOn: "2027-04-05", endsOn: "2027-05-16" })]
+  const at = (zoom: "dia" | "semana" | "mes") => buildTimeline(rodaje, new Date(2026, 9, 13), zoom)!
+
+  it("una columna por día (28 px), por semana (56 px) o por mes (unos 90 px)", () => {
+    expect(at("dia").pxPerDay * 7).toBe(196)
+    expect(at("semana").pxPerDay * 7).toBe(56)
+    expect(at("mes").pxPerDay * 30).toBe(90)
+  })
+
+  it("con semana y mes, el arrastre se ajusta a semanas", () => {
+    expect(dragDays(30, at("semana"))).toBe(7)
+    expect(dragDays(20, at("semana"))).toBe(0)
+    expect(dragDays(-70, at("mes"))).toBe(-21)
+  })
+
+  it("los años de la rejilla, para la cabecera de semana y mes", () => {
+    expect(at("mes").years.map(({ year }) => year)).toEqual([2026, 2027])
+    const days = at("mes").years.reduce((total, year) => total + year.days, 0)
+    expect(days).toBe(at("mes").range.days)
+  })
+
+  it("los fines de semana solo se sombrean con día", () => {
+    expect(trackBackground(at("dia")).backgroundImage).toMatch(/repeating-linear-gradient/)
+    expect(trackBackground(at("semana")).backgroundImage).not.toMatch(/repeating-linear-gradient/)
+  })
+})
+
 describe("dragDays", () => {
-  const elements = [element("rodaje")]
+  const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
-  it("ajusta a días con «semanas» y a semanas con «meses»", () => {
-    const weeks = buildTimeline(elements, "semanas")!
-    const months = buildTimeline(elements, "meses")!
-
-    expect(dragDays(20, weeks)).toBe(3)
-    expect(dragDays(20, months)).toBe(7)
-    expect(dragDays(6, months)).toBe(0)
-    expect(dragDays(-30, months)).toBe(-14)
+  it("los píxeles arrastrados, en días enteros", () => {
+    expect(dragDays(20, timeline)).toBe(1)
+    expect(dragDays(13, timeline)).toBe(0)
+    expect(dragDays(-60, timeline)).toBe(-2)
   })
 })
 

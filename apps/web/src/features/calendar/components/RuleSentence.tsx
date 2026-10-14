@@ -20,13 +20,14 @@ import {
   PopoverTrigger,
   cn,
 } from "@/shared/index"
+import type { PhaseTint } from "../lib/phaseColors"
 import { formatDuration } from "../lib/planFormat"
 import { SegmentedControl } from "./SegmentedControl"
 
 export interface RuleCandidate {
   element: CalendarElement
   depth: number
-  color: string | undefined
+  tint: PhaseTint
 }
 
 interface RuleSentenceProps {
@@ -49,7 +50,7 @@ const UNIT_OPTIONS = [
 ] as const satisfies readonly { value: Duration["unit"]; label: string }[]
 
 const PILL =
-  "inline-flex h-7 items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 align-middle text-sm font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none disabled:cursor-default disabled:hover:bg-primary/10"
+  "inline-flex h-7 items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 align-middle text-base font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none disabled:cursor-default disabled:hover:bg-primary/10"
 
 function Pill({
   label,
@@ -149,7 +150,7 @@ export function RuleSentence({
       aria-selected={selected}
       onClick={onSelect}
       className={cn(
-        "hover:bg-muted flex w-full items-center rounded-md px-2.5 py-1.5 text-left text-sm",
+        "hover:bg-muted flex w-full items-center rounded-md px-2.5 py-1.5 text-left text-base",
         selected && "text-primary font-medium"
       )}
     >
@@ -162,7 +163,7 @@ export function RuleSentence({
       <CommandInput placeholder="Buscar un elemento…" />
       <CommandList>
         <CommandEmpty>No hay ninguno con ese nombre.</CommandEmpty>
-        {candidates.map(({ element, depth, color }) => (
+        {candidates.map(({ element, depth, tint }) => (
           <CommandItem
             key={element.id}
             value={`${element.name} ${element.id}`}
@@ -170,8 +171,8 @@ export function RuleSentence({
           >
             <span style={{ paddingLeft: `${depth * 12}px` }} className="flex items-center gap-2">
               <span
-                className="size-1.5 shrink-0 rounded-full"
-                style={{ backgroundColor: color }}
+                className={cn("size-1.5 shrink-0 rounded-full", tint.className)}
+                style={tint.style}
                 aria-hidden
               />
               {element.name}
@@ -194,8 +195,8 @@ export function RuleSentence({
       {predecessor ? (
         <>
           <span
-            className="size-1.5 rounded-full"
-            style={{ backgroundColor: predecessor.color }}
+            className={cn("size-1.5 rounded-full", predecessor.tint.className)}
+            style={predecessor.tint.style}
             aria-hidden
           />
           {predecessor.element.name}
@@ -208,7 +209,7 @@ export function RuleSentence({
 
   if (!current) {
     return (
-      <div className="border-border bg-card rounded-xl border p-3 text-sm leading-8">
+      <div className="border-border bg-card rounded-xl border p-3 text-base leading-8">
         {verb} con el{" "}
         <span className="text-muted-foreground">{point === "start" ? "inicio" : "fin"}</span> de{" "}
         {elementPill}
@@ -217,7 +218,7 @@ export function RuleSentence({
   }
 
   return (
-    <div className="border-border bg-card group/rule relative rounded-xl border p-3 pr-9 text-sm leading-8">
+    <div className="border-border bg-card group/rule relative rounded-xl border p-3 pr-9 text-base leading-8">
       {verb}{" "}
       {direction !== "same" && (
         <>

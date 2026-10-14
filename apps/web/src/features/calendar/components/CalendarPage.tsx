@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
-import { IconChevronsDown, IconChevronsUp, IconTemplate } from "@tabler/icons-react"
+import { IconTemplate } from "@tabler/icons-react"
 import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
 import {
   describePhaseViolation,
@@ -18,35 +18,27 @@ import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
+import { pickView, type CalendarView } from "../lib/calendarViews"
+import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
+import { loadLegend, saveLegend, type GanttLegend } from "../lib/ganttLegend"
 import {
   buildTimeline,
   dragTarget,
-  PLAN_SCALES,
-  PLAN_VIEWS,
+  PLAN_ZOOMS,
+  scrollLeftFor,
   type BarDrag,
-  type PlanScale,
-  type PlanView,
+  type PlanZoom,
 } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
+import { GanttLegendStrip } from "./GanttLegend"
+import { GoToDate } from "./GoToDate"
 import { PlanHeader } from "./PlanHeader"
-import { SegmentedControl } from "./SegmentedControl"
 import { PlanSetup } from "./PlanSetup"
-
-const VIEW_OPTIONS = [
-  { value: "tabla", label: "Tabla" },
-  { value: "ambos", label: "Ambos" },
-  { value: "cronograma", label: "Cronograma" },
-] as const satisfies readonly { value: PlanView; label: string }[]
-
-const SCALE_OPTIONS = [
-  { value: "semanas", label: "Semanas" },
-  { value: "meses", label: "Meses" },
-] as const satisfies readonly { value: PlanScale; label: string }[]
-
-const pick = <T extends string>(value: string | null, options: readonly T[], fallback: T) =>
-  options.includes(value as T) ? (value as T) : fallback
+import { ViewOptionsMenu } from "./ViewOptionsMenu"
+import { ViewSelector } from "./ViewSelector"
+import { ZoomControl } from "./ZoomControl"
 
 const flattenIds = (nodes: ElementNode[]): string[] =>
   nodes.flatMap((node) => [node.element.id, ...flattenIds(node.children)])
@@ -61,7 +53,7 @@ const EDIT_ERRORS = {
   inverted: "El inicio no puede quedar después del fin",
 } as const
 
-export function CalendarPhasesPage() {
+export function CalendarPage() {
   const { id: projectId = "" } = useParams<{ id: string }>()
   const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
@@ -72,22 +64,72 @@ export function CalendarPhasesPage() {
   const isOwner = useProject(projectId).data?.role === "owner"
   const isMobile = useIsMobile()
   const [searchParams, setSearchParams] = useSearchParams()
-  // En la URL, para que un enlace abra lo mismo que se ve. En el móvil, solo la tabla.
-  const view = isMobile ? "tabla" : pick(searchParams.get("vista"), PLAN_VIEWS, "ambos")
-  const scale = pick(searchParams.get("escala"), PLAN_SCALES, "meses")
-  const setParam = (key: string, value: string) =>
+  // La vista va en la URL, para que un enlace abra lo mismo que se ve.
+  const calendarView = pickView(searchParams.get("vista"))
+  const setCalendarView = (next: CalendarView) =>
     setSearchParams(
       (params) => {
-        params.set(key, value)
+        params.set("vista", next)
         return params
       },
       { replace: true }
     )
+  // El zoom también va en la URL.
+  const zoom = PLAN_ZOOMS.find((value) => value === searchParams.get("zoom")) ?? "dia"
+  const setZoom = (next: PlanZoom) =>
+    setSearchParams(
+      (params) => {
+        params.set("zoom", next)
+        return params
+      },
+      { replace: true }
+    )
+  // En el móvil, el árbol con sus fechas: la rejilla no cabe.
+  const view = isMobile ? "tabla" : "gantt"
+  // Los campos visibles se recuerdan en este navegador.
+  const [fields, setFields] = useState<GanttFields>(loadGanttFields)
+  const changeFields = (next: GanttFields) => {
+    setFields(next)
+    saveGanttFields(next)
+  }
+  const [legend, setLegend] = useState<GanttLegend>(loadLegend)
+  const changeLegend = (next: GanttLegend) => {
+    setLegend(next)
+    saveLegend(next)
+  }
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
-  const timeline = useMemo(() => buildTimeline(elements ?? [], scale), [elements, scale])
+  const timeline = useMemo(() => buildTimeline(elements ?? [], undefined, zoom), [elements, zoom])
+
+  // El Gantt abre centrado en hoy, una vez por proyecto: después manda el usuario.
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const goTo = (day: EpochDay, smooth = true) => {
+    const viewport = viewportRef.current
+    if (!viewport || !timeline) return
+    const labels = viewport.querySelector<HTMLElement>("[data-grid-labels]")?.offsetWidth ?? 0
+    const left = scrollLeftFor(day, timeline, viewport.clientWidth - labels)
+    if (viewport.scrollTo) viewport.scrollTo({ left, behavior: smooth ? "smooth" : "auto" })
+    else viewport.scrollLeft = left
+  }
+  const focusedProject = useRef<string | null>(null)
+  useEffect(() => {
+    if (!timeline || view === "tabla" || focusedProject.current === projectId) return
+    focusedProject.current = projectId
+    goTo(timeline.today, false)
+  })
+  const shortcuts = [
+    ...(summary.anchor?.startsOn
+      ? [{ label: `Inicio de ${summary.anchor.name}`, day: fromIsoDate(summary.anchor.startsOn) }]
+      : []),
+    ...(summary.span
+      ? [
+          { label: "Inicio del plan", day: fromIsoDate(summary.span.start) },
+          { label: "Fin del plan", day: fromIsoDate(summary.span.end) },
+        ]
+      : []),
+  ]
 
   const toggle = (elementId: string) =>
     setExpanded((current) => {
@@ -213,39 +255,26 @@ export function CalendarPhasesPage() {
         )}
       >
         <PlanHeader
+          title={
+            <>
+              <h1 className="sr-only">Calendario</h1>
+              <ViewSelector value={calendarView} onChange={setCalendarView} />
+            </>
+          }
           summary={summary}
           actions={
             tree.length > 0 && (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground h-8 text-xs"
-                  onClick={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
-                >
-                  {expanded.size > 0 ? (
-                    <IconChevronsUp className="size-3.5" aria-hidden />
-                  ) : (
-                    <IconChevronsDown className="size-3.5" aria-hidden />
-                  )}
-                  {expanded.size > 0 ? "Plegar todo" : "Desplegar todo"}
-                </Button>
-                {!isMobile && (
+                {view !== "tabla" && timeline && (
                   <>
-                    <SegmentedControl
-                      label="Vista"
-                      value={view}
-                      options={VIEW_OPTIONS}
-                      onChange={(next) => setParam("vista", next)}
+                    <ZoomControl value={zoom} onChange={setZoom} />
+                    <GoToDate shortcuts={shortcuts} today={timeline.today} onGo={goTo} />
+                    <ViewOptionsMenu
+                      fields={fields}
+                      onFieldsChange={changeFields}
+                      legend={legend}
+                      onLegendChange={changeLegend}
                     />
-                    {view !== "tabla" && (
-                      <SegmentedControl
-                        label="Escala"
-                        value={scale}
-                        options={SCALE_OPTIONS}
-                        onChange={(next) => setParam("escala", next)}
-                      />
-                    )}
                   </>
                 )}
               </>
@@ -262,7 +291,7 @@ export function CalendarPhasesPage() {
         ) : plan.isError ? (
           <QueryErrorState error={plan.error} onRetry={() => void plan.refetch()} />
         ) : tree.length === 0 ? (
-          <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center text-sm">
+          <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center text-base">
             <p>Este proyecto todavía no tiene fases.</p>
             {isOwner ? (
               <Button size="sm" onClick={() => generate.mutate()} disabled={generate.isPending}>
@@ -276,6 +305,7 @@ export function CalendarPhasesPage() {
         ) : (
           <>
             {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
+            {view !== "tabla" && timeline && <GanttLegendStrip legend={legend} />}
             <div className="-mx-6 min-h-0 flex-1 px-6">
               <ElementTree
                 nodes={tree}
@@ -289,6 +319,11 @@ export function CalendarPhasesPage() {
                 limitDrag={limitDrag}
                 expanded={expanded}
                 onToggle={toggle}
+                onToggleAll={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
+                viewportRef={viewportRef}
+                fields={fields}
+                headerRows={fields}
+                marks={legend}
                 selectedId={openId}
                 view={view}
                 timeline={timeline}

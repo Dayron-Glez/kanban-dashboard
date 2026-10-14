@@ -1,12 +1,30 @@
-import { IconAnchor, IconChevronRight, IconPin } from "@tabler/icons-react"
+import type { Ref } from "react"
+import {
+  IconAlertTriangle,
+  IconAnchor,
+  IconChevronRight,
+  IconChevronsDown,
+  IconChevronsUp,
+  IconPin,
+} from "@tabler/icons-react"
 import type {
   CalendarElement,
   DatePoint,
   ElementDependency,
   UpdateElementPlanInput,
 } from "@repo/contracts"
-import { cn, ScrollArea, ScrollBar } from "@/shared/index"
+import {
+  Button,
+  cn,
+  ScrollArea,
+  ScrollBar,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/shared/index"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
+import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
+import { phaseTint } from "../lib/phaseColors"
 import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
 import {
   barDragModes,
@@ -14,6 +32,7 @@ import {
   type BarDrag,
   type PlanView,
   type Timeline,
+  type TimelineMarks,
 } from "../lib/timeline"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { TimelineBar } from "./TimelineBar"
@@ -36,30 +55,29 @@ interface ElementTreeProps {
     drag: BarDrag,
     days: number
   ) => { days: number; reason: string | null }
+  /** El elemento que hace scroll, para llevar el Gantt a un día. */
+  viewportRef?: Ref<HTMLDivElement>
+  /** Desplegar todo, o plegarlo si hay algo abierto: va en la cabecera de la columna. */
+  onToggleAll?: () => void
   /** Lo desplegado. Todo empieza plegado. */
   expanded: ReadonlySet<string>
   onToggle: (elementId: string) => void
   selectedId?: string | null
   view?: PlanView
+  /** Las columnas de la tabla junto al Gantt (en el móvil van todas). */
+  fields?: Pick<GanttFields, "duration" | "start" | "end">
+  /** Hoy, la semana 1 y los fines de semana, que la leyenda puede apagar. */
+  marks?: TimelineMarks
+  /** Las filas de la cabecera del Gantt. */
+  headerRows?: Pick<GanttFields, "month" | "week" | "day">
   timeline?: Timeline | null
 }
 
-// Los hijos toman el color de su fase, más claro cuanto más hondo.
-const shade = (color: string | null, depth: number) =>
-  color
-    ? `color-mix(in oklch, ${color} ${Math.max(100 - depth * 25, 30)}%, transparent)`
-    : undefined
-
-// Las columnas de la parte de tabla, según la vista: con cronograma, las
-// fechas se leen en las barras y la tabla se queda con el nombre.
-const TABLE_COLUMNS: Record<PlanView, string> = {
-  tabla: "grid-cols-[minmax(0,1fr)_7rem_7rem_7rem] flex-1",
-  ambos: "grid-cols-[minmax(0,1fr)_6.5rem] w-[24rem]",
-  cronograma: "grid-cols-[minmax(0,1fr)] w-[16rem]",
-}
+// En el móvil, la tabla con todas sus columnas; junto al Gantt, las que se elijan.
+const MOBILE_TABLE = { gridTemplateColumns: "minmax(0,1fr) 7rem 7rem 7rem" }
 
 const CHIP =
-  "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-[11px] font-medium whitespace-nowrap"
+  "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-sm font-medium whitespace-nowrap"
 
 export function ElementTree({
   nodes,
@@ -73,11 +91,19 @@ export function ElementTree({
   limitDrag,
   expanded: expandedIds,
   onToggle,
+  onToggleAll,
+  viewportRef,
   selectedId = null,
   view = "tabla",
+  fields = DEFAULT_GANTT_FIELDS,
+  headerRows = DEFAULT_GANTT_FIELDS,
+  marks,
   timeline = null,
 }: Readonly<ElementTreeProps>) {
   const showTimeline = view !== "tabla" && timeline != null
+  const columns = view === "tabla" ? { duration: true, start: true, end: true } : fields
+  const ganttTable = tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields })
+  const table = view === "tabla" ? MOBILE_TABLE : ganttTable
   // Lo que contiene al elemento seleccionado se abre solo, para que se vea.
   const selectedPath = new Set<string>()
   const findPath = (list: ElementNode[], path: string[]): boolean =>
@@ -89,7 +115,7 @@ export function ElementTree({
       return findPath(node.children, [...path, node.element.id])
     })
   if (selectedId) findPath(nodes, [])
-  const background = showTimeline ? trackBackground(timeline) : undefined
+  const background = showTimeline ? trackBackground(timeline, marks) : undefined
 
   const names = new Map<string, string>()
   const collect = (list: ElementNode[]) =>
@@ -142,7 +168,7 @@ export function ElementTree({
       <TimelineBar
         element={element}
         isPhase={depth === 0}
-        color={shade(node.phaseColor, depth === 0 ? 0 : depth + 1) ?? "var(--muted-foreground)"}
+        tint={phaseTint(node.phaseColor, depth === 0)}
         timeline={timeline}
         selected={element.id === selectedId}
         tooltip={tooltip}
@@ -150,6 +176,7 @@ export function ElementTree({
         onOpen={() => onOpen(element.id)}
         onDrag={(drag, days) => onDragBar(element.id, drag, days)}
         limit={limitDrag && ((drag, days) => limitDrag(element.id, drag, days))}
+        weekends={(marks?.weekends ?? true) && timeline.zoom === "dia"}
       />
     )
   }
@@ -166,17 +193,18 @@ export function ElementTree({
         <div
           aria-selected={selected}
           className={cn(
-            "group/row border-border/40 flex h-9 border-b text-sm transition-colors",
+            "group/row border-border/40 flex h-9 border-b text-base transition-colors",
             selected ? "bg-primary/5" : "hover:bg-muted/40"
           )}
         >
           <div
             className={cn(
               "bg-background sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
-              TABLE_COLUMNS[view],
+              view === "tabla" && "flex-1",
               showTimeline && "border-border/60 border-r",
               selected && "shadow-[inset_2px_0_0_var(--primary)]"
             )}
+            style={table}
           >
             <div
               className="flex min-w-0 items-center gap-2"
@@ -200,8 +228,12 @@ export function ElementTree({
               <span
                 aria-hidden
                 title={ELEMENT_KIND_LABELS[element.kind]}
-                className={cn("shrink-0 rounded-full", depth === 0 ? "h-4 w-1" : "size-1.5")}
-                style={{ backgroundColor: shade(node.phaseColor, depth) }}
+                className={cn(
+                  "shrink-0 rounded-full",
+                  depth === 0 ? "h-4 w-1" : "size-1.5",
+                  phaseTint(node.phaseColor, depth === 0).className
+                )}
+                style={phaseTint(node.phaseColor, depth === 0).style}
               />
               <button
                 type="button"
@@ -229,7 +261,7 @@ export function ElementTree({
                   fija
                 </span>
               ) : (
-                // Con cronograma, la regla se lee en la barra y en el inspector; en la
+                // Con el Gantt, la regla se lee en la barra y en el inspector; en la
                 // tabla aparece al pasar el ratón, sin quitar sitio al nombre.
                 rule &&
                 view === "tabla" && (
@@ -244,9 +276,26 @@ export function ElementTree({
                   </span>
                 )
               )}
+              {depth === 0 && element.duration == null && (
+                // Solo el icono: con texto, el badge cortaba el nombre de la fase.
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      tabIndex={0}
+                      aria-label="Sin duración"
+                      className="bg-warn-soft text-warn border-warn/30 flex size-5 shrink-0 items-center justify-center rounded-full border"
+                    >
+                      <IconAlertTriangle size={11} aria-hidden />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Sin duración: no tiene fin, y lo que depende de ella tampoco
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
 
-            {view !== "cronograma" && (
+            {columns.duration && (
               <DurationEditor
                 label={`Duración de ${element.name}`}
                 value={element.duration}
@@ -257,8 +306,8 @@ export function ElementTree({
                 onSave={(duration) => onUpdate(element.id, { duration })}
               />
             )}
-            {view === "tabla" && dateCell(element, "start")}
-            {view === "tabla" && dateCell(element, "end")}
+            {columns.start && dateCell(element, "start")}
+            {columns.end && dateCell(element, "end")}
           </div>
 
           {showTimeline && (
@@ -274,21 +323,60 @@ export function ElementTree({
 
   const content = (
     <div className={cn(showTimeline && "w-max min-w-full")}>
-      <div className="border-border bg-background sticky top-0 z-20 flex h-9 border-b text-xs font-medium">
+      <div className="border-border bg-background sticky top-0 z-20 flex min-h-9 border-b text-sm font-medium">
         <div
-          aria-hidden
+          data-grid-labels
+          // Con el Gantt, los títulos van a la altura de la fila de los días.
           className={cn(
             "bg-background text-muted-foreground sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
-            TABLE_COLUMNS[view],
-            showTimeline && "border-border/60 border-r"
+            view === "tabla" && "flex-1",
+            showTimeline && "border-border/60 items-end border-r pb-2.5"
           )}
+          style={table}
         >
-          <span className="pl-8">Elemento</span>
-          {view !== "cronograma" && <span className="px-1.5">Duración</span>}
-          {view === "tabla" && <span className="px-1.5">Inicio</span>}
-          {view === "tabla" && <span className="px-1.5">Fin</span>}
+          <span className="flex items-center gap-1 pl-1">
+            {onToggleAll ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    onClick={onToggleAll}
+                    aria-label={expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                  >
+                    {expandedIds.size > 0 ? (
+                      <IconChevronsUp aria-hidden />
+                    ) : (
+                      <IconChevronsDown aria-hidden />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span className="size-8" />
+            )}
+            <span aria-hidden>Elemento</span>
+          </span>
+          {columns.duration && (
+            <span aria-hidden className="px-1.5">
+              Duración
+            </span>
+          )}
+          {columns.start && (
+            <span aria-hidden className="px-1.5">
+              Inicio
+            </span>
+          )}
+          {columns.end && (
+            <span aria-hidden className="px-1.5">
+              Fin
+            </span>
+          )}
         </div>
-        {showTimeline && <TimelineScale timeline={timeline} />}
+        {showTimeline && <TimelineScale timeline={timeline} rows={headerRows} marks={marks} />}
       </div>
 
       <div>
@@ -302,9 +390,11 @@ export function ElementTree({
   // La cuadrícula ocupa el alto que le dejan y lleva su propio scroll, con la
   // cabecera fija: las dos barras quedan siempre a la vista.
   return (
-    <ScrollArea className="h-full w-full">
+    <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
       {content}
-      {showTimeline && <ScrollBar orientation="horizontal" />}
+      {showTimeline && (
+        <ScrollBar orientation="horizontal" className="z-30" style={{ left: ganttTable.width }} />
+      )}
     </ScrollArea>
   )
 }
