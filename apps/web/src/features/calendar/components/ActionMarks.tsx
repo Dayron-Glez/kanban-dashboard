@@ -6,6 +6,7 @@ import { isPeriod, layoutActions, periodSpan } from "../lib/actionLayout"
 import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { formatShortDay } from "../lib/planFormat"
 import { barDragModes, cellAt, timelineX, type BarDrag, type Timeline } from "../lib/timeline"
+import { ACTION_COLOR } from "../lib/actionStyle"
 import { ActionGlyph } from "./ActionGlyph"
 
 const short = (iso: string) => formatShortDay(fromIsoDate(iso))
@@ -23,9 +24,11 @@ const countLabel = (list: ElementNode[]) =>
 const COUNT =
   "bg-foreground text-background pointer-events-none absolute flex -translate-1/2 items-center justify-center rounded-full font-bold tabular-nums"
 
+// La línea de un periodo, con el color de su tipo.
 const periodShape = (kind: string, endless: boolean) =>
   cn(
     "absolute rounded-full",
+    ACTION_COLOR[kind as ActionKind],
     kind === "hiring"
       ? "bg-[repeating-linear-gradient(90deg,currentColor_0_6px,transparent_6px_9px)]"
       : "bg-current",
@@ -90,7 +93,7 @@ export function ActionLane({
   })
 
   return (
-    <div className="text-foreground">
+    <div>
       {lanes.map((lane, index) =>
         lane.map((action) => (
           <ActionMark key={action.element.id} {...markProps(action, LANE_Y[index]!)} />
@@ -126,7 +129,7 @@ export function ActionRollup({
   if (actions.length === 0) return null
   const { lanes, cells } = layoutActions(actions, timeline, 1)
   return (
-    <div className="text-foreground/70 pointer-events-none">
+    <div className="pointer-events-none">
       {lanes[0]?.map((action) => {
         const { start, end } = periodSpan(action, timeline)
         return (
@@ -135,7 +138,11 @@ export function ActionRollup({
             role="img"
             aria-label={label(action)}
             title={label(action)}
-            className={cn(periodShape(action.element.kind, !action.element.endsOn), "h-[3px]")}
+            // Los mismos colores, más apagados, para no competir con la barra; los números no.
+            className={cn(
+              periodShape(action.element.kind, !action.element.endsOn),
+              "h-[3px] opacity-65"
+            )}
             style={{
               top: 42,
               left: timelineX(start, timeline) + 4,
@@ -154,7 +161,10 @@ export function ActionRollup({
             className="absolute flex -translate-1/2 items-center justify-center"
             style={{ left: cellCenter(start, timeline), top: 34 }}
           >
-            <ActionGlyph kind={list[0]!.element.kind as ActionKind} className="scale-75" />
+            <ActionGlyph
+              kind={list[0]!.element.kind as ActionKind}
+              className="size-[13px] opacity-65"
+            />
           </span>
         ) : (
           <span
@@ -236,7 +246,7 @@ function ActionMark({
         <button
           {...common}
           className={cn(
-            "absolute z-[2] flex size-4 -translate-1/2 touch-none items-center justify-center hover:scale-125",
+            "absolute z-[2] flex size-5 -translate-1/2 touch-none items-center justify-center hover:scale-125",
             free ? "cursor-grab" : "cursor-pointer",
             moving && "cursor-grabbing"
           )}

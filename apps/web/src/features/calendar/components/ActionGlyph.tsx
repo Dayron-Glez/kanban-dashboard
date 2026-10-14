@@ -1,19 +1,28 @@
+import {
+  IconBell,
+  IconBriefcase,
+  IconFlag,
+  IconSquareCheck,
+  IconUsers,
+  type Icon,
+} from "@tabler/icons-react"
 import type { ActionKind } from "@repo/contracts"
 import { cn } from "@/shared/index"
+import { ACTION_COLOR } from "../lib/actionStyle"
 
-// Una forma por tipo, para distinguirlos sin depender del color, que es el de la fase.
-const SHAPES: Record<ActionKind, string> = {
-  event: "size-3 rotate-45 scale-[.85] rounded-[2px] bg-current",
-  task: "h-1.5 w-[18px] rounded-full bg-current",
-  meeting: "size-3 rounded-full bg-current",
-  reminder: "size-3 rounded-full border-2 border-current",
-  hiring:
-    "h-1.5 w-[18px] rounded-full bg-[repeating-linear-gradient(90deg,currentColor_0_4px,transparent_4px_6px)]",
+// Un icono por tipo, que se reconoce sin leyenda, con el color de su tipo.
+const ICONS: Record<ActionKind, Icon> = {
+  event: IconFlag,
+  task: IconSquareCheck,
+  meeting: IconUsers,
+  reminder: IconBell,
+  hiring: IconBriefcase,
 }
 
 export function ActionGlyph({
   kind,
   className,
 }: Readonly<{ kind: ActionKind; className?: string }>) {
-  return <span aria-hidden className={cn("inline-block shrink-0", SHAPES[kind], className)} />
+  const Glyph = ICONS[kind]
+  return <Glyph aria-hidden className={cn("size-4 shrink-0", ACTION_COLOR[kind], className)} />
 }
