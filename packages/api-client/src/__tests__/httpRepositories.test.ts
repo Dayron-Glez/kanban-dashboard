@@ -338,4 +338,13 @@ describe("createHttpApi", () => {
       { method: "DELETE", path: `/elements/${TOKEN}/rules/end`, body: undefined },
     ])
   })
+
+  it("acciones: crear una va a su padre y devuelve el plan", async () => {
+    const plan = { elements: [], dependencies: [] }
+    const { api, sent } = setup(() => json(plan))
+    const input = { kind: "meeting", name: "Lectura", startsOn: "2027-06-14" } as const
+
+    await expect(api.elements.createAction(TOKEN, input)).resolves.toEqual(plan)
+    expect(sent()).toEqual([{ method: "POST", path: `/elements/${TOKEN}/actions`, body: input }])
+  })
 })

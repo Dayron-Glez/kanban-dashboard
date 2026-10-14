@@ -7,15 +7,20 @@ import {
   IconChevronsUp,
   IconPin,
 } from "@tabler/icons-react"
-import type {
-  CalendarElement,
-  DatePoint,
-  ElementDependency,
-  UpdateElementPlanInput,
+import {
+  ACTION_PARENT_KINDS,
+  type CalendarElement,
+  type CreateActionInput,
+  type DatePoint,
+  type ElementDependency,
+  type UpdateElementPlanInput,
 } from "@repo/contracts"
 import {
   Button,
   cn,
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
   ScrollArea,
   ScrollBar,
   Tooltip,
@@ -39,6 +44,7 @@ import {
   type TimelineCell,
   type TimelineMarks,
 } from "../lib/timeline"
+import { CellMenu } from "./CellMenu"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { TimelineBar } from "./TimelineBar"
 import { TimelineScale } from "./TimelineScale"
@@ -60,6 +66,9 @@ interface ElementTreeProps {
     drag: BarDrag,
     days: number
   ) => { days: number; reason: string | null }
+  /** Crear una acción en las celdas elegidas; `done` cierra el menú si sale bien. */
+  onCreateAction?: (parentId: string, input: CreateActionInput, done: () => void) => void
+  creating?: boolean
   /** El elemento que hace scroll, para llevar el Gantt a un día. */
   viewportRef?: Ref<HTMLDivElement>
   /** Desplegar todo, o plegarlo si hay algo abierto: va en la cabecera de la columna. */
@@ -94,6 +103,8 @@ export function ElementTree({
   onMoveDate,
   onDragBar,
   limitDrag,
+  onCreateAction,
+  creating = false,
   expanded: expandedIds,
   onToggle,
   onToggleAll,
@@ -127,7 +138,7 @@ export function ElementTree({
       node.element.id,
       ...(isOpen(node.element.id) ? visibleIds(node.children) : []),
     ])
-  const { hovered, selection, span, trackProps } = useGanttCells(
+  const { hovered, selection, span, trackProps, menuOpen, closeMenu } = useGanttCells(
     showTimeline ? timeline : null,
     visibleIds(nodes)
   )
@@ -369,6 +380,49 @@ export function ElementTree({
                   )}
                 </span>
               )}
+              {menuOpen &&
+                selection?.id === element.id &&
+                span &&
+                editable &&
+                onCreateAction &&
+                ACTION_PARENT_KINDS.includes(element.kind) && (
+                  <Popover open onOpenChange={(open) => !open && closeMenu()}>
+                    <PopoverAnchor asChild>
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-0"
+                        style={{
+                          left: timelineX(span.start, timeline),
+                          width: span.days * timeline.pxPerDay,
+                        }}
+                      />
+                    </PopoverAnchor>
+                    <PopoverContent
+                      align="start"
+                      className="w-80 p-2"
+                      // Al cerrarse, el foco vuelve a la fila, para seguir con el teclado.
+                      onCloseAutoFocus={(event) => {
+                        event.preventDefault()
+                        document
+                          .querySelector<HTMLElement>(`[data-track="${element.id}"]`)
+                          ?.focus({ preventScroll: true })
+                      }}
+                    >
+                      <CellMenu
+                        start={span.start}
+                        end={
+                          span.days === cellDays(span.start)
+                            ? span.start
+                            : span.start + span.days - 1
+                        }
+                        parentName={element.name}
+                        pending={creating}
+                        onCancel={closeMenu}
+                        onCreate={(input) => onCreateAction(element.id, input, closeMenu)}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
               {bar(node, rule)}
             </div>
           )}

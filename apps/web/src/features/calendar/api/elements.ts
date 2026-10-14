@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
+import type {
+  CreateActionInput,
+  DatePoint,
+  SetElementRuleInput,
+  UpdateElementPlanInput,
+} from "@repo/contracts"
 import { queryKeys, useApi } from "@/shared/api"
 
 export const usePlan = (projectId: string) => {
@@ -54,6 +59,22 @@ export const useSetRule = (projectId: string) => {
       api.elements.setRule(elementId, point, input),
     onSuccess: (plan) => queryClient.setQueryData(queryKeys.projects.plan(projectId), plan),
     meta: { errorMessage: "No se pudo guardar la regla" },
+  })
+}
+
+interface CreateActionVariables {
+  parentId: string
+  input: CreateActionInput
+}
+
+export const useCreateAction = (projectId: string) => {
+  const api = useApi()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ parentId, input }: CreateActionVariables) =>
+      api.elements.createAction(parentId, input),
+    onSuccess: (plan) => queryClient.setQueryData(queryKeys.projects.plan(projectId), plan),
+    meta: { errorMessage: "No se pudo crear la acción" },
   })
 }
 

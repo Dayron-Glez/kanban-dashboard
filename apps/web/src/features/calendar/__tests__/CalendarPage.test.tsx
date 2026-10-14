@@ -618,6 +618,8 @@ describe("CalendarPage", () => {
   })
 
   it("se eligen celdas con clic, arrastrando y con el teclado", async () => {
+    // Como miembro, para que el menú de crear no se lleve el foco.
+    api.projects.listMine.mockResolvedValue([summary("member")])
     api.elements.getPlan.mockResolvedValue(
       planOf([
         rodaje({ position: 1, startsOn: "2027-04-05", endsOn: "2027-05-16" }),
@@ -659,6 +661,78 @@ describe("CalendarPage", () => {
 
     fireEvent.keyDown(second!, { key: "Escape" })
     expect(status()).toBe("")
+  })
+
+  describe("crear desde las celdas", () => {
+    // La rejilla empieza el lunes de la semana de hoy: con hoy el 13 oct 2026, el 12.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 9, 13) })
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it("al elegir celdas se crea una acción: el tipo y el nombre, con las fechas ya puestas", async () => {
+      const plan = planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      api.elements.getPlan.mockResolvedValue(plan)
+      api.elements.createAction.mockResolvedValue(plan)
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      // 90 px es el tercer día de la rejilla: el miércoles 14.
+      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+
+      const menu = await screen.findByRole("menu", { name: "Tipo de acción" })
+      await userEvent.click(within(menu).getByRole("menuitem", { name: /Reunión/ }))
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "Nombre" }),
+        "Lectura de guion{Enter}"
+      )
+
+      await waitFor(() =>
+        expect(api.elements.createAction).toHaveBeenCalledWith("rodaje", {
+          kind: "meeting",
+          name: "Lectura de guion",
+          startsOn: "2026-10-14",
+          endsOn: null,
+        })
+      )
+      await waitFor(() => expect(screen.queryByRole("textbox", { name: "Nombre" })).toBeNull())
+
+      // Un periodo: reunión y recordatorio no se ofrecen; una tarea lleva su fin.
+      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerMove(track, { clientX: 170, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      const range = await screen.findByRole("menu", { name: "Tipo de acción" })
+      expect(within(range).getByRole("menuitem", { name: /Reunión/ })).toBeDisabled()
+      await userEvent.click(within(range).getByRole("menuitem", { name: /Tarea/ }))
+      await userEvent.type(screen.getByRole("textbox", { name: "Nombre" }), "Ensayos{Enter}")
+      await waitFor(() =>
+        expect(api.elements.createAction).toHaveBeenLastCalledWith("rodaje", {
+          kind: "task",
+          name: "Ensayos",
+          startsOn: "2026-10-14",
+          endsOn: "2026-10-16",
+        })
+      )
+    })
+
+    it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {
+      api.projects.listMine.mockResolvedValue([summary("member")])
+      api.elements.getPlan.mockResolvedValue(
+        planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 90, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      expect(screen.getByRole("status")).toHaveTextContent("Rodaje: 14 oct")
+      expect(screen.queryByRole("menu", { name: "Tipo de acción" })).toBeNull()
+    })
   })
 
   it("las fases sin duración llevan su aviso, y la cabecera dice cuántas son", async () => {

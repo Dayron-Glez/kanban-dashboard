@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner"
 import { Button, cn, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
-import { useGenerateFromTemplate, usePlan } from "../api/elements"
+import { useCreateAction, useGenerateFromTemplate, usePlan } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
@@ -57,6 +57,7 @@ export function CalendarPage() {
   const { id: projectId = "" } = useParams<{ id: string }>()
   const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
+  const createAction = useCreateAction(projectId)
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
   // Todo empieza plegado: el plan entero de golpe es demasiado.
@@ -317,6 +318,10 @@ export function CalendarPage() {
                 onMoveDate={onMoveDate}
                 onDragBar={onDragBar}
                 limitDrag={limitDrag}
+                onCreateAction={(parentId, input, done) =>
+                  createAction.mutate({ parentId, input }, { onSuccess: done })
+                }
+                creating={createAction.isPending}
                 expanded={expanded}
                 onToggle={toggle}
                 onToggleAll={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
