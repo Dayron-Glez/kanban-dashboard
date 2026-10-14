@@ -561,6 +561,9 @@ describe("CalendarPage", () => {
     const legend = await screen.findByRole("note", { name: "Leyenda" })
     expect(within(legend).getByText("Hoy")).toBeInTheDocument()
     expect(within(legend).getByText("Subfase o proceso")).toBeInTheDocument()
+    // Los tipos de acción, cada uno con su icono y su color.
+    expect(within(legend).getByText("Reunión")).toBeInTheDocument()
+    expect(within(legend).getByText("Contratación")).toBeInTheDocument()
     // Las explicaciones largas, en el tooltip.
     await userEvent.hover(within(legend).getByText("Semana 1"))
     expect(await screen.findByRole("tooltip")).toHaveTextContent(

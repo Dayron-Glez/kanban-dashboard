@@ -1,8 +1,11 @@
 import type { CSSProperties, ReactNode } from "react"
 import { IconAnchor, IconPin } from "@tabler/icons-react"
 import { ScrollArea, ScrollBar, Tooltip, TooltipContent, TooltipTrigger, cn } from "@/shared/index"
+import { ACTION_KINDS } from "@repo/contracts"
+import { ELEMENT_KIND_LABELS } from "../lib/elementTree"
 import type { GanttLegend } from "../lib/ganttLegend"
 import { phaseTint } from "../lib/phaseColors"
+import { ActionGlyph } from "./ActionGlyph"
 
 const Swatch = ({ className, style }: { className?: string; style?: CSSProperties }) => (
   <span
@@ -39,8 +42,8 @@ interface GanttLegendProps {
 }
 
 /**
- * La leyenda del Gantt, en una línea: las marcas del tiempo y los tipos de
- * barra. Los colores de las fases no van: cada fila ya lleva el suyo.
+ * La leyenda del Gantt, en una línea: las marcas del tiempo, los tipos de
+ * barra y los tipos de acción. Los colores de las fases no van: cada fila ya lleva el suyo.
  */
 export function GanttLegendStrip({ legend }: Readonly<GanttLegendProps>) {
   if (!legend.visible) return null
@@ -54,7 +57,7 @@ export function GanttLegendStrip({ legend }: Readonly<GanttLegendProps>) {
       className="border-border bg-card/40 text-muted-foreground shrink-0 rounded-lg border text-sm"
     >
       <div className="flex h-[34px] items-center gap-3.5 px-3.5 whitespace-nowrap">
-        {!time && !shapes && <span>Leyenda vacía: elige qué ver en ▾</span>}
+        {!time && !shapes && !legend.actions && <span>Leyenda vacía: elige qué ver en ▾</span>}
         {legend.today && (
           <Item>
             <Swatch className="bg-primary h-3.5 w-0.5 rounded-none" />
@@ -120,6 +123,16 @@ export function GanttLegendStrip({ legend }: Readonly<GanttLegendProps>) {
             </Item>
           </>
         )}
+        {legend.actions && (time || shapes) && (
+          <span aria-hidden className="bg-border h-3.5 w-px shrink-0" />
+        )}
+        {legend.actions &&
+          ACTION_KINDS.map((kind) => (
+            <Item key={kind}>
+              <ActionGlyph kind={kind} className="size-3.5" />
+              {ELEMENT_KIND_LABELS[kind]}
+            </Item>
+          ))}
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
