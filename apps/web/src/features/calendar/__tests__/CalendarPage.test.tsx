@@ -1029,6 +1029,32 @@ describe("CalendarPage", () => {
       expect(screen.getByRole("status")).toHaveTextContent("Shooting: 15 oct")
     })
 
+    it("desde la cabecera del día, «Cuelga de» ofrece cualquier fase, subfase o proceso", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          preparacion({ position: 0, startsOn: "2027-01-04", endsOn: "2027-04-04" }),
+          element("ensayos", "preparacion", "Ensayos", {
+            kind: "process",
+            startsOn: "2027-02-01",
+            endsOn: "2027-02-28",
+          }),
+          rodaje({ position: 1, startsOn: "2026-10-12", endsOn: "2026-11-22" }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByTitle("mié 14 oct 2026"))
+      const panel = await screen.findByRole("dialog")
+      await userEvent.click(within(panel).getByRole("button", { name: "Nueva acción" }))
+      const picker = within(panel).getByRole("button", { name: "Cuelga de" })
+      // Por defecto, lo que está en curso ese día; pero se puede elegir cualquiera.
+      expect(picker).toHaveTextContent("Rodaje")
+      await userEvent.click(picker)
+      expect(await screen.findByRole("option", { name: /Preparación/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /Ensayos/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /Rodaje/ })).toHaveTextContent("en curso")
+    })
+
     it("con el teclado, Mayús + Enter en una celda abre su día", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus } from "@tabler/icons-react"
+import { IconChevronLeft, IconChevronRight, IconPlus } from "@tabler/icons-react"
 import {
   ACTION_KINDS,
   ACTION_PARENT_KINDS,
@@ -10,14 +10,6 @@ import { fromIsoDate, mondayOf, toIsoDate, weekNumber, type EpochDay } from "@re
 import {
   Button,
   cn,
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   ScrollArea,
   Sheet,
   SheetContent,
@@ -37,6 +29,7 @@ import { formatFullDate, formatShortDay } from "../lib/planFormat"
 import type { Timeline } from "../lib/timeline"
 import { ActionGlyph } from "./ActionGlyph"
 import { CellMenu } from "./CellMenu"
+import { ElementPicker } from "./ElementPicker"
 import { MissingDurationHint } from "./MissingDurationHint"
 import { TruncatedText } from "./TruncatedText"
 
@@ -74,7 +67,6 @@ export function DaySheet({
 }: Readonly<DaySheetProps>) {
   // Lo que se está creando vale para un día: al pasar a otro, se olvida.
   const [addingOn, setAddingOn] = useState<EpochDay | null>(null)
-  const [picking, setPicking] = useState<boolean>(false)
   const [chosen, setChosen] = useState<{ day: EpochDay; id: string } | null>(null)
   const adding = addingOn === day
   const setAdding = (on: boolean) => setAddingOn(on ? day : null)
@@ -95,15 +87,14 @@ export function DaySheet({
   const actions = all.filter((node) => isAction(node.element) && touches(node))
   const active = all.filter((node) => !isAction(node.element) && touches(node))
   const activeIds = new Set(active.map((node) => node.element.id))
-  // Se cuelga de la fase de la fila de la que se vino, o de lo que la forma; nunca
-  // de una fase hermana. Desde la cabecera, de las fases en curso ese día.
+  // Desde una fila, se cuelga de su fase o de lo que la forma, nunca de una fase
+  // hermana. Desde la cabecera del día, de cualquier fase, subfase o proceso.
   // La fila «Acciones» de un elemento cuenta como el propio elemento.
   const fromRow = rowId?.replace(/#acciones$/, "") ?? null
   const rowPhase = fromRow
     ? tree.find((phase) => flattenTree([phase]).some((node) => node.element.id === fromRow))
     : undefined
-  const inCourse = tree.filter((phase) => activeIds.has(phase.element.id))
-  const scope = rowPhase ? [rowPhase] : inCourse.length > 0 ? inCourse : tree
+  const scope = rowPhase ? [rowPhase] : tree
   const parents = flattenTree(scope).filter((node) =>
     ACTION_PARENT_KINDS.includes(node.element.kind)
   )
@@ -116,7 +107,6 @@ export function DaySheet({
         (deepest, node) => (deepest == null || node.depth > deepest.depth ? node : deepest),
         null
       ) ??
-    parents[0] ??
     null
   const parent = parents.find((node) => node.element.id === parentId) ?? fallback
   const nameOf = (id: string | null) => all.find((node) => node.element.id === id)?.element.name
@@ -235,64 +225,18 @@ export function DaySheet({
                 <div className="border-border flex flex-col gap-2 rounded-lg border p-2">
                   <div className="flex flex-col gap-1 px-1">
                     <span className="text-muted-foreground text-xs">Cuelga de</span>
-                    <Popover open={picking} onOpenChange={setPicking}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          aria-label="Cuelga de"
-                          className="w-full justify-between font-normal"
-                        >
-                          {parent ? (
-                            <span className="flex min-w-0 items-center gap-2">
-                              <Mark node={parent} />
-                              <TruncatedText text={parent.element.name} />
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              Elige una fase, subfase o proceso
-                            </span>
-                          )}
-                          <IconChevronDown className="opacity-60" aria-hidden />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        align="start"
-                        className="w-(--radix-popover-trigger-width) p-0"
-                      >
-                        <Command>
-                          <CommandInput placeholder="Buscar…" />
-                          <CommandList>
-                            <CommandEmpty>No hay ninguno con ese nombre.</CommandEmpty>
-                            {parents.map((node) => (
-                              <CommandItem
-                                key={node.element.id}
-                                value={node.element.name + " " + node.element.id}
-                                onSelect={() => {
-                                  setParentId(node.element.id)
-                                  setPicking(false)
-                                }}
-                              >
-                                <span
-                                  className="flex min-w-0 flex-1 items-center gap-2"
-                                  style={{ paddingLeft: node.depth * 12 }}
-                                >
-                                  <Mark node={node} />
-                                  <TruncatedText
-                                    text={node.element.name}
-                                    className={cn(node.depth === 0 && "font-semibold")}
-                                  />
-                                </span>
-                                {activeIds.has(node.element.id) && (
-                                  <span className="text-muted-foreground shrink-0 text-xs">
-                                    en curso
-                                  </span>
-                                )}
-                              </CommandItem>
-                            ))}
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <ElementPicker
+                      label="Cuelga de"
+                      options={parents.map((node) => ({
+                        element: node.element,
+                        depth: node.depth,
+                        tint: phaseTint(node.phaseColor, node.depth === 0),
+                        hint: activeIds.has(node.element.id) ? "en curso" : undefined,
+                      }))}
+                      value={parent?.element.id ?? null}
+                      onChange={setParentId}
+                      placeholder="Elige una fase, subfase o proceso"
+                    />
                   </div>
                   {parent && (
                     <CellMenu
