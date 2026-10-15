@@ -10,6 +10,7 @@ import type {
   CreateProjectInput,
   CreateTaskInput,
   DatePoint,
+  EditElementInput,
   Invitation,
   InvitationPreview,
   Project,
@@ -87,6 +88,10 @@ export interface ElementsRepository {
   removeRule(elementId: string, point: DatePoint): Promise<CalendarPlan>
   /** Una acción nueva dentro de una fase, subfase o proceso; devuelve el plan. */
   createAction(parentId: string, input: CreateActionInput): Promise<CalendarPlan>
+  /** Lo editado en el panel, de una vez: todo se guarda o nada. Devuelve el plan. */
+  editElement(elementId: string, input: EditElementInput): Promise<CalendarPlan>
+  /** Solo acciones: las fases, subfases y procesos no se borran. */
+  deleteElement(elementId: string): Promise<CalendarPlan>
 }
 
 export interface ApiClient {
