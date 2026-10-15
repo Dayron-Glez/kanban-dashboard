@@ -8,12 +8,15 @@ import {
   integer,
   numeric,
   pgSchema,
+  primaryKey,
   text,
   timestamp,
   unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core"
+import { alerts } from "./alerts.js"
+import { users } from "./identity.js"
 import { projects } from "./projects.js"
 
 export const calendar = pgSchema("calendar")
@@ -119,5 +122,36 @@ export const elementDependencies = calendar.table(
       "element_dependencies_lag_unit_check",
       sql`${table.lagUnit} in ('days', 'weeks', 'months')`
     ),
+  ]
+)
+
+export const alertConflictReviews = calendar.table(
+  "alert_conflict_reviews",
+  {
+    alertId: uuid("alert_id").notNull(),
+    elementId: uuid("element_id").notNull(),
+    reviewedBy: uuid("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.alertId, table.elementId], name: "alert_conflict_reviews_pkey" }),
+    foreignKey({
+      columns: [table.alertId],
+      foreignColumns: [alerts.id],
+      name: "alert_conflict_reviews_alert_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.elementId],
+      foreignColumns: [elements.id],
+      name: "alert_conflict_reviews_element_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.reviewedBy],
+      foreignColumns: [users.id],
+      name: "alert_conflict_reviews_reviewed_by_fkey",
+    }).onDelete("set null"),
+    index("alert_conflict_reviews_element_id_idx").on(table.elementId),
   ]
 )

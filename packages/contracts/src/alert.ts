@@ -78,3 +78,12 @@ export const UpdateAlertInputSchema = z
   .refine((input) => Object.keys(input).length > 0)
   .superRefine(checkScope)
 export type UpdateAlertInput = z.infer<typeof UpdateAlertInputSchema>
+
+/** «Lo asumo»: el conflicto de una alerta con un elemento está revisado y deja de avisar. */
+export const AlertConflictReviewSchema = z.object({
+  alertId: z.uuid(),
+  elementId: z.uuid(),
+  reviewedBy: z.uuid().nullable(),
+  reviewedAt: z.iso.datetime({ offset: true }),
+})
+export type AlertConflictReview = z.infer<typeof AlertConflictReviewSchema>

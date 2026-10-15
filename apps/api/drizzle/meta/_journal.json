@@ -71,6 +71,13 @@
       "when": 1792104364379,
       "tag": "0009_alertas",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792105703248,
+      "tag": "0010_conflictos_asumidos",
+      "breakpoints": true
     }
   ]
 }
