@@ -317,7 +317,8 @@ export function ElementTree({
     const label = `${element.name}: ${formatPlanDate(element.startsOn!)}${element.endsOn ? ` → ${formatPlanDate(element.endsOn)}` : ", sin fin"}`
     const modes = barDragModes(element, dependencies)
     const lockedBy = modes.locked ? `Se mueve con ${modes.by.map(nameOf).join(" y ")}` : null
-    const tooltip = [label, rule, editable ? lockedBy : null].filter(Boolean).join(" · ")
+    const endless = element.endsOn ? null : "Tiene inicio, pero aún no se sabe cuándo acaba"
+    const tooltip = [label, endless, rule, editable ? lockedBy : null].filter(Boolean).join(" · ")
     return (
       <TimelineBar
         element={element}
@@ -651,18 +652,29 @@ export function ElementTree({
                     <TruncatedText text={element.name} />
                   </button>
                   {element.isAnchor ? (
-                    <span
-                      className={cn(CHIP, "bg-primary/10 text-primary")}
-                      title="Fecha clave del plan"
-                    >
-                      <IconAnchor size={11} aria-hidden />
-                      clave
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={cn(CHIP, "bg-primary/10 text-primary cursor-help")}>
+                          <IconAnchor size={11} aria-hidden />
+                          clave
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Fecha clave: se escribe a mano y de ella se calcula todo el plan
+                      </TooltipContent>
+                    </Tooltip>
                   ) : element.isPinned ? (
-                    <span className={cn(CHIP, "bg-muted text-muted-foreground")} title="Fecha fija">
-                      <IconPin size={11} aria-hidden />
-                      fija
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={cn(CHIP, "bg-muted text-muted-foreground cursor-help")}>
+                          <IconPin size={11} aria-hidden />
+                          fija
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Fecha fija: se escribe a mano y no cambia cuando se mueve el plan
+                      </TooltipContent>
+                    </Tooltip>
                   ) : (
                     // Con el Gantt, la regla se lee en la barra y en el inspector; en la
                     // tabla aparece al pasar el ratón, sin quitar sitio al nombre.

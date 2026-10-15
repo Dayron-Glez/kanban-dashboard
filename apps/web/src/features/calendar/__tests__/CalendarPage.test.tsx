@@ -583,6 +583,33 @@ describe("CalendarPage", () => {
     })
   })
 
+  it("«Cómo leer el Gantt» lo explica bajo demanda, y clave y sin fin, donde aparecen", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+        preparacion({ startsOn: "2027-02-01", position: 1 }),
+      ])
+    )
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Cómo leer el Gantt" }))
+    const guide = await screen.findByRole("dialog")
+    for (const section of ["Barras", "Fechas escritas a mano", "Tiempo", "Acciones"]) {
+      expect(within(guide).getByRole("region", { name: section })).toBeInTheDocument()
+    }
+    expect(within(guide).getByText("De ella se calcula todo el plan")).toBeInTheDocument()
+    await userEvent.keyboard("{Escape}")
+    expect(screen.queryByRole("dialog")).toBeNull()
+
+    await userEvent.hover(within(rowOf("Rodaje")).getByText("clave"))
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Fecha clave: se escribe a mano y de ella se calcula todo el plan"
+    )
+    expect(
+      screen.getByRole("button", { name: "Preparación: 1 feb 2027, sin fin" })
+    ).toHaveAttribute("title", expect.stringContaining("aún no se sabe cuándo acaba"))
+  })
+
   it("el borde entre la tabla y el Gantt ajusta la columna «Elemento», y se recuerda", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])

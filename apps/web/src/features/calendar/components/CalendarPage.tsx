@@ -46,6 +46,7 @@ import { DaySheet } from "./DaySheet"
 import type { DayPanel } from "../hooks/useGanttCells"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
+import { GanttGuide } from "./GanttGuide"
 import { GanttLegendStrip } from "./GanttLegend"
 import { GoToDate } from "./GoToDate"
 import { PlanHeader } from "./PlanHeader"
@@ -328,6 +329,7 @@ export function CalendarPage() {
                       legend={legend}
                       onLegendChange={changeLegend}
                     />
+                    <GanttGuide />
                   </>
                 )}
               </>
