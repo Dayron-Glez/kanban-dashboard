@@ -4,7 +4,7 @@ import { describePhaseViolation } from "@repo/domain"
 import { toast } from "sonner"
 import type { PendingChange } from "../components/ChangePreviewDialog"
 import { describeChange, inverseOf, previewChange, type PlanChange } from "../lib/planPreview"
-import { useRemoveRule, useSetRule, useUpdatePlan } from "./elements"
+import { useEditElement, useRemoveRule, useSetRule, useUpdatePlan } from "./elements"
 
 /**
  * Todo cambio del plan pasa por aquí: se calcula antes qué movería y, si mueve
@@ -15,10 +15,12 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
   const update = useUpdatePlan(projectId)
   const setRule = useSetRule(projectId)
   const removeRule = useRemoveRule(projectId)
+  const editElement = useEditElement(projectId)
   const [waiting, setWaiting] = useState<{
     change: PlanChange
     inverse: PlanChange
     preview: PendingChange
+    onSaved?: () => void
   } | null>(null)
 
   const send = (change: PlanChange, onSuccess?: () => void) => {
@@ -33,12 +35,15 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
         )
       case "remove-rule":
         return removeRule.mutate({ elementId: change.elementId, point: change.point }, options)
+      case "edit":
+        return editElement.mutate({ elementId: change.elementId, input: change.input }, options)
     }
   }
 
   // Solo el último cambio: deshacer no se puede deshacer.
-  const save = (change: PlanChange, inverse: PlanChange, note?: string) =>
-    send(change, () =>
+  const save = (change: PlanChange, inverse: PlanChange, note?: string, onSaved?: () => void) =>
+    send(change, () => {
+      onSaved?.()
       toast.success("Cambio guardado", {
         id: "plan-change",
         duration: 8000,
@@ -49,10 +54,13 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
             send(inverse, () => toast.success("Cambio deshecho", { id: "plan-change" })),
         },
       })
-    )
+    })
 
-  /** `note`: algo que el usuario debe saber del cambio, como que se ajustó al tope. */
-  const request = (change: PlanChange, title?: string, note?: string) => {
+  /**
+   * `note`: algo que el usuario debe saber del cambio, como que se ajustó al tope.
+   * `onSaved`: solo si se llega a guardar, no si se cancela la vista previa.
+   */
+  const request = (change: PlanChange, title?: string, note?: string, onSaved?: () => void) => {
     if (!plan) return
     const preview = previewChange(plan, change)
     if ("cycle" in preview) {
@@ -85,12 +93,13 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
 
     const inverse = inverseOf(plan, change)
     if (preview.moved.length === 0 && outside.length === 0) {
-      save(change, inverse, note)
+      save(change, inverse, note, onSaved)
       return
     }
     setWaiting({
       change,
       inverse,
+      onSaved,
       preview: {
         title: title ?? describeChange(plan, change),
         note,
@@ -102,11 +111,11 @@ export function usePlanChanges(projectId: string, plan: CalendarPlan | undefined
 
   return {
     request,
-    pending: update.isPending || setRule.isPending || removeRule.isPending,
+    pending: update.isPending || setRule.isPending || removeRule.isPending || editElement.isPending,
     dialog: {
       pending: waiting?.preview ?? null,
       onConfirm: () => {
-        if (waiting) save(waiting.change, waiting.inverse, waiting.preview.note)
+        if (waiting) save(waiting.change, waiting.inverse, waiting.preview.note, waiting.onSaved)
         setWaiting(null)
       },
       onCancel: () => setWaiting(null),

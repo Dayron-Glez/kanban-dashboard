@@ -12,6 +12,7 @@ import {
 import type {
   CalendarPlan,
   DatePoint,
+  EditElementInput,
   SetElementRuleInput,
   UpdateElementPlanInput,
 } from "@repo/contracts"
@@ -19,6 +20,7 @@ import { validPredecessors } from "@repo/domain"
 import { buildElementTree, ELEMENT_KIND_LABELS, flattenTree } from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
 import { countDependents, describeIssue, describeRule } from "../lib/planFormat"
+import { countChanges } from "../lib/planPreview"
 import { RuleSentence } from "./RuleSentence"
 import { SidePanel } from "./SidePanel"
 import { WhenField } from "./WhenField"
@@ -40,7 +42,14 @@ interface ElementInspectorProps {
   /** Pasar al elemento de arriba o de abajo en el árbol; sin él, el botón se apaga. */
   onPrevious?: () => void
   onNext?: () => void
+  /** Lo editado sin guardar: el pie lo cuenta y deja guardarlo o descartarlo. */
+  draft?: { input: EditElementInput; onSave: () => void; onDiscard: () => void }
 }
+
+// La marca cian de un campo cambiado y sin guardar, a la izquierda.
+const changedMark = (changed: boolean) =>
+  changed &&
+  "relative before:bg-primary before:absolute before:inset-y-0 before:-left-3 before:w-0.5 before:rounded-full"
 
 // Un botón de la cabecera con su Tooltip y su atajo.
 function StepButton({
@@ -88,6 +97,7 @@ export function ElementInspector({
   planSpan,
   onPrevious,
   onNext,
+  draft,
 }: Readonly<ElementInspectorProps>) {
   const [addingEnd, setAddingEnd] = useState<boolean>(false)
   const element = plan.elements.find((candidate) => candidate.id === elementId)
@@ -154,10 +164,37 @@ export function ElementInspector({
         ? { name: "Plan", ...planSpan }
         : null
   const reason = element.issue ? describeIssue(element.issue, nameOf) : undefined
+  const edits = draft?.input ?? {}
+  const count = countChanges(edits)
+  const whenChanged =
+    edits.duration !== undefined || edits.fixedStart !== undefined || edits.isPinned !== undefined
 
   return (
     <SidePanel
       onClose={close}
+      footer={
+        editable &&
+        draft && (
+          <>
+            <span className="text-muted-foreground mr-auto flex items-center gap-1.5 text-sm">
+              {count > 0 ? (
+                <>
+                  <span aria-hidden className="bg-primary size-1.5 rounded-full" />
+                  {count} {count === 1 ? "cambio sin guardar" : "cambios sin guardar"}
+                </>
+              ) : (
+                "Sin cambios"
+              )}
+            </span>
+            <Button variant="outline" size="sm" disabled={count === 0} onClick={draft.onDiscard}>
+              Cancelar
+            </Button>
+            <Button size="sm" disabled={count === 0 || pending} onClick={draft.onSave}>
+              Guardar
+            </Button>
+          </>
+        )
+      }
       actions={
         <>
           <StepButton label="Elemento anterior" shortcut="↑" onClick={onPrevious}>
@@ -184,18 +221,23 @@ export function ElementInspector({
         </>
       }
     >
-      <WhenField
-        element={element}
-        context={context}
-        tint={tint}
-        editable={editable}
-        pending={pending}
-        reason={reason}
-        onUpdate={(input) => onUpdate(element.id, input)}
-        onMoveDate={(point, date) => onMoveDate(element.id, point, date)}
-      />
+      <div className={cn(changedMark(whenChanged))}>
+        <WhenField
+          element={element}
+          context={context}
+          tint={tint}
+          editable={editable}
+          pending={pending}
+          reason={reason}
+          onUpdate={(input) => onUpdate(element.id, input)}
+          onMoveDate={(point, date) => onMoveDate(element.id, point, date)}
+        />
+      </div>
 
-      <section aria-labelledby="inspector-rules" className="flex flex-col gap-2">
+      <section
+        aria-labelledby="inspector-rules"
+        className={cn("flex flex-col gap-2", changedMark(edits.rules !== undefined))}
+      >
         <h3
           id="inspector-rules"
           className="text-muted-foreground text-sm font-semibold tracking-wider uppercase"

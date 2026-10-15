@@ -1472,6 +1472,66 @@ describe("CalendarPage", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
   })
 
+  it("el panel edita un borrador: nada se guarda hasta Guardar, y salir con cambios pregunta", async () => {
+    const withWeeks = (amount: number) =>
+      planOf(
+        [
+          preparacion({
+            startsOn: "2027-02-01",
+            endsOn: "2027-04-04",
+            duration: { amount, unit: "weeks" },
+          }),
+          rodaje({
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-30",
+            duration: { amount: 8, unit: "weeks" },
+          }),
+        ],
+        [preparacionAntesDelRodaje]
+      )
+    api.elements.getPlan.mockResolvedValue(withWeeks(9))
+    api.elements.editElement.mockResolvedValue(withWeeks(10))
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Ver el detalle de Preparación" })
+    )
+    const panel = screen.getByRole("dialog", { name: "Preparación" })
+    expect(within(panel).getByText("Sin cambios")).toBeInTheDocument()
+
+    await userEvent.click(within(panel).getByRole("button", { name: "Una unidad más" }))
+    expect(within(panel).getByText("1 cambio sin guardar")).toBeInTheDocument()
+    expect(api.elements.editElement).not.toHaveBeenCalled()
+    expect(api.elements.updatePlan).not.toHaveBeenCalled()
+
+    // Cancelar vuelve a lo guardado.
+    await userEvent.click(within(panel).getByRole("button", { name: "Cancelar" }))
+    expect(within(panel).getByText("Sin cambios")).toBeInTheDocument()
+
+    // Salir con cambios pregunta; «Seguir editando» los conserva.
+    await userEvent.click(within(panel).getByRole("button", { name: "Una unidad más" }))
+    await userEvent.keyboard("{Escape}")
+    const ask = await screen.findByRole("alertdialog", { name: "¿Descartar los cambios?" })
+    expect(ask).toHaveTextContent("1 cambio sin guardar en «Preparación»")
+    await userEvent.click(within(ask).getByRole("button", { name: "Seguir editando" }))
+    expect(within(panel).getByText("1 cambio sin guardar")).toBeInTheDocument()
+
+    await userEvent.click(within(panel).getByRole("button", { name: "Guardar" }))
+    expect(api.elements.editElement).toHaveBeenCalledWith("preparacion", {
+      duration: { amount: 10, unit: "weeks" },
+    })
+    expect(await within(panel).findByText("Sin cambios")).toBeInTheDocument()
+
+    // Descartar cierra el panel sin guardar nada más.
+    await userEvent.click(within(panel).getByRole("button", { name: "Una unidad más" }))
+    await userEvent.click(within(panel).getByRole("button", { name: "Elemento siguiente" }))
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Descartar" })
+    )
+    expect(await screen.findByRole("dialog", { name: "Rodaje" })).toBeInTheDocument()
+    expect(api.elements.editElement).toHaveBeenCalledTimes(1)
+  })
+
   it("la propietaria genera el calendario si está vacío", async () => {
     api.elements.getPlan.mockResolvedValueOnce(planOf([]))
     api.elements.getPlan.mockResolvedValue(planOf([element("dev", null, "Desarrollo")]))

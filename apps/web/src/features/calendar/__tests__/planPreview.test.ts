@@ -2,13 +2,16 @@ import type { CalendarElement, CalendarPlan, ElementDependency } from "@repo/con
 import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
 import {
+  applyDraft,
   changeForEdit,
+  countChanges,
   clampMove,
   describeChange,
   describeMove,
   describeShift,
   editContext,
   inverseOf,
+  mergeChange,
   previewChange,
   summarizeMoves,
 } from "../lib/planPreview"
@@ -382,5 +385,82 @@ describe("clampMove: el tope del orden de las fases", () => {
         nextId: "rodaje",
       }),
     })
+  })
+})
+
+describe("el borrador del panel", () => {
+  const longer = {
+    type: "update",
+    elementId: "preparacion",
+    input: { duration: { amount: 10, unit: "weeks" } },
+  } as const
+
+  it("suma cambios y deja de contar lo que vuelve a su valor", () => {
+    const draft = mergeChange(plan, {}, longer)
+    expect(draft).toEqual({ duration: { amount: 10, unit: "weeks" } })
+    const withRule = mergeChange(plan, draft, {
+      type: "remove-rule",
+      elementId: "preparacion",
+      point: "end",
+    })
+    expect(countChanges(withRule)).toBe(2)
+
+    const back = mergeChange(plan, withRule, {
+      type: "update",
+      elementId: "preparacion",
+      input: { duration: { amount: 9, unit: "weeks" } },
+    })
+    const restored = mergeChange(plan, back, {
+      type: "set-rule",
+      elementId: "preparacion",
+      point: "end",
+      input: {
+        predecessorId: "rodaje",
+        predecessorPoint: "start",
+        lag: { amount: -1, unit: "days" },
+      },
+    })
+    expect(restored).toEqual({})
+    expect(countChanges(restored)).toBe(0)
+  })
+
+  it("enseña el plan como quedaría, con el mismo motor", () => {
+    const draft = applyDraft(plan, {
+      type: "edit",
+      elementId: "preparacion",
+      input: { duration: { amount: 10, unit: "weeks" } },
+    })!
+    const preparacion = draft.elements.find((item) => item.id === "preparacion")!
+    // El fin lo fija la regla: una semana más es empezar una semana antes.
+    expect(preparacion).toMatchObject({
+      startsOn: "2027-01-25",
+      endsOn: "2027-04-04",
+      duration: { amount: 10, unit: "weeks" },
+    })
+    expect(draft.elements.find((item) => item.id === "rodaje")!.startsOn).toBe("2027-04-05")
+  })
+
+  it("guardarlo se deshace con lo que había, regla incluida", () => {
+    const change = {
+      type: "edit",
+      elementId: "preparacion",
+      input: { name: "Prep", duration: { amount: 10, unit: "weeks" }, rules: { end: null } },
+    } as const
+    expect(inverseOf(plan, change)).toEqual({
+      type: "edit",
+      elementId: "preparacion",
+      input: {
+        name: "preparacion",
+        duration: { amount: 9, unit: "weeks" },
+        rules: {
+          end: {
+            predecessorId: "rodaje",
+            predecessorPoint: "start",
+            lag: { amount: -1, unit: "days" },
+          },
+        },
+      },
+    })
+    expect(describeChange(plan, change)).toBe("Guardar los cambios de preparacion")
   })
 })

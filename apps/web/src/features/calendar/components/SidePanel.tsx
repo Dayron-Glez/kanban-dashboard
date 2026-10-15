@@ -13,8 +13,8 @@ interface SidePanelProps {
 }
 
 // Lo que se pulsa sin cerrar el panel: el calendario, para seguir trabajando con
-// él abierto, y los avisos (toasts).
-const KEEPS_OPEN = "[data-calendar-surface], [data-sonner-toaster]"
+// él abierto, los avisos (toasts) y los diálogos que abre el propio panel.
+const KEEPS_OPEN = "[data-calendar-surface], [data-sonner-toaster], [role=alertdialog]"
 
 /**
  * El armazón de los paneles de la derecha, sobre el Sheet de shadcn: 520 px,
