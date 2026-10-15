@@ -60,7 +60,9 @@ export function useGanttCells(
   timeline: Timeline | null,
   rowIds: readonly string[],
   onOpenDay?: (day: EpochDay, rowId: string | null) => void,
-  dayPanel: DayPanel | null = null
+  dayPanel: DayPanel | null = null,
+  /** Un clic (sin arrastrar) en una celda: quien la pinta decide si abre algo. */
+  onCellClick?: (rowId: string, day: EpochDay) => void
 ) {
   const [hovered, setHovered] = useState<{ id: string; cell: TimelineCell } | null>(null)
   const [chosen, setChosen] = useState<CellSelection | null>(null)
@@ -156,6 +158,7 @@ export function useGanttCells(
         const moved = cellAt(timeline, selection.focus).start !== cellAt(timeline, start.day).start
         // En una pantalla táctil el doble toque no es fiable: un toque abre.
         if (moved || start.touch) openMenu()
+        else onCellClick?.(id, start.day)
       }
       dragging.current = false
       pressed.current = null

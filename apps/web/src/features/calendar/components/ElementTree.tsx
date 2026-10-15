@@ -170,10 +170,12 @@ export function ElementTree({
         : []),
     ])
   const names = new Map<string, string>()
+  const actionRows = new Map<string, ElementNode>()
   const collect = (list: ElementNode[]) =>
     list.forEach((node) => {
       names.set(node.element.id, node.element.name)
       names.set(actionsRow(node.element.id), `Acciones de ${node.element.name}`)
+      actionRows.set(actionsRow(node.element.id), node)
       collect(node.children)
     })
   collect(nodes)
@@ -183,7 +185,16 @@ export function ElementTree({
     showTimeline ? timeline : null,
     visibleIds(nodes),
     onOpenDay,
-    dayPanel
+    dayPanel,
+    (row, day) => {
+      // En la fila «Acciones», un clic en una celda con una sola acción la abre, como
+      // un clic en su línea o su icono; con varias, la celda queda elegida.
+      const node = actionRows.get(row)
+      if (!node || !timeline) return
+      const cell = cellAt(timeline, day)
+      const here = actionsInSpan(node, true, cell.start, cell.start + cell.days - 1)
+      if (here.length === 1) onOpen(here[0]!.element.id)
+    }
   )
 
   // Al pasar de día en el panel, su celda se lleva a la vista si se sale.

@@ -1177,6 +1177,49 @@ describe("CalendarPage", () => {
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
     })
 
+    it("en la fila «Acciones», un clic en la celda de una sola acción la abre; con varias, solo elige", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("ensayos", "rodaje", "Ensayos", {
+            kind: "task",
+            startsOn: "2026-10-19",
+            endsOn: "2026-10-21",
+            isPinned: true,
+          }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            position: 1,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+          element("aviso", "rodaje", "Pedir permisos", {
+            kind: "reminder",
+            position: 2,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const lane = document.querySelector<HTMLElement>('[data-track="rodaje#acciones"]')!
+      // El 20 oct es el noveno día (8 × 48 px): solo lo cubre la tarea de Ensayos.
+      fireEvent.pointerDown(lane, { button: 0, clientX: 8 * 48 + 10, pointerType: "mouse" })
+      fireEvent.pointerUp(lane)
+      expect(await screen.findByRole("heading", { name: "Ensayos" })).toBeInTheDocument()
+
+      // El 14 oct tiene dos: la celda queda elegida y no se abre ninguna.
+      await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
+      fireEvent.pointerDown(lane, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(lane)
+      expect(screen.getByRole("status")).toHaveTextContent("Acciones de Rodaje: 14 oct")
+      expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
+    })
+
     it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {
       api.projects.listMine.mockResolvedValue([summary("member")])
       api.elements.getPlan.mockResolvedValue(
