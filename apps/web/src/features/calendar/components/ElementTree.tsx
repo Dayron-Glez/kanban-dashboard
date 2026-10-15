@@ -91,6 +91,8 @@ interface ElementTreeProps {
   ) => { days: number; reason: string | null }
   /** Crear una acción en las celdas elegidas; `done` cierra el menú si sale bien. */
   onCreateAction?: (parentId: string, input: CreateActionInput, done: () => void) => void
+  /** Desplegar lo que contiene a un elemento, para que se vea su fila. */
+  onReveal?: (elementIds: string[]) => void
   /** Abrir el panel con todo el proyecto en un día. */
   onOpenDay?: (day: EpochDay, rowId: string | null) => void
   /** El panel del día abierto: la celda elegida lo sigue. */
@@ -135,6 +137,7 @@ export function ElementTree({
   limitDrag,
   onCreateAction,
   onOpenDay,
+  onReveal,
   dayPanel = null,
   creating = false,
   expanded: expandedIds,
@@ -206,31 +209,58 @@ export function ElementTree({
     ])
   const names = new Map<string, string>()
   const actionRows = new Map<string, ElementNode>()
+  const rowNodes = new Map<string, ElementNode>()
   const collect = (list: ElementNode[]) =>
     list.forEach((node) => {
       names.set(node.element.id, node.element.name)
       names.set(actionsRow(node.element.id), `Acciones de ${node.element.name}`)
       actionRows.set(actionsRow(node.element.id), node)
+      rowNodes.set(node.element.id, node)
       collect(node.children)
     })
   collect(nodes)
   const nameOf = (id: string) => names.get(id) ?? "otro elemento"
 
-  const { hovered, selection, span, trackProps, menuOpen, closeMenu, showHint } = useGanttCells(
-    showTimeline ? timeline : null,
-    visibleIds(nodes),
-    onOpenDay,
-    dayPanel,
-    (row, day) => {
-      // En la fila «Acciones», un clic en una celda con una sola acción la abre, como
-      // un clic en su línea o su icono; con varias, la celda queda elegida.
-      const node = actionRows.get(row)
-      if (!node || !timeline) return
-      const cell = cellAt(timeline, day)
-      const here = actionsInSpan(node, true, cell.start, cell.start + cell.days - 1)
-      if (here.length === 1) onOpen(here[0]!.element.id)
+  // Abrir una acción desde una celda: se despliega lo que la contiene, para que su
+  // fila «Acciones» se vea. Devuelve esa fila: la celda elegida pasa a ella, no se
+  // queda en la fila plegada desde la que se vio.
+  const revealAndOpen = (action: ElementNode) => {
+    const parentId = action.element.parentId!
+    const path: string[] = []
+    for (let id: string | null = parentId; id; id = rowNodes.get(id)?.element.parentId ?? null) {
+      path.unshift(id)
     }
-  )
+    onReveal?.(path)
+    onOpen(action.element.id)
+    return actionsRow(parentId)
+  }
+
+  // Lo que se ve en una celda: en la fila «Acciones», sus acciones; en la de un
+  // elemento plegado, lo que resume; desplegado, nada (sus acciones tienen su fila).
+  const cellItems = (row: string, from: number, to: number): ElementNode[] => {
+    const actions = actionRows.get(row)
+    if (actions) return actionsInSpan(actions, true, from, to)
+    const node = rowNodes.get(row)
+    if (!node || isOpen(node.element.id)) return []
+    return actionsInSpan(node, false, from, to)
+  }
+
+  const { hovered, selection, span, trackProps, menuOpen, closeMenu, showHint, selectCell } =
+    useGanttCells(
+      showTimeline ? timeline : null,
+      visibleIds(nodes),
+      onOpenDay,
+      dayPanel,
+      (row, day) => {
+        // Un clic es para ver: con una sola acción en la celda, su detalle; con varias,
+        // la lista. Vacía, la celda solo queda elegida (crear: doble clic o Enter).
+        if (!timeline) return
+        const cell = cellAt(timeline, day)
+        const here = cellItems(row, cell.start, cell.start + cell.days - 1)
+        if (here.length > 1) return "list"
+        if (here.length === 1) return { row: revealAndOpen(here[0]!) }
+      }
+    )
 
   // Al pasar de día en el panel, su celda se lleva a la vista si se sale.
   const panelDay = dayPanel?.day
@@ -308,17 +338,12 @@ export function ElementTree({
   // Lo que hay en las celdas elegidas y, si se puede, crear ahí.
   // En la fila de acciones, las suyas; en la del elemento, plegado, todo lo de dentro
   // (lo que resume su rollup) y, desplegado, nada: sus acciones tienen su fila.
-  const cellMenu = (node: ElementNode, row: string, expanded: boolean) => {
+  const cellMenu = (node: ElementNode, row: string) => {
     const { element } = node
     if (!menuOpen || selection?.id !== row || !span || !timeline) return null
     const end = span.days === cellDays(span.start) ? span.start : span.start + span.days - 1
     const last = span.start + span.days - 1
-    const inCell =
-      row === actionsRow(element.id)
-        ? actionsInSpan(node, true, span.start, last)
-        : expanded
-          ? []
-          : actionsInSpan(node, false, span.start, last)
+    const inCell = cellItems(row, span.start, last)
     const canCreate =
       editable && onCreateAction != null && ACTION_PARENT_KINDS.includes(element.kind)
     if (inCell.length === 0 && !canCreate) return null
@@ -366,7 +391,9 @@ export function ElementTree({
             pending={creating}
             onOpen={(id) => {
               closeMenu()
-              onOpen(id)
+              const action = inCell.find((candidate) => candidate.element.id === id)
+              if (action) selectCell(revealAndOpen(action), span.start)
+              else onOpen(id)
             }}
             onCancel={closeMenu}
             onOpenDay={
@@ -420,9 +447,12 @@ export function ElementTree({
                 {spanLabel(span)}
               </span>
             ) : (
-              showHint && (
+              // Vacía, la celda no abre nada con un clic: la pista dice cómo crear.
+              showHint &&
+              editable &&
+              cellItems(row, span.start, span.start + span.days - 1).length === 0 && (
                 <span className="bg-foreground text-background absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap shadow-sm">
-                  Doble clic o Enter para abrir
+                  Doble clic o Enter para crear
                 </span>
               )
             )}
@@ -482,7 +512,7 @@ export function ElementTree({
             row,
             `Días de las acciones de ${node.element.name}`,
             <>
-              {cellMenu(node, row, true)}
+              {cellMenu(node, row)}
               {timeline && (
                 <ActionLane
                   node={node}
@@ -696,7 +726,7 @@ export function ElementTree({
               element.id,
               `Días de ${element.name}`,
               <>
-                {cellMenu(node, element.id, expanded)}
+                {cellMenu(node, element.id)}
                 {bar(node, rule)}
                 {!expanded && timeline && (
                   <ActionRollup

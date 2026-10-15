@@ -954,6 +954,13 @@ describe("CalendarPage", () => {
             endsOn: null,
             issue: { code: "missing-duration" },
           }),
+          element("presupuesto", "rodaje", "Presupuesto de ejecución", {
+            kind: "task",
+            position: 1,
+            startsOn: "2026-10-12",
+            endsOn: null,
+            issue: { code: "missing-duration" },
+          }),
         ])
       )
       renderPage()
@@ -967,10 +974,9 @@ describe("CalendarPage", () => {
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
       await userEvent.keyboard("{Escape}")
 
-      // En su día, la lista la enseña con el aviso.
+      // En su día hay dos: un clic enseña la lista, cada una con su aviso.
       fireEvent.pointerDown(track, { button: 0, clientX: 10, pointerType: "mouse" })
       fireEvent.pointerUp(track)
-      fireEvent.doubleClick(track, { clientX: 10 })
       const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
       const item = within(list).getByRole("menuitem", { name: /Elaboración de calendario/ })
       expect(within(item).getByLabelText("Sin duración")).toBeInTheDocument()
@@ -1018,15 +1024,22 @@ describe("CalendarPage", () => {
             endsOn: "2026-10-14",
             isPinned: true,
           }),
+          element("aviso", "rodaje", "Pedir permisos", {
+            kind: "reminder",
+            position: 1,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
         ])
       )
       renderPage()
 
-      await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
       const track = document.querySelector<HTMLElement>("[data-track]")!
+      // Un clic basta: hay dos, así que sale la lista.
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
-      fireEvent.doubleClick(track, { clientX: 110 })
       expect(await screen.findByRole("menu", { name: "Acciones de la celda" })).toBeInTheDocument()
       expect(screen.queryByRole("button", { name: /Nueva acción/ })).toBeNull()
     })
@@ -1240,7 +1253,7 @@ describe("CalendarPage", () => {
       )
     })
 
-    it("un clic elige la celda y enseña cómo abrirla; el doble clic la abre, y la pista se va", async () => {
+    it("un clic en una celda vacía la elige y enseña cómo crear; el doble clic crea, y la pista se va", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
       )
@@ -1252,14 +1265,14 @@ describe("CalendarPage", () => {
       fireEvent.pointerUp(track)
       expect(screen.getByRole("status")).toHaveTextContent("Rodaje: 14 oct")
       expect(screen.queryByRole("menu", { name: "Tipo de acción" })).toBeNull()
-      expect(screen.getByText("Doble clic o Enter para abrir")).toBeInTheDocument()
+      expect(screen.getByText("Doble clic o Enter para crear")).toBeInTheDocument()
 
       fireEvent.doubleClick(track, { clientX: 110 })
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
-      expect(screen.queryByText("Doble clic o Enter para abrir")).toBeNull()
+      expect(screen.queryByText("Doble clic o Enter para crear")).toBeNull()
       await userEvent.keyboard("{Escape}")
       // Vista una vez, no vuelve.
-      expect(screen.queryByText("Doble clic o Enter para abrir")).toBeNull()
+      expect(screen.queryByText("Doble clic o Enter para crear")).toBeNull()
       expect(localStorage.getItem("cauce.gantt.pistaCelda")).toBe("vista")
     })
 
@@ -1317,6 +1330,35 @@ describe("CalendarPage", () => {
       fireEvent.pointerUp(lane)
       expect(screen.getByRole("status")).toHaveTextContent("Acciones de Rodaje: 14 oct")
       expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
+    })
+
+    it("un clic es para ver: en una fila plegada, la única acción de la celda abre su detalle", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
+      const track = document.querySelector<HTMLElement>('[data-track="rodaje"]')!
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
+      expect(screen.queryByRole("menu")).toBeNull()
+      // La celda elegida pasa a la fila donde vive la acción, que queda desplegada.
+      expect(screen.getByRole("status")).toHaveTextContent("Acciones de Rodaje: 14 oct")
+      await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
+      expect(screen.getByRole("treeitem", { name: "Acciones de Rodaje" })).toBeInTheDocument()
+      expect(
+        document.querySelector('[data-track="rodaje#acciones"] [data-cell-selection]')
+      ).not.toBeNull()
     })
 
     it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {

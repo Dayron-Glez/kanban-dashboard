@@ -337,6 +337,7 @@ export function CalendarPage() {
                 creating={createAction.isPending}
                 expanded={expanded}
                 onToggle={toggle}
+                onReveal={(ids) => setExpanded((current) => new Set([...current, ...ids]))}
                 onToggleAll={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
                 viewportRef={viewportRef}
                 fields={fields}

@@ -61,8 +61,12 @@ export function useGanttCells(
   rowIds: readonly string[],
   onOpenDay?: (day: EpochDay, rowId: string | null) => void,
   dayPanel: DayPanel | null = null,
-  /** Un clic (sin arrastrar) en una celda: quien la pinta decide si abre algo. */
-  onCellClick?: (rowId: string, day: EpochDay) => void
+  /**
+   * Un clic (sin arrastrar) en una celda: quien la pinta decide qué se ve. Si
+   * devuelve «list», se abre el menú de la celda; si devuelve una fila, la celda
+   * elegida pasa a esa fila (la de la acción que se abrió).
+   */
+  onCellClick?: (rowId: string, day: EpochDay) => "list" | { row: string } | void
 ) {
   const [hovered, setHovered] = useState<{ id: string; cell: TimelineCell } | null>(null)
   const [chosen, setChosen] = useState<CellSelection | null>(null)
@@ -158,7 +162,11 @@ export function useGanttCells(
         const moved = cellAt(timeline, selection.focus).start !== cellAt(timeline, start.day).start
         // En una pantalla táctil el doble toque no es fiable: un toque abre.
         if (moved || start.touch) openMenu()
-        else onCellClick?.(id, start.day)
+        else {
+          const result = onCellClick?.(id, start.day)
+          if (result === "list") openMenu()
+          else if (result) select({ id: result.row, anchor: start.day, focus: start.day })
+        }
       }
       dragging.current = false
       pressed.current = null
@@ -214,5 +222,7 @@ export function useGanttCells(
     /** Si se enseña la pista de cómo abrir la celda elegida. */
     showHint: !hintSeen && !menuOpen && selection != null,
     closeMenu: () => setMenuOpen(false),
+    /** Elegir una celda desde fuera: la de una acción que se abre en otra fila. */
+    selectCell: (id: string, day: EpochDay) => select({ id, anchor: day, focus: day }),
   }
 }
