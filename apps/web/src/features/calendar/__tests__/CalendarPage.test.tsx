@@ -1410,6 +1410,109 @@ describe("CalendarPage", () => {
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
     })
 
+    it("Supr borra la única acción de la celda, tras confirmarlo; con varias, abre su lista con papeleras", async () => {
+      const lectura = element("lectura", "rodaje", "Lectura de guion", {
+        kind: "meeting",
+        startsOn: "2026-10-14",
+        endsOn: "2026-10-14",
+        isPinned: true,
+      })
+      const avisos = ["aviso1", "aviso2"].map((id, index) =>
+        element(id, "rodaje", `Aviso ${index + 1}`, {
+          kind: "reminder",
+          position: index + 1,
+          startsOn: "2026-10-16",
+          endsOn: "2026-10-16",
+          isPinned: true,
+        })
+      )
+      const rodajeConFechas = rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })
+      api.elements.getPlan.mockResolvedValue(planOf([rodajeConFechas, lectura, ...avisos]))
+      api.elements.deleteElement.mockResolvedValue(planOf([rodajeConFechas, ...avisos]))
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const lane = document.querySelector<HTMLElement>('[data-track="rodaje#acciones"]')!
+      // El 14 oct es el tercer día: una sola acción, que se abre y lleva la pista.
+      fireEvent.pointerDown(lane, { button: 0, clientX: 2 * 48 + 10, pointerType: "mouse" })
+      fireEvent.pointerUp(lane)
+      expect(await screen.findByText("Supr para borrar")).toBeInTheDocument()
+
+      fireEvent.keyDown(lane, { key: "Delete" })
+      const ask = await screen.findByRole("alertdialog", {
+        name: "¿Borrar la reunión “Lectura de guion”?",
+      })
+      // Se abre sin foco en los botones: ni se borra ni se cancela por inercia.
+      await waitFor(() => expect(ask).toHaveFocus())
+      expect(ask).toHaveTextContent("Reunión")
+      expect(ask).toHaveTextContent("en Rodaje")
+      expect(api.elements.deleteElement).not.toHaveBeenCalled()
+      await userEvent.click(within(ask).getByRole("button", { name: "Borrar" }))
+
+      expect(api.elements.deleteElement).toHaveBeenCalledWith("lectura")
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          "Se borró la reunión “Lectura de guion”",
+          expect.anything()
+        )
+      )
+      // El panel de la acción borrada se cierra, y la pista ya no vuelve.
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+      expect(screen.queryByText("Supr para borrar")).toBeNull()
+      expect(localStorage.getItem("cauce.gantt.pistaBorrar")).toBe("1")
+
+      // El 16 oct tiene dos: Supr no borra ninguna, abre su lista para elegir.
+      fireEvent.pointerDown(lane, { button: 0, clientX: 4 * 48 + 10, pointerType: "mouse" })
+      fireEvent.pointerUp(lane)
+      await userEvent.keyboard("{Escape}")
+      fireEvent.keyDown(lane, { key: "Backspace" })
+      expect(await screen.findByRole("menu", { name: "Acciones de la celda" })).toBeInTheDocument()
+      expect(screen.queryByRole("alertdialog")).toBeNull()
+      expect(api.elements.deleteElement).toHaveBeenCalledTimes(1)
+
+      // En la lista, cada fila tiene su papelera: borra esa, tras confirmarlo.
+      await userEvent.click(screen.getByRole("button", { name: "Borrar Aviso 2" }))
+      expect(
+        await screen.findByRole("alertdialog", { name: "¿Borrar el recordatorio “Aviso 2”?" })
+      ).toBeInTheDocument()
+    })
+
+    it("el clic derecho en una acción: abrirla, cambiarla de tipo y borrarla", async () => {
+      const ensayo = element("ensayo", "rodaje", "Ensayo general", {
+        kind: "task",
+        startsOn: "2026-10-14",
+        endsOn: "2026-10-16",
+        duration: { amount: 3, unit: "days" },
+        isPinned: true,
+      })
+      const rodajeConFechas = rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })
+      api.elements.getPlan.mockResolvedValue(planOf([rodajeConFechas, ensayo]))
+      api.elements.editElement.mockResolvedValue(planOf([rodajeConFechas, ensayo]))
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const mark = screen.getByRole("button", { name: /^Tarea: Ensayo general/ })
+      fireEvent.contextMenu(mark)
+      const menu = await screen.findByRole("menu")
+      expect(menu).toHaveTextContent("Ensayo general")
+      expect(menu).toHaveTextContent("Tarea · 14 oct → 16 oct")
+
+      // Pasar una tarea de tres días a reunión la deja en un día, como pide la API.
+      within(menu).getByRole("menuitem", { name: "Cambiar a" }).focus()
+      await userEvent.keyboard("{ArrowRight}")
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Reunión" }))
+      expect(api.elements.editElement).toHaveBeenCalledWith("ensayo", {
+        kind: "meeting",
+        duration: { amount: 1, unit: "days" },
+      })
+
+      fireEvent.contextMenu(screen.getByRole("button", { name: /^Tarea: Ensayo general/ }))
+      await userEvent.click(await screen.findByRole("menuitem", { name: /Borrar/ }))
+      expect(
+        await screen.findByRole("alertdialog", { name: "¿Borrar la tarea “Ensayo general”?" })
+      ).toBeInTheDocument()
+    })
+
     it("en la fila «Acciones», un clic en la celda de una sola acción la abre; con varias, solo elige", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([

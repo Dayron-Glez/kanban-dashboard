@@ -31,6 +31,8 @@ interface CellMenuProps {
   canCreate: boolean
   pending: boolean
   onOpen: (elementId: string) => void
+  /** Borrar una de la lista sin abrirla (pide confirmación fuera). */
+  onDelete?: (elementId: string) => void
   /** Ver el día completo: el primero de los elegidos. */
   onOpenDay?: () => void
   onCreate: (input: CreateActionInput) => void
@@ -49,6 +51,7 @@ export function CellMenu({
   canCreate,
   pending,
   onOpen,
+  onDelete,
   onOpenDay,
   onCreate,
   onCancel,
@@ -119,7 +122,13 @@ export function CellMenu({
         className="flex flex-col outline-none"
         onKeyDown={onKeyDown}
       >
-        <ActionList title={when} subtitle={`en ${parentName}`} actions={actions} onOpen={onOpen} />
+        <ActionList
+          title={when}
+          subtitle={`en ${parentName}`}
+          actions={actions}
+          onOpen={onOpen}
+          onDelete={onDelete}
+        />
         {canCreate && (
           <div className="border-border mt-1 border-t pt-1">
             <button

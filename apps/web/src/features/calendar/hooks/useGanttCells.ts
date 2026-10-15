@@ -66,7 +66,9 @@ export function useGanttCells(
    * devuelve «list», se abre el menú de la celda; si devuelve una fila, la celda
    * elegida pasa a esa fila (la de la acción que se abrió).
    */
-  onCellClick?: (rowId: string, day: EpochDay) => "list" | { row: string } | void
+  onCellClick?: (rowId: string, day: EpochDay) => "list" | { row: string } | void,
+  /** Supr o Retroceso en una celda elegida: con «list», se abre su menú para elegir. */
+  onDeleteKey?: (rowId: string, day: EpochDay) => "list" | void
 ) {
   const [hovered, setHovered] = useState<{ id: string; cell: TimelineCell } | null>(null)
   const [chosen, setChosen] = useState<CellSelection | null>(null)
@@ -193,6 +195,11 @@ export function useGanttCells(
           return onOpenDay(cellAt(timeline, selection.focus).start, id)
         }
         return openMenu()
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && onDeleteKey) {
+        event.preventDefault()
+        if (onDeleteKey(id, cellAt(timeline, selection.focus).start) === "list") openMenu()
+        return
       }
       setMenuOpen(false)
       const focus = cellAt(timeline, selection.focus)

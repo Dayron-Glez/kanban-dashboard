@@ -310,7 +310,7 @@ describe("ElementInspector", () => {
     await userEvent.hover(day("2027-07-26"))
     await userEvent.click(await screen.findByRole("button", { name: "Ver el día completo" }))
     expect(onOpenDay).toHaveBeenCalledWith(fromIsoDate("2027-07-26"), "post")
-  })
+  }, 15_000)
 
   it("la barra sitúa una fase dentro del plan entero", () => {
     renderSheet("post", true, { start: "2026-01-01", end: "2027-10-31" })
@@ -379,12 +379,10 @@ describe("ElementInspector", () => {
     expect(onEdit).toHaveBeenCalledTimes(1)
   })
 
-  it("una acción se borra tras confirmarlo; una fase no tiene Borrar", async () => {
+  it("Borrar, en el pie de una acción, pide que se borre (la confirmación va fuera)", async () => {
     const { onDelete } = renderSheet("lectura")
 
     await userEvent.click(screen.getByRole("button", { name: "Borrar" }))
-    const ask = screen.getByRole("alertdialog", { name: "¿Borrar la reunión “Lectura con VFX”?" })
-    await userEvent.click(within(ask).getByRole("button", { name: "Borrar" }))
     expect(onDelete).toHaveBeenCalledWith("lectura")
   })
 

@@ -58,7 +58,7 @@ interface ElementInspectorProps {
   draft?: { input: EditElementInput; onSave: () => void; onDiscard: () => void }
   /** Nombre, tipo o de qué cuelga: van al borrador. */
   onEdit: (elementId: string, input: EditElementInput) => void
-  /** Solo acciones. */
+  /** Pedir que se borre (solo acciones): la confirmación la pinta quien lo usa. */
   onDelete?: (elementId: string) => void
 }
 
@@ -373,12 +373,7 @@ export function ElementInspector({
         draft && (
           <>
             {isActionElement && onDelete && (
-              <DeleteAction
-                name={element.name}
-                kind={element.kind as ActionKind}
-                disabled={pending}
-                onDelete={() => onDelete(element.id)}
-              />
+              <DeleteAction disabled={pending} onDelete={() => onDelete(element.id)} />
             )}
             <span className="text-muted-foreground mr-auto flex items-center gap-1.5 text-sm">
               {count > 0 ? (

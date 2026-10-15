@@ -1,30 +1,16 @@
-import { useState, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import {
   ACTION_KINDS,
   ACTION_PARENT_KINDS,
-  SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CalendarElement,
   type EditElementInput,
 } from "@repo/contracts"
 import { IconTrash } from "@tabler/icons-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Button,
-  buttonVariants,
-  cn,
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/shared/index"
+import { Button, cn, ToggleGroup, ToggleGroupItem } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, flattenTree, type ElementNode } from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
+import { kindChange } from "../lib/actionStyle"
 import { ActionGlyph } from "./ActionGlyph"
 import { ElementPicker } from "./ElementPicker"
 
@@ -61,15 +47,7 @@ export function ActionFields({
     ? flattenTree([phase]).filter((node) => ACTION_PARENT_KINDS.includes(node.element.kind))
     : []
 
-  // Pasar a reunión o recordatorio deja la acción en un día, como pide la API.
-  const changeKind = (next: ActionKind) => {
-    const multiDay = element.endsOn != null && element.endsOn !== element.startsOn
-    onEdit(
-      SINGLE_DAY_ACTION_KINDS.includes(next) && multiDay
-        ? { kind: next, duration: { amount: 1, unit: "days" } }
-        : { kind: next }
-    )
-  }
+  const changeKind = (next: ActionKind) => onEdit(kindChange(element, next))
 
   return (
     <>
@@ -139,56 +117,21 @@ export function ActionFields({
   )
 }
 
-// Para decir qué se borra: «la reunión», «el evento».
-const WHAT: Record<ActionKind, string> = {
-  event: "el evento",
-  task: "la tarea",
-  meeting: "la reunión",
-  reminder: "el recordatorio",
-  hiring: "la contratación",
-}
-
-/** Borrar una acción, tras confirmarlo: no se puede deshacer. */
+/** El botón de borrar del panel: la confirmación la pide quien lo usa. */
 export function DeleteAction({
-  name,
-  kind,
   disabled,
   onDelete,
-}: Readonly<{ name: string; kind: ActionKind; disabled: boolean; onDelete: () => void }>) {
-  const [open, setOpen] = useState<boolean>(false)
+}: Readonly<{ disabled: boolean; onDelete: () => void }>) {
   return (
-    <>
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={disabled}
-        onClick={() => setOpen(true)}
-        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-      >
-        <IconTrash aria-hidden />
-        Borrar
-      </Button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-semibold">
-              ¿Borrar {WHAT[kind]} “{name}”?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm">
-              Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={onDelete}
-              className={buttonVariants({ variant: "destructive" })}
-            >
-              Borrar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={disabled}
+      onClick={onDelete}
+      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+    >
+      <IconTrash aria-hidden />
+      Borrar
+    </Button>
   )
 }

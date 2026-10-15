@@ -95,6 +95,8 @@ const flag = (key: string) => ({
 export const railFlag = flag("cauce.gantt.columnaContraida")
 /** Si ya se vio la nota que explica la columna contraída. */
 export const railHintFlag = flag("cauce.gantt.pistaColumna")
+/** Si ya se borró alguna acción con Supr: entonces la pista no vuelve. */
+export const deleteHintFlag = flag("cauce.gantt.pistaBorrar")
 
 /**
  * Las columnas de la parte de tabla junto al Gantt, y lo que ocupa. Con

@@ -168,6 +168,7 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **Cada tipo de acción tiene un icono y un color**, los mismos en toda la app: evento (bandera, ámbar), tarea (casilla, azul), reunión (personas, violeta), recordatorio (campana, rosa) y contratación (maletín, esmeralda). Los números van neutros e invertidos.
 - **Los tipos de acción se filtran sobre el Gantt**: un botón por tipo con cuántas hay. Un clic lo oculta en todo el Gantt (filas, resúmenes y números); Alt + clic o doble clic deja solo ese. Si algo está oculto se dice («Se ven 9 de 14 · Mostrar todas»). Al pasar por un tipo se atenúan los demás; al pasar por una marca, se señala su tipo.
 - **Las acciones se arrastran como las barras**: el cuerpo las mueve y el borde del fin las alarga. Reuniones y recordatorios son de un solo día: ni al crearlas ni después se alargan, y la API lo comprueba.
+- **Borrar una acción desde el Gantt**, siempre tras confirmarlo, de tres maneras: **Supr** (o Retroceso) en la celda de una sola acción, que con varias abre su lista; el **clic derecho** sobre la acción (abrir, cambiar de tipo y borrar); y la **papelera** de cada fila en la lista de una celda. La confirmación dice qué se borra, de qué cuelga y cuándo, y que no se puede deshacer.
 - **Una acción sin duración** solo ocupa su día de inicio y lo avisa; la contratación sin baja sigue en curso.
 - **El panel del día** enseña sus acciones y lo que está en curso, y deja crear. Si se abre desde una fila, se cuelga dentro de su fase; desde la cabecera, de cualquier fase, subfase o proceso.
 - **Hoy**: el número marcado en la cabecera y una línea cian que pasa por encima de las barras.
@@ -227,6 +228,7 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 
 1. **Ver y editar, separados**: un clic en una celda es para ver (el detalle o la lista); crear, con doble clic o Enter.
 2. **Los paneles laterales no son modales**, y lo que se edita en ellos se guarda con Guardar, de una vez.
+3. **Borrar pide confirmación siempre**, no un aviso con «Deshacer» que se va a los segundos.
 
 ## Pendiente
 
@@ -234,3 +236,4 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **Avisos:** a quién llegan (responsable, ejecutantes, todo el equipo) y por qué canal.
 - **Contratación:** los datos laborales que el prototipo usa para las nóminas (puesto, salario, grupo de cotización, tipo de contrato) irán en un módulo futuro (personal o presupuesto), no en el Calendario. Aquí la contratación es su periodo y la persona contratada.
 - **Almacenamiento de ficheros:** dónde (por ejemplo, Cloudflare R2), antes de los documentos adjuntos.
+- **Papelera y deshacer:** una papelera donde recuperar lo borrado, con borrado lógico (hoy borrar una acción es definitivo), y un deshacer siempre disponible, rediseñado, en lugar del aviso de unos segundos tras guardar.
