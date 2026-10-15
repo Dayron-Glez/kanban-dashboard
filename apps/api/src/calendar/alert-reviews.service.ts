@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common"
 import { AlertConflictReviewSchema, type AlertConflictReview } from "@repo/contracts"
+import { CONFLICT_KINDS } from "@repo/domain"
 import { and, eq } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
 import { alertConflictReviews, alerts, elements } from "../db/schema/index.js"
@@ -50,7 +51,7 @@ export class AlertReviewsService {
     const [[alert], [element]] = await Promise.all([
       this.db.select({ projectId: alerts.projectId }).from(alerts).where(eq(alerts.id, alertId)),
       this.db
-        .select({ projectId: elements.projectId })
+        .select({ projectId: elements.projectId, kind: elements.kind })
         .from(elements)
         .where(eq(elements.id, elementId)),
     ])
@@ -58,6 +59,9 @@ export class AlertReviewsService {
     await this.access.requireOwner(alert.projectId, userId)
     if (element?.projectId !== alert.projectId) {
       throw new BadRequestException("La alerta y el elemento tienen que ser del mismo proyecto")
+    }
+    if (!CONFLICT_KINDS.some((kind) => kind === element.kind)) {
+      throw new BadRequestException("Solo se asumen conflictos de acciones y procesos")
     }
   }
 }

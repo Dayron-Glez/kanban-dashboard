@@ -1,4 +1,10 @@
-import type { Alert, AlertConflictReview, CalendarPlan, Project } from "@repo/contracts"
+import type {
+  Alert,
+  AlertConflictReview,
+  CalendarPlan,
+  ElementKind,
+  Project,
+} from "@repo/contracts"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { createTestApp, type TestUser } from "../testing/test-app.js"
 
@@ -17,9 +23,9 @@ const reviewUrl = () => `/alerts/${alert.id}/reviews/${actionId}`
 const reviewsOf = async (user = ana) =>
   (await as(user).get(`/projects/${project.id}/alert-reviews`)).body as AlertConflictReview[]
 
-const firstTask = async (projectId: string) =>
+const firstOf = async (projectId: string, kind: ElementKind) =>
   ((await as(ana).get(`/projects/${projectId}/plan`)).body as CalendarPlan).elements.find(
-    (element) => element.kind === "task"
+    (element) => element.kind === kind
   )!.id
 
 const createStrike = async () =>
@@ -48,8 +54,8 @@ beforeAll(async () => {
   await as(marta).post(`/invitations/token/${(invitation as { token: string }).token}/accept`)
 
   alert = await createStrike()
-  actionId = await firstTask(project.id)
-  foreignActionId = await firstTask(other.id)
+  actionId = await firstOf(project.id, "task")
+  foreignActionId = await firstOf(other.id, "task")
 })
 
 afterAll(async () => {
@@ -89,6 +95,16 @@ describe("lo asumo", () => {
     expect(
       (await as(ana).put(`/alerts/${crypto.randomUUID()}/reviews/${actionId}`, {})).status
     ).toBe(404)
+  })
+
+  it("solo en acciones y procesos, no en fases ni subfases", async () => {
+    const urlOf = async (kind: ElementKind) =>
+      `/alerts/${alert.id}/reviews/${await firstOf(project.id, kind)}`
+
+    expect((await as(ana).put(await urlOf("phase"), {})).status).toBe(400)
+    expect((await as(ana).put(await urlOf("subphase"), {})).status).toBe(400)
+    expect((await as(ana).put(await urlOf("process"), {})).status).toBe(204)
+    expect((await as(ana).delete(await urlOf("process"))).status).toBe(204)
   })
 
   it("solo la propietaria lo marca, y quien no es miembro no ve nada", async () => {

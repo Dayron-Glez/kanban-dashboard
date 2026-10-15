@@ -21,7 +21,8 @@ type ConflictElement = {
 
 type ConflictAlert = Pick<Alert, "id" | "scope" | "when">
 
-const CONFLICT_KINDS: readonly ElementKind[] = [...ACTION_KINDS, "process"]
+/** Los conflictos se marcan en acciones y procesos, nunca en fases ni subfases. */
+export const CONFLICT_KINDS: readonly ElementKind[] = [...ACTION_KINDS, "process"]
 const MIDNIGHT = "00:00"
 
 const earliest = (a: EpochDay | null, b: EpochDay | null) =>
