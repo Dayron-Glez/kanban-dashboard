@@ -79,6 +79,17 @@ export const useEditElement = (projectId: string) => {
   })
 }
 
+// Solo acciones: devuelve el plan sin ella.
+export const useDeleteElement = (projectId: string) => {
+  const api = useApi()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (elementId: string) => api.elements.deleteElement(elementId),
+    onSuccess: (plan) => queryClient.setQueryData(queryKeys.projects.plan(projectId), plan),
+    meta: { errorMessage: "No se pudo borrar la acción" },
+  })
+}
+
 interface CreateActionVariables {
   parentId: string
   input: CreateActionInput

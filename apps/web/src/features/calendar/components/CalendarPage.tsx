@@ -11,7 +11,12 @@ import { describePhaseViolation, fromIsoDate, toIsoDate, type EpochDay } from "@
 import { toast } from "sonner"
 import { Button, cn, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
-import { useCreateAction, useGenerateFromTemplate, usePlan } from "../api/elements"
+import {
+  useCreateAction,
+  useDeleteElement,
+  useGenerateFromTemplate,
+  usePlan,
+} from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree, flattenTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
@@ -68,6 +73,7 @@ export function CalendarPage() {
   const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
   const createAction = useCreateAction(projectId)
+  const deleteElement = useDeleteElement(projectId)
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
   // A la derecha va un panel cada vez: el de un elemento o el de un día.
@@ -438,12 +444,21 @@ export function CalendarPage() {
           elementId={openId}
           plan={shownPlan}
           editable={isOwner}
-          pending={changes.pending}
+          pending={changes.pending || deleteElement.isPending}
           onClose={() => go(null)}
           onUpdate={(elementId, input: UpdateElementPlanInput) =>
             addToDraft({ type: "update", elementId, input })
           }
           onApplyWhen={applyWhen}
+          onEdit={(elementId, input) => addToDraft({ type: "edit", elementId, input })}
+          onDelete={(elementId) =>
+            deleteElement.mutate(elementId, {
+              onSuccess: () => {
+                navigate(null)
+                toast.success("Acción borrada", { id: "plan-change" })
+              },
+            })
+          }
           onOpenDay={openDayPanel}
           bounds={timeline?.range}
           onSetRule={(elementId, point, input: SetElementRuleInput) =>

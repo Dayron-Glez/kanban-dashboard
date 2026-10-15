@@ -1549,6 +1549,31 @@ describe("CalendarPage", () => {
     expect(api.elements.editElement).toHaveBeenCalledTimes(1)
   }, 15_000)
 
+  it("una acción se borra desde su panel y el panel se cierra", async () => {
+    const lectura = element("lectura", "rodaje", "Lectura de guion", {
+      kind: "meeting",
+      startsOn: "2027-04-07",
+    })
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }), lectura])
+    )
+    api.elements.deleteElement.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+    await userEvent.click(await screen.findByRole("button", { name: /Lectura de guion/ }))
+    const panel = await screen.findByRole("dialog", { name: "Lectura de guion" })
+    await userEvent.click(within(panel).getByRole("button", { name: "Borrar" }))
+    await userEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Borrar" })
+    )
+
+    expect(api.elements.deleteElement).toHaveBeenCalledWith("lectura")
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  })
+
   it("la propietaria genera el calendario si está vacío", async () => {
     api.elements.getPlan.mockResolvedValueOnce(planOf([]))
     api.elements.getPlan.mockResolvedValue(planOf([element("dev", null, "Desarrollo")]))

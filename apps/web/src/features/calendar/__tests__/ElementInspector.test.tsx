@@ -71,6 +71,12 @@ const plan: CalendarPlan = {
       kind: "meeting",
       startsOn: "2027-07-26",
     }),
+    element("montaje", "Montaje de prueba", "edicion", {
+      kind: "task",
+      duration: { amount: 3, unit: "days" },
+      startsOn: "2027-07-26",
+      endsOn: "2027-07-28",
+    }),
   ],
   dependencies: [
     rule("d1", "post", "start", "edicion", "start", 0, "days"),
@@ -89,6 +95,8 @@ const renderSheet = (
   const handlers = {
     onUpdate: vi.fn(),
     onApplyWhen: vi.fn(),
+    onEdit: vi.fn(),
+    onDelete: vi.fn(),
     onSetRule: vi.fn(),
     onRemoveRule: vi.fn(),
     onClose: vi.fn(),
@@ -102,6 +110,7 @@ const renderSheet = (
       editable={editable}
       pending={false}
       planSpan={planSpan}
+      draft={{ input: {}, onSave: vi.fn(), onDiscard: vi.fn() }}
       {...handlers}
     />
   )
@@ -177,6 +186,7 @@ describe("ElementInspector", () => {
       "Postproducción",
       "Lectura con VFX",
       "Edición",
+      "Montaje de prueba",
     ])
 
     await userEvent.type(screen.getByPlaceholderText("Buscar un elemento…"), "post")
@@ -319,5 +329,68 @@ describe("ElementInspector", () => {
     expect(
       within(suggestions).getByRole("button", { name: /Duración de Creación VFX/ })
     ).toHaveTextContent("otra…")
+  })
+
+  it("una acción: tipo, cuándo y de qué cuelga; sin reglas", async () => {
+    const { onEdit } = renderSheet("lectura")
+
+    expect(screen.queryByRole("region", { name: "De qué depende" })).toBeNull()
+    const kinds = screen.getByRole("region", { name: "Tipo" })
+    expect(within(kinds).getByRole("radio", { name: "Reunión" })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    )
+    await userEvent.click(within(kinds).getByRole("radio", { name: "Tarea" }))
+    expect(onEdit).toHaveBeenLastCalledWith("lectura", { kind: "task" })
+
+    // «Cuelga de» ofrece lo de su fase que puede tener acciones.
+    await userEvent.click(screen.getByRole("button", { name: "Cuelga de" }))
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Postproducción",
+      "Edición",
+      "VFX",
+      "Creación VFX",
+    ])
+    await userEvent.click(screen.getByRole("option", { name: "Edición" }))
+    expect(onEdit).toHaveBeenLastCalledWith("lectura", { parentId: "edicion" })
+  })
+
+  it("una tarea de varios días que pasa a recordatorio se queda en un día", async () => {
+    const { onEdit } = renderSheet("montaje")
+
+    await userEvent.click(screen.getByRole("radio", { name: "Recordatorio" }))
+    expect(onEdit).toHaveBeenLastCalledWith("montaje", {
+      kind: "reminder",
+      duration: { amount: 1, unit: "days" },
+    })
+  })
+
+  it("el nombre se cambia en la cabecera: al pulsar Enter, al borrador", async () => {
+    const { onEdit } = renderSheet("lectura")
+
+    const name = screen.getByRole("textbox", { name: "Nombre" })
+    await userEvent.clear(name)
+    await userEvent.type(name, "Lectura de guion{Enter}")
+    expect(onEdit).toHaveBeenCalledWith("lectura", { name: "Lectura de guion" })
+
+    // Vacío no vale: vuelve al que tenía.
+    await userEvent.clear(name)
+    await userEvent.tab()
+    expect(onEdit).toHaveBeenCalledTimes(1)
+  })
+
+  it("una acción se borra tras confirmarlo; una fase no tiene Borrar", async () => {
+    const { onDelete } = renderSheet("lectura")
+
+    await userEvent.click(screen.getByRole("button", { name: "Borrar" }))
+    const ask = screen.getByRole("alertdialog", { name: "¿Borrar «Lectura con VFX»?" })
+    await userEvent.click(within(ask).getByRole("button", { name: "Borrar" }))
+    expect(onDelete).toHaveBeenCalledWith("lectura")
+  })
+
+  it("una fase no se borra ni cambia de tipo", () => {
+    renderSheet("post")
+    expect(screen.queryByRole("button", { name: "Borrar" })).toBeNull()
+    expect(screen.queryByRole("region", { name: "Tipo" })).toBeNull()
   })
 })
