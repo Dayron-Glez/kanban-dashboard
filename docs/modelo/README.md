@@ -13,9 +13,9 @@ Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram
 
 - **Un esquema de Postgres por módulo de la API**, y cada módulo solo escribe en el suyo:
   - `identity`: usuarios, sesiones y cuentas (better-auth);
-  - `core`: el núcleo compartido (proyectos, miembros, invitaciones, equipo, departamentos, calendario laboral y ficheros);
+  - `core`: el núcleo compartido (proyectos, miembros, invitaciones, equipo, departamentos, alertas, calendario laboral y ficheros);
   - `calendar`: el módulo Calendario (elementos, dependencias, atributos y estados).
-- **Qué va en `core`**: lo que necesitaría otro módulo. La pregunta es «si mañana existe el Plan de rodaje o el Presupuesto, ¿lo usaría?». El equipo, los departamentos, el calendario laboral y los ficheros están en `core` por eso.
+- **Qué va en `core`**: lo que necesitaría otro módulo. La pregunta es «si mañana existe el Plan de rodaje o el Presupuesto, ¿lo usaría?». El equipo, los departamentos, las alertas, el calendario laboral y los ficheros están en `core` por eso.
 - **Todos los módulos pueden apuntar a `identity` y a `core`.** Entre módulos, como mucho referencias en un solo sentido y documentadas (por ejemplo, un futuro `shooting` → `calendar`), nunca ciclos.
 - **El mismo nombre de arriba abajo**: el esquema `calendar` es `CalendarModule` en la API y `calendar.ts` en el esquema de Drizzle.
 - **Identificadores en inglés; lo que ve el usuario, en español.** Los enums llevan su traducción como nota.
@@ -43,18 +43,21 @@ Hoy la base (Neon) tiene las tablas en `public` e `identity` (ver `apps/api/src/
 | `public.columns`, `public.tasks`, `public.task_history` | Se quedan en `public`, congeladas                                                  | El tablero de la etapa anterior, como vista secundaria y sin trabajo nuevo (11 oct) |
 | —                                                       | `calendar.element_assignees` + `core.crew_members`                                 | Varias personas por elemento, con o sin cuenta, como responsable o ejecutante       |
 | —                                                       | `core.departments`, `core.work_calendars`, `core.work_calendar_days`, `core.files` | Nuevas, compartidas                                                                 |
+| —                                                       | `core.alerts`, `core.alert_targets`, `calendar.alert_conflict_reviews`             | Nuevas: las alertas, a quién afectan y los conflictos asumidos                      |
 | —                                                       | resto de `calendar.*`                                                              | Nuevas: el árbol, las dependencias y los atributos comunes                          |
 
 ## Cuándo llega cada parte
 
-| Parte                                                                                            | PR        |
-| ------------------------------------------------------------------------------------------------ | --------- |
-| Tablas actuales a `core` y `calendar`; tipo de proyecto                                          | 5a        |
-| El árbol de elementos y la plantilla, por tipo de proyecto                                       | 5a        |
-| El calendario laboral y el motor de fechas: ancla, duraciones, dependencias y contadores de días | 5b        |
-| Atributos comunes: equipo, departamentos, responsables, invitados, avisos, repetición, links     | 5c        |
-| Documentos adjuntos (`core.files`), cuando haya almacenamiento                                   | posterior |
-| Vistas del Calendario: las siete del prototipo, empezando por el Gantt                           | 6 y 8     |
+| Parte                                                                                               | PR        |
+| --------------------------------------------------------------------------------------------------- | --------- |
+| Tablas actuales a `core` y `calendar`; tipo de proyecto                                             | 5a        |
+| El árbol de elementos y la plantilla, por tipo de proyecto                                          | 5a        |
+| El calendario laboral y el motor de fechas: ancla, duraciones, dependencias y contadores de días    | 5b        |
+| Departamentos, un equipo mínimo y las alertas con sus conflictos con todo el proyecto, sin interfaz | alerta 1  |
+| La interfaz de las alertas, tras su maqueta                                                         | alerta 2  |
+| Atributos comunes: equipo completo, responsables, invitados, avisos, repetición, links              | 5c        |
+| Documentos adjuntos (`core.files`), cuando haya almacenamiento                                      | posterior |
+| Vistas del Calendario: las siete del prototipo, empezando por el Gantt                              | 6 y 8     |
 
 El antiguo PR 7 (subtareas y WBS) queda absorbido por el árbol, y el PR 9 (equipo) por el 5c.
 
@@ -146,6 +149,41 @@ Cualquier fecha se puede escribir a mano, también las calculadas. La app no la 
 - **Las fases no cambian de orden, y cada una solo puede solaparse con la siguiente hasta el 25 % de la duración de esa siguiente.** Es una restricción, no un aviso: el motor la comprueba, la API rechaza el cambio con un 409 que dice qué fase la incumple, y al arrastrar la barra se para en el tope.
 - **Si un cambio deja un elemento empezando fuera de su fase, la app avisa**, pero no lo cambia de fase: eso es mover el elemento en el árbol, y lo decide quien planifica.
 
+## Alertas
+
+Decididas con el productor el 15 de octubre de 2026, y los detalles con el usuario el 16.
+
+- **Una alerta es un suceso que impide hacer algo durante unas fechas**: un actor con un compromiso previo, alguien que enferma, una huelga. El productor la quiere en el calendario «para saber que ahí hay una alerta».
+- **No es una acción**: es una entidad propia, `core.alerts`, fuera de `calendar.elements` y del motor de fechas. No tiene padre ni dependencias, y sus fechas son fijas porque vienen de fuera.
+- **Va en `core`** porque solo apunta al proyecto, a personas y a departamentos, y la necesitarán el Plan de rodaje y el personal. El «lo asumo» de cada conflicto apunta a un elemento, así que va en `calendar` (`calendar.alert_conflict_reviews`).
+- **Afecta a todo el proyecto** (`scope = project`) **o a una mezcla de personas y departamentos** (`scope = targeted`, con sus destinos en `core.alert_targets`). «Todo el proyecto» excluye lo demás. El alcance es explícito: si se borran sus departamentos o personas, la alerta no pasa sola a ser de todo el proyecto. Los elementos del árbol no son alcance: el efecto sobre ellos se calcula.
+- **Las personas son del equipo** (`core.crew_members`), que nace aquí en su forma mínima (nombre, email y departamento) y se completa con el 5c. **Los departamentos** se siembran al crear el proyecto: los 16 del prototipo del productor y Reparto, tras Casting, para las alertas de actores.
+- **Otros datos**: título, motivo (indisponibilidad, enfermedad, huelga, meteorología, permisos, proveedor u otro), si es segura o posible (una huelga anunciada puede desconvocarse) y notas. No tiene fase, prioridad, «ya se realizó», responsables, repetición ni avisos.
+
+### El «Cuándo»
+
+Es el mismo que tendrán las acciones, definido una sola vez en `@repo/contracts`; la alerta añade el fin abierto. Las horas son locales del proyecto, sin zona, como las fechas del motor.
+
+| Caso                                   | Ejemplo                             | Cómo se guarda                                                         |
+| -------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------- |
+| Un día entero                          | 16 oct                              | inicio = fin, todo el día                                              |
+| Varios días enteros                    | Del 16 al 20 oct                    | inicio < fin, todo el día                                              |
+| Unas horas de un día                   | 16 oct, de 9:00 a 14:00             | inicio = fin, con horas (fin > inicio), sin horario                    |
+| Varios días, las mismas horas cada día | Del 16 al 20, de 9:00 a 14:00       | horario «cada día» (`daily`), fin > inicio                             |
+| Varios días, seguido                   | Del 16 a las 22:00 al 18 a las 6:00 | horario «seguido» (`continuous`)                                       |
+| Sin fin                                | Desde el 16, «hasta nuevo aviso»    | sin fecha de fin; con horas, «seguido» y sin hora de fin, o «cada día» |
+
+Lo que cruza la medianoche es «seguido», nunca «cada día». La base lo comprueba con CHECK y la API con las mismas reglas.
+
+### Conflictos
+
+- **Se calculan, no se guardan**, con una función pura de `@repo/domain`. La web los calcula con el plan y las alertas que ya tiene, y los recalcula con cada cambio de fechas, también mientras se edita un borrador.
+- **Una acción o un proceso choca con una alerta** si se cruzan sus fechas y horas y además la alerta es de todo el proyecto, o en él interviene una persona afectada (responsable, ejecutantes, participantes, viajeros, el contratado), o hay un departamento afectado, directamente o por el de sus personas. Las fases y subfases no: ya se marca lo que tienen dentro.
+- **Total o parcial**: sin horas, un elemento cuenta como de día entero. Contra una alerta con horas, el conflicto es parcial en los días que solo ocupa en parte; en una alerta «seguido», los días de en medio son enteros. Una contratación sin baja sigue activa, y choca con todo lo que venga después de su alta.
+- **Nunca mueve fechas**: avisa y la persona decide, como el resto del Calendario.
+- **«Lo asumo»**: un conflicto se marca como revisado, por par (alerta, elemento), y deja de avisar.
+- **Por partes**: de momento solo calculan conflictos las alertas de todo el proyecto. Las de personas y departamentos se guardan y se verán en el Gantt, pero sus conflictos llegan con la asignación de los elementos (5c).
+
 ## Vistas del Calendario
 
 La pantalla es «Calendario», con un selector entre las siete vistas del prototipo: Gantt (día a día), Semanal 1, Vertical, Mensual, Scroll, Semanal 3 y Semanal 2. De momento solo está el Gantt; las demás esperan a las acciones, las contrataciones y los festivos de los que viven.
@@ -234,8 +272,12 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 
 ## Pendiente
 
-- **Para el productor:** la plantilla de un documental.
-- **Avisos:** a quién llegan (responsable, ejecutantes, todo el equipo) y por qué canal.
+- **Para el productor:**
+  - la plantilla de un documental;
+  - alertas que se repiten (un actor que hace teatro los fines de semana);
+  - si le sirve distinguir entre alerta segura y posible;
+  - qué entiende por «grupo de personas» en el alcance de una alerta: varias personas o grupos con nombre.
+- **Avisos** (`calendar.element_notifications`, que no hay que confundir con las alertas): a quién llegan (responsable, ejecutantes, todo el equipo) y por qué canal.
 - **Contratación:** los datos laborales que el prototipo usa para las nóminas (puesto, salario, grupo de cotización, tipo de contrato) irán en un módulo futuro (personal o presupuesto), no en el Calendario. Aquí la contratación es su periodo y la persona contratada.
 - **Viaje:** sus datos propios (ida y vuelta, alojamiento, viajeros) llegan con los atributos comunes.
 - **Almacenamiento de ficheros:** dónde (por ejemplo, Cloudflare R2), antes de los documentos adjuntos.

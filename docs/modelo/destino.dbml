@@ -142,7 +142,7 @@ Table core.departments {
     (project_id, name) [unique]
   }
 
-  Note: 'Departamentos del proyecto. Se siembran al crearlo y se editan libremente. Compartidos: los usan el Calendario y los módulos futuros.'
+  Note: 'Departamentos del proyecto. Se siembran al crearlo (los 16 del prototipo del productor y Reparto, tras Casting) y se editan libremente. Compartidos: los usan el Calendario, las alertas y los módulos futuros.'
 }
 
 Table core.crew_members {
@@ -214,6 +214,87 @@ Table core.work_calendar_days {
   Note: 'Los siete días de la semana existen; aquí solo van las excepciones a la semana laborable: festivos, días F.Especial y días no laborables que se trabajan.'
 }
 
+// Alertas: un suceso que impide hacer algo durante unas fechas (un actor con un
+// compromiso previo, alguien que enferma, una huelga). No son elementos del
+// árbol ni las mueve el motor: sus fechas vienen de fuera. Sus conflictos con
+// el plan se calculan (@repo/domain), no se guardan; nunca mueven fechas.
+
+Enum core.alert_cause {
+  unavailability [note: 'Indisponibilidad']
+  illness [note: 'Enfermedad']
+  strike [note: 'Huelga']
+  weather [note: 'Meteorología']
+  permits [note: 'Permisos']
+  supplier [note: 'Proveedor']
+  other [note: 'Otro']
+}
+
+Enum core.alert_certainty {
+  confirmed [note: 'Segura']
+  possible [note: 'Posible: una huelga anunciada puede desconvocarse']
+}
+
+Enum core.alert_scope {
+  project [note: 'Todo el proyecto']
+  targeted [note: 'Personas y departamentos, en core.alert_targets']
+}
+
+Enum core.hours_mode {
+  daily [note: 'Cada día: las mismas horas cada día, del 16 al 20 de 9:00 a 14:00']
+  continuous [note: 'Seguido: de la hora de inicio del primer día a la de fin del último, del 16 a las 22:00 al 18 a las 6:00']
+}
+
+Table core.alerts {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  title text [not null, note: 'Hasta 120 caracteres']
+  cause core.alert_cause [not null]
+  certainty core.alert_certainty [not null, default: 'confirmed']
+  scope core.alert_scope [not null, note: 'Explícito: si se borran sus departamentos o personas, la alerta no pasa sola a ser de todo el proyecto']
+  starts_on date [not null]
+  ends_on date [note: 'Vacía: hasta nuevo aviso']
+  all_day boolean [not null, default: true]
+  start_time time [note: 'Hora local del proyecto, sin zona, como las fechas del motor. Vacía si es todo el día']
+  end_time time
+  hours_mode core.hours_mode [note: 'Solo con horas y varios días (o sin fin)']
+  notes text
+  created_by uuid [ref: > identity.users.id, note: 'Pasa a null si se borra el usuario']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (project_id, starts_on)
+  }
+
+  Note: '''
+  El «Cuándo» es el mismo que el de las acciones (calendar.elements), más el fin abierto. Reglas (CHECK, y las mismas en contracts):
+  - ends_on >= starts_on;
+  - todo el día: sin horas ni horario;
+  - con horas: hay start_time;
+  - un solo día con horas: end_time > start_time y sin horario;
+  - varios días con horas, o sin fin: con horario;
+  - daily: end_time > start_time (lo que cruza la medianoche es continuous);
+  - continuous: end_time vacía si y solo si no hay fin («desde el 16 a las 22:00, hasta nuevo aviso»).
+  Afecta a todo el proyecto o a una mezcla de personas y departamentos; «todo el proyecto» excluye lo demás. Los elementos del árbol no son alcance: el efecto sobre ellos se calcula.
+  Una acción o un proceso choca con una alerta si se cruzan sus fechas y horas y además la alerta es de todo el proyecto, o en el elemento interviene una persona afectada, o hay un departamento afectado (directamente o por el de sus personas). Sin horas en el elemento, cuenta como de día entero, y contra una alerta con horas el conflicto es parcial.
+  Compartida: la usarán el Plan de rodaje y el personal.
+  '''
+}
+
+Table core.alert_targets {
+  id uuid [pk]
+  alert_id uuid [not null, ref: > core.alerts.id, note: 'Se borra con la alerta']
+  department_id uuid [ref: > core.departments.id, note: 'Se borra con el departamento']
+  crew_member_id uuid [ref: > core.crew_members.id, note: 'Se borra con la persona']
+
+  indexes {
+    (alert_id, department_id) [unique]
+    (alert_id, crew_member_id) [unique]
+  }
+
+  Note: 'A quién afecta una alerta de scope targeted: un departamento o una persona del equipo (CHECK: uno de los dos).'
+}
+
 // ── calendar ─────────────────────────────────────────────────────────────
 // El módulo Calendario. Fases, subfases, procesos y acciones son un solo árbol
 // de elementos con un tipo explícito: comparten atributos, pueden cruzar fases
@@ -258,19 +339,19 @@ Enum calendar.assignee_role {
   executor [note: 'Ejecutante']
 }
 
-Enum calendar.alert_anchor {
+Enum calendar.notification_anchor {
   start [note: 'Respecto al comienzo']
   end [note: 'Respecto al fin']
 }
 
-Enum calendar.alert_unit {
+Enum calendar.notification_unit {
   minutes
   hours
   days
   weeks
 }
 
-Enum calendar.alert_channel {
+Enum calendar.notification_channel {
   app [note: 'Aviso dentro de la app']
   email [note: 'Correo']
   push [note: 'Notificación en el móvil']
@@ -300,8 +381,10 @@ Table calendar.elements {
   recurrence_rule text [note: 'Si se repite y con qué ciclo, en formato RRULE (RFC 5545). Las repeticiones se calculan al consultar']
   starts_on date [note: 'Calculada por el motor de fechas, salvo en el ancla y en los elementos fijados']
   ends_on date [note: 'En reuniones y recordatorios, igual que starts_on (CHECK). En una contratación es la baja: vacía mientras sigue activa']
+  all_day boolean [not null, default: true, note: 'El mismo «Cuándo» que core.alerts, sin el fin abierto (salvo en la contratación), y con las mismas reglas']
   start_time time [note: 'Hora en la zona del proyecto (core.work_calendars.timezone). Vacía: todo el día']
   end_time time
+  hours_mode core.hours_mode [note: 'Cada día o seguido, con horas y varios días']
   duration_amount numeric
   duration_unit calendar.duration_unit
   duration_basis calendar.day_basis [not null, default: 'calendar', note: 'Naturales por defecto; laborables en las excepciones. Los laborables salen de core.work_calendars']
@@ -384,16 +467,29 @@ Table calendar.element_guests {
   Note: 'Invitados: alguien del equipo o un correo suelto (CHECK: uno de los dos).'
 }
 
-Table calendar.element_alerts {
+Table calendar.element_notifications {
   id uuid [pk]
   element_id uuid [not null, ref: > calendar.elements.id]
-  relative_to calendar.alert_anchor [not null, default: 'start']
+  relative_to calendar.notification_anchor [not null, default: 'start']
   offset_amount integer [not null, default: 1, note: 'Cuánto antes avisar']
-  offset_unit calendar.alert_unit [not null, default: 'days']
-  channel calendar.alert_channel [not null, default: 'app']
+  offset_unit calendar.notification_unit [not null, default: 'days']
+  channel calendar.notification_channel [not null, default: 'app']
   sent_at timestamptz [note: 'Vacío hasta que se envía']
 
   Note: 'Avisos de comienzo y de fin. Un elemento puede tener varios: un día antes por correo, una hora antes en el móvil.'
+}
+
+Table calendar.alert_conflict_reviews {
+  alert_id uuid [not null, ref: > core.alerts.id, note: 'Se borra con la alerta']
+  element_id uuid [not null, ref: > calendar.elements.id, note: 'Se borra con el elemento']
+  reviewed_by uuid [ref: > identity.users.id, note: 'Pasa a null si se borra el usuario']
+  reviewed_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (alert_id, element_id) [pk]
+  }
+
+  Note: '«Lo asumo»: el conflicto de esta alerta con este elemento está revisado y deja de avisar. En calendar porque apunta a un elemento; core nunca apunta a calendar.'
 }
 
 Table calendar.element_links {
