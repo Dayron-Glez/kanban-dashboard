@@ -605,6 +605,23 @@ describe("CalendarPage", () => {
     ).toHaveAttribute("title", expect.stringContaining("aún no se sabe cuándo acaba"))
   })
 
+  it("el mes de la cabecera, con su año, se queda pegado junto a la columna «Elemento»", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Ver el detalle de Rodaje" })
+    // jsdom no desplaza: se comprueba que el rótulo lleva el año y dónde se pega.
+    const october = screen
+      .getAllByText((_, node) => node?.textContent === "oct 2026")
+      .find((node) => node.classList.contains("sticky"))!
+    expect(october.style.left).toBe("calc(280px + 9rem)")
+    expect(
+      screen.getAllByText((_, node) => node?.textContent === "ene 2027").length
+    ).toBeGreaterThan(0)
+  })
+
   it("el borde entre la tabla y el Gantt ajusta la columna «Elemento», y se recuerda", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
