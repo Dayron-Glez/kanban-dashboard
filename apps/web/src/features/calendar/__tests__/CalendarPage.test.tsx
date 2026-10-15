@@ -552,34 +552,28 @@ describe("CalendarPage", () => {
     expect(JSON.parse(localStorage.getItem("cauce.gantt.campos")!)).toMatchObject({ start: true })
   })
 
-  it("la leyenda, en una línea, explica el Gantt; se oculta entera o por partes, y se recuerda", async () => {
+  it("sin leyenda fija: hoy, la semana 1 y los fines de semana se apagan en «Vista», y se recuerda", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
     )
     renderPage()
 
-    const legend = await screen.findByRole("note", { name: "Leyenda" })
-    expect(within(legend).getByText("Hoy")).toBeInTheDocument()
-    expect(within(legend).getByText("Subfase o proceso")).toBeInTheDocument()
-    // Los tipos de acción no van: tienen sus propios filtros.
-    expect(within(legend).queryByText("Reunión")).toBeNull()
-    // Las explicaciones largas, en el tooltip.
-    await userEvent.hover(within(legend).getByText("Semana 1"))
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "La semana en la que empieza el rodaje: de ahí se cuentan las demás"
-    )
-    await userEvent.unhover(within(legend).getByText("Semana 1"))
-
-    // Las partes y la propia leyenda se eligen en el menú «Vista».
-    await userEvent.click(screen.getByRole("button", { name: "Vista" }))
-    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Hoy (y su línea)" }))
-    expect(within(legend).queryByText("Hoy")).toBeNull()
-    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Mostrar la leyenda" }))
-    await userEvent.keyboard("{Escape}")
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
     expect(screen.queryByRole("note", { name: "Leyenda" })).toBeNull()
-    expect(JSON.parse(localStorage.getItem("cauce.gantt.leyenda")!)).toMatchObject({
-      visible: false,
+    const todayNumber = () => screen.getByTitle(/· hoy$/).firstElementChild!
+    expect(todayNumber()).toHaveClass("bg-primary")
+
+    await userEvent.click(screen.getByRole("button", { name: "Vista" }))
+    for (const mark of ["Hoy", "Semana 1", "Fines de semana"]) {
+      expect(screen.getByRole("menuitemcheckbox", { name: mark })).toBeChecked()
+    }
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Hoy" }))
+    await userEvent.keyboard("{Escape}")
+    expect(todayNumber()).not.toHaveClass("bg-primary")
+    expect(JSON.parse(localStorage.getItem("cauce.gantt.leyenda")!)).toEqual({
       today: false,
+      week1: true,
+      weekends: true,
     })
   })
 

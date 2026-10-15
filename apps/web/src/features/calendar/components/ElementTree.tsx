@@ -109,7 +109,7 @@ interface ElementTreeProps {
   view?: PlanView
   /** Las columnas de la tabla junto al Gantt (en el móvil van todas). */
   fields?: Pick<GanttFields, "duration" | "start" | "end">
-  /** Hoy, la semana 1 y los fines de semana, que la leyenda puede apagar. */
+  /** Hoy, la semana 1 y los fines de semana, que se pueden apagar en «Vista». */
   marks?: TimelineMarks
   /** Las filas de la cabecera del Gantt. */
   headerRows?: Pick<GanttFields, "month" | "week" | "day">

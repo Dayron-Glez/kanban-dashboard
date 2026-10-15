@@ -16,7 +16,7 @@ interface TimelineScaleProps {
   timeline: Timeline
   /** Qué filas se ven (campos visibles). */
   rows: Pick<GanttFields, "month" | "week" | "day">
-  /** Hoy, la semana 1 y los fines de semana se pueden apagar desde la leyenda. */
+  /** Hoy, la semana 1 y los fines de semana se pueden apagar en «Vista». */
   marks?: TimelineMarks
   /** El inicio de la celda bajo el ratón: su día, semana o mes se resalta. */
   hovered?: EpochDay | null

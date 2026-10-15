@@ -25,7 +25,7 @@ import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
-import { loadLegend, saveLegend, type GanttLegend } from "../lib/ganttLegend"
+import { loadMarks, saveMarks } from "../lib/ganttMarks"
 import {
   countActionKinds,
   hideActionKinds,
@@ -39,6 +39,7 @@ import {
   scrollLeftFor,
   type BarDrag,
   type PlanZoom,
+  type TimelineMarks,
 } from "../lib/timeline"
 import { ActionKindFilter } from "./ActionKindFilter"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
@@ -47,7 +48,6 @@ import type { DayPanel } from "../hooks/useGanttCells"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { GanttGuide } from "./GanttGuide"
-import { GanttLegendStrip } from "./GanttLegend"
 import { GoToDate } from "./GoToDate"
 import { PlanHeader } from "./PlanHeader"
 import { PlanSetup } from "./PlanSetup"
@@ -117,10 +117,10 @@ export function CalendarPage() {
     setFields(next)
     saveGanttFields(next)
   }
-  const [legend, setLegend] = useState<GanttLegend>(loadLegend)
-  const changeLegend = (next: GanttLegend) => {
-    setLegend(next)
-    saveLegend(next)
+  const [marks, setMarks] = useState<TimelineMarks>(loadMarks)
+  const changeMarks = (next: TimelineMarks) => {
+    setMarks(next)
+    saveMarks(next)
   }
   // Los tipos de acción ocultos en el Gantt, también recordados.
   const [hiddenKinds, setHiddenKinds] = useState<ActionKind[]>(loadHiddenKinds)
@@ -326,8 +326,8 @@ export function CalendarPage() {
                     <ViewOptionsMenu
                       fields={fields}
                       onFieldsChange={changeFields}
-                      legend={legend}
-                      onLegendChange={changeLegend}
+                      marks={marks}
+                      onMarksChange={changeMarks}
                     />
                     <GanttGuide />
                   </>
@@ -361,14 +361,11 @@ export function CalendarPage() {
           <>
             {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
             {view !== "tabla" && timeline && (
-              <>
-                <ActionKindFilter
-                  counts={actionCounts}
-                  hidden={hiddenKinds}
-                  onChange={changeHiddenKinds}
-                />
-                <GanttLegendStrip legend={legend} />
-              </>
+              <ActionKindFilter
+                counts={actionCounts}
+                hidden={hiddenKinds}
+                onChange={changeHiddenKinds}
+              />
             )}
             <div className="-mx-6 min-h-0 flex-1 px-6">
               <ElementTree
@@ -394,7 +391,7 @@ export function CalendarPage() {
                 viewportRef={viewportRef}
                 fields={fields}
                 headerRows={fields}
-                marks={legend}
+                marks={marks}
                 selectedId={openId}
                 view={view}
                 timeline={timeline}

@@ -9,13 +9,14 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/index"
 import { GANTT_FIELDS, type GanttFields } from "../lib/ganttFields"
-import { LEGEND_PARTS, type GanttLegend } from "../lib/ganttLegend"
+import { MARK_PARTS } from "../lib/ganttMarks"
+import type { TimelineMarks } from "../lib/timeline"
 
 interface ViewOptionsMenuProps {
   fields: GanttFields
   onFieldsChange: (fields: GanttFields) => void
-  legend: GanttLegend
-  onLegendChange: (legend: GanttLegend) => void
+  marks: TimelineMarks
+  onMarksChange: (marks: TimelineMarks) => void
 }
 
 const SECTION = "text-muted-foreground text-sm font-semibold"
@@ -27,8 +28,8 @@ const SECTION = "text-muted-foreground text-sm font-semibold"
 export function ViewOptionsMenu({
   fields,
   onFieldsChange,
-  legend,
-  onLegendChange,
+  marks,
+  onMarksChange,
 }: Readonly<ViewOptionsMenuProps>) {
   // El menú sigue abierto al marcar: se suelen cambiar varias cosas a la vez.
   const keepOpen = (event: Event) => event.preventDefault()
@@ -62,22 +63,13 @@ export function ViewOptionsMenu({
           </div>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className={SECTION}>Leyenda</DropdownMenuLabel>
-        <DropdownMenuCheckboxItem
-          checked={legend.visible}
-          onSelect={keepOpen}
-          onCheckedChange={(visible) => onLegendChange({ ...legend, visible })}
-          className="font-medium"
-        >
-          Mostrar la leyenda
-        </DropdownMenuCheckboxItem>
-        {LEGEND_PARTS.map((part) => (
+        <DropdownMenuLabel className={SECTION}>Marcas del tiempo</DropdownMenuLabel>
+        {MARK_PARTS.map((part) => (
           <DropdownMenuCheckboxItem
             key={part.key}
-            checked={legend[part.key]}
+            checked={marks[part.key]}
             onSelect={keepOpen}
-            onCheckedChange={(checked) => onLegendChange({ ...legend, [part.key]: checked })}
-            className="ml-4"
+            onCheckedChange={(checked) => onMarksChange({ ...marks, [part.key]: checked })}
           >
             {part.label}
           </DropdownMenuCheckboxItem>
