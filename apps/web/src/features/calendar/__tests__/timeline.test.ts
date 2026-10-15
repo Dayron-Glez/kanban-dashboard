@@ -78,7 +78,7 @@ describe("scrollLeftFor", () => {
 describe("trackBackground", () => {
   const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
-  it("pinta la semana 1 y los fines de semana, y la leyenda puede apagarlos", () => {
+  it("pinta la semana 1 y los fines de semana, y «Vista» puede apagarlos", () => {
     expect(trackBackground(timeline).backgroundImage?.split("gradient(")).toHaveLength(4)
     expect(
       trackBackground(timeline, { today: false, week1: false, weekends: true }).backgroundImage

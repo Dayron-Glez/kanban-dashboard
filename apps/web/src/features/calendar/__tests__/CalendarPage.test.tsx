@@ -552,36 +552,56 @@ describe("CalendarPage", () => {
     expect(JSON.parse(localStorage.getItem("cauce.gantt.campos")!)).toMatchObject({ start: true })
   })
 
-  it("la leyenda, en una línea, explica el Gantt; se oculta entera o por partes, y se recuerda", async () => {
+  it("sin leyenda fija: hoy, la semana 1 y los fines de semana se apagan en «Vista», y se recuerda", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
     )
     renderPage()
 
-    const legend = await screen.findByRole("note", { name: "Leyenda" })
-    expect(within(legend).getByText("Hoy")).toBeInTheDocument()
-    expect(within(legend).getByText("Subfase o proceso")).toBeInTheDocument()
-    // Los tipos de acción, cada uno con su icono y su color.
-    expect(within(legend).getByText("Reunión")).toBeInTheDocument()
-    expect(within(legend).getByText("Contratación")).toBeInTheDocument()
-    // Las explicaciones largas, en el tooltip.
-    await userEvent.hover(within(legend).getByText("Semana 1"))
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "La semana en la que empieza el rodaje: de ahí se cuentan las demás"
-    )
-    await userEvent.unhover(within(legend).getByText("Semana 1"))
-
-    // Las partes y la propia leyenda se eligen en el menú «Vista».
-    await userEvent.click(screen.getByRole("button", { name: "Vista" }))
-    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Hoy (y su línea)" }))
-    expect(within(legend).queryByText("Hoy")).toBeNull()
-    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Mostrar la leyenda" }))
-    await userEvent.keyboard("{Escape}")
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
     expect(screen.queryByRole("note", { name: "Leyenda" })).toBeNull()
-    expect(JSON.parse(localStorage.getItem("cauce.gantt.leyenda")!)).toMatchObject({
-      visible: false,
+    const todayNumber = () => screen.getByTitle(/· hoy$/).firstElementChild!
+    expect(todayNumber()).toHaveClass("bg-primary")
+
+    await userEvent.click(screen.getByRole("button", { name: "Vista" }))
+    for (const mark of ["Hoy", "Semana 1", "Fines de semana"]) {
+      expect(screen.getByRole("menuitemcheckbox", { name: mark })).toBeChecked()
+    }
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Hoy" }))
+    await userEvent.keyboard("{Escape}")
+    expect(todayNumber()).not.toHaveClass("bg-primary")
+    expect(JSON.parse(localStorage.getItem("cauce.gantt.leyenda")!)).toEqual({
       today: false,
+      week1: true,
+      weekends: true,
     })
+  })
+
+  it("«Cómo leer el Gantt» lo explica bajo demanda, y clave y sin fin, donde aparecen", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+        preparacion({ startsOn: "2027-02-01", position: 1 }),
+      ])
+    )
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Cómo leer el Gantt" }))
+    const guide = await screen.findByRole("dialog")
+    for (const section of ["Barras", "Fechas escritas a mano", "Tiempo", "Acciones"]) {
+      expect(within(guide).getByRole("region", { name: section })).toBeInTheDocument()
+    }
+    expect(within(guide).getByText("De ella se calcula todo el plan")).toBeInTheDocument()
+    await userEvent.keyboard("{Escape}")
+    expect(screen.queryByRole("dialog")).toBeNull()
+
+    await userEvent.hover(within(rowOf("Rodaje")).getByText("clave"))
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Fecha clave: se escribe a mano y de ella se calcula todo el plan"
+    )
+    expect(
+      screen.getByRole("button", { name: "Preparación: 1 feb 2027, sin fin" })
+    ).toHaveAttribute("title", expect.stringContaining("aún no se sabe cuándo acaba"))
   })
 
   it("el borde entre la tabla y el Gantt ajusta la columna «Elemento», y se recuerda", async () => {
@@ -882,6 +902,104 @@ describe("CalendarPage", () => {
 
       await userEvent.click(meeting)
       expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
+    })
+
+    it("los tipos de acción se ocultan sobre el Gantt, uno o todos menos uno, y se recuerda", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+          element("permisos", "rodaje", "Pedir permisos", {
+            kind: "reminder",
+            position: 1,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+          element("casting", "rodaje", "Casting", {
+            kind: "meeting",
+            position: 2,
+            startsOn: "2026-10-16",
+            endsOn: "2026-10-16",
+          }),
+        ])
+      )
+      renderPage()
+
+      const filters = await screen.findByRole("group", { name: "Tipos de acción que se ven" })
+      const meetings = within(filters).getByRole("button", { name: "Reunión: 2" })
+      expect(meetings).toHaveAttribute("aria-pressed", "true")
+      // Dos el mismo día, en un número.
+      expect(screen.getByLabelText(/^2 acciones:/)).toBeInTheDocument()
+
+      // Ocultar las reuniones: solo queda el recordatorio, ya sin número, y se avisa.
+      await userEvent.click(meetings)
+      expect(meetings).toHaveAttribute("aria-pressed", "false")
+      expect(screen.queryByLabelText(/^2 acciones:/)).toBeNull()
+      expect(screen.queryByRole("img", { name: /Lectura de guion/ })).toBeNull()
+      expect(
+        screen.getByRole("img", { name: "Recordatorio: Pedir permisos, 14 oct" })
+      ).toBeInTheDocument()
+      expect(filters).toHaveTextContent("Se ven 1 de 3")
+      expect(JSON.parse(localStorage.getItem("cauce.gantt.acciones-ocultas")!)).toEqual(["meeting"])
+
+      // Alt+clic deja solo ese tipo.
+      fireEvent.click(within(filters).getByRole("button", { name: "Reunión: 2" }), {
+        altKey: true,
+      })
+      expect(screen.queryByRole("img", { name: /Pedir permisos/ })).toBeNull()
+      expect(screen.getByRole("img", { name: "Reunión: Casting, 16 oct" })).toBeInTheDocument()
+      expect(filters).toHaveTextContent("Se ven 2 de 3")
+
+      await userEvent.click(within(filters).getByRole("button", { name: "Mostrar todas" }))
+      expect(screen.getByLabelText(/^2 acciones:/)).toBeInTheDocument()
+      expect(filters).not.toHaveTextContent("Se ven")
+    })
+
+    it("pasar por un tipo resalta sus marcas, y pasar por una marca señala su tipo", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+          element("permisos", "rodaje", "Pedir permisos", {
+            kind: "reminder",
+            position: 1,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+        ])
+      )
+      renderPage()
+
+      const filters = await screen.findByRole("group", { name: "Tipos de acción que se ven" })
+      const meetings = within(filters).getByRole("button", { name: "Reunión: 1" })
+      // El CSS atenúa lo que no es del tipo: aquí se comprueba lo que lee.
+      const surface = filters.closest<HTMLElement>("[data-calendar-surface]")!
+      fireEvent.pointerOver(meetings)
+      expect(surface.dataset.actionFocus).toBe("meeting")
+      expect(screen.getByLabelText(/^2 acciones:/)).toHaveAttribute(
+        "data-action-kind",
+        "meeting reminder"
+      )
+      fireEvent.pointerLeave(surface)
+      expect(surface.dataset.actionFocus).toBeUndefined()
+
+      // Un tipo oculto no resalta nada.
+      await userEvent.click(meetings)
+      fireEvent.pointerOver(meetings)
+      expect(surface.dataset.actionFocus).toBeUndefined()
+
+      fireEvent.pointerOver(
+        screen.getByRole("img", { name: "Recordatorio: Pedir permisos, 14 oct" })
+      )
+      expect(surface.dataset.actionHover).toBe("reminder")
     })
 
     it("una celda con acciones enseña su lista, con lo de dentro si la fila está plegada", async () => {

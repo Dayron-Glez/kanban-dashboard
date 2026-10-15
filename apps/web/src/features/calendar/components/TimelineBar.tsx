@@ -19,7 +19,7 @@ interface TimelineBarProps {
   modes: BarDragModes | null
   onOpen: () => void
   onDrag: (drag: BarDrag, days: number) => void
-  /** Los fines de semana algo más oscuros dentro de la barra (se apagan desde la leyenda). */
+  /** Los fines de semana algo más oscuros dentro de la barra (se apagan en «Vista»). */
   weekends?: boolean
   /** Hasta dónde se puede llegar: el arrastre se para en el tope y dice por qué. */
   limit?: (drag: BarDrag, days: number) => { days: number; reason: string | null }
