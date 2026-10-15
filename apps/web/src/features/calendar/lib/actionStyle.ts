@@ -7,6 +7,7 @@ export const ACTION_COLOR: Record<ActionKind, string> = {
   meeting: "text-action-meeting",
   reminder: "text-action-reminder",
   hiring: "text-action-hiring",
+  travel: "text-action-travel",
 }
 
 /** El mismo color, de fondo: los puntos del calendario. */
@@ -16,6 +17,7 @@ export const ACTION_BG: Record<ActionKind, string> = {
   meeting: "bg-action-meeting",
   reminder: "bg-action-reminder",
   hiring: "bg-action-hiring",
+  travel: "bg-action-travel",
 }
 
 // Para decir qué se borra: «la reunión», «el evento».
@@ -25,6 +27,7 @@ const WHAT: Record<ActionKind, string> = {
   meeting: "la reunión",
   reminder: "el recordatorio",
   hiring: "la contratación",
+  travel: "el viaje",
 }
 
 /** El título del formulario de crear, con el género de cada tipo. */
@@ -34,6 +37,7 @@ export const NEW_ACTION_TITLE: Record<ActionKind, string> = {
   meeting: "Nueva reunión",
   reminder: "Nuevo recordatorio",
   hiring: "Nueva contratación",
+  travel: "Nuevo viaje",
 }
 
 /** «la reunión “Lectura de guion”». */

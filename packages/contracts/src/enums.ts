@@ -13,12 +13,13 @@ export const ELEMENT_KINDS = [
   "meeting",
   "reminder",
   "hiring",
+  "travel",
 ] as const
 export const ElementKindSchema = z.enum(ELEMENT_KINDS)
 export type ElementKind = z.infer<typeof ElementKindSchema>
 
 /** Lo que se planifica dentro de una fase, subfase o proceso. */
-export const ACTION_KINDS = ["event", "task", "meeting", "reminder", "hiring"] as const
+export const ACTION_KINDS = ["event", "task", "meeting", "reminder", "hiring", "travel"] as const
 export const ActionKindSchema = z.enum(ACTION_KINDS)
 export type ActionKind = z.infer<typeof ActionKindSchema>
 

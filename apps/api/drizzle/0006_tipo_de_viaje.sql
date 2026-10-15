@@ -1,0 +1,2 @@
+ALTER TABLE "calendar"."elements" DROP CONSTRAINT "elements_kind_check";--> statement-breakpoint
+ALTER TABLE "calendar"."elements" ADD CONSTRAINT "elements_kind_check" CHECK ("calendar"."elements"."kind" in ('phase', 'subphase', 'process', 'event', 'task', 'meeting', 'reminder', 'hiring', 'travel'));

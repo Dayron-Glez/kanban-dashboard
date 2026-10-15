@@ -20,6 +20,7 @@ const HINTS: Record<ActionKind, string> = {
   meeting: "solo un día",
   reminder: "solo un día",
   hiring: "del alta a la baja",
+  travel: "de la ida a la vuelta",
 }
 
 interface CellMenuProps {

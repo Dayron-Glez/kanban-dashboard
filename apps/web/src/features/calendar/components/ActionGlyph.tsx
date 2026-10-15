@@ -2,6 +2,7 @@ import {
   IconBell,
   IconBriefcase,
   IconFlag,
+  IconPlane,
   IconSquareCheck,
   IconUsers,
   type Icon,
@@ -17,6 +18,7 @@ const ICONS: Record<ActionKind, Icon> = {
   meeting: IconUsers,
   reminder: IconBell,
   hiring: IconBriefcase,
+  travel: IconPlane,
 }
 
 export function ActionGlyph({

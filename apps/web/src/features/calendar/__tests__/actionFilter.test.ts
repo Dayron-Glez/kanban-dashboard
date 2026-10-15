@@ -53,7 +53,7 @@ describe("filtro de tipos de acción", () => {
 
     const solo = soloKind([], "meeting")
     expect(solo).not.toContain("meeting")
-    expect(solo).toHaveLength(4)
+    expect(solo).toHaveLength(5)
     expect(soloKind(solo, "meeting")).toEqual([])
     expect(soloKind(solo, "task")).not.toContain("task")
 
@@ -79,6 +79,7 @@ describe("filtro de tipos de acción", () => {
       meeting: 2,
       reminder: 1,
       hiring: 0,
+      travel: 0,
     })
   })
 

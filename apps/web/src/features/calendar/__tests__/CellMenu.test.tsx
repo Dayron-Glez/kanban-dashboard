@@ -23,6 +23,7 @@ const renderMenu = () =>
 
 describe("CellMenu", () => {
   it.each([
+    ["Viaje", "Nuevo viaje"],
     ["Evento", "Nuevo evento"],
     ["Contratación", "Nueva contratación"],
     ["Tarea", "Nueva tarea"],
