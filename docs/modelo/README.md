@@ -22,11 +22,11 @@ Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram
 
 ### El árbol del Calendario
 
-- **Fases, subfases, procesos y acciones son una sola tabla, `calendar.elements`**, con el tipo explícito en `kind`: comparten atributos, pueden cruzar fases y se colocan en el tiempo igual. Hay cinco tipos de acción: evento, tarea, reunión, recordatorio y contratación.
+- **Fases, subfases, procesos y acciones son una sola tabla, `calendar.elements`**, con el tipo explícito en `kind`: comparten atributos, pueden cruzar fases y se colocan en el tiempo igual. Hay seis tipos de acción: evento, tarea, reunión, recordatorio, contratación y viaje.
 - **Fase ⊃ subfase ⊃ proceso ⊃ acción, con niveles que se pueden saltar**: un proceso puede colgar de la fase, y en Postproducción conviven subfases y procesos. La profundidad no dice el tipo.
 - **Un elemento pertenece a la fase en la que empieza**, aunque acabe en otra (el casting empieza en SoftPre y suele acabar en Preparación). Si al mover fechas su inicio sale de su padre, la app avisa y ofrece cambiarlo de fase; nunca lo cambia sola.
 - **Las fechas se calculan como en el prototipo del productor**, que es la referencia (su Excel quedó atrás): un ancla (normalmente el inicio de rodaje), duraciones con cantidad, unidad y base (naturales por defecto, laborables en las excepciones) y dependencias con desfase. Sin ajustes ocultos: escribir una fecha reescribe el desfase o la duración que la produce (ver «Editar el plan»). Todo es editable en cada proyecto.
-- **Los eventos y las tareas** pueden durar varios días o uno; **las reuniones y los recordatorios**, solo uno. **Una contratación** va de la fecha de alta a la de baja, y sin baja sigue activa: la baja se ordena cuando el trabajador termina.
+- **Los eventos y las tareas** pueden durar varios días o uno; **las reuniones y los recordatorios**, solo uno. **Una contratación** va de la fecha de alta a la de baja, y sin baja sigue activa: la baja se ordena cuando el trabajador termina. **Un viaje** va de la salida de la ida a la llegada final, en uno o varios días.
 - **Al crear un bloque** («Rodaje 1», «Rodaje 2»…), el bloque recibe sus propios procesos, copiados de la plantilla de su fase: cada bloque de rodaje, su Shooting y su Wrap.
 - **Las acciones siempre cuelgan de un elemento**: fase, subfase o proceso. Como en el prototipo, solo las tareas se marcan como hechas (`completed_at`) y la prioridad sirve para resolver conflictos; no hay estados, columnas ni tamaños.
 
@@ -166,7 +166,7 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **Un clic es para ver** (acordado con el productor el 15 de octubre): en una celda con una acción, su detalle; con varias, la lista. En una celda vacía, un clic solo la elige. **Crear es doble clic o Enter**, o arrastrar sobre varias celdas. La lista deja crear en ese día y abrir el día completo.
 - **Las acciones no son filas del árbol**: cada elemento con acciones tiene, al desplegarlo, una fila «Acciones» propia. Las de un día van arriba y los números (varias en una celda) a la misma altura; los periodos, debajo, en dos carriles que no se pisan; lo que no cabe se suma al número de su celda.
 - **Plegado, un elemento resume lo de dentro bajo su barra**: marcas pequeñas, números y una línea por periodo, más apagados. Al abrir una acción desde ese resumen, se despliega lo que la contiene y la celda elegida pasa a su fila.
-- **Cada tipo de acción tiene un icono y un color**, los mismos en toda la app: evento (bandera, ámbar), tarea (casilla, azul), reunión (personas, violeta), recordatorio (campana, rosa) y contratación (maletín, esmeralda). Los números van neutros e invertidos.
+- **Cada tipo de acción tiene un icono y un color**, los mismos en toda la app: evento (bandera, ámbar), tarea (casilla, azul), reunión (personas, violeta), recordatorio (campana, rosa), contratación (maletín, esmeralda) y viaje (avión, naranja; el rojo queda para la alerta). Los números van neutros e invertidos.
 - **Los tipos de acción se filtran sobre el Gantt**: un botón por tipo con cuántas hay. Un clic lo oculta en todo el Gantt (filas, resúmenes y números); Alt + clic o doble clic deja solo ese. Si algo está oculto se dice («Se ven 9 de 14 · Mostrar todas»). Al pasar por un tipo se atenúan los demás; al pasar por una marca, se señala su tipo. Los tipos sin ninguna acción van al final, solo con su icono: no se pueden ocultar ni pulsar, y su tooltip dice que aún no hay; «dejar solo» elige entre los que tienen acciones.
 - **Las acciones se arrastran como las barras**: el cuerpo las mueve y el borde del fin las alarga. Reuniones y recordatorios son de un solo día: ni al crearlas ni después se alargan, y la API lo comprueba.
 - **Borrar una acción desde el Gantt**, siempre tras confirmarlo, de tres maneras: **Supr** (o Retroceso) en la celda de una sola acción, que con varias abre su lista; el **clic derecho** sobre la acción (abrir, cambiar de tipo y borrar); y la **papelera** de cada fila en la lista de una celda. La confirmación dice qué se borra, de qué cuelga y cuándo, y que no se puede deshacer.
@@ -230,11 +230,13 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 1. **Ver y editar, separados**: un clic en una celda es para ver (el detalle o la lista); crear, con doble clic o Enter.
 2. **Los paneles laterales no son modales**, y lo que se edita en ellos se guarda con Guardar, de una vez.
 3. **Borrar pide confirmación siempre**, no un aviso con «Deshacer» que se va a los segundos.
+4. **El viaje es el sexto tipo de acción.** La alerta (una huelga, una baja, alguien que no está disponible) no es una acción: es un suceso con sus fechas que afecta a todo el proyecto, a personas o a departamentos, y llega aparte.
 
 ## Pendiente
 
 - **Para el productor:** la plantilla de un documental.
 - **Avisos:** a quién llegan (responsable, ejecutantes, todo el equipo) y por qué canal.
 - **Contratación:** los datos laborales que el prototipo usa para las nóminas (puesto, salario, grupo de cotización, tipo de contrato) irán en un módulo futuro (personal o presupuesto), no en el Calendario. Aquí la contratación es su periodo y la persona contratada.
+- **Viaje:** sus datos propios (ida y vuelta, alojamiento, viajeros) llegan con los atributos comunes.
 - **Almacenamiento de ficheros:** dónde (por ejemplo, Cloudflare R2), antes de los documentos adjuntos.
 - **Papelera y deshacer:** una papelera donde recuperar lo borrado, con borrado lógico (hoy borrar una acción es definitivo), y un deshacer siempre disponible, rediseñado, en lugar del aviso de unos segundos tras guardar.

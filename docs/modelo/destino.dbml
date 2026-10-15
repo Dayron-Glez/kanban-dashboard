@@ -229,6 +229,7 @@ Enum calendar.element_kind {
   meeting [note: 'Reunión. Acción: solo un día']
   reminder [note: 'Recordatorio. Acción: solo un día']
   hiring [note: 'Contratación. Acción: periodo de la fecha de alta a la de baja; sin baja, sigue activa']
+  travel [note: 'Viaje. Acción: de la salida de la ida a la llegada final; un día o varios']
 }
 
 Enum calendar.duration_unit {
