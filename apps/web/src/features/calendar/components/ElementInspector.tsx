@@ -9,21 +9,26 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/shared/index"
-import type {
-  CalendarPlan,
-  DatePoint,
-  EditElementInput,
-  SetElementRuleInput,
-  UpdateElementPlanInput,
+import {
+  SINGLE_DAY_ACTION_KINDS,
+  type ActionKind,
+  type CalendarPlan,
+  type DatePoint,
+  type EditElementInput,
+  type SetElementRuleInput,
+  type UpdateElementPlanInput,
 } from "@repo/contracts"
+import type { EpochDay } from "@repo/domain"
 import { validPredecessors } from "@repo/domain"
 import { buildElementTree, ELEMENT_KIND_LABELS, flattenTree } from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
 import { countDependents, describeIssue, describeRule } from "../lib/planFormat"
+import { occupancyFor } from "../lib/occupancy"
 import { countChanges } from "../lib/planPreview"
 import { RuleSentence } from "./RuleSentence"
 import { SidePanel } from "./SidePanel"
 import { WhenField } from "./WhenField"
+import type { WhenChange } from "./WhenPicker"
 
 interface ElementInspectorProps {
   elementId: string | null
@@ -32,7 +37,12 @@ interface ElementInspectorProps {
   pending: boolean
   onClose: () => void
   onUpdate: (elementId: string, input: UpdateElementPlanInput) => void
-  onMoveDate: (elementId: string, point: DatePoint, date: string) => void
+  /** Lo elegido en «Cuándo»: inicio, fin o duración. */
+  onApplyWhen: (elementId: string, change: WhenChange) => void
+  /** Los días que dibuja el Gantt: fuera no se pueden elegir. */
+  bounds?: { start: EpochDay; end: EpochDay }
+  /** Abrir el panel de un día, desde el calendario de «Cuándo». */
+  onOpenDay?: (day: EpochDay, rowId: string | null) => void
   onSetRule: (elementId: string, point: DatePoint, input: SetElementRuleInput) => void
   onRemoveRule: (elementId: string, point: DatePoint) => void
   /** Saltar a otro elemento, desde «Si cambia, mueve». */
@@ -90,7 +100,9 @@ export function ElementInspector({
   pending,
   onClose,
   onUpdate,
-  onMoveDate,
+  onApplyWhen,
+  bounds,
+  onOpenDay,
   onSetRule,
   onRemoveRule,
   onOpen,
@@ -164,6 +176,7 @@ export function ElementInspector({
         ? { name: "Plan", ...planSpan }
         : null
   const reason = element.issue ? describeIssue(element.issue, nameOf) : undefined
+  const occupancy = occupancyFor(plan, element.id)
   const edits = draft?.input ?? {}
   const count = countChanges(edits)
   const whenChanged =
@@ -229,8 +242,18 @@ export function ElementInspector({
           editable={editable}
           pending={pending}
           reason={reason}
+          single={SINGLE_DAY_ACTION_KINDS.includes(element.kind as ActionKind)}
+          bounds={bounds}
+          occupancy={occupancy}
+          onOpenAction={onOpen}
+          onOpenDay={onOpenDay && ((day) => onOpenDay(day, occupancy.scopeId ?? null))}
+          ruleFrom={
+            startRule && !element.isAnchor && !element.isPinned
+              ? nameOf(startRule.predecessorId)
+              : undefined
+          }
           onUpdate={(input) => onUpdate(element.id, input)}
-          onMoveDate={(point, date) => onMoveDate(element.id, point, date)}
+          onApply={(change) => onApplyWhen(element.id, change)}
         />
       </div>
 

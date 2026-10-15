@@ -39,6 +39,7 @@ import {
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { DaySheet } from "./DaySheet"
 import { DiscardDialog } from "./DiscardDialog"
+import type { WhenChange } from "./WhenPicker"
 import type { DayPanel } from "../hooks/useGanttCells"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
@@ -234,10 +235,9 @@ export function CalendarPage() {
 
   // En el panel, cada cambio se suma al borrador; se comprueba ya, para no dejar
   // guardar algo que la API rechazaría.
-  const addToDraft = (change: PlanChange) => {
+  const commitDraft = (elementId: string, input: EditElementInput) => {
     if (!plan.data) return
-    const input = mergeChange(plan.data, draftInput, change)
-    const preview = previewChange(plan.data, { type: "edit", elementId: change.elementId, input })
+    const preview = previewChange(plan.data, { type: "edit", elementId, input })
     if ("cycle" in preview) {
       toast.error("Esa regla cerraría un ciclo", {
         description: preview.cycle.map(nameOf).join(" → "),
@@ -252,17 +252,40 @@ export function CalendarPage() {
       })
       return
     }
-    setDraft({ elementId: change.elementId, input })
+    setDraft({ elementId, input })
   }
-  const draftMove = (elementId: string, point: DatePoint, date: string) => {
-    if (!shownPlan) return
-    const move = planMove(shownPlan, elementId, point, fromIsoDate(date), nameOf)
-    if ("error" in move) {
-      toast.error(move.error, { id: "plan-change", description: move.description })
-      return
+  const addToDraft = (change: PlanChange) =>
+    plan.data && commitDraft(change.elementId, mergeChange(plan.data, draftInput, change))
+
+  // Lo elegido en «Cuándo», en orden: el inicio, y después la duración o el fin,
+  // cada uno sobre el plan que deja el anterior.
+  const applyWhen = (elementId: string, change: WhenChange) => {
+    const base = plan.data
+    if (!base) return
+    let input = draftInput
+    const current = () =>
+      countChanges(input) > 0
+        ? (applyDraft(base, { type: "edit", elementId, input }) ?? base)
+        : base
+    const move = (point: DatePoint, date: string) => {
+      const result = planMove(current(), elementId, point, fromIsoDate(date), nameOf)
+      if ("error" in result) {
+        toast.error(result.error, { id: "plan-change", description: result.description })
+        return false
+      }
+      if (result.note) toast.info(result.note, { id: "plan-change" })
+      input = mergeChange(base, input, result.change)
+      return true
     }
-    if (move.note) toast.info(move.note, { id: "plan-change" })
-    addToDraft(move.change)
+    if (change.start && !move("start", change.start)) return
+    if (change.duration) {
+      input = mergeChange(base, input, {
+        type: "update",
+        elementId,
+        input: { duration: change.duration },
+      })
+    } else if (change.end && !move("end", change.end)) return
+    commitDraft(elementId, input)
   }
   const saveDraft = () => {
     if (!openId || !dirty) return
@@ -420,7 +443,9 @@ export function CalendarPage() {
           onUpdate={(elementId, input: UpdateElementPlanInput) =>
             addToDraft({ type: "update", elementId, input })
           }
-          onMoveDate={draftMove}
+          onApplyWhen={applyWhen}
+          onOpenDay={openDayPanel}
+          bounds={timeline?.range}
           onSetRule={(elementId, point, input: SetElementRuleInput) =>
             addToDraft({ type: "set-rule", elementId, point, input })
           }

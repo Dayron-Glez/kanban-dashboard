@@ -48,6 +48,17 @@ function express(
   return { amount: days, unit: "days" }
 }
 
+/**
+ * Lo que dura un tramo elegido en el calendario, en la unidad que ya tenía si
+ * sale exacta; si no, en semanas o en días.
+ */
+export const durationBetween = (
+  start: EpochDay,
+  end: EpochDay,
+  preferred: DurationUnit | null
+): Amount =>
+  express(end - start + 1, preferred, (amount, unit) => endFromStart(start, amount, unit) === end)
+
 const dependencyOn = (context: PlanEditContext, point: DatePoint) =>
   context.dependencies.find(
     (dependency) =>

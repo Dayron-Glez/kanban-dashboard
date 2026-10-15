@@ -1,11 +1,11 @@
-import type { CalendarElement, DatePoint, Duration, UpdateElementPlanInput } from "@repo/contracts"
-import { fromIsoDate } from "@repo/domain"
-import { IconArrowRight, IconMinus, IconPlus } from "@tabler/icons-react"
+import type { CalendarElement, UpdateElementPlanInput } from "@repo/contracts"
+import { fromIsoDate, type EpochDay } from "@repo/domain"
 import { cn } from "@/shared/index"
 import type { PhaseTint } from "../lib/phaseColors"
 import { durationSuggestions, formatDuration, formatPlanDate } from "../lib/planFormat"
-import { DateEditor, DurationEditor } from "./PlanEditors"
-import { SegmentedControl } from "./SegmentedControl"
+import type { CalendarOccupancy } from "./PlanCalendar"
+import { DurationEditor } from "./PlanEditors"
+import { WhenPicker, type WhenChange } from "./WhenPicker"
 
 interface WhenFieldProps {
   element: CalendarElement
@@ -15,51 +15,38 @@ interface WhenFieldProps {
   tint: PhaseTint
   editable: boolean
   pending: boolean
+  /** Reuniones y recordatorios: un solo día. */
+  single: boolean
+  bounds?: { start: EpochDay; end: EpochDay }
+  occupancy?: CalendarOccupancy
+  /** De qué sale el inicio, si lo fija una regla. */
+  ruleFrom?: string
   reason?: string
+  onOpenAction?: (elementId: string) => void
+  onOpenDay?: (day: EpochDay) => void
   onUpdate: (input: UpdateElementPlanInput) => void
-  onMoveDate: (point: DatePoint, date: string) => void
+  onApply: (change: WhenChange) => void
 }
-
-const UNIT_OPTIONS = [
-  { value: "days", label: "días" },
-  { value: "weeks", label: "semanas" },
-  { value: "months", label: "meses" },
-] as const satisfies readonly { value: Duration["unit"]; label: string }[]
-
-const UNIT_DAYS: Record<Duration["unit"], number> = { days: 1, weeks: 7, months: 30.4375 }
 
 const daysBetween = (start: string, end: string) => fromIsoDate(end) - fromIsoDate(start) + 1
 
-/** Inicio, fin y duración como una sola pieza, con su sitio dentro de la fase. */
+/** Cuándo: el tramo y lo que dura en un solo campo, con su sitio dentro de la fase. */
 export function WhenField({
   element,
   context,
   tint,
   editable,
   pending,
+  single,
+  bounds,
+  occupancy,
+  ruleFrom,
   reason,
   onUpdate,
-  onMoveDate,
+  onApply,
+  onOpenAction,
+  onOpenDay,
 }: Readonly<WhenFieldProps>) {
-  const { duration } = element
-  const writesStart = element.isAnchor || element.isPinned
-
-  // Cambiar de unidad conserva lo que dura, redondeado a la unidad nueva.
-  const changeUnit = (unit: Duration["unit"]) => {
-    if (!duration || unit === duration.unit) return
-    const days =
-      element.startsOn && element.endsOn
-        ? daysBetween(element.startsOn, element.endsOn)
-        : duration.amount * UNIT_DAYS[duration.unit]
-    onUpdate({ duration: { amount: Math.max(1, Math.round(days / UNIT_DAYS[unit])), unit } })
-  }
-
-  const step = (delta: number) => {
-    if (!duration) return
-    const amount = Math.max(1, Math.round(duration.amount) + delta)
-    if (amount !== duration.amount) onUpdate({ duration: { amount, unit: duration.unit } })
-  }
-
   const contextBar = () => {
     if (!context || !element.startsOn) return null
     const total = daysBetween(context.start, context.end)
@@ -96,119 +83,53 @@ export function WhenField({
       >
         Cuándo
       </h3>
-      <div className="border-border bg-card flex flex-col gap-3 rounded-xl border p-2.5">
-        <div className="flex items-center gap-1">
-          <div className="min-w-0 flex-1">
-            <DateEditor
-              label={`Inicio de ${element.name}`}
-              fieldLabel="Inicio"
-              value={element.startsOn}
-              editable={editable}
-              pending={pending}
-              reason={reason}
-              emptyLabel={writesStart ? "Escribir fecha" : "Sin fecha"}
-              onSave={(date) => onMoveDate("start", date)}
-            />
-          </div>
-          <IconArrowRight size={14} className="text-muted-foreground shrink-0" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <DateEditor
-              label={`Fin de ${element.name}`}
-              fieldLabel="Fin"
-              value={element.endsOn}
-              editable={editable}
-              pending={pending}
-              reason={reason}
-              emptyLabel="Sin fecha"
-              onSave={(date) => onMoveDate("end", date)}
-            />
-          </div>
-        </div>
-
-        {contextBar()}
-
-        <div className="flex items-center gap-2 px-1 text-base">
-          <span className="text-muted-foreground">Dura</span>
-          {duration && editable ? (
-            <>
-              <div className="border-border bg-background flex h-7 items-center rounded-lg border">
-                <button
-                  type="button"
-                  aria-label="Una unidad menos"
-                  disabled={pending || duration.amount <= 1}
-                  onClick={() => step(-1)}
-                  className="text-muted-foreground hover:text-foreground flex h-full w-7 items-center justify-center disabled:opacity-40"
-                >
-                  <IconMinus size={13} />
-                </button>
-                <DurationEditor
-                  label={`Duración de ${element.name}`}
-                  value={duration}
-                  editable
-                  pending={pending}
-                  amountOnly
-                  onSave={(next) => onUpdate({ duration: next })}
-                />
-                <button
-                  type="button"
-                  aria-label="Una unidad más"
-                  disabled={pending}
-                  onClick={() => step(1)}
-                  className="text-muted-foreground hover:text-foreground flex h-full w-7 items-center justify-center disabled:opacity-40"
-                >
-                  <IconPlus size={13} />
-                </button>
-              </div>
-              <SegmentedControl
-                label="Unidad de la duración"
-                value={duration.unit}
-                options={UNIT_OPTIONS}
-                onChange={changeUnit}
-              />
-            </>
-          ) : !duration && editable ? (
-            // Sin duración: las habituales a un clic, y «otra…» para escribirla.
-            <div
-              role="group"
-              aria-label="¿Cuánto dura?"
-              className="border-warn/40 bg-warn-soft/40 flex flex-1 flex-wrap items-center gap-1.5 rounded-lg border border-dashed px-2.5 py-1.5"
+      <WhenPicker
+        key={element.id}
+        element={element}
+        single={single}
+        editable={editable}
+        pending={pending}
+        bounds={bounds}
+        occupancy={occupancy}
+        ruleFrom={ruleFrom}
+        reason={reason}
+        onApply={onApply}
+        onOpenAction={onOpenAction}
+        onOpenDay={onOpenDay}
+      />
+      {!single && !element.duration && editable && (
+        // Sin duración: las habituales a un clic, y «otra…» para escribirla.
+        <div
+          role="group"
+          aria-label="¿Cuánto dura?"
+          className="border-warn/40 bg-warn-soft/40 flex flex-wrap items-center gap-1.5 rounded-lg border border-dashed px-2.5 py-1.5"
+        >
+          <span className="text-warn mr-1 text-sm">¿Cuánto dura?</span>
+          {durationSuggestions(element).map((suggestion) => (
+            <button
+              key={`${suggestion.amount}-${suggestion.unit}`}
+              type="button"
+              disabled={pending}
+              onClick={() => onUpdate({ duration: suggestion })}
+              className="bg-card border-border hover:bg-muted h-6 rounded-full border px-2.5 text-sm font-medium"
             >
-              <span className="text-warn mr-1 text-sm">¿Cuánto dura?</span>
-              {durationSuggestions(element).map((suggestion) => (
-                <button
-                  key={`${suggestion.amount}-${suggestion.unit}`}
-                  type="button"
-                  disabled={pending}
-                  onClick={() => onUpdate({ duration: suggestion })}
-                  className="bg-card border-border hover:bg-muted h-6 rounded-full border px-2.5 text-sm font-medium"
-                >
-                  {formatDuration(suggestion)}
-                </button>
-              ))}
-              <DurationEditor
-                label={`Duración de ${element.name}`}
-                value={null}
-                editable
-                pending={pending}
-                emptyLabel="otra…"
-                onSave={(next) => onUpdate({ duration: next })}
-              />
-            </div>
-          ) : (
-            <DurationEditor
-              label={`Duración de ${element.name}`}
-              value={duration}
-              editable={editable}
-              pending={pending}
-              onSave={(next) => onUpdate({ duration: next })}
-            />
-          )}
+              {formatDuration(suggestion)}
+            </button>
+          ))}
+          <DurationEditor
+            label={`Duración de ${element.name}`}
+            value={null}
+            editable
+            pending={pending}
+            emptyLabel="otra…"
+            onSave={(next) => onUpdate({ duration: next })}
+          />
         </div>
-      </div>
-      {editable && (
+      )}
+      {contextBar()}
+      {single && (
         <p className="text-muted-foreground text-sm">
-          Escribe cualquier fecha: el plan se recoloca para que salga y te enseña qué más se mueve
-          antes de guardar.
+          Las reuniones y los recordatorios son de un solo día.
         </p>
       )}
     </section>

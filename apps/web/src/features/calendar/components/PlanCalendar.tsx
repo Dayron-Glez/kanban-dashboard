@@ -24,6 +24,8 @@ import { ActionList, type ListedAction } from "./ActionList"
 
 /** Lo que ya hay cada día (por fecha ISO), y de dónde: «en SoftPre». */
 export interface CalendarOccupancy {
+  /** La fase: su id, para abrir el día desde ella, y su nombre. */
+  scopeId?: string
   scope: string
   days: Record<string, ListedAction[]>
 }
@@ -34,7 +36,7 @@ export interface CalendarValue {
 }
 
 interface PlanCalendarProps {
-  /** Un día, o un periodo: el primer clic es el inicio y el segundo, el fin. */
+  /** Un día, o un periodo: el primer clic es el inicio (con el fin a null) y el segundo, el fin. */
   mode: "single" | "range"
   value: CalendarValue
   onChange: (value: CalendarValue) => void
@@ -43,14 +45,21 @@ interface PlanCalendarProps {
   numberOfMonths?: 1 | 2
   /** Los días con acciones llevan puntos del color de su tipo. */
   occupancy?: CalendarOccupancy
+  /** Desde la lista de un día: abrir una de sus acciones, o el día entero. */
+  onOpenAction?: (elementId: string) => void
+  onOpenDay?: (day: EpochDay) => void
   /** Los días que se pueden elegir: los del Gantt. Fuera, desactivados. */
   bounds?: { start: EpochDay; end: EpochDay }
 }
 
 const NO_OCCUPANCY: CalendarOccupancy = { scope: "", days: {} }
 // El día va fuera del componente para no remontarse en cada vista previa; lo que
-// hay cada día le llega por contexto.
-const OccupancyContext = createContext<CalendarOccupancy>(NO_OCCUPANCY)
+// hay cada día, y qué hacer desde su lista, le llega por contexto.
+const OccupancyContext = createContext<{
+  occupancy: CalendarOccupancy
+  onOpenAction?: (elementId: string) => void
+  onOpenDay?: (day: EpochDay) => void
+}>({ occupancy: NO_OCCUPANCY })
 
 const MONTHS = Array.from({ length: 12 }, (_, index) =>
   format(new Date(2026, index, 1), "LLLL", { locale: es })
@@ -75,6 +84,8 @@ export function PlanCalendar({
   defaultMonth,
   numberOfMonths = 1,
   occupancy = NO_OCCUPANCY,
+  onOpenAction,
+  onOpenDay,
   bounds,
 }: Readonly<PlanCalendarProps>) {
   // El primer mes que se puede ver y el último en que puede empezar la vista: con
@@ -106,7 +117,8 @@ export function PlanCalendar({
     if (mode === "single") return onChange({ start: day, end: day })
     if (picking == null) {
       setPicking(day)
-      return onChange({ start: day, end: day })
+      // Solo el inicio: quien lo usa decide el fin (conservar lo que dura, por ejemplo).
+      return onChange({ start: day, end: null })
     }
     setPicking(null)
     setHovered(null)
@@ -136,7 +148,7 @@ export function PlanCalendar({
         }
 
   return (
-    <OccupancyContext value={occupancy}>
+    <OccupancyContext value={{ occupancy, onOpenAction, onOpenDay }}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <Button
@@ -251,7 +263,7 @@ const PlanRoot: CustomComponents["Root"] = ({ className, rootRef, ...props }) =>
 // Un día: el número, inicio y fin en el color principal, hoy subrayado y, si
 // hay acciones, hasta tres puntos con su color y, al pasar por encima, la lista de lo que hay.
 function PlanDay({ day, modifiers, className, ...props }: React.ComponentProps<typeof DayButton>) {
-  const occupancy = useContext(OccupancyContext)
+  const { occupancy, onOpenAction, onOpenDay } = useContext(OccupancyContext)
   const busy = occupancy.days[toISODate(day.date)] ?? []
   const edge = modifiers.start || modifiers.end || modifiers.single
   const weekend = day.date.getDay() === 0 || day.date.getDay() === 6
@@ -305,6 +317,8 @@ function PlanDay({ day, modifiers, className, ...props }: React.ComponentProps<t
           title={formatLongDate(toISODate(day.date))}
           subtitle={occupancy.scope ? `en ${occupancy.scope}` : ""}
           actions={busy}
+          onOpen={onOpenAction}
+          onOpenDay={onOpenDay && (() => onOpenDay(toDay(day.date)))}
         />
       </HoverCardContent>
     </HoverCard>

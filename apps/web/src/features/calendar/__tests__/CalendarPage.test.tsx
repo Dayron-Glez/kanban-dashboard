@@ -1497,9 +1497,15 @@ describe("CalendarPage", () => {
       await screen.findByRole("button", { name: "Ver el detalle de Preparación" })
     )
     const panel = screen.getByRole("dialog", { name: "Preparación" })
+    // En «Cuándo»: una semana más y Aplicar, que la suma al borrador.
+    const oneMore = async () => {
+      await userEvent.click(within(panel).getByRole("button", { name: /^Cuándo:/ }))
+      await userEvent.click(screen.getByRole("button", { name: "Una unidad más" }))
+      await userEvent.click(screen.getByRole("button", { name: "Aplicar" }))
+    }
     expect(within(panel).getByText("Sin cambios")).toBeInTheDocument()
 
-    await userEvent.click(within(panel).getByRole("button", { name: "Una unidad más" }))
+    await oneMore()
     expect(within(panel).getByText("1 cambio sin guardar")).toBeInTheDocument()
     expect(api.elements.editElement).not.toHaveBeenCalled()
     expect(api.elements.updatePlan).not.toHaveBeenCalled()
@@ -1509,7 +1515,7 @@ describe("CalendarPage", () => {
     expect(within(panel).getByText("Sin cambios")).toBeInTheDocument()
 
     // Salir con cambios pregunta; «Seguir editando» los conserva.
-    await userEvent.click(within(panel).getByRole("button", { name: "Una unidad más" }))
+    await oneMore()
     await userEvent.keyboard("{Escape}")
     const ask = await screen.findByRole("alertdialog", { name: "¿Descartar los cambios?" })
     expect(ask).toHaveTextContent("1 cambio sin guardar en «Preparación»")
@@ -1523,14 +1529,14 @@ describe("CalendarPage", () => {
     expect(await within(panel).findByText("Sin cambios")).toBeInTheDocument()
 
     // Descartar cierra el panel sin guardar nada más.
-    await userEvent.click(within(panel).getByRole("button", { name: "Una unidad más" }))
+    await oneMore()
     await userEvent.click(within(panel).getByRole("button", { name: "Elemento siguiente" }))
     await userEvent.click(
       within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Descartar" })
     )
     expect(await screen.findByRole("dialog", { name: "Rodaje" })).toBeInTheDocument()
     expect(api.elements.editElement).toHaveBeenCalledTimes(1)
-  })
+  }, 15_000)
 
   it("la propietaria genera el calendario si está vacío", async () => {
     api.elements.getPlan.mockResolvedValueOnce(planOf([]))
