@@ -659,6 +659,30 @@ describe("CalendarPage", () => {
     expect(border).toHaveAttribute("aria-expanded", "true")
   })
 
+  it("arrastrar la cabecera de fechas desplaza el Gantt, sin abrir el día al soltar", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    const [day] = screen.getAllByTitle(/^(lun|mar|mié|jue|vie|sáb|dom) [0-9]/)
+    const viewport = day!.closest<HTMLElement>('[data-slot="scroll-area-viewport"]')!
+    viewport.scrollLeft = 400
+    fireEvent.pointerDown(day!, { button: 0, clientX: 300, pointerId: 1 })
+    fireEvent.pointerMove(day!, { clientX: 180, pointerId: 1 })
+    expect(viewport.scrollLeft).toBe(520)
+    fireEvent.pointerUp(day!, { clientX: 180, pointerId: 1 })
+    fireEvent.click(day!)
+    expect(screen.queryByRole("dialog")).toBeNull()
+
+    // Un clic quieto sigue abriendo el día.
+    fireEvent.pointerDown(day!, { button: 0, clientX: 180, pointerId: 1 })
+    fireEvent.pointerUp(day!, { clientX: 180, pointerId: 1 })
+    fireEvent.click(day!)
+    expect(await screen.findByRole("dialog")).toBeInTheDocument()
+  })
+
   it("el zoom cambia la rejilla: día a día, por semanas o por meses", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
