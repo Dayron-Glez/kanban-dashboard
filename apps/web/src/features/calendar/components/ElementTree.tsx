@@ -169,7 +169,17 @@ export function ElementTree({
           ]
         : []),
     ])
-  const { hovered, selection, span, trackProps, menuOpen, closeMenu } = useGanttCells(
+  const names = new Map<string, string>()
+  const collect = (list: ElementNode[]) =>
+    list.forEach((node) => {
+      names.set(node.element.id, node.element.name)
+      names.set(actionsRow(node.element.id), `Acciones de ${node.element.name}`)
+      collect(node.children)
+    })
+  collect(nodes)
+  const nameOf = (id: string) => names.get(id) ?? "otro elemento"
+
+  const { hovered, selection, span, trackProps, menuOpen, closeMenu, showHint } = useGanttCells(
     showTimeline ? timeline : null,
     visibleIds(nodes),
     onOpenDay,
@@ -184,16 +194,6 @@ export function ElementTree({
       .querySelector("[data-cell-selection]")
       ?.scrollIntoView({ block: "nearest", inline: "nearest" })
   }, [panelDay])
-
-  const names = new Map<string, string>()
-  const collect = (list: ElementNode[]) =>
-    list.forEach((node) => {
-      names.set(node.element.id, node.element.name)
-      names.set(actionsRow(node.element.id), `Acciones de ${node.element.name}`)
-      collect(node.children)
-    })
-  collect(nodes)
-  const nameOf = (id: string) => names.get(id) ?? "otro elemento"
 
   const cellDays = (start: number) => (timeline ? cellAt(timeline, start).days : 1)
   const spanLabel = (cell: TimelineCell) => {
@@ -369,10 +369,16 @@ export function ElementTree({
               scrollMarginLeft: ganttTable.width,
             }}
           >
-            {span.days > cellDays(span.start) && (
+            {span.days > cellDays(span.start) ? (
               <span className="bg-primary text-primary-foreground absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap tabular-nums shadow-sm">
                 {spanLabel(span)}
               </span>
+            ) : (
+              showHint && (
+                <span className="bg-foreground text-background absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap shadow-sm">
+                  Doble clic o Enter para abrir
+                </span>
+              )
             )}
           </span>
         )}

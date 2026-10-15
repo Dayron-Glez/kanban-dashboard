@@ -643,6 +643,7 @@ describe("CalendarPage", () => {
     // En jsdom la pista empieza en x = 0: 110 px es el tercer día de la rejilla.
     fireEvent.pointerDown(first!, { button: 0, clientX: 110, pointerType: "mouse" })
     fireEvent.pointerUp(first!)
+    fireEvent.doubleClick(first!, { clientX: 110 })
     expect(first).toHaveFocus()
     const start = status()
     expect(start).toMatch(/^Preparación: \d+ \w+$/)
@@ -688,6 +689,7 @@ describe("CalendarPage", () => {
       // 110 px es el tercer día de la rejilla: el miércoles 14.
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
 
       const menu = await screen.findByRole("menu", { name: "Tipo de acción" })
       await userEvent.click(within(menu).getByRole("menuitem", { name: /Reunión/ }))
@@ -808,6 +810,7 @@ describe("CalendarPage", () => {
       const track = document.querySelector<HTMLElement>("[data-track]")!
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
 
       const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
       expect(within(list).getByRole("menuitem", { name: /Lectura de guion/ })).toHaveTextContent(
@@ -830,12 +833,14 @@ describe("CalendarPage", () => {
 
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
       await userEvent.click(await screen.findByRole("button", { name: "Nueva acción en este día" }))
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
       await userEvent.keyboard("{Escape}")
 
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
       await userEvent.click(await screen.findByRole("menuitem", { name: /Lectura de guion/ }))
       expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
     })
@@ -859,12 +864,14 @@ describe("CalendarPage", () => {
       // Dos días después ya no está: la celda está vacía y se ofrece crear.
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
       await userEvent.keyboard("{Escape}")
 
       // En su día, la lista la enseña con el aviso.
       fireEvent.pointerDown(track, { button: 0, clientX: 10, pointerType: "mouse" })
       fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 10 })
       const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
       const item = within(list).getByRole("menuitem", { name: /Elaboración de calendario/ })
       expect(within(item).getByLabelText("Sin duración")).toBeInTheDocument()
@@ -888,6 +895,7 @@ describe("CalendarPage", () => {
       const actions = document.querySelector<HTMLElement>('[data-track="rodaje#acciones"]')!
       fireEvent.pointerDown(actions, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(actions)
+      fireEvent.doubleClick(actions, { clientX: 110 })
       const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
       expect(within(list).getByRole("menuitem", { name: /Lectura de guion/ })).toBeInTheDocument()
       await userEvent.keyboard("{Escape}")
@@ -896,6 +904,7 @@ describe("CalendarPage", () => {
       const row = document.querySelector<HTMLElement>('[data-track="rodaje"]')!
       fireEvent.pointerDown(row, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(row)
+      fireEvent.doubleClick(row, { clientX: 110 })
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
     })
 
@@ -918,6 +927,7 @@ describe("CalendarPage", () => {
       const track = document.querySelector<HTMLElement>("[data-track]")!
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
       expect(await screen.findByRole("menu", { name: "Acciones de la celda" })).toBeInTheDocument()
       expect(screen.queryByRole("button", { name: /Nueva acción/ })).toBeNull()
     })
@@ -1008,6 +1018,7 @@ describe("CalendarPage", () => {
       const shooting = document.querySelector<HTMLElement>('[data-track="shooting"]')!
       fireEvent.pointerDown(shooting, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(shooting)
+      fireEvent.doubleClick(shooting, { clientX: 110 })
       await userEvent.keyboard("{Escape}")
       fireEvent.keyDown(shooting, { key: "Enter", shiftKey: true })
 
@@ -1130,6 +1141,42 @@ describe("CalendarPage", () => {
       )
     })
 
+    it("un clic elige la celda y enseña cómo abrirla; el doble clic la abre, y la pista se va", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      expect(screen.getByRole("status")).toHaveTextContent("Rodaje: 14 oct")
+      expect(screen.queryByRole("menu", { name: "Tipo de acción" })).toBeNull()
+      expect(screen.getByText("Doble clic o Enter para abrir")).toBeInTheDocument()
+
+      fireEvent.doubleClick(track, { clientX: 110 })
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+      expect(screen.queryByText("Doble clic o Enter para abrir")).toBeNull()
+      await userEvent.keyboard("{Escape}")
+      // Vista una vez, no vuelve.
+      expect(screen.queryByText("Doble clic o Enter para abrir")).toBeNull()
+      expect(localStorage.getItem("cauce.gantt.pistaCelda")).toBe("vista")
+    })
+
+    it("en una pantalla táctil, un toque abre la celda", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "touch" })
+      fireEvent.pointerUp(track)
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+    })
+
     it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {
       api.projects.listMine.mockResolvedValue([summary("member")])
       api.elements.getPlan.mockResolvedValue(
@@ -1141,6 +1188,7 @@ describe("CalendarPage", () => {
       const track = document.querySelector<HTMLElement>("[data-track]")!
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
       fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
       expect(screen.getByRole("status")).toHaveTextContent("Rodaje: 14 oct")
       expect(screen.queryByRole("menu", { name: "Tipo de acción" })).toBeNull()
     })

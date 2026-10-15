@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
+import { useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react"
 import type { EpochDay } from "@repo/domain"
 import {
   cellAt,
@@ -28,6 +28,22 @@ const outside = (event: { target: EventTarget; currentTarget: HTMLElement }) =>
 const xIn = (event: PointerEvent<HTMLElement>) =>
   event.clientX - event.currentTarget.getBoundingClientRect().left
 
+const HINT_KEY = "cauce.gantt.pistaCelda"
+const readHintSeen = () => {
+  try {
+    return localStorage.getItem(HINT_KEY) === "vista"
+  } catch {
+    return false
+  }
+}
+const saveHintSeen = () => {
+  try {
+    localStorage.setItem(HINT_KEY, "vista")
+  } catch {
+    // Sin almacenamiento, la pista vuelve a salir la próxima vez: no pasa nada.
+  }
+}
+
 /** El panel del día abierto: qué día y desde qué fila, si se abrió desde una. */
 export interface DayPanel {
   day: EpochDay
@@ -50,7 +66,19 @@ export function useGanttCells(
   const [chosen, setChosen] = useState<CellSelection | null>(null)
   // El menú de las celdas elegidas: se abre al soltar el ratón o con Enter.
   const [menuOpen, setMenuOpen] = useState<boolean>(false)
+  // Dónde empezó el gesto: un arrastre que acaba en otra celda abre el menú al soltar;
+  // un clic solo elige, y el menú se abre con doble clic o con Enter.
+  const pressed = useRef<{ day: EpochDay; touch: boolean } | null>(null)
   const dragging = useRef(false)
+  // La pista «Doble clic o Enter para abrir» se va en cuanto se abre el menú una vez.
+  const [hintSeen, setHintSeen] = useState<boolean>(readHintSeen)
+  const openMenu = () => {
+    setMenuOpen(true)
+    if (!hintSeen) {
+      setHintSeen(true)
+      saveHintSeen()
+    }
+  }
 
   // Con el panel abierto manda su día: lo elegido se respeta si acaba en él (un
   // tramo sigue siendo un tramo); si no, la celda de ese día en su fila.
@@ -116,14 +144,25 @@ export function useGanttCells(
       if (!timeline || event.button !== 0 || outside(event) || onBar(event)) return
       const day = dayAtX(timeline, xIn(event))
       dragging.current = true
+      pressed.current = { day, touch: event.pointerType === "touch" }
       setMenuOpen(false)
       event.currentTarget.setPointerCapture?.(event.pointerId)
       select({ id, anchor: day, focus: day })
       event.currentTarget.focus({ preventScroll: true })
     },
     onPointerUp: () => {
-      if (dragging.current) setMenuOpen(true)
+      const start = pressed.current
+      if (dragging.current && start && timeline && selection) {
+        const moved = cellAt(timeline, selection.focus).start !== cellAt(timeline, start.day).start
+        // En una pantalla táctil el doble toque no es fiable: un toque abre.
+        if (moved || start.touch) openMenu()
+      }
       dragging.current = false
+      pressed.current = null
+    },
+    onDoubleClick: (event: MouseEvent<HTMLDivElement>) => {
+      if (!timeline || outside(event) || onBar(event) || selection?.id !== id) return
+      openMenu()
     },
     // Al llegar con el tabulador, se empieza por hoy, o por el primer día si hoy no está.
     onFocus: () => {
@@ -142,7 +181,7 @@ export function useGanttCells(
         if (event.shiftKey && onOpenDay) {
           return onOpenDay(cellAt(timeline, selection.focus).start, id)
         }
-        return setMenuOpen(true)
+        return openMenu()
       }
       setMenuOpen(false)
       const focus = cellAt(timeline, selection.focus)
@@ -169,6 +208,8 @@ export function useGanttCells(
     span,
     trackProps,
     menuOpen: menuOpen && selection != null,
+    /** Si se enseña la pista de cómo abrir la celda elegida. */
+    showHint: !hintSeen && !menuOpen && selection != null,
     closeMenu: () => setMenuOpen(false),
   }
 }
