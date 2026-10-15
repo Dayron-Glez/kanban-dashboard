@@ -157,6 +157,19 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **En el móvil**, solo el árbol, sin rejilla.
 - **«Fases» pasará a ser la sección de configuración** (añadir, renombrar, borrar, bloques y colores), con las siete fases en su orden fijo.
 
+### Celdas y acciones en el Gantt
+
+- **Una celda por día, cuadrada**: fila y día miden lo mismo (48 px). Con el zoom por semana o por mes, la celda es la semana o el mes.
+- **Un clic es para ver** (acordado con el productor el 15 de octubre): en una celda con una acción, su detalle; con varias, la lista. En una celda vacía, un clic solo la elige. **Crear es doble clic o Enter**, o arrastrar sobre varias celdas. La lista deja crear en ese día y abrir el día completo.
+- **Las acciones no son filas del árbol**: cada elemento con acciones tiene, al desplegarlo, una fila «Acciones» propia. Las de un día van arriba y los números (varias en una celda) a la misma altura; los periodos, debajo, en dos carriles que no se pisan; lo que no cabe se suma al número de su celda.
+- **Plegado, un elemento resume lo de dentro bajo su barra**: marcas pequeñas, números y una línea por periodo, más apagados. Al abrir una acción desde ese resumen, se despliega lo que la contiene y la celda elegida pasa a su fila.
+- **Cada tipo de acción tiene un icono y un color**, los mismos en toda la app: evento (bandera, ámbar), tarea (casilla, azul), reunión (personas, violeta), recordatorio (campana, rosa) y contratación (maletín, esmeralda). Los números van neutros e invertidos.
+- **Las acciones se arrastran como las barras**: el cuerpo las mueve y el borde del fin las alarga. Reuniones y recordatorios son de un solo día: ni al crearlas ni después se alargan, y la API lo comprueba.
+- **Una acción sin duración** solo ocupa su día de inicio y lo avisa; la contratación sin baja sigue en curso.
+- **El panel del día** enseña sus acciones y lo que está en curso, y deja crear. Si se abre desde una fila, se cuelga dentro de su fase; desde la cabecera, de cualquier fase, subfase o proceso.
+- **Hoy**: el número marcado en la cabecera y una línea cian que pasa por encima de las barras.
+- **La columna «Elemento»** se ajusta arrastrando su borde y se contrae a una tira con el color de cada fila (el nombre, en un Tooltip). Arrastrar la cabecera de fechas desplaza el Gantt; Mayús + rueda, también.
+
 ## Decidido con el productor
 
 **7 de octubre de 2026:**
@@ -193,6 +206,10 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 
 1. **Las fases no cambian de orden**, y el solape con la siguiente es como mucho el 25 % de la duración de esa siguiente.
 2. **Las siete vistas del prototipo**, con selector. El Gantt, día a día con foco en hoy, y con zoom por semana y por mes, que también le gustaron.
+
+**15 de octubre de 2026:**
+
+1. **Ver y editar, separados**: un clic en una celda es para ver (el detalle o la lista); crear, con doble clic o Enter.
 
 ## Pendiente
 

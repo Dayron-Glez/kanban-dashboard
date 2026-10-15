@@ -1,6 +1,7 @@
 import type { CalendarElement, DatePoint, Duration, ElementDependency } from "@repo/contracts"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
+import { toIsoDate, type EpochDay } from "@repo/domain"
 
 const UNIT_LABELS: Record<Duration["unit"], [singular: string, plural: string]> = {
   days: ["día", "días"],
@@ -24,8 +25,16 @@ export function formatDuration({ amount, unit }: Duration): string {
 export const formatPlanDate = (iso: string) => format(parseISO(iso), "d MMM yyyy", { locale: es })
 
 /** «lun 5 abr 2027». */
+/** «5 abr», sin el año. */
+export const formatShortDay = (day: EpochDay) =>
+  formatPlanDate(toIsoDate(day)).replace(/ \d{4}$/, "")
+
 export const formatLongDate = (iso: string) =>
   format(parseISO(iso), "EEE d MMM yyyy", { locale: es })
+
+/** «miércoles, 14 de octubre de 2026»: el título del panel de un día. */
+export const formatFullDate = (iso: string) =>
+  format(parseISO(iso), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })
 
 const POINT_LABELS: Record<DatePoint, string> = { start: "inicio", end: "fin" }
 

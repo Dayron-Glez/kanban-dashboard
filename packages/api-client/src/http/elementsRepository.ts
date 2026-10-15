@@ -28,4 +28,9 @@ export const createElementsRepository = (http: HttpClient): ElementsRepository =
     http.request("DELETE", `/elements/${elementId}/rules/${point}`, {
       schema: CalendarPlanSchema,
     }),
+  createAction: (parentId, input) =>
+    http.request("POST", `/elements/${parentId}/actions`, {
+      body: input,
+      schema: CalendarPlanSchema,
+    }),
 })

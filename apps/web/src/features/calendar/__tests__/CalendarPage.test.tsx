@@ -93,6 +93,8 @@ const renderPage = (search = "") => {
 const rowOf = (name: string) => screen.getByText(name).closest("li")!
 
 beforeEach(() => {
+  // cmdk (el buscador de «Cuelga de») desplaza la opción activa a la vista.
+  Element.prototype.scrollIntoView ??= () => {}
   device.mobile = false
   localStorage.clear()
   vi.mocked(toast.success).mockClear()
@@ -342,10 +344,10 @@ describe("CalendarPage", () => {
     renderPage()
 
     const bar = await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
-    // Un día mide 28 px: 200 px son 7,1 días, que se quedan en 7.
+    // Un día mide 48 px: 340 px son 7,08 días, que se quedan en 7.
     fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
-    fireEvent.pointerMove(bar, { clientX: 300, pointerId: 1 })
-    fireEvent.pointerUp(bar, { clientX: 300, pointerId: 1 })
+    fireEvent.pointerMove(bar, { clientX: 440, pointerId: 1 })
+    fireEvent.pointerUp(bar, { clientX: 440, pointerId: 1 })
     // El clic que sigue a soltar no abre el inspector; un clic sin arrastrar, sí.
     fireEvent.click(bar)
     await waitFor(() =>
@@ -447,7 +449,7 @@ describe("CalendarPage", () => {
       const bar = await screen.findByRole("button", {
         name: "Preparación: 1 feb 2027 → 4 abr 2027",
       })
-      // Un día mide 28 px: 784 px son 4 semanas, pero el tope está en 10 días.
+      // Un día mide 48 px: 784 px son más de 2 semanas, pero el tope está en 10 días.
       fireEvent.pointerDown(bar, { button: 0, clientX: 100, pointerId: 1 })
       fireEvent.pointerMove(bar, { clientX: 884, pointerId: 1 })
       expect(screen.getByText(/tope: 25 % de solape/)).toBeInTheDocument()
@@ -498,7 +500,7 @@ describe("CalendarPage", () => {
     })
 
     // La rejilla empieza el lunes 12 de octubre de 2026: hoy es su segundo día.
-    const leftOf = (iso: string) => (fromIsoDate(iso) - fromIsoDate("2026-10-12")) * 28 + 14
+    const leftOf = (iso: string) => (fromIsoDate(iso) - fromIsoDate("2026-10-12")) * 48 + 24
 
     it("al abrir se centra en hoy, y «Hoy» e «Ir a fecha» llevan a donde se pide", async () => {
       api.elements.getPlan.mockResolvedValue(
@@ -559,6 +561,9 @@ describe("CalendarPage", () => {
     const legend = await screen.findByRole("note", { name: "Leyenda" })
     expect(within(legend).getByText("Hoy")).toBeInTheDocument()
     expect(within(legend).getByText("Subfase o proceso")).toBeInTheDocument()
+    // Los tipos de acción, cada uno con su icono y su color.
+    expect(within(legend).getByText("Reunión")).toBeInTheDocument()
+    expect(within(legend).getByText("Contratación")).toBeInTheDocument()
     // Las explicaciones largas, en el tooltip.
     await userEvent.hover(within(legend).getByText("Semana 1"))
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
@@ -579,6 +584,105 @@ describe("CalendarPage", () => {
     })
   })
 
+  it("el borde entre la tabla y el Gantt ajusta la columna «Elemento», y se recuerda", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    const border = await screen.findByRole("separator", {
+      name: "Ancho de la columna de elementos",
+    })
+    expect(border).toHaveAttribute("aria-valuenow", "280")
+    // Con el foco, las flechas lo mueven de 16 en 16 px.
+    fireEvent.keyDown(border, { key: "ArrowRight" })
+    expect(border).toHaveAttribute("aria-valuenow", "296")
+    expect(border).toHaveStyle({ left: "calc(296px + 6.5rem)" })
+    expect(localStorage.getItem("cauce.gantt.anchoElemento")).toBe("296")
+
+    // Arrastrar: 100 px más ancha, sin pasar del máximo.
+    fireEvent.pointerDown(border, { button: 0, clientX: 500, pointerId: 1 })
+    fireEvent.pointerMove(border, { clientX: 600, pointerId: 1 })
+    fireEvent.pointerUp(border, { clientX: 600, pointerId: 1 })
+    expect(border).toHaveAttribute("aria-valuenow", "396")
+    fireEvent.pointerDown(border, { button: 0, clientX: 500, pointerId: 1 })
+    fireEvent.pointerMove(border, { clientX: 2000, pointerId: 1 })
+    fireEvent.pointerUp(border, { clientX: 2000, pointerId: 1 })
+    expect(border).toHaveAttribute("aria-valuenow", "480")
+
+    // El doble clic lo restablece.
+    fireEvent.doubleClick(border)
+    expect(border).toHaveAttribute("aria-valuenow", "280")
+  })
+
+  it("la columna se contrae a una tira con su nota la primera vez, y se vuelve a abrir", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+        element("shooting", "rodaje", "Shooting", {
+          kind: "process",
+          startsOn: "2027-04-05",
+          endsOn: "2027-05-16",
+        }),
+      ])
+    )
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Contraer la columna" }))
+    // En la tira no se lee el nombre, pero sigue en los botones y en el Tooltip.
+    expect(screen.queryByText("Rodaje", { selector: "span" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Ver el detalle de Rodaje" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Desplegar Rodaje" })).toBeInTheDocument()
+    expect(screen.getByText("Columna contraída")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Entendido" }))
+    expect(screen.queryByText("Columna contraída")).toBeNull()
+    expect(localStorage.getItem("cauce.gantt.pistaColumna")).toBe("1")
+    expect(localStorage.getItem("cauce.gantt.columnaContraida")).toBe("1")
+
+    // Se abre con su botón; contraída otra vez, la nota ya no vuelve.
+    await userEvent.click(screen.getByRole("button", { name: "Abrir la columna" }))
+    expect(screen.getByRole("button", { name: "Ver el detalle de Rodaje" })).toHaveTextContent(
+      "Rodaje"
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Contraer la columna" }))
+    expect(screen.queryByText("Columna contraída")).toBeNull()
+
+    // También el borde la abre: con Enter, o arrastrándolo a la derecha.
+    const border = screen.getByRole("separator", { name: "Ancho de la columna de elementos" })
+    expect(border).toHaveAttribute("aria-expanded", "false")
+    fireEvent.keyDown(border, { key: "Enter" })
+    expect(border).toHaveAttribute("aria-expanded", "true")
+    fireEvent.keyDown(border, { key: "Enter" })
+    fireEvent.pointerDown(border, { button: 0, clientX: 56, pointerId: 1 })
+    fireEvent.pointerMove(border, { clientX: 120, pointerId: 1 })
+    fireEvent.pointerUp(border, { clientX: 120, pointerId: 1 })
+    expect(border).toHaveAttribute("aria-expanded", "true")
+  })
+
+  it("arrastrar la cabecera de fechas desplaza el Gantt, sin abrir el día al soltar", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    const [day] = screen.getAllByTitle(/^(lun|mar|mié|jue|vie|sáb|dom) [0-9]/)
+    const viewport = day!.closest<HTMLElement>('[data-slot="scroll-area-viewport"]')!
+    viewport.scrollLeft = 400
+    fireEvent.pointerDown(day!, { button: 0, clientX: 300, pointerId: 1 })
+    fireEvent.pointerMove(day!, { clientX: 180, pointerId: 1 })
+    expect(viewport.scrollLeft).toBe(520)
+    fireEvent.pointerUp(day!, { clientX: 180, pointerId: 1 })
+    fireEvent.click(day!)
+    expect(screen.queryByRole("dialog")).toBeNull()
+
+    // Un clic quieto sigue abriendo el día.
+    fireEvent.pointerDown(day!, { button: 0, clientX: 180, pointerId: 1 })
+    fireEvent.pointerUp(day!, { clientX: 180, pointerId: 1 })
+    fireEvent.click(day!)
+    expect(await screen.findByRole("dialog")).toBeInTheDocument()
+  })
+
   it("el zoom cambia la rejilla: día a día, por semanas o por meses", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
@@ -597,6 +701,681 @@ describe("CalendarPage", () => {
     expect(
       screen.getByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
     ).toBeInTheDocument()
+  })
+
+  it("una celda por día: al pasar el ratón se resaltan la celda y su día en la cabecera", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    const track = document.querySelector<HTMLElement>("[data-track]")!
+    const days = screen.getAllByTitle(/^(lun|mar|mié|jue|vie|sáb|dom) [0-9]/)
+    // En jsdom la pista empieza en x = 0: el tercer día queda entre 96 y 144 px.
+    fireEvent.pointerMove(track, { clientX: 110, pointerType: "mouse" })
+    expect(days[2]).toHaveAttribute("data-hovered", "true")
+    expect(track.querySelector(".ring-1")).toHaveStyle({ left: "96px", width: "48px" })
+
+    fireEvent.pointerLeave(track)
+    expect(days[2]).not.toHaveAttribute("data-hovered")
+  })
+
+  it("se eligen celdas con clic, arrastrando y con el teclado", async () => {
+    // Como miembro, para que el menú de crear no se lleve el foco.
+    api.projects.listMine.mockResolvedValue([summary("member")])
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({ position: 1, startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+        preparacion({ position: 0, startsOn: "2027-02-01", endsOn: "2027-04-04" }),
+      ])
+    )
+    renderPage()
+
+    await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+    const [first, second] = document.querySelectorAll<HTMLElement>("[data-track]")
+    const status = () => screen.getByRole("status").textContent
+    // Solo una fila entra en el orden del tabulador.
+    expect(first).toHaveAttribute("tabindex", "0")
+    expect(second).toHaveAttribute("tabindex", "-1")
+
+    // En jsdom la pista empieza en x = 0: 110 px es el tercer día de la rejilla.
+    fireEvent.pointerDown(first!, { button: 0, clientX: 110, pointerType: "mouse" })
+    fireEvent.pointerUp(first!)
+    fireEvent.doubleClick(first!, { clientX: 110 })
+    expect(first).toHaveFocus()
+    const start = status()
+    expect(start).toMatch(/^Preparación: \d+ \w+$/)
+
+    // Arrastrar hasta el quinto día marca tres.
+    fireEvent.pointerDown(first!, { button: 0, clientX: 110, pointerType: "mouse" })
+    fireEvent.pointerMove(first!, { clientX: 200, pointerType: "mouse" })
+    fireEvent.pointerUp(first!)
+    expect(status()).toMatch(/· 3 días$/)
+    expect(first!.querySelector("[data-cell-selection]")).toHaveTextContent("3 días")
+
+    // → vuelve a una sola celda; Mayús + → la alarga; ↓ baja de fila.
+    fireEvent.keyDown(first!, { key: "ArrowRight" })
+    expect(status()).toMatch(/^Preparación: \d+ \w+$/)
+    fireEvent.keyDown(first!, { key: "ArrowRight", shiftKey: true })
+    expect(status()).toMatch(/· 2 días$/)
+    fireEvent.keyDown(first!, { key: "ArrowDown" })
+    expect(second).toHaveFocus()
+    expect(second).toHaveAttribute("tabindex", "0")
+    expect(status()).toMatch(/^Rodaje: /)
+
+    fireEvent.keyDown(second!, { key: "Escape" })
+    expect(status()).toBe("")
+  })
+
+  describe("crear desde las celdas", () => {
+    // La rejilla empieza el lunes de la semana de hoy: con hoy el 13 oct 2026, el 12.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 9, 13) })
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it("al elegir celdas se crea una acción: el tipo y el nombre, con las fechas ya puestas", async () => {
+      const plan = planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      api.elements.getPlan.mockResolvedValue(plan)
+      api.elements.createAction.mockResolvedValue(plan)
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      // 110 px es el tercer día de la rejilla: el miércoles 14.
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
+
+      const menu = await screen.findByRole("menu", { name: "Tipo de acción" })
+      await userEvent.click(within(menu).getByRole("menuitem", { name: /Reunión/ }))
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "Nombre" }),
+        "Lectura de guion{Enter}"
+      )
+
+      await waitFor(() =>
+        expect(api.elements.createAction).toHaveBeenCalledWith("rodaje", {
+          kind: "meeting",
+          name: "Lectura de guion",
+          startsOn: "2026-10-14",
+          endsOn: null,
+        })
+      )
+      await waitFor(() => expect(screen.queryByRole("textbox", { name: "Nombre" })).toBeNull())
+
+      // Un periodo: reunión y recordatorio no se ofrecen; una tarea lleva su fin.
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerMove(track, { clientX: 200, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      const range = await screen.findByRole("menu", { name: "Tipo de acción" })
+      expect(within(range).getByRole("menuitem", { name: /Reunión/ })).toBeDisabled()
+      await userEvent.click(within(range).getByRole("menuitem", { name: /Tarea/ }))
+      await userEvent.type(screen.getByRole("textbox", { name: "Nombre" }), "Ensayos{Enter}")
+      await waitFor(() =>
+        expect(api.elements.createAction).toHaveBeenLastCalledWith("rodaje", {
+          kind: "task",
+          name: "Ensayos",
+          startsOn: "2026-10-14",
+          endsOn: "2026-10-16",
+        })
+      )
+    })
+
+    it("desplegado, las acciones van en la fila «Acciones» de su padre; plegado, resumidas bajo su barra", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+          element("shooting", "rodaje", "Shooting", {
+            kind: "process",
+            position: 1,
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-16",
+          }),
+          element("aviso", "shooting", "Pedir permisos", {
+            kind: "reminder",
+            startsOn: "2026-10-15",
+            endsOn: "2026-10-15",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      // Rodaje plegado: lo de dentro, resumido bajo su barra, y sin poder tocarse.
+      expect(
+        await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("img", { name: "Recordatorio: Pedir permisos, 15 oct" })
+      ).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /Lectura de guion, 14 oct/ })).toBeNull()
+
+      // Desplegado: la reunión, en la fila «Acciones» de Rodaje; el recordatorio,
+      // resumido en Shooting, que sigue plegado.
+      await userEvent.click(screen.getByRole("button", { name: "Desplegar Rodaje" }))
+      const actionsRow = screen.getByRole("treeitem", { name: "Acciones de Rodaje" })
+      expect(actionsRow).toHaveTextContent("Acciones · 1")
+      const meeting = within(actionsRow).getByRole("button", {
+        name: "Reunión: Lectura de guion, 14 oct",
+      })
+      expect(screen.queryByRole("img", { name: /Lectura de guion/ })).toBeNull()
+      expect(
+        screen.getByRole("img", { name: "Recordatorio: Pedir permisos, 15 oct" })
+      ).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole("button", { name: "Desplegar Shooting" }))
+      expect(
+        within(screen.getByRole("treeitem", { name: "Acciones de Shooting" })).getByRole("button", {
+          name: "Recordatorio: Pedir permisos, 15 oct",
+        })
+      ).toBeInTheDocument()
+
+      await userEvent.click(meeting)
+      expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
+    })
+
+    it("una celda con acciones enseña su lista, con lo de dentro si la fila está plegada", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+          element("shooting", "rodaje", "Shooting", { kind: "process", position: 1 }),
+          element("permisos", "shooting", "Pedir permisos", {
+            kind: "task",
+            startsOn: "2026-10-13",
+            endsOn: "2026-10-16",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
+
+      const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
+      expect(within(list).getByRole("menuitem", { name: /Lectura de guion/ })).toHaveTextContent(
+        "Reunión"
+      )
+      // La tarea es de Shooting, que cuelga de Rodaje, plegado.
+      expect(within(list).getByRole("menuitem", { name: /Pedir permisos/ })).toHaveTextContent(
+        "Shooting"
+      )
+
+      // Mayús + Enter hace lo que dice su pista, aunque el foco esté en la lista.
+      // Al abrirse no hay nada elegido: Enter no abre la primera acción.
+      await userEvent.keyboard("{Enter}")
+      expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
+      await userEvent.keyboard("{Shift>}{Enter}{/Shift}")
+      expect(
+        await screen.findByRole("heading", { name: /miércoles, 14 de octubre de 2026/i })
+      ).toBeInTheDocument()
+      await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
+
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
+      await userEvent.click(await screen.findByRole("button", { name: "Nueva acción en este día" }))
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+      await userEvent.keyboard("{Escape}")
+
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
+      await userEvent.click(await screen.findByRole("menuitem", { name: /Lectura de guion/ }))
+      expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
+    })
+
+    it("una acción sin duración solo está en su día, y en él lleva su aviso", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("calendario", "rodaje", "Elaboración de calendario", {
+            kind: "task",
+            startsOn: "2026-10-12",
+            endsOn: null,
+            issue: { code: "missing-duration" },
+          }),
+          element("presupuesto", "rodaje", "Presupuesto de ejecución", {
+            kind: "task",
+            position: 1,
+            startsOn: "2026-10-12",
+            endsOn: null,
+            issue: { code: "missing-duration" },
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      // Dos días después ya no está: la celda está vacía y se ofrece crear.
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+      await userEvent.keyboard("{Escape}")
+
+      // En su día hay dos: un clic enseña la lista, cada una con su aviso.
+      fireEvent.pointerDown(track, { button: 0, clientX: 10, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
+      const item = within(list).getByRole("menuitem", { name: /Elaboración de calendario/ })
+      expect(within(item).getByLabelText("Sin duración")).toBeInTheDocument()
+    })
+
+    it("desplegado, la celda de la fila «Acciones» enseña las suyas; la del elemento, crear", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const actions = document.querySelector<HTMLElement>('[data-track="rodaje#acciones"]')!
+      fireEvent.pointerDown(actions, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(actions)
+      fireEvent.doubleClick(actions, { clientX: 110 })
+      const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
+      expect(within(list).getByRole("menuitem", { name: /Lectura de guion/ })).toBeInTheDocument()
+      await userEvent.keyboard("{Escape}")
+
+      // En la fila de Rodaje, desplegada, sus acciones ya tienen su fila: se ofrece crear.
+      const row = document.querySelector<HTMLElement>('[data-track="rodaje"]')!
+      fireEvent.pointerDown(row, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(row)
+      fireEvent.doubleClick(row, { clientX: 110 })
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+    })
+
+    it("quien no es propietaria ve la lista de la celda, sin «Nueva acción»", async () => {
+      api.projects.listMine.mockResolvedValue([summary("member")])
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+          element("aviso", "rodaje", "Pedir permisos", {
+            kind: "reminder",
+            position: 1,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      // Un clic basta: hay dos, así que sale la lista.
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      expect(await screen.findByRole("menu", { name: "Acciones de la celda" })).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /Nueva acción/ })).toBeNull()
+    })
+
+    it("el panel del día: sus acciones y lo que está en curso; se pasa de día y se crea", async () => {
+      const plan = planOf([
+        rodaje({ startsOn: "2026-10-12", endsOn: "2026-11-22" }),
+        element("lectura", "rodaje", "Lectura de guion", {
+          kind: "meeting",
+          startsOn: "2026-10-14",
+          endsOn: "2026-10-14",
+          isPinned: true,
+        }),
+        element("shooting", "rodaje", "Shooting", {
+          kind: "process",
+          position: 1,
+          startsOn: "2026-10-12",
+          endsOn: "2026-10-30",
+        }),
+      ])
+      api.elements.getPlan.mockResolvedValue(plan)
+      api.elements.createAction.mockResolvedValue(plan)
+      renderPage()
+
+      await userEvent.click(await screen.findByTitle("mié 14 oct 2026"))
+      const panel = await screen.findByRole("dialog")
+      expect(
+        within(panel).getByRole("heading", { name: /14 de octubre de 2026/ })
+      ).toBeInTheDocument()
+      const actions = within(panel).getByRole("region", { name: "Acciones del día" })
+      expect(within(actions).getByRole("button", { name: /Lectura de guion/ })).toHaveTextContent(
+        "Rodaje"
+      )
+      const running = within(panel).getByRole("region", { name: "En curso" })
+      expect(within(running).getByRole("button", { name: /Shooting/ })).toBeInTheDocument()
+
+      // Desde aquí se crea colgando, por defecto, de lo más concreto en curso.
+      await userEvent.click(within(panel).getByRole("button", { name: "Nueva acción" }))
+      const picker = within(panel).getByRole("button", { name: "Cuelga de" })
+      expect(picker).toHaveTextContent("Shooting")
+      // Se puede colgar de cualquier fase, subfase o proceso, también de la fase.
+      await userEvent.click(picker)
+      expect(await screen.findByRole("option", { name: /Rodaje/ })).toBeInTheDocument()
+      await userEvent.click(screen.getByRole("option", { name: /Shooting/ }))
+      await userEvent.click(within(panel).getByRole("menuitem", { name: /Recordatorio/ }))
+      await userEvent.type(within(panel).getByRole("textbox", { name: "Nombre" }), "Fotos{Enter}")
+      await waitFor(() =>
+        expect(api.elements.createAction).toHaveBeenCalledWith("shooting", {
+          kind: "reminder",
+          name: "Fotos",
+          startsOn: "2026-10-14",
+          endsOn: null,
+        })
+      )
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Día siguiente" }))
+      expect(
+        within(panel).getByRole("heading", { name: /15 de octubre de 2026/ })
+      ).toBeInTheDocument()
+      expect(within(panel).getByText("Nada este día.")).toBeInTheDocument()
+
+      // Abrir un elemento cambia el panel por el suyo.
+      await userEvent.click(within(panel).getByRole("button", { name: /Shooting/ }))
+      expect(await screen.findByRole("heading", { name: "Shooting" })).toBeInTheDocument()
+      expect(screen.queryByRole("heading", { name: /15 de octubre/ })).toBeNull()
+    })
+
+    it("desde una fila, el panel cuelga de su fase y no de las hermanas; sus flechas mueven la celda", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          preparacion({ position: 0, startsOn: "2026-10-12", endsOn: "2026-11-22" }),
+          element("ensayos", "preparacion", "Ensayos", {
+            kind: "process",
+            startsOn: "2026-10-12",
+            endsOn: "2026-10-30",
+          }),
+          rodaje({ position: 1, startsOn: "2026-10-12", endsOn: "2026-11-22" }),
+          element("shooting", "rodaje", "Shooting", {
+            kind: "process",
+            startsOn: "2026-10-12",
+            endsOn: "2026-10-30",
+          }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const shooting = document.querySelector<HTMLElement>('[data-track="shooting"]')!
+      fireEvent.pointerDown(shooting, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(shooting)
+      fireEvent.doubleClick(shooting, { clientX: 110 })
+      await userEvent.keyboard("{Escape}")
+      fireEvent.keyDown(shooting, { key: "Enter", shiftKey: true })
+
+      const panel = await screen.findByRole("dialog")
+      await userEvent.click(within(panel).getByRole("button", { name: "Nueva acción" }))
+      const picker = within(panel).getByRole("button", { name: "Cuelga de" })
+      expect(picker).toHaveTextContent("Shooting")
+      await userEvent.click(picker)
+      expect(await screen.findByRole("option", { name: /Rodaje/ })).toBeInTheDocument()
+      expect(screen.queryByRole("option", { name: /Preparación/ })).toBeNull()
+      expect(screen.queryByRole("option", { name: /Ensayos/ })).toBeNull()
+      await userEvent.keyboard("{Escape}")
+
+      // Las flechas del panel mueven también la celda elegida.
+      expect(screen.getByRole("status")).toHaveTextContent("Shooting: 14 oct")
+      await userEvent.click(within(panel).getByRole("button", { name: "Día siguiente" }))
+      expect(screen.getByRole("status")).toHaveTextContent("Shooting: 15 oct")
+
+      // Al cerrar el panel sin hacer nada, la celda se queda en el día al que se llegó.
+      await userEvent.click(within(panel).getByRole("button", { name: "Cerrar" }))
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+      expect(screen.getByRole("status")).toHaveTextContent("Shooting: 15 oct")
+    })
+
+    it("desde la cabecera del día, «Cuelga de» ofrece cualquier fase, subfase o proceso", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          preparacion({ position: 0, startsOn: "2027-01-04", endsOn: "2027-04-04" }),
+          element("ensayos", "preparacion", "Ensayos", {
+            kind: "process",
+            startsOn: "2027-02-01",
+            endsOn: "2027-02-28",
+          }),
+          rodaje({ position: 1, startsOn: "2026-10-12", endsOn: "2026-11-22" }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByTitle("mié 14 oct 2026"))
+      const panel = await screen.findByRole("dialog")
+      await userEvent.click(within(panel).getByRole("button", { name: "Nueva acción" }))
+      const picker = within(panel).getByRole("button", { name: "Cuelga de" })
+      // Por defecto, lo que está en curso ese día; pero se puede elegir cualquiera.
+      expect(picker).toHaveTextContent("Rodaje")
+      await userEvent.click(picker)
+      expect(await screen.findByRole("option", { name: /Preparación/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /Ensayos/ })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: /Rodaje/ })).toHaveTextContent("en curso")
+    })
+
+    it("con el teclado, Mayús + Enter en una celda abre su día", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.focus(track)
+      fireEvent.keyDown(track, { key: "ArrowRight" })
+      fireEvent.keyDown(track, { key: "Enter", shiftKey: true })
+      expect(
+        await screen.findByRole("heading", { name: /miércoles, 14 de octubre de 2026/i })
+      ).toBeInTheDocument()
+    })
+
+    it("las acciones se arrastran: el cuerpo las mueve y el borde alarga, salvo las de un día", async () => {
+      const plan = planOf([
+        rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+        element("lectura", "rodaje", "Lectura de guion", {
+          kind: "meeting",
+          duration: { amount: 1, unit: "days" },
+          startsOn: "2026-10-14",
+          endsOn: "2026-10-14",
+          isPinned: true,
+        }),
+        element("ensayos", "rodaje", "Ensayos", {
+          kind: "task",
+          position: 1,
+          duration: { amount: 3, unit: "days" },
+          startsOn: "2026-10-19",
+          endsOn: "2026-10-21",
+          isPinned: true,
+        }),
+      ])
+      api.elements.getPlan.mockResolvedValue(plan)
+      api.elements.updatePlan.mockResolvedValue(plan)
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      // Un día mide 48 px: 100 px son 2 días más tarde.
+      const meeting = screen.getByRole("button", { name: "Reunión: Lectura de guion, 14 oct" })
+      fireEvent.pointerDown(meeting, { button: 0, clientX: 100, pointerId: 1 })
+      fireEvent.pointerMove(meeting, { clientX: 200, pointerId: 1 })
+      fireEvent.pointerUp(meeting, { clientX: 200, pointerId: 1 })
+      await waitFor(() =>
+        expect(api.elements.updatePlan).toHaveBeenLastCalledWith("lectura", {
+          fixedStart: "2026-10-16",
+        })
+      )
+      // Soltar no abre el detalle.
+      fireEvent.click(meeting)
+      expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
+
+      // Una reunión no se alarga: Alt + → no hace nada.
+      const calls = api.elements.updatePlan.mock.calls.length
+      fireEvent.keyDown(meeting, { key: "ArrowRight", altKey: true })
+      expect(api.elements.updatePlan).toHaveBeenCalledTimes(calls)
+
+      // El borde del fin de la tarea la alarga un día.
+      const task = screen.getByRole("button", { name: "Tarea: Ensayos, 19 oct → 21 oct" })
+      const edge = task.querySelector("span")!
+      fireEvent.pointerDown(edge, { button: 0, clientX: 300, pointerId: 2 })
+      fireEvent.pointerMove(edge, { clientX: 345, pointerId: 2 })
+      fireEvent.pointerUp(edge, { clientX: 345, pointerId: 2 })
+      await waitFor(() =>
+        expect(api.elements.updatePlan).toHaveBeenLastCalledWith("ensayos", {
+          duration: { amount: 4, unit: "days" },
+        })
+      )
+    })
+
+    it("un clic en una celda vacía la elige y enseña cómo crear; el doble clic crea, y la pista se va", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      expect(screen.getByRole("status")).toHaveTextContent("Rodaje: 14 oct")
+      expect(screen.queryByRole("menu", { name: "Tipo de acción" })).toBeNull()
+      expect(screen.getByText("Doble clic o Enter para crear")).toBeInTheDocument()
+
+      fireEvent.doubleClick(track, { clientX: 110 })
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+      expect(screen.queryByText("Doble clic o Enter para crear")).toBeNull()
+      await userEvent.keyboard("{Escape}")
+      // Vista una vez, no vuelve.
+      expect(screen.queryByText("Doble clic o Enter para crear")).toBeNull()
+      expect(localStorage.getItem("cauce.gantt.pistaCelda")).toBe("vista")
+    })
+
+    it("en una pantalla táctil, un toque abre la celda", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "touch" })
+      fireEvent.pointerUp(track)
+      expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
+    })
+
+    it("en la fila «Acciones», un clic en la celda de una sola acción la abre; con varias, solo elige", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("ensayos", "rodaje", "Ensayos", {
+            kind: "task",
+            startsOn: "2026-10-19",
+            endsOn: "2026-10-21",
+            isPinned: true,
+          }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            position: 1,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+          element("aviso", "rodaje", "Pedir permisos", {
+            kind: "reminder",
+            position: 2,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const lane = document.querySelector<HTMLElement>('[data-track="rodaje#acciones"]')!
+      // El 20 oct es el noveno día (8 × 48 px): solo lo cubre la tarea de Ensayos.
+      fireEvent.pointerDown(lane, { button: 0, clientX: 8 * 48 + 10, pointerType: "mouse" })
+      fireEvent.pointerUp(lane)
+      expect(await screen.findByRole("heading", { name: "Ensayos" })).toBeInTheDocument()
+
+      // El 14 oct tiene dos: la celda queda elegida y no se abre ninguna.
+      await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
+      fireEvent.pointerDown(lane, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(lane)
+      expect(screen.getByRole("status")).toHaveTextContent("Acciones de Rodaje: 14 oct")
+      expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
+    })
+
+    it("un clic es para ver: en una fila plegada, la única acción de la celda abre su detalle", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await screen.findByRole("img", { name: "Reunión: Lectura de guion, 14 oct" })
+      const track = document.querySelector<HTMLElement>('[data-track="rodaje"]')!
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
+      expect(screen.queryByRole("menu")).toBeNull()
+      // La celda elegida pasa a la fila donde vive la acción, que queda desplegada.
+      expect(screen.getByRole("status")).toHaveTextContent("Acciones de Rodaje: 14 oct")
+      await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
+      expect(screen.getByRole("treeitem", { name: "Acciones de Rodaje" })).toBeInTheDocument()
+      expect(
+        document.querySelector('[data-track="rodaje#acciones"] [data-cell-selection]')
+      ).not.toBeNull()
+    })
+
+    it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {
+      api.projects.listMine.mockResolvedValue([summary("member")])
+      api.elements.getPlan.mockResolvedValue(
+        planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+      )
+      renderPage()
+
+      await screen.findByRole("button", { name: "Rodaje: 5 abr 2027 → 16 may 2027" })
+      const track = document.querySelector<HTMLElement>("[data-track]")!
+      fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
+      fireEvent.pointerUp(track)
+      fireEvent.doubleClick(track, { clientX: 110 })
+      expect(screen.getByRole("status")).toHaveTextContent("Rodaje: 14 oct")
+      expect(screen.queryByRole("menu", { name: "Tipo de acción" })).toBeNull()
+    })
   })
 
   it("las fases sin duración llevan su aviso, y la cabecera dice cuántas son", async () => {

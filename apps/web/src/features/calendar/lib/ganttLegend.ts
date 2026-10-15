@@ -10,6 +10,7 @@ export interface GanttLegend {
   weekends: boolean
   bars: boolean
   marks: boolean
+  actions: boolean
 }
 
 export type LegendPart = Exclude<keyof GanttLegend, "visible">
@@ -20,6 +21,7 @@ export const LEGEND_PARTS = [
   { key: "weekends", label: "Fines de semana" },
   { key: "bars", label: "Tipos de barra" },
   { key: "marks", label: "Clave y fija" },
+  { key: "actions", label: "Tipos de acción" },
 ] as const satisfies readonly { key: LegendPart; label: string }[]
 
 export const DEFAULT_LEGEND: GanttLegend = {
@@ -29,6 +31,7 @@ export const DEFAULT_LEGEND: GanttLegend = {
   weekends: true,
   bars: true,
   marks: true,
+  actions: true,
 }
 
 const STORAGE_KEY = "cauce.gantt.leyenda"

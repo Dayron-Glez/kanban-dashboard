@@ -19,16 +19,16 @@ export const PLAN_ZOOMS = ["dia", "semana", "mes"] as const
 /** Lo cerca que se ve el Gantt: una columna por día, por semana o por mes. */
 export type PlanZoom = (typeof PLAN_ZOOMS)[number]
 
+/** El alto de cada fila del Gantt: con el zoom «día», el ancho de un día, para que las celdas sean cuadradas. */
+export const ROW_HEIGHT = 48
+
 // Píxeles por día y a cuántos días se ajusta un arrastre: con «semana» una semana
 // mide 56 px, con «mes» un mes unos 90.
 const ZOOM: Record<PlanZoom, { pxPerDay: number; snapDays: number }> = {
-  dia: { pxPerDay: 28, snapDays: 1 },
+  dia: { pxPerDay: ROW_HEIGHT, snapDays: 1 },
   semana: { pxPerDay: 8, snapDays: 7 },
   mes: { pxPerDay: 3, snapDays: 7 },
 }
-
-/** El ancho de cada día del Gantt con el zoom «día», en píxeles. */
-export const DAY_WIDTH = ZOOM.dia.pxPerDay
 
 export interface Timeline {
   zoom: PlanZoom
@@ -106,10 +106,56 @@ export const timelineX = (day: EpochDay, timeline: Timeline) =>
 export const scrollLeftFor = (day: EpochDay, timeline: Timeline, visibleWidth: number) =>
   Math.max(0, Math.round(timelineX(day, timeline) + timeline.pxPerDay / 2 - visibleWidth / 3))
 
+/** Una celda del Gantt: un día, una semana o un mes, según el zoom. */
+export interface TimelineCell {
+  start: EpochDay
+  days: number
+}
+
+/** La celda que contiene un día. */
+export function cellAt(timeline: Timeline, day: EpochDay): TimelineCell {
+  const { range, zoom } = timeline
+  if (zoom === "mes") {
+    const month = timeline.months.find((m) => day >= m.start && day < m.start + m.days)
+    if (month) return { start: month.start, days: month.days }
+  }
+  if (zoom === "dia") return { start: day, days: 1 }
+  const start = Math.max(mondayOf(day), range.start)
+  return { start, days: Math.min(mondayOf(day) + 7, range.end + 1) - start }
+}
+
+/** El día bajo un punto del Gantt, en píxeles desde su borde izquierdo. */
+export const dayAtX = (timeline: Timeline, px: number): EpochDay =>
+  timeline.range.start +
+  Math.min(Math.max(Math.floor(px / timeline.pxPerDay), 0), timeline.range.days - 1)
+
+/** La celda bajo un punto del Gantt. */
+export const cellAtX = (timeline: Timeline, px: number) => cellAt(timeline, dayAtX(timeline, px))
+
+/** La celda de al lado; en el borde de la rejilla, la misma. */
+export function cellStep(timeline: Timeline, cell: TimelineCell, step: -1 | 1): TimelineCell {
+  const day = step > 0 ? cell.start + cell.days : cell.start - 1
+  return day < timeline.range.start || day > timeline.range.end ? cell : cellAt(timeline, day)
+}
+
+/** Las celdas de un día a otro, en cualquier orden, como un solo tramo. */
+export function cellSpan(timeline: Timeline, a: EpochDay, b: EpochDay): TimelineCell {
+  const first = cellAt(timeline, Math.min(a, b))
+  const last = cellAt(timeline, Math.max(a, b))
+  return { start: first.start, days: last.start + last.days - first.start }
+}
+
 /**
- * El fondo de todas las filas: los fines de semana sombreados de arriba abajo y
- * las líneas de hoy y de la semana 1. Se calcula una vez y lo comparten todas.
+ * El fondo de todas las filas: las líneas entre celdas, los fines de semana
+ * sombreados de arriba abajo y la línea de la semana 1. Se calcula una vez y lo
+ * comparten todas. La de hoy va aparte (todayX), por encima de las barras.
  */
+/** Dónde va la línea de hoy, en píxeles; null si hoy queda fuera de la rejilla. */
+export function todayX(timeline: Timeline): number | null {
+  const at = timelineX(timeline.today, timeline) + timeline.pxPerDay / 2
+  return at >= 0 && at <= timeline.width ? at : null
+}
+
 export interface TimelineMarks {
   today: boolean
   week1: boolean
@@ -133,9 +179,6 @@ export function trackBackground(
           ),
         ]
       : []),
-    ...(marks.today
-      ? [line(timelineX(timeline.today, timeline) + pxPerDay / 2, "var(--primary)")]
-      : []),
   ].filter(({ at }) => at >= 0 && at <= timeline.width)
   // La rejilla empieza en lunes: sábado y domingo son los días 5 y 6 de cada semana.
   // Solo con «día»: más lejos, el sombreado serían rayas de 8 o 3 px.
@@ -151,13 +194,29 @@ export function trackBackground(
       ? [{ image: weekend, size: "auto", position: "0 0", repeat: "repeat" }]
       : []),
   ]
-  if (layers.length === 0) return {}
+  layers.push(...cellLines(timeline))
   return {
     backgroundImage: layers.map((layer) => layer.image).join(", "),
     backgroundSize: layers.map((layer) => layer.size).join(", "),
     backgroundPosition: layers.map((layer) => layer.position).join(", "),
     backgroundRepeat: layers.map((layer) => layer.repeat).join(", "),
   }
+}
+
+// Una línea al empezar cada celda: cada día o cada semana se repiten; los meses,
+// que no miden lo mismo, van uno a uno.
+function cellLines(timeline: Timeline) {
+  const line = "linear-gradient(90deg, var(--grid-cell) 1px, transparent 1px)"
+  if (timeline.zoom !== "mes") {
+    const size = timeline.pxPerDay * (timeline.zoom === "dia" ? 1 : 7)
+    return [{ image: line, size: `${size}px 100%`, position: "0 0", repeat: "repeat-x" }]
+  }
+  return timeline.months.map((month) => ({
+    image: "linear-gradient(var(--grid-cell), var(--grid-cell))",
+    size: "1px 100%",
+    position: `${timelineX(month.start, timeline)}px 0`,
+    repeat: "no-repeat",
+  }))
 }
 
 /** Los píxeles arrastrados, en días y ajustados al paso del zoom. */

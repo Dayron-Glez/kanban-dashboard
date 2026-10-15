@@ -13,9 +13,9 @@ import {
 import { toast } from "sonner"
 import { Button, cn, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
-import { useGenerateFromTemplate, usePlan } from "../api/elements"
+import { useCreateAction, useGenerateFromTemplate, usePlan } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
-import { buildElementTree, type ElementNode } from "../lib/elementTree"
+import { buildElementTree, flattenTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
 import { pickView, type CalendarView } from "../lib/calendarViews"
@@ -30,6 +30,8 @@ import {
   type PlanZoom,
 } from "../lib/timeline"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
+import { DaySheet } from "./DaySheet"
+import type { DayPanel } from "../hooks/useGanttCells"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { GanttLegendStrip } from "./GanttLegend"
@@ -40,13 +42,12 @@ import { ViewOptionsMenu } from "./ViewOptionsMenu"
 import { ViewSelector } from "./ViewSelector"
 import { ZoomControl } from "./ZoomControl"
 
-const flattenIds = (nodes: ElementNode[]): string[] =>
-  nodes.flatMap((node) => [node.element.id, ...flattenIds(node.children)])
-
+// Lo que se despliega: lo que tiene hijos o acciones (su fila «Acciones»).
 const parentIds = (nodes: ElementNode[]): string[] =>
-  nodes.flatMap((node) =>
-    node.children.length > 0 ? [node.element.id, ...parentIds(node.children)] : []
-  )
+  nodes.flatMap((node) => [
+    ...(node.children.length > 0 || node.actions.length > 0 ? [node.element.id] : []),
+    ...parentIds(node.children),
+  ])
 
 const EDIT_ERRORS = {
   "missing-reference": "No se puede calcular: depende de algo que todavía no tiene fecha",
@@ -57,8 +58,19 @@ export function CalendarPage() {
   const { id: projectId = "" } = useParams<{ id: string }>()
   const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
+  const createAction = useCreateAction(projectId)
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
+  // A la derecha va un panel cada vez: el de un elemento o el de un día.
+  const [openDay, setOpenDay] = useState<DayPanel | null>(null)
+  const openElement = (id: string) => {
+    setOpenDay(null)
+    setOpenId(id)
+  }
+  const openDayPanel = (day: EpochDay, rowId: string | null) => {
+    setOpenId(null)
+    setOpenDay({ day, rowId })
+  }
   // Todo empieza plegado: el plan entero de golpe es demasiado.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
@@ -149,7 +161,7 @@ export function CalendarPage() {
   // Con el inspector abierto: ↑ ↓ pasan al elemento de arriba o de abajo, Esc cierra.
   useEffect(() => {
     if (!openId || !elements) return
-    const order = flattenIds(tree)
+    const order = flattenTree(tree).map((node) => node.element.id)
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
       if (
@@ -251,7 +263,7 @@ export function CalendarPage() {
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
-          openId && "xl:pr-[424px]"
+          (openId || openDay != null) && "xl:pr-[424px]"
         )}
       >
         <PlanHeader
@@ -313,12 +325,19 @@ export function CalendarPage() {
                 editable={isOwner}
                 pending={changes.pending}
                 onUpdate={onUpdate}
-                onOpen={setOpenId}
+                onOpen={openElement}
+                onOpenDay={openDayPanel}
+                dayPanel={openDay}
                 onMoveDate={onMoveDate}
                 onDragBar={onDragBar}
                 limitDrag={limitDrag}
+                onCreateAction={(parentId, input, done) =>
+                  createAction.mutate({ parentId, input }, { onSuccess: done })
+                }
+                creating={createAction.isPending}
                 expanded={expanded}
                 onToggle={toggle}
+                onReveal={(ids) => setExpanded((current) => new Set([...current, ...ids]))}
                 onToggleAll={() => setExpanded(new Set(expanded.size > 0 ? [] : parentIds(tree)))}
                 viewportRef={viewportRef}
                 fields={fields}
@@ -344,8 +363,24 @@ export function CalendarPage() {
           onMoveDate={onMoveDate}
           onSetRule={onSetRule}
           onRemoveRule={onRemoveRule}
-          onOpen={setOpenId}
+          onOpen={openElement}
           planSpan={summary.span}
+        />
+      )}
+      {timeline && openDay != null && (
+        <DaySheet
+          day={openDay.day}
+          rowId={openDay.rowId}
+          tree={tree}
+          timeline={timeline}
+          canCreate={isOwner}
+          creating={createAction.isPending}
+          onDay={(day) => setOpenDay({ ...openDay, day })}
+          onClose={() => setOpenDay(null)}
+          onOpen={openElement}
+          onCreateAction={(parentId, input, done) =>
+            createAction.mutate({ parentId, input }, { onSuccess: done })
+          }
         />
       )}
     </div>

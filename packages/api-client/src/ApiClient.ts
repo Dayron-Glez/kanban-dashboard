@@ -2,6 +2,7 @@ import type {
   AssignedTask,
   CalendarElement,
   CalendarPlan,
+  CreateActionInput,
   Column,
   ColumnCategory,
   CreateColumnInput,
@@ -84,6 +85,8 @@ export interface ElementsRepository {
   /** Fija de qué depende un extremo, sustituyendo la regla que hubiera. */
   setRule(elementId: string, point: DatePoint, input: SetElementRuleInput): Promise<CalendarPlan>
   removeRule(elementId: string, point: DatePoint): Promise<CalendarPlan>
+  /** Una acción nueva dentro de una fase, subfase o proceso; devuelve el plan. */
+  createAction(parentId: string, input: CreateActionInput): Promise<CalendarPlan>
 }
 
 export interface ApiClient {

@@ -57,6 +57,14 @@ body,
   --warn-soft: hsl(48 96% 89%);
   /* Fines de semana en el Gantt. */
   --weekend: hsl(215 25% 40% / 0.06);
+  /* Un color por tipo de acción (tono 600; el ámbar, 700, para llegar a 3:1). */
+  --action-event: #b45309;
+  --action-task: #2563eb;
+  --action-meeting: #7c3aed;
+  --action-reminder: #db2777;
+  --action-hiring: #059669;
+  /* Las líneas entre celdas del Gantt. */
+  --grid-cell: hsl(215 25% 40% / 0.12);
 
   /* priority */
   --p0: hsl(0 84% 60%);
@@ -133,6 +141,12 @@ body,
   --warn: hsl(45 96% 56%);
   --warn-soft: hsl(45 96% 56% / 0.1);
   --weekend: hsl(0 0% 100% / 0.03);
+  --grid-cell: hsl(0 0% 100% / 0.06);
+  --action-event: #fbbf24;
+  --action-task: #60a5fa;
+  --action-meeting: #a78bfa;
+  --action-reminder: #f472b6;
+  --action-hiring: #34d399;
 
   --p0: hsl(0 84% 71%);
   --p0-soft: hsl(0 84% 71% / 0.1);
@@ -176,6 +190,11 @@ body,
   --color-success-soft: var(--success-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-action-event: var(--action-event);
+  --color-action-task: var(--action-task);
+  --color-action-meeting: var(--action-meeting);
+  --color-action-reminder: var(--action-reminder);
+  --color-action-hiring: var(--action-hiring);
   --color-p0: var(--p0);
   --color-p0-soft: var(--p0-soft);
   --color-p1: var(--p1);

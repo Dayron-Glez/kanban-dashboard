@@ -5,19 +5,25 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common"
-import type {
-  CalendarPlan,
-  DatePoint,
-  SetElementRuleInput,
-  UpdateElementPlanInput,
+import {
+  ACTION_PARENT_KINDS,
+  SINGLE_DAY_ACTION_KINDS,
+  type ActionKind,
+  type CalendarPlan,
+  type CreateActionInput,
+  type DatePoint,
+  type ElementKind,
+  type SetElementRuleInput,
+  type UpdateElementPlanInput,
 } from "@repo/contracts"
 import {
   describePhaseViolation,
+  fromIsoDate,
   phaseRuleViolations,
   phaseSpansOf,
   wouldCreateCycle,
 } from "@repo/domain"
-import { and, eq } from "drizzle-orm"
+import { and, eq, max } from "drizzle-orm"
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino"
 import { DB, type Database } from "../db/db.module.js"
 import { elementDependencies, elements, projects } from "../db/schema/index.js"
@@ -25,10 +31,17 @@ import { ProjectAccess } from "../projects/project-access.js"
 import type { Transaction } from "./calendar-template.js"
 import { loadPlan, recalculatePlan } from "./plan.js"
 
-type EditableElement = { projectId: string; isAnchor: boolean; isPinned: boolean }
+type EditableElement = {
+  projectId: string
+  kind: string
+  isAnchor: boolean
+  isPinned: boolean
+}
+const isSingleDay = (kind: string) => SINGLE_DAY_ACTION_KINDS.includes(kind as ActionKind)
+
 type EditContext = {
   elementId: string
-  change: "plan" | "rule" | "removeRule"
+  change: "plan" | "rule" | "removeRule" | "createAction"
   point?: DatePoint
 }
 
@@ -57,6 +70,13 @@ export class PlanService {
     if (input.isPinned && !input.fixedStart) {
       throw new BadRequestException("Para fijar un elemento hace falta su fecha")
     }
+    if (
+      isSingleDay(element.kind) &&
+      input.duration != null &&
+      (input.duration.amount !== 1 || input.duration.unit !== "days")
+    ) {
+      throw new BadRequestException("Las reuniones y los recordatorios duran un solo día")
+    }
     const writesStart = element.isAnchor || element.isPinned || input.isPinned
     if (input.fixedStart !== undefined && !writesStart) {
       throw new BadRequestException(
@@ -79,6 +99,43 @@ export class PlanService {
     })
   }
 
+  // Una acción es un elemento fijado en su fecha, con su duración en días, al
+  // final de lo que cuelga de su padre.
+  async createAction(
+    userId: string,
+    parentId: string,
+    input: CreateActionInput
+  ): Promise<CalendarPlan> {
+    const parent = await this.findEditable(userId, parentId)
+    if (!ACTION_PARENT_KINDS.includes(parent.kind as ElementKind)) {
+      throw new BadRequestException("Una acción cuelga de una fase, una subfase o un proceso")
+    }
+    const endsOn = input.endsOn ?? (input.kind === "hiring" ? null : input.startsOn)
+    const days = endsOn == null ? null : fromIsoDate(endsOn) - fromIsoDate(input.startsOn) + 1
+
+    return this.edit(
+      parent.projectId,
+      { elementId: parentId, change: "createAction" },
+      async (tx) => {
+        const [last] = await tx
+          .select({ position: max(elements.position) })
+          .from(elements)
+          .where(eq(elements.parentId, parentId))
+        await tx.insert(elements).values({
+          projectId: parent.projectId,
+          kind: input.kind,
+          parentId,
+          position: last?.position == null ? 0 : last.position + 1,
+          name: input.name,
+          durationAmount: days,
+          durationUnit: days == null ? null : "days",
+          startsOn: input.startsOn,
+          isPinned: true,
+        })
+      }
+    )
+  }
+
   // Sustituye la regla que hubiera en ese extremo.
   async setRule(
     userId: string,
@@ -89,6 +146,11 @@ export class PlanService {
     const element = await this.findEditable(userId, elementId)
     if (point === "start" && (element.isAnchor || element.isPinned)) {
       throw new BadRequestException("El inicio del ancla y de los fijados se escribe a mano")
+    }
+    if (point === "end" && isSingleDay(element.kind)) {
+      throw new BadRequestException(
+        "Las reuniones y los recordatorios duran un día: su fin no depende de otro elemento"
+      )
     }
 
     return this.edit(element.projectId, { elementId, change: "rule", point }, async (tx) => {
@@ -150,6 +212,7 @@ export class PlanService {
     const [element] = await this.db
       .select({
         projectId: elements.projectId,
+        kind: elements.kind,
         isAnchor: elements.isAnchor,
         isPinned: elements.isPinned,
       })

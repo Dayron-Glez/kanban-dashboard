@@ -3,6 +3,9 @@ import {
   DEFAULT_GANTT_FIELDS,
   loadGanttFields,
   saveGanttFields,
+  loadNameWidth,
+  NAME_WIDTH,
+  saveNameWidth,
   tableLayout,
 } from "../lib/ganttFields"
 
@@ -26,14 +29,24 @@ describe("campos visibles del Gantt", () => {
     expect(loadGanttFields()).toEqual(DEFAULT_GANTT_FIELDS)
   })
 
-  it("la tabla crece con cada columna que se enseña", () => {
+  it("la tabla crece con cada columna que se enseña, y con el ancho de «Elemento»", () => {
     expect(tableLayout(DEFAULT_GANTT_FIELDS)).toEqual({
       gridTemplateColumns: "minmax(0,1fr) 6.5rem",
-      width: "24rem",
+      width: "calc(280px + 6.5rem)",
     })
-    expect(tableLayout({ ...DEFAULT_GANTT_FIELDS, start: true, end: true })).toEqual({
+    expect(tableLayout({ ...DEFAULT_GANTT_FIELDS, start: true, end: true }, 360)).toEqual({
       gridTemplateColumns: "minmax(0,1fr) 6.5rem 7rem 7rem",
-      width: "38rem",
+      width: "calc(360px + 20.5rem)",
     })
+  })
+
+  it("el ancho de «Elemento» se recuerda, sin salirse de sus límites", () => {
+    expect(loadNameWidth()).toBe(NAME_WIDTH.initial)
+    saveNameWidth(400)
+    expect(loadNameWidth()).toBe(400)
+    localStorage.setItem("cauce.gantt.anchoElemento", "9000")
+    expect(loadNameWidth()).toBe(NAME_WIDTH.max)
+    localStorage.setItem("cauce.gantt.anchoElemento", "roto")
+    expect(loadNameWidth()).toBe(NAME_WIDTH.initial)
   })
 })

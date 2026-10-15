@@ -4,9 +4,14 @@ import { describe, expect, it } from "vitest"
 import {
   barDragModes,
   buildTimeline,
+  cellAt,
+  cellAtX,
+  cellSpan,
+  cellStep,
   dragDays,
   dragTarget,
   scrollLeftFor,
+  todayX,
   trackBackground,
 } from "../lib/timeline"
 
@@ -45,11 +50,11 @@ describe("buildTimeline", () => {
   // Rodaje del 5 al 18 de abril de 2027; hoy, el 13 de octubre de 2026.
   const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
-  it("una columna de 28 px por día, desde la semana de hoy hasta 14 días tras el final", () => {
-    expect(timeline.pxPerDay).toBe(28)
+  it("una columna de 48 px por día, desde la semana de hoy hasta 14 días tras el final", () => {
+    expect(timeline.pxPerDay).toBe(48)
     expect(timeline.range.start).toBe(fromIsoDate("2026-10-12"))
     expect(timeline.range.end).toBe(fromIsoDate("2027-05-02"))
-    expect(timeline.width).toBe(timeline.days.length * 28)
+    expect(timeline.width).toBe(timeline.days.length * 48)
     expect(timeline.today).toBe(fromIsoDate("2026-10-13"))
   })
 
@@ -65,7 +70,7 @@ describe("scrollLeftFor", () => {
 
   it("deja el día a un tercio del ancho visible, y nunca antes del principio", () => {
     // El 5 de abril de 2027 está 175 días después del primer día de la rejilla.
-    expect(scrollLeftFor(fromIsoDate("2027-04-05"), timeline, 900)).toBe(175 * 28 + 14 - 300)
+    expect(scrollLeftFor(fromIsoDate("2027-04-05"), timeline, 900)).toBe(175 * 48 + 24 - 300)
     expect(scrollLeftFor(timeline.today, timeline, 900)).toBe(0)
   })
 })
@@ -73,15 +78,26 @@ describe("scrollLeftFor", () => {
 describe("trackBackground", () => {
   const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
-  it("pinta hoy, la semana 1 y los fines de semana, y la leyenda puede apagarlos", () => {
+  it("pinta la semana 1 y los fines de semana, y la leyenda puede apagarlos", () => {
     expect(trackBackground(timeline).backgroundImage?.split("gradient(")).toHaveLength(4)
-    expect(trackBackground(timeline, { today: false, week1: false, weekends: true })).toEqual({
-      backgroundImage: expect.stringMatching(/^repeating-linear-gradient/),
-      backgroundSize: "auto",
+    expect(
+      trackBackground(timeline, { today: false, week1: false, weekends: true }).backgroundImage
+    ).toMatch(/^repeating-linear-gradient/)
+  })
+
+  it("hoy va aparte, en el centro de su día, para pintarse por encima de las barras", () => {
+    expect(todayX(timeline)).toBe((fromIsoDate("2026-10-13") - timeline.range.start) * 48 + 24)
+    const lejos = buildTimeline([element("rodaje")], new Date(2030, 0, 1))!
+    expect(todayX({ ...lejos, today: lejos.range.end + 10 })).toBeNull()
+  })
+
+  it("las líneas entre celdas no se apagan: una por día", () => {
+    expect(trackBackground(timeline, { today: false, week1: false, weekends: false })).toEqual({
+      backgroundImage: "linear-gradient(90deg, var(--grid-cell) 1px, transparent 1px)",
+      backgroundSize: "48px 100%",
       backgroundPosition: "0 0",
-      backgroundRepeat: "repeat",
+      backgroundRepeat: "repeat-x",
     })
-    expect(trackBackground(timeline, { today: false, week1: false, weekends: false })).toEqual({})
   })
 })
 
@@ -89,8 +105,8 @@ describe("el zoom", () => {
   const rodaje = [element("rodaje", { startsOn: "2027-04-05", endsOn: "2027-05-16" })]
   const at = (zoom: "dia" | "semana" | "mes") => buildTimeline(rodaje, new Date(2026, 9, 13), zoom)!
 
-  it("una columna por día (28 px), por semana (56 px) o por mes (unos 90 px)", () => {
-    expect(at("dia").pxPerDay * 7).toBe(196)
+  it("una columna por día (48 px), por semana (56 px) o por mes (unos 90 px)", () => {
+    expect(at("dia").pxPerDay * 7).toBe(336)
     expect(at("semana").pxPerDay * 7).toBe(56)
     expect(at("mes").pxPerDay * 30).toBe(90)
   })
@@ -113,13 +129,60 @@ describe("el zoom", () => {
   })
 })
 
+describe("las celdas", () => {
+  const rodaje = [element("rodaje", { startsOn: "2027-04-05", endsOn: "2027-05-16" })]
+  const at = (zoom: "dia" | "semana" | "mes") => buildTimeline(rodaje, new Date(2026, 9, 13), zoom)!
+  const day = fromIsoDate("2026-10-15")
+
+  it("una celda es un día, una semana desde el lunes o un mes", () => {
+    expect(cellAt(at("dia"), day)).toEqual({ start: day, days: 1 })
+    expect(cellAt(at("semana"), day)).toEqual({ start: fromIsoDate("2026-10-12"), days: 7 })
+    // El primer mes empieza con la rejilla, el lunes 12.
+    expect(cellAt(at("mes"), day)).toEqual({ start: fromIsoDate("2026-10-12"), days: 20 })
+    expect(cellAt(at("mes"), fromIsoDate("2026-11-20"))).toEqual({
+      start: fromIsoDate("2026-11-01"),
+      days: 30,
+    })
+  })
+
+  it("la celda bajo un punto, sin salirse de la rejilla", () => {
+    expect(cellAtX(at("dia"), 3 * 48 + 5).start).toBe(day)
+    expect(cellAtX(at("dia"), -40).start).toBe(at("dia").range.start)
+    expect(cellAtX(at("dia"), 1e7).start).toBe(at("dia").range.end)
+  })
+
+  it("la celda de al lado, sin salir de la rejilla", () => {
+    const week = at("semana")
+    expect(cellStep(week, cellAt(week, day), 1).start).toBe(fromIsoDate("2026-10-19"))
+    expect(cellStep(week, cellAt(week, day), -1)).toEqual(cellAt(week, day))
+    const month = at("mes")
+    expect(cellStep(month, cellAt(month, day), 1)).toEqual({
+      start: fromIsoDate("2026-11-01"),
+      days: 30,
+    })
+  })
+
+  it("un tramo de celdas, en cualquier orden", () => {
+    const tramo = { start: fromIsoDate("2026-10-12"), days: 14 }
+    expect(cellSpan(at("semana"), fromIsoDate("2026-10-20"), day)).toEqual(tramo)
+    expect(cellSpan(at("dia"), day, day - 2)).toEqual({ start: day - 2, days: 3 })
+  })
+
+  it("con semana y mes, las líneas van por semana o al empezar cada mes", () => {
+    const none = { today: false, week1: false, weekends: false }
+    expect(trackBackground(at("semana"), none).backgroundSize).toBe("56px 100%")
+    const months = trackBackground(at("mes"), none)
+    expect(months.backgroundRepeat?.split(", ")).toHaveLength(at("mes").months.length)
+  })
+})
+
 describe("dragDays", () => {
   const timeline = buildTimeline([element("rodaje")], new Date(2026, 9, 13))!
 
   it("los píxeles arrastrados, en días enteros", () => {
-    expect(dragDays(20, timeline)).toBe(1)
-    expect(dragDays(13, timeline)).toBe(0)
-    expect(dragDays(-60, timeline)).toBe(-2)
+    expect(dragDays(25, timeline)).toBe(1)
+    expect(dragDays(19, timeline)).toBe(0)
+    expect(dragDays(-90, timeline)).toBe(-2)
   })
 })
 

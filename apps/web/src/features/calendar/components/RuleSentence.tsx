@@ -1,34 +1,12 @@
 import { useState, type FormEvent, type ReactNode } from "react"
-import type {
-  CalendarElement,
-  DatePoint,
-  Duration,
-  ElementDependency,
-  SetElementRuleInput,
-} from "@repo/contracts"
+import type { DatePoint, Duration, ElementDependency, SetElementRuleInput } from "@repo/contracts"
 import { IconChevronDown, IconX } from "@tabler/icons-react"
-import {
-  Button,
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  cn,
-} from "@/shared/index"
-import type { PhaseTint } from "../lib/phaseColors"
+import { Button, Input, Popover, PopoverContent, PopoverTrigger, cn } from "@/shared/index"
 import { formatDuration } from "../lib/planFormat"
+import { ElementPickerList, type PickerOption } from "./ElementPicker"
 import { SegmentedControl } from "./SegmentedControl"
 
-export interface RuleCandidate {
-  element: CalendarElement
-  depth: number
-  tint: PhaseTint
-}
+export type RuleCandidate = PickerOption
 
 interface RuleSentenceProps {
   point: DatePoint
@@ -159,28 +137,11 @@ export function RuleSentence({
   )
 
   const elementPicker = (
-    <Command className="w-64">
-      <CommandInput placeholder="Buscar un elemento…" />
-      <CommandList>
-        <CommandEmpty>No hay ninguno con ese nombre.</CommandEmpty>
-        {candidates.map(({ element, depth, tint }) => (
-          <CommandItem
-            key={element.id}
-            value={`${element.name} ${element.id}`}
-            onSelect={() => save({ predecessorId: element.id })}
-          >
-            <span style={{ paddingLeft: `${depth * 12}px` }} className="flex items-center gap-2">
-              <span
-                className={cn("size-1.5 shrink-0 rounded-full", tint.className)}
-                style={tint.style}
-                aria-hidden
-              />
-              {element.name}
-            </span>
-          </CommandItem>
-        ))}
-      </CommandList>
-    </Command>
+    <ElementPickerList
+      className="w-64"
+      options={candidates}
+      onSelect={(predecessorId) => save({ predecessorId })}
+    />
   )
 
   const elementPill = (

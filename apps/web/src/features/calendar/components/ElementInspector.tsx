@@ -16,7 +16,7 @@ import type {
   UpdateElementPlanInput,
 } from "@repo/contracts"
 import { validPredecessors } from "@repo/domain"
-import { buildElementTree, ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
+import { buildElementTree, ELEMENT_KIND_LABELS, flattenTree } from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
 import { countDependents, describeIssue, describeRule } from "../lib/planFormat"
 import { RuleSentence } from "./RuleSentence"
@@ -37,9 +37,6 @@ interface ElementInspectorProps {
   /** Si el plan entero tiene fechas: el contexto de las fases. */
   planSpan: { start: string; end: string } | null
 }
-
-const flatten = (nodes: ElementNode[]): ElementNode[] =>
-  nodes.flatMap((node) => [node, ...flatten(node.children)])
 
 /**
  * El inspector de un elemento, en un Sheet a la derecha. No es modal: el plan
@@ -84,7 +81,7 @@ export function ElementInspector({
       element.id
     )
   )
-  const ordered = flatten(buildElementTree(plan.elements))
+  const ordered = flattenTree(buildElementTree(plan.elements))
   const tintOf = (id: string) => {
     const found = ordered.find((candidate) => candidate.element.id === id)
     return phaseTint(found?.phaseColor, found?.depth === 0)
@@ -112,7 +109,7 @@ export function ElementInspector({
     parents.unshift(parent.name)
     parentId = parent.parentId
   }
-  const node = flatten(buildElementTree(plan.elements)).find(
+  const node = flattenTree(buildElementTree(plan.elements)).find(
     (candidate) => candidate.element.id === element.id
   )
   const tint = phaseTint(node?.phaseColor, node?.depth === 0)

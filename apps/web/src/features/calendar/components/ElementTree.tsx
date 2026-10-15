@@ -1,42 +1,76 @@
-import type { Ref } from "react"
+import { useEffect, useState, type ReactNode, type Ref } from "react"
 import {
   IconAlertTriangle,
   IconAnchor,
   IconChevronRight,
   IconChevronsDown,
   IconChevronsUp,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarLeftExpand,
+  IconListDetails,
   IconPin,
 } from "@tabler/icons-react"
-import type {
-  CalendarElement,
-  DatePoint,
-  ElementDependency,
-  UpdateElementPlanInput,
+import {
+  ACTION_PARENT_KINDS,
+  type CalendarElement,
+  type CreateActionInput,
+  type DatePoint,
+  type ElementDependency,
+  type UpdateElementPlanInput,
 } from "@repo/contracts"
 import {
   Button,
   cn,
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
   ScrollArea,
   ScrollBar,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/shared/index"
-import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
-import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
+import type { EpochDay } from "@repo/domain"
+import { useGanttCells, type DayPanel } from "../hooks/useGanttCells"
+import {
+  actionsInSpan,
+  descendantActions,
+  ELEMENT_KIND_LABELS,
+  type ElementNode,
+} from "../lib/elementTree"
+import {
+  DEFAULT_GANTT_FIELDS,
+  loadNameWidth,
+  NAME_WIDTH,
+  RAIL_WIDTH,
+  railFlag,
+  railHintFlag,
+  saveNameWidth,
+  tableLayout,
+  type GanttFields,
+} from "../lib/ganttFields"
 import { phaseTint } from "../lib/phaseColors"
-import { describeIssue, describeRule, formatPlanDate } from "../lib/planFormat"
+import { describeIssue, describeRule, formatPlanDate, formatShortDay } from "../lib/planFormat"
 import {
   barDragModes,
+  cellAt,
+  ROW_HEIGHT,
+  timelineX,
+  todayX,
   trackBackground,
   type BarDrag,
   type PlanView,
   type Timeline,
+  type TimelineCell,
   type TimelineMarks,
 } from "../lib/timeline"
+import { ActionLane, ActionRollup } from "./ActionMarks"
+import { CellMenu } from "./CellMenu"
+import { ColumnResizer } from "./ColumnResizer"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { TimelineBar } from "./TimelineBar"
 import { TimelineScale } from "./TimelineScale"
+import { TruncatedText } from "./TruncatedText"
 
 interface ElementTreeProps {
   nodes: ElementNode[]
@@ -55,6 +89,15 @@ interface ElementTreeProps {
     drag: BarDrag,
     days: number
   ) => { days: number; reason: string | null }
+  /** Crear una acción en las celdas elegidas; `done` cierra el menú si sale bien. */
+  onCreateAction?: (parentId: string, input: CreateActionInput, done: () => void) => void
+  /** Desplegar lo que contiene a un elemento, para que se vea su fila. */
+  onReveal?: (elementIds: string[]) => void
+  /** Abrir el panel con todo el proyecto en un día. */
+  onOpenDay?: (day: EpochDay, rowId: string | null) => void
+  /** El panel del día abierto: la celda elegida lo sigue. */
+  dayPanel?: DayPanel | null
+  creating?: boolean
   /** El elemento que hace scroll, para llevar el Gantt a un día. */
   viewportRef?: Ref<HTMLDivElement>
   /** Desplegar todo, o plegarlo si hay algo abierto: va en la cabecera de la columna. */
@@ -76,6 +119,9 @@ interface ElementTreeProps {
 // En el móvil, la tabla con todas sus columnas; junto al Gantt, las que se elijan.
 const MOBILE_TABLE = { gridTemplateColumns: "minmax(0,1fr) 7rem 7rem 7rem" }
 
+// La fila «Acciones» de un elemento, en la rejilla y en la selección.
+const actionsRow = (id: string) => `${id}#acciones`
+
 const CHIP =
   "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-sm font-medium whitespace-nowrap"
 
@@ -89,6 +135,11 @@ export function ElementTree({
   onMoveDate,
   onDragBar,
   limitDrag,
+  onCreateAction,
+  onOpenDay,
+  onReveal,
+  dayPanel = null,
+  creating = false,
   expanded: expandedIds,
   onToggle,
   onToggleAll,
@@ -102,7 +153,28 @@ export function ElementTree({
 }: Readonly<ElementTreeProps>) {
   const showTimeline = view !== "tabla" && timeline != null
   const columns = view === "tabla" ? { duration: true, start: true, end: true } : fields
-  const ganttTable = tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields })
+  // El ancho de «Elemento» se arrastra en el borde con el Gantt, y se recuerda.
+  const [nameWidth, setNameWidth] = useState<number>(loadNameWidth)
+  const resizeName = (width: number) => {
+    setNameWidth(width)
+    saveNameWidth(width)
+  }
+  // Contraída, la columna es una tira con la flecha y el color de cada fila; el
+  // nombre, en un Tooltip. La primera vez, una nota explica cómo volver.
+  const [railed, setRailed] = useState<boolean>(railFlag.load)
+  const [railHintSeen, setRailHintSeen] = useState<boolean>(railHintFlag.load)
+  const rail = view !== "tabla" && timeline != null && railed
+  const toggleRail = () => {
+    railFlag.save(!railed)
+    setRailed(!railed)
+  }
+  const seeRailHint = () => {
+    railHintFlag.save(true)
+    setRailHintSeen(true)
+  }
+  const ganttTable = rail
+    ? { gridTemplateColumns: "minmax(0,1fr)", width: `${RAIL_WIDTH}px` }
+    : tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields }, nameWidth)
   const table = view === "tabla" ? MOBILE_TABLE : ganttTable
   // Lo que contiene al elemento seleccionado se abre solo, para que se vea.
   const selectedPath = new Set<string>()
@@ -112,19 +184,101 @@ export function ElementTree({
         path.forEach((id) => selectedPath.add(id))
         return true
       }
+      if (node.actions.some((action) => action.element.id === selectedId)) {
+        ;[...path, node.element.id].forEach((id) => selectedPath.add(id))
+        return true
+      }
       return findPath(node.children, [...path, node.element.id])
     })
   if (selectedId) findPath(nodes, [])
   const background = showTimeline ? trackBackground(timeline, marks) : undefined
-
+  const todayLeft = showTimeline && (marks?.today ?? true) ? todayX(timeline) : null
+  const isOpen = (id: string) => expandedIds.has(id) || selectedPath.has(id)
+  // Con el Gantt, un elemento con acciones se despliega aunque no tenga hijos: debajo
+  // va su fila «Acciones».
+  const hasActionsRow = (node: ElementNode) => showTimeline && node.actions.length > 0
+  const visibleIds = (list: ElementNode[]): string[] =>
+    list.flatMap((node) => [
+      node.element.id,
+      ...(isOpen(node.element.id)
+        ? [
+            ...(hasActionsRow(node) ? [actionsRow(node.element.id)] : []),
+            ...visibleIds(node.children),
+          ]
+        : []),
+    ])
   const names = new Map<string, string>()
+  const actionRows = new Map<string, ElementNode>()
+  const rowNodes = new Map<string, ElementNode>()
   const collect = (list: ElementNode[]) =>
     list.forEach((node) => {
       names.set(node.element.id, node.element.name)
+      names.set(actionsRow(node.element.id), `Acciones de ${node.element.name}`)
+      actionRows.set(actionsRow(node.element.id), node)
+      rowNodes.set(node.element.id, node)
       collect(node.children)
     })
   collect(nodes)
   const nameOf = (id: string) => names.get(id) ?? "otro elemento"
+
+  // Abrir una acción desde una celda: se despliega lo que la contiene, para que su
+  // fila «Acciones» se vea. Devuelve esa fila: la celda elegida pasa a ella, no se
+  // queda en la fila plegada desde la que se vio.
+  const revealAndOpen = (action: ElementNode) => {
+    const parentId = action.element.parentId!
+    const path: string[] = []
+    for (let id: string | null = parentId; id; id = rowNodes.get(id)?.element.parentId ?? null) {
+      path.unshift(id)
+    }
+    onReveal?.(path)
+    onOpen(action.element.id)
+    return actionsRow(parentId)
+  }
+
+  // Lo que se ve en una celda: en la fila «Acciones», sus acciones; en la de un
+  // elemento plegado, lo que resume; desplegado, nada (sus acciones tienen su fila).
+  const cellItems = (row: string, from: number, to: number): ElementNode[] => {
+    const actions = actionRows.get(row)
+    if (actions) return actionsInSpan(actions, true, from, to)
+    const node = rowNodes.get(row)
+    if (!node || isOpen(node.element.id)) return []
+    return actionsInSpan(node, false, from, to)
+  }
+
+  const { hovered, selection, span, trackProps, menuOpen, closeMenu, showHint, selectCell } =
+    useGanttCells(
+      showTimeline ? timeline : null,
+      visibleIds(nodes),
+      onOpenDay,
+      dayPanel,
+      (row, day) => {
+        // Un clic es para ver: con una sola acción en la celda, su detalle; con varias,
+        // la lista. Vacía, la celda solo queda elegida (crear: doble clic o Enter).
+        if (!timeline) return
+        const cell = cellAt(timeline, day)
+        const here = cellItems(row, cell.start, cell.start + cell.days - 1)
+        if (here.length > 1) return "list"
+        if (here.length === 1) return { row: revealAndOpen(here[0]!) }
+      }
+    )
+
+  // Al pasar de día en el panel, su celda se lleva a la vista si se sale.
+  const panelDay = dayPanel?.day
+  useEffect(() => {
+    if (panelDay == null) return
+    document
+      .querySelector("[data-cell-selection]")
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" })
+  }, [panelDay])
+
+  const cellDays = (start: number) => (timeline ? cellAt(timeline, start).days : 1)
+  const spanLabel = (cell: TimelineCell) => {
+    const end = cell.start + cell.days - 1
+    const days = `${cell.days} ${cell.days === 1 ? "día" : "días"}`
+    return cell.days === 1
+      ? formatShortDay(cell.start)
+      : `${formatShortDay(cell.start)} → ${formatShortDay(end)} · ${days}`
+  }
 
   // Lo vacío no se pinta: el motivo queda para el cursor y los lectores de pantalla.
   const missing = (element: CalendarElement) => {
@@ -181,10 +335,255 @@ export function ElementTree({
     )
   }
 
+  // Lo que hay en las celdas elegidas y, si se puede, crear ahí.
+  // En la fila de acciones, las suyas; en la del elemento, plegado, todo lo de dentro
+  // (lo que resume su rollup) y, desplegado, nada: sus acciones tienen su fila.
+  const cellMenu = (node: ElementNode, row: string) => {
+    const { element } = node
+    if (!menuOpen || selection?.id !== row || !span || !timeline) return null
+    const end = span.days === cellDays(span.start) ? span.start : span.start + span.days - 1
+    const last = span.start + span.days - 1
+    const inCell = cellItems(row, span.start, last)
+    const canCreate =
+      editable && onCreateAction != null && ACTION_PARENT_KINDS.includes(element.kind)
+    if (inCell.length === 0 && !canCreate) return null
+    return (
+      <Popover open onOpenChange={(open) => !open && closeMenu()}>
+        <PopoverAnchor asChild>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0"
+            style={{
+              left: timelineX(span.start, timeline),
+              width: span.days * timeline.pxPerDay,
+            }}
+          />
+        </PopoverAnchor>
+        <PopoverContent
+          align="start"
+          className="w-80 p-2"
+          // Al abrirse, el foco va al menú y no a su primera opción: si no, Enter
+          // abriría esa acción sin haberla elegido.
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+            ;(event.currentTarget as HTMLElement | null)
+              ?.querySelector<HTMLElement>("[data-cell-menu]")
+              ?.focus()
+          }}
+          // Al cerrarse, el foco vuelve a la fila, para seguir con el teclado.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            document
+              .querySelector<HTMLElement>(`[data-track="${row}"]`)
+              ?.focus({ preventScroll: true })
+          }}
+        >
+          <CellMenu
+            start={span.start}
+            end={end}
+            parentName={element.name}
+            actions={inCell.map((action) => ({
+              element: action.element,
+              owner:
+                action.element.parentId === element.id ? null : nameOf(action.element.parentId!),
+            }))}
+            canCreate={canCreate}
+            pending={creating}
+            onOpen={(id) => {
+              closeMenu()
+              const action = inCell.find((candidate) => candidate.element.id === id)
+              if (action) selectCell(revealAndOpen(action), span.start)
+              else onOpen(id)
+            }}
+            onCancel={closeMenu}
+            onOpenDay={
+              onOpenDay &&
+              (() => {
+                closeMenu()
+                onOpenDay(span.start, row)
+              })
+            }
+            onCreate={(input) => onCreateAction?.(element.id, input, closeMenu)}
+          />
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
+  const track = (row: string, label: string, content: ReactNode) =>
+    timeline && (
+      <div
+        {...trackProps(row)}
+        aria-label={label}
+        // isolate: lo que se pinta dentro (barras, acciones) no pasa por encima
+        // de la columna fija de la tabla al desplazar el Gantt.
+        className="relative isolate shrink-0 outline-none"
+        style={{ width: timeline.width, ...background }}
+      >
+        {hovered?.id === row && (
+          <span
+            aria-hidden
+            className="bg-primary/10 ring-primary/60 pointer-events-none absolute inset-y-0 rounded-[3px] ring-1 ring-inset"
+            style={{
+              left: timelineX(hovered.cell.start, timeline),
+              width: hovered.cell.days * timeline.pxPerDay,
+            }}
+          />
+        )}
+        {selection?.id === row && span && (
+          <span
+            aria-hidden
+            data-cell-selection
+            className="bg-primary/15 ring-primary pointer-events-none absolute inset-y-0 rounded-[3px] ring-2 ring-inset"
+            style={{
+              left: timelineX(span.start, timeline),
+              width: span.days * timeline.pxPerDay,
+              // Al llevarla a la vista, que no quede bajo la columna fija.
+              scrollMarginLeft: ganttTable.width,
+            }}
+          >
+            {span.days > cellDays(span.start) ? (
+              <span className="bg-primary text-primary-foreground absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap tabular-nums shadow-sm">
+                {spanLabel(span)}
+              </span>
+            ) : (
+              // Vacía, la celda no abre nada con un clic: la pista dice cómo crear.
+              showHint &&
+              editable &&
+              cellItems(row, span.start, span.start + span.days - 1).length === 0 && (
+                <span className="bg-foreground text-background absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap shadow-sm">
+                  Doble clic o Enter para crear
+                </span>
+              )
+            )}
+          </span>
+        )}
+        {content}
+        {todayLeft != null && (
+          // Por encima de las barras, para que se vea de arriba abajo; las acciones,
+          // encima de ella.
+          <span
+            aria-hidden
+            className="bg-primary pointer-events-none absolute inset-y-0 z-[1] w-[1.5px] -translate-x-1/2"
+            style={{ left: todayLeft }}
+          />
+        )}
+      </div>
+    )
+
+  // La fila «Acciones» de un elemento desplegado: sus acciones, sin las de sus hijos.
+  const renderActionsRow = (node: ElementNode) => {
+    const row = actionsRow(node.element.id)
+    return (
+      <li key={row} role="treeitem" aria-label={`Acciones de ${node.element.name}`}>
+        <div
+          className="border-border/40 bg-muted/20 flex border-b text-base"
+          style={{ height: ROW_HEIGHT }}
+        >
+          <div
+            className="bg-background border-border/60 sticky left-0 z-10 grid shrink-0 items-center gap-2 border-r pr-2"
+            style={table}
+          >
+            {rail ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    aria-label={`Acciones · ${node.actions.length}`}
+                    className="text-muted-foreground flex items-center"
+                    style={{ paddingLeft: `${node.depth * 5 + 26}px` }}
+                  >
+                    <IconListDetails className="size-4" aria-hidden />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  Acciones de {node.element.name} · {node.actions.length}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span
+                className="text-muted-foreground text-sm"
+                style={{ paddingLeft: `${(node.depth + 1) * 20 + 32}px` }}
+              >
+                Acciones · {node.actions.length}
+              </span>
+            )}
+          </div>
+          {track(
+            row,
+            `Días de las acciones de ${node.element.name}`,
+            <>
+              {cellMenu(node, row)}
+              {timeline && (
+                <ActionLane
+                  node={node}
+                  timeline={timeline}
+                  onOpen={onOpen}
+                  editable={editable && !pending}
+                  dependencies={dependencies}
+                  onDrag={onDragBar}
+                  limit={limitDrag}
+                />
+              )}
+            </>
+          )}
+        </div>
+      </li>
+    )
+  }
+
+  // La tira: la flecha de desplegar y el color de la fase, con la sangría por nivel;
+  // el nombre, en un Tooltip; un aviso, como un punto ámbar.
+  const railCell = (node: ElementNode, expanded: boolean, hasChildren: boolean) => {
+    const { element, depth } = node
+    const tint = phaseTint(node.phaseColor, depth === 0)
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1" style={{ paddingLeft: `${depth * 5 + 4}px` }}>
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => onToggle(element.id)}
+                aria-label={`${expanded ? "Plegar" : "Desplegar"} ${element.name}`}
+                className="text-muted-foreground hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
+              >
+                <IconChevronRight
+                  size={14}
+                  className={`transition-transform ${expanded ? "rotate-90" : ""}`}
+                />
+              </button>
+            ) : (
+              <span className="size-5 shrink-0" />
+            )}
+            <button
+              type="button"
+              onClick={() => onOpen(element.id)}
+              aria-label={`Ver el detalle de ${element.name}`}
+              className="relative flex size-5 shrink-0 items-center justify-center rounded"
+            >
+              <span
+                aria-hidden
+                className={cn("rounded-full", depth === 0 ? "h-4 w-1" : "size-1.5", tint.className)}
+                style={tint.style}
+              />
+              {depth === 0 && element.duration == null && (
+                <span
+                  aria-hidden
+                  className="bg-warn absolute top-0 right-0.5 size-1.5 rounded-full"
+                />
+              )}
+            </button>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right">{element.name}</TooltipContent>
+      </Tooltip>
+    )
+  }
+
   const renderNode = (node: ElementNode) => {
     const { element, depth, children } = node
-    const expanded = expandedIds.has(element.id) || selectedPath.has(element.id)
-    const hasChildren = children.length > 0
+    const expanded = isOpen(element.id)
+    const hasChildren = children.length > 0 || hasActionsRow(node)
     const rule = describeRule(element, dependencies, nameOf)
     const selected = element.id === selectedId
 
@@ -193,9 +592,10 @@ export function ElementTree({
         <div
           aria-selected={selected}
           className={cn(
-            "group/row border-border/40 flex h-9 border-b text-base transition-colors",
+            "group/row border-border/40 flex border-b text-base transition-colors",
             selected ? "bg-primary/5" : "hover:bg-muted/40"
           )}
+          style={{ height: ROW_HEIGHT }}
         >
           <div
             className={cn(
@@ -206,120 +606,168 @@ export function ElementTree({
             )}
             style={table}
           >
-            <div
-              className="flex min-w-0 items-center gap-2"
-              style={{ paddingLeft: `${depth * 20 + 4}px` }}
-            >
-              {hasChildren ? (
-                <button
-                  type="button"
-                  onClick={() => onToggle(element.id)}
-                  aria-label={`${expanded ? "Plegar" : "Desplegar"} ${element.name}`}
-                  className="text-muted-foreground hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
+            {rail ? (
+              railCell(node, expanded, hasChildren)
+            ) : (
+              <>
+                <div
+                  className="flex min-w-0 items-center gap-2"
+                  style={{ paddingLeft: `${depth * 20 + 4}px` }}
                 >
-                  <IconChevronRight
-                    size={14}
-                    className={`transition-transform ${expanded ? "rotate-90" : ""}`}
-                  />
-                </button>
-              ) : (
-                <span className="size-5 shrink-0" />
-              )}
-              <span
-                aria-hidden
-                title={ELEMENT_KIND_LABELS[element.kind]}
-                className={cn(
-                  "shrink-0 rounded-full",
-                  depth === 0 ? "h-4 w-1" : "size-1.5",
-                  phaseTint(node.phaseColor, depth === 0).className
-                )}
-                style={phaseTint(node.phaseColor, depth === 0).style}
-              />
-              <button
-                type="button"
-                onClick={() => onOpen(element.id)}
-                aria-label={`Ver el detalle de ${element.name}`}
-                title={element.name}
-                className={cn(
-                  "hover:text-primary min-w-0 truncate text-left transition-colors",
-                  depth === 0 && "font-semibold"
-                )}
-              >
-                {element.name}
-              </button>
-              {element.isAnchor ? (
-                <span
-                  className={cn(CHIP, "bg-primary/10 text-primary")}
-                  title="Fecha clave del plan"
-                >
-                  <IconAnchor size={11} aria-hidden />
-                  clave
-                </span>
-              ) : element.isPinned ? (
-                <span className={cn(CHIP, "bg-muted text-muted-foreground")} title="Fecha fija">
-                  <IconPin size={11} aria-hidden />
-                  fija
-                </span>
-              ) : (
-                // Con el Gantt, la regla se lee en la barra y en el inspector; en la
-                // tabla aparece al pasar el ratón, sin quitar sitio al nombre.
-                rule &&
-                view === "tabla" && (
+                  {hasChildren ? (
+                    <button
+                      type="button"
+                      onClick={() => onToggle(element.id)}
+                      aria-label={`${expanded ? "Plegar" : "Desplegar"} ${element.name}`}
+                      className="text-muted-foreground hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
+                    >
+                      <IconChevronRight
+                        size={14}
+                        className={`transition-transform ${expanded ? "rotate-90" : ""}`}
+                      />
+                    </button>
+                  ) : (
+                    <span className="size-5 shrink-0" />
+                  )}
                   <span
+                    aria-hidden
+                    title={ELEMENT_KIND_LABELS[element.kind]}
                     className={cn(
-                      CHIP,
-                      "bg-muted text-muted-foreground min-w-0 truncate",
-                      !selected && "hidden group-hover/row:inline-flex"
+                      "shrink-0 rounded-full",
+                      depth === 0 ? "h-4 w-1" : "size-1.5",
+                      phaseTint(node.phaseColor, depth === 0).className
+                    )}
+                    style={phaseTint(node.phaseColor, depth === 0).style}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onOpen(element.id)}
+                    aria-label={`Ver el detalle de ${element.name}`}
+                    className={cn(
+                      "hover:text-primary flex min-w-0 text-left transition-colors",
+                      depth === 0 && "font-semibold"
                     )}
                   >
-                    {rule}
-                  </span>
-                )
-              )}
-              {depth === 0 && element.duration == null && (
-                // Solo el icono: con texto, el badge cortaba el nombre de la fase.
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                    <TruncatedText text={element.name} />
+                  </button>
+                  {element.isAnchor ? (
                     <span
-                      tabIndex={0}
-                      aria-label="Sin duración"
-                      className="bg-warn-soft text-warn border-warn/30 flex size-5 shrink-0 items-center justify-center rounded-full border"
+                      className={cn(CHIP, "bg-primary/10 text-primary")}
+                      title="Fecha clave del plan"
                     >
-                      <IconAlertTriangle size={11} aria-hidden />
+                      <IconAnchor size={11} aria-hidden />
+                      clave
                     </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Sin duración: no tiene fin, y lo que depende de ella tampoco
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+                  ) : element.isPinned ? (
+                    <span className={cn(CHIP, "bg-muted text-muted-foreground")} title="Fecha fija">
+                      <IconPin size={11} aria-hidden />
+                      fija
+                    </span>
+                  ) : (
+                    // Con el Gantt, la regla se lee en la barra y en el inspector; en la
+                    // tabla aparece al pasar el ratón, sin quitar sitio al nombre.
+                    rule &&
+                    view === "tabla" && (
+                      <span
+                        className={cn(
+                          CHIP,
+                          "bg-muted text-muted-foreground min-w-0 truncate",
+                          !selected && "hidden group-hover/row:inline-flex"
+                        )}
+                      >
+                        {rule}
+                      </span>
+                    )
+                  )}
+                  {view === "tabla" && node.actions.length > 0 && (
+                    // Sin rejilla (el móvil), las acciones de la fila se cuentan.
+                    <span className={cn(CHIP, "bg-muted text-muted-foreground")}>
+                      {node.actions.length} {node.actions.length === 1 ? "acción" : "acciones"}
+                    </span>
+                  )}
+                  {depth === 0 && element.duration == null && (
+                    // Solo el icono: con texto, el badge cortaba el nombre de la fase.
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          tabIndex={0}
+                          aria-label="Sin duración"
+                          className="bg-warn-soft text-warn border-warn/30 flex size-5 shrink-0 items-center justify-center rounded-full border"
+                        >
+                          <IconAlertTriangle size={11} aria-hidden />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Sin duración: no tiene fin, y lo que depende de ella tampoco
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
 
-            {columns.duration && (
-              <DurationEditor
-                label={`Duración de ${element.name}`}
-                value={element.duration}
-                editable={editable}
-                pending={pending}
-                emptyLabel="+ duración"
-                quiet
-                onSave={(duration) => onUpdate(element.id, { duration })}
-              />
+                {columns.duration && (
+                  <DurationEditor
+                    label={`Duración de ${element.name}`}
+                    value={element.duration}
+                    editable={editable}
+                    pending={pending}
+                    emptyLabel="+ duración"
+                    quiet
+                    onSave={(duration) => onUpdate(element.id, { duration })}
+                  />
+                )}
+                {columns.start && dateCell(element, "start")}
+                {columns.end && dateCell(element, "end")}
+              </>
             )}
-            {columns.start && dateCell(element, "start")}
-            {columns.end && dateCell(element, "end")}
           </div>
 
-          {showTimeline && (
-            <div className="relative shrink-0" style={{ width: timeline.width, ...background }}>
-              {bar(node, rule)}
-            </div>
-          )}
+          {showTimeline &&
+            track(
+              element.id,
+              `Días de ${element.name}`,
+              <>
+                {cellMenu(node, element.id)}
+                {bar(node, rule)}
+                {!expanded && timeline && (
+                  <ActionRollup
+                    actions={[...node.actions, ...descendantActions(node)]}
+                    timeline={timeline}
+                  />
+                )}
+              </>
+            )}
         </div>
-        {hasChildren && expanded && <ul role="group">{children.map(renderNode)}</ul>}
+        {hasChildren && expanded && (
+          <ul role="group">
+            {hasActionsRow(node) && renderActionsRow(node)}
+            {children.map(renderNode)}
+          </ul>
+        )}
       </li>
     )
   }
+
+  const railButton = () => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          onClick={toggleRail}
+          aria-label={rail ? "Abrir la columna" : "Contraer la columna"}
+        >
+          {rail ? (
+            <IconLayoutSidebarLeftExpand aria-hidden />
+          ) : (
+            <IconLayoutSidebarLeftCollapse aria-hidden />
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {rail ? "Abrir la columna de elementos" : "Contraer la columna de elementos"}
+      </TooltipContent>
+    </Tooltip>
+  )
 
   const content = (
     <div className={cn(showTimeline && "w-max min-w-full")}>
@@ -334,32 +782,58 @@ export function ElementTree({
           )}
           style={table}
         >
-          <span className="flex items-center gap-1 pl-1">
-            {onToggleAll ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    onClick={onToggleAll}
-                    aria-label={expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
-                  >
-                    {expandedIds.size > 0 ? (
-                      <IconChevronsUp aria-hidden />
-                    ) : (
-                      <IconChevronsDown aria-hidden />
-                    )}
+          {rail ? (
+            <Popover open={!railHintSeen} onOpenChange={(open) => !open && seeRailHint()}>
+              <PopoverAnchor asChild>
+                <span className="flex justify-center">{railButton()}</span>
+              </PopoverAnchor>
+              <PopoverContent
+                side="right"
+                align="start"
+                className="w-64"
+                onOpenAutoFocus={(event) => event.preventDefault()}
+              >
+                <p className="text-base font-semibold">Columna contraída</p>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Pasa el ratón por una fila para ver su nombre. Para verla entera otra vez, pulsa
+                  el botón de arriba o arrastra el borde.
+                </p>
+                <div className="mt-2 flex justify-end">
+                  <Button size="sm" variant="outline" onClick={seeRailHint}>
+                    Entendido
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <span className="size-8" />
-            )}
-            <span aria-hidden>Elemento</span>
-          </span>
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <span className="flex items-center gap-1 pl-1">
+              {onToggleAll ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={onToggleAll}
+                      aria-label={expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                    >
+                      {expandedIds.size > 0 ? (
+                        <IconChevronsUp aria-hidden />
+                      ) : (
+                        <IconChevronsDown aria-hidden />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <span className="size-8" />
+              )}
+              <span aria-hidden>Elemento</span>
+              {showTimeline && <span className="mr-1 ml-auto">{railButton()}</span>}
+            </span>
+          )}
           {columns.duration && (
             <span aria-hidden className="px-1.5">
               Duración
@@ -376,10 +850,22 @@ export function ElementTree({
             </span>
           )}
         </div>
-        {showTimeline && <TimelineScale timeline={timeline} rows={headerRows} marks={marks} />}
+        {showTimeline && (
+          <TimelineScale
+            timeline={timeline}
+            rows={headerRows}
+            marks={marks}
+            hovered={hovered?.cell.start ?? null}
+            onOpenDay={onOpenDay && ((day) => onOpenDay(day, null))}
+          />
+        )}
       </div>
 
       <div>
+        {/* Lo elegido en el Gantt, para los lectores de pantalla. */}
+        <span role="status" className="sr-only">
+          {selection && span && `${names.get(selection.id) ?? ""}: ${spanLabel(span)}`}
+        </span>
         <ul role="tree" aria-label="Fases del proyecto">
           {nodes.map(renderNode)}
         </ul>
@@ -390,11 +876,26 @@ export function ElementTree({
   // La cuadrícula ocupa el alto que le dejan y lleva su propio scroll, con la
   // cabecera fija: las dos barras quedan siempre a la vista.
   return (
-    <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
-      {content}
+    <div className="relative h-full w-full">
+      <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
+        {content}
+        {showTimeline && (
+          <ScrollBar orientation="horizontal" className="z-30" style={{ left: ganttTable.width }} />
+        )}
+      </ScrollArea>
       {showTimeline && (
-        <ScrollBar orientation="horizontal" className="z-30" style={{ left: ganttTable.width }} />
+        <ColumnResizer
+          value={nameWidth}
+          left={ganttTable.width}
+          min={NAME_WIDTH.min}
+          max={NAME_WIDTH.max}
+          initial={NAME_WIDTH.initial}
+          label="Ancho de la columna de elementos"
+          onChange={resizeName}
+          collapsed={rail}
+          onToggleCollapsed={toggleRail}
+        />
       )}
-    </ScrollArea>
+    </div>
   )
 }
