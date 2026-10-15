@@ -1,4 +1,4 @@
-import type { ActionKind } from "@repo/contracts"
+import { SINGLE_DAY_ACTION_KINDS, type ActionKind, type EditElementInput } from "@repo/contracts"
 
 /** El color de cada tipo de acción: el mismo en toda la app (tokens de tailwind.css). */
 export const ACTION_COLOR: Record<ActionKind, string> = {
@@ -30,3 +30,14 @@ const WHAT: Record<ActionKind, string> = {
 /** «la reunión “Lectura de guion”». */
 export const describeAction = (action: { kind: ActionKind; name: string }) =>
   `${WHAT[action.kind]} “${action.name}”`
+
+/** Cambiar el tipo: pasar a reunión o recordatorio deja la acción en un día, como pide la API. */
+export function kindChange(
+  action: { startsOn: string | null; endsOn: string | null },
+  next: ActionKind
+): EditElementInput {
+  const multiDay = action.endsOn != null && action.endsOn !== action.startsOn
+  return SINGLE_DAY_ACTION_KINDS.includes(next) && multiDay
+    ? { kind: next, duration: { amount: 1, unit: "days" } }
+    : { kind: next }
+}

@@ -12,6 +12,7 @@ import {
 } from "@tabler/icons-react"
 import {
   ACTION_PARENT_KINDS,
+  type ActionKind,
   type CalendarElement,
   type CreateActionInput,
   type DatePoint,
@@ -94,6 +95,8 @@ interface ElementTreeProps {
   onCreateAction?: (parentId: string, input: CreateActionInput, done: () => void) => void
   /** Pedir que se borre una acción (Supr en su celda): la confirmación va fuera. */
   onDeleteAction?: (elementId: string) => void
+  /** Cambiar el tipo de una acción desde su menú, guardándolo al momento. */
+  onChangeActionKind?: (elementId: string, kind: ActionKind) => void
   /** Desplegar lo que contiene a un elemento, para que se vea su fila. */
   onReveal?: (elementIds: string[]) => void
   /** Abrir el panel con todo el proyecto en un día. */
@@ -140,6 +143,7 @@ export function ElementTree({
   limitDrag,
   onCreateAction,
   onDeleteAction,
+  onChangeActionKind,
   onOpenDay,
   onReveal,
   dayPanel = null,
@@ -575,6 +579,11 @@ export function ElementTree({
                   dependencies={dependencies}
                   onDrag={onDragBar}
                   limit={limitDrag}
+                  menu={
+                    onDeleteAction && onChangeActionKind
+                      ? { onDelete: onDeleteAction, onChangeKind: onChangeActionKind }
+                      : undefined
+                  }
                 />
               )}
             </>

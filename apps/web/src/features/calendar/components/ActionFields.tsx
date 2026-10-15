@@ -2,7 +2,6 @@ import type { ReactNode } from "react"
 import {
   ACTION_KINDS,
   ACTION_PARENT_KINDS,
-  SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CalendarElement,
   type EditElementInput,
@@ -11,6 +10,7 @@ import { IconTrash } from "@tabler/icons-react"
 import { Button, cn, ToggleGroup, ToggleGroupItem } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, flattenTree, type ElementNode } from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
+import { kindChange } from "../lib/actionStyle"
 import { ActionGlyph } from "./ActionGlyph"
 import { ElementPicker } from "./ElementPicker"
 
@@ -47,15 +47,7 @@ export function ActionFields({
     ? flattenTree([phase]).filter((node) => ACTION_PARENT_KINDS.includes(node.element.kind))
     : []
 
-  // Pasar a reunión o recordatorio deja la acción en un día, como pide la API.
-  const changeKind = (next: ActionKind) => {
-    const multiDay = element.endsOn != null && element.endsOn !== element.startsOn
-    onEdit(
-      SINGLE_DAY_ACTION_KINDS.includes(next) && multiDay
-        ? { kind: next, duration: { amount: 1, unit: "days" } }
-        : { kind: next }
-    )
-  }
+  const changeKind = (next: ActionKind) => onEdit(kindChange(element, next))
 
   return (
     <>

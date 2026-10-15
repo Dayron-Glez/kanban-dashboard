@@ -1471,6 +1471,42 @@ describe("CalendarPage", () => {
       expect(api.elements.deleteElement).toHaveBeenCalledTimes(1)
     })
 
+    it("el clic derecho en una acción: abrirla, cambiarla de tipo y borrarla", async () => {
+      const ensayo = element("ensayo", "rodaje", "Ensayo general", {
+        kind: "task",
+        startsOn: "2026-10-14",
+        endsOn: "2026-10-16",
+        duration: { amount: 3, unit: "days" },
+        isPinned: true,
+      })
+      const rodajeConFechas = rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })
+      api.elements.getPlan.mockResolvedValue(planOf([rodajeConFechas, ensayo]))
+      api.elements.editElement.mockResolvedValue(planOf([rodajeConFechas, ensayo]))
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const mark = screen.getByRole("button", { name: /^Tarea: Ensayo general/ })
+      fireEvent.contextMenu(mark)
+      const menu = await screen.findByRole("menu")
+      expect(menu).toHaveTextContent("Ensayo general")
+      expect(menu).toHaveTextContent("Tarea · 14 oct → 16 oct")
+
+      // Pasar una tarea de tres días a reunión la deja en un día, como pide la API.
+      within(menu).getByRole("menuitem", { name: "Cambiar a" }).focus()
+      await userEvent.keyboard("{ArrowRight}")
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Reunión" }))
+      expect(api.elements.editElement).toHaveBeenCalledWith("ensayo", {
+        kind: "meeting",
+        duration: { amount: 1, unit: "days" },
+      })
+
+      fireEvent.contextMenu(screen.getByRole("button", { name: /^Tarea: Ensayo general/ }))
+      await userEvent.click(await screen.findByRole("menuitem", { name: /Borrar/ }))
+      expect(
+        await screen.findByRole("alertdialog", { name: "¿Borrar la tarea “Ensayo general”?" })
+      ).toBeInTheDocument()
+    })
+
     it("en la fila «Acciones», un clic en la celda de una sola acción la abre; con varias, solo elige", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([

@@ -19,7 +19,12 @@ import {
   usePlan,
 } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
-import { buildElementTree, flattenTree, type ElementNode } from "../lib/elementTree"
+import {
+  buildElementTree,
+  ELEMENT_KIND_LABELS,
+  flattenTree,
+  type ElementNode,
+} from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
 import {
   applyDraft,
@@ -31,7 +36,7 @@ import {
   previewChange,
   type PlanChange,
 } from "../lib/planPreview"
-import { describeAction } from "../lib/actionStyle"
+import { describeAction, kindChange } from "../lib/actionStyle"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { loadMarks, saveMarks } from "../lib/ganttMarks"
@@ -470,6 +475,14 @@ export function CalendarPage() {
                 onDragBar={onDragBar}
                 limitDrag={limitDrag}
                 onDeleteAction={setToDelete}
+                onChangeActionKind={(elementId, kind) => {
+                  const action = plan.data?.elements.find((element) => element.id === elementId)
+                  if (!action) return
+                  changes.request(
+                    { type: "edit", elementId, input: kindChange(action, kind) },
+                    `Cambiar ${action.name} a ${ELEMENT_KIND_LABELS[kind].toLowerCase()}`
+                  )
+                }}
                 onCreateAction={(parentId, input, done) =>
                   createAction.mutate({ parentId, input }, { onSuccess: done })
                 }

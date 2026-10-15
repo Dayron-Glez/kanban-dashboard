@@ -7,6 +7,7 @@ import { ELEMENT_KIND_LABELS, type ElementNode } from "../lib/elementTree"
 import { formatShortDay } from "../lib/planFormat"
 import { barDragModes, cellAt, timelineX, type BarDrag, type Timeline } from "../lib/timeline"
 import { ACTION_COLOR } from "../lib/actionStyle"
+import { ActionContextMenu, type ActionMenuHandlers } from "./ActionContextMenu"
 import { ActionGlyph } from "./ActionGlyph"
 
 const short = (iso: string) => formatShortDay(fromIsoDate(iso))
@@ -55,6 +56,8 @@ interface ActionLaneProps {
     drag: BarDrag,
     days: number
   ) => { days: number; reason: string | null }
+  /** El clic derecho: cambiar de tipo y borrar. Sin él, el menú solo abre. */
+  menu?: ActionMenuHandlers
 }
 
 // En la fila de 48 px: las de un día y los números arriba, los periodos en dos carriles debajo.
@@ -74,6 +77,7 @@ export function ActionLane({
   dependencies,
   onDrag,
   limit,
+  menu,
 }: Readonly<ActionLaneProps>) {
   const { lanes, cells } = layoutActions(node.actions, timeline, LANE_Y.length)
 
@@ -93,6 +97,7 @@ export function ActionLane({
     onOpen: () => onOpen(action.element.id),
     onDrag: (drag: BarDrag, days: number) => onDrag(action.element.id, drag, days),
     limit: limit && ((drag: BarDrag, days: number) => limit(action.element.id, drag, days)),
+    menu: editable ? menu : undefined,
   })
 
   return (
@@ -198,9 +203,11 @@ interface ActionMarkProps {
   onOpen: () => void
   onDrag: (drag: BarDrag, days: number) => void
   limit?: (drag: BarDrag, days: number) => { days: number; reason: string | null }
+  menu?: ActionMenuHandlers
 }
 
-// Una acción: un periodo (línea) o un día (su forma), que se abre y se arrastra.
+// Una acción: un periodo (línea) o un día (su forma), que se abre, se arrastra y
+// tiene su menú con el clic derecho.
 function ActionMark({
   action,
   timeline,
@@ -209,6 +216,7 @@ function ActionMark({
   onOpen,
   onDrag,
   limit,
+  menu,
 }: Readonly<ActionMarkProps>) {
   const { state, begin, pointer, onKeyDown, onClick } = useBarDrag({
     timeline,
@@ -251,17 +259,19 @@ function ActionMark({
     return (
       <>
         {dates}
-        <button
-          {...common}
-          className={cn(
-            "absolute z-[2] flex size-5 -translate-1/2 touch-none items-center justify-center hover:scale-125",
-            free ? "cursor-grab" : "cursor-pointer",
-            moving && "cursor-grabbing"
-          )}
-          style={{ left: cellCenter(span.start, timeline), top: y }}
-        >
-          <ActionGlyph kind={action.element.kind as ActionKind} />
-        </button>
+        <ActionContextMenu action={action.element} onOpen={onOpen} handlers={menu}>
+          <button
+            {...common}
+            className={cn(
+              "absolute z-[2] flex size-5 -translate-1/2 touch-none items-center justify-center hover:scale-125",
+              free ? "cursor-grab" : "cursor-pointer",
+              moving && "cursor-grabbing"
+            )}
+            style={{ left: cellCenter(span.start, timeline), top: y }}
+          >
+            <ActionGlyph kind={action.element.kind as ActionKind} />
+          </button>
+        </ActionContextMenu>
       </>
     )
   }
@@ -273,24 +283,26 @@ function ActionMark({
   return (
     <>
       {dates}
-      <button
-        {...common}
-        className={cn(
-          periodShape(action.element.kind, span.end == null),
-          "z-[2] h-1 -translate-y-1/2 touch-none hover:h-1.5",
-          free ? "cursor-grab" : "cursor-pointer",
-          moving && "h-1.5 cursor-grabbing"
-        )}
-        style={{ top: y + 2, left: x(span.start) + 4, width: Math.max(width - 8, 6) }}
-      >
-        {free?.end && (
-          <span
-            aria-hidden
-            onPointerDown={begin("end")}
-            className="absolute -inset-y-2 -right-1.5 w-3 cursor-ew-resize"
-          />
-        )}
-      </button>
+      <ActionContextMenu action={action.element} onOpen={onOpen} handlers={menu}>
+        <button
+          {...common}
+          className={cn(
+            periodShape(action.element.kind, span.end == null),
+            "z-[2] h-1 -translate-y-1/2 touch-none hover:h-1.5",
+            free ? "cursor-grab" : "cursor-pointer",
+            moving && "h-1.5 cursor-grabbing"
+          )}
+          style={{ top: y + 2, left: x(span.start) + 4, width: Math.max(width - 8, 6) }}
+        >
+          {free?.end && (
+            <span
+              aria-hidden
+              onPointerDown={begin("end")}
+              className="absolute -inset-y-2 -right-1.5 w-3 cursor-ew-resize"
+            />
+          )}
+        </button>
+      </ActionContextMenu>
     </>
   )
 }
