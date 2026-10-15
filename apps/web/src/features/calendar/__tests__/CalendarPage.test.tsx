@@ -1529,7 +1529,7 @@ describe("CalendarPage", () => {
     await oneMore()
     await userEvent.keyboard("{Escape}")
     const ask = await screen.findByRole("alertdialog", { name: "¿Descartar los cambios?" })
-    expect(ask).toHaveTextContent("1 cambio sin guardar en «Preparación»")
+    expect(ask).toHaveTextContent("1 cambio sin guardar en “Preparación”")
     await userEvent.click(within(ask).getByRole("button", { name: "Seguir editando" }))
     expect(within(panel).getByText("1 cambio sin guardar")).toBeInTheDocument()
 

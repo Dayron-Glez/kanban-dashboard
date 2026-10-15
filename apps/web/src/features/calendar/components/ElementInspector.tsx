@@ -375,6 +375,7 @@ export function ElementInspector({
             {isActionElement && onDelete && (
               <DeleteAction
                 name={element.name}
+                kind={element.kind as ActionKind}
                 disabled={pending}
                 onDelete={() => onDelete(element.id)}
               />

@@ -139,12 +139,22 @@ export function ActionFields({
   )
 }
 
+// Para decir qué se borra: «la reunión», «el evento».
+const WHAT: Record<ActionKind, string> = {
+  event: "el evento",
+  task: "la tarea",
+  meeting: "la reunión",
+  reminder: "el recordatorio",
+  hiring: "la contratación",
+}
+
 /** Borrar una acción, tras confirmarlo: no se puede deshacer. */
 export function DeleteAction({
   name,
+  kind,
   disabled,
   onDelete,
-}: Readonly<{ name: string; disabled: boolean; onDelete: () => void }>) {
+}: Readonly<{ name: string; kind: ActionKind; disabled: boolean; onDelete: () => void }>) {
   const [open, setOpen] = useState<boolean>(false)
   return (
     <>
@@ -162,7 +172,7 @@ export function DeleteAction({
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base font-semibold">
-              ¿Borrar «{name}»?
+              ¿Borrar {WHAT[kind]} “{name}”?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
               Esta acción no se puede deshacer.

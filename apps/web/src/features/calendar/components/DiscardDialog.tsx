@@ -34,8 +34,8 @@ export function DiscardDialog({
             ¿Descartar los cambios?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm">
-            Tienes {changes} {changes === 1 ? "cambio sin guardar" : "cambios sin guardar"} en «
-            {name}». Si sales, se pierden.
+            Tienes {changes} {changes === 1 ? "cambio sin guardar" : "cambios sin guardar"} en “
+            {name}”. Si sales, se pierden.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

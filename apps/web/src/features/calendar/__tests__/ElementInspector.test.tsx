@@ -383,7 +383,7 @@ describe("ElementInspector", () => {
     const { onDelete } = renderSheet("lectura")
 
     await userEvent.click(screen.getByRole("button", { name: "Borrar" }))
-    const ask = screen.getByRole("alertdialog", { name: "¿Borrar «Lectura con VFX»?" })
+    const ask = screen.getByRole("alertdialog", { name: "¿Borrar la reunión “Lectura con VFX”?" })
     await userEvent.click(within(ask).getByRole("button", { name: "Borrar" }))
     expect(onDelete).toHaveBeenCalledWith("lectura")
   })
