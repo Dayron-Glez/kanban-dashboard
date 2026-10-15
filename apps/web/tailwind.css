@@ -289,6 +289,29 @@ body,
 }
 
 /*
+ * Resaltar un tipo de acción (CalendarPage): al pasar por su filtro, las marcas de
+ * los demás se atenúan; al pasar por una marca, se señala su filtro. Son atributos
+ * en el contenedor, así el Gantt no se vuelve a pintar.
+ */
+[data-action-kind] {
+  transition: opacity 150ms;
+}
+[data-action-focus="event"] [data-action-kind]:not([data-action-kind~="event"]),
+[data-action-focus="task"] [data-action-kind]:not([data-action-kind~="task"]),
+[data-action-focus="meeting"] [data-action-kind]:not([data-action-kind~="meeting"]),
+[data-action-focus="reminder"] [data-action-kind]:not([data-action-kind~="reminder"]),
+[data-action-focus="hiring"] [data-action-kind]:not([data-action-kind~="hiring"]) {
+  opacity: 0.3;
+}
+[data-action-hover~="event"] [data-kind-filter="event"],
+[data-action-hover~="task"] [data-kind-filter="task"],
+[data-action-hover~="meeting"] [data-kind-filter="meeting"],
+[data-action-hover~="reminder"] [data-kind-filter="reminder"],
+[data-action-hover~="hiring"] [data-kind-filter="hiring"] {
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--kind) 45%, transparent);
+}
+
+/*
  * Colores de fase (ver features/calendar/lib/phaseColors.ts): el elemento recibe
  * los dos juegos como variables y estas clases eligen el del tema. En claro, el
  * borde separa el relleno pastel del fondo; en oscuro no hace falta.

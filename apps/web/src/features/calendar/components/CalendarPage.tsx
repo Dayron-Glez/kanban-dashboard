@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type {
@@ -207,6 +207,20 @@ export function CalendarPage() {
     return () => document.removeEventListener("keydown", onKey)
   }, [openId, elements, tree])
 
+  // Resaltar un tipo de acción sin volver a pintar el Gantt: lo hace el CSS
+  // (tailwind.css) a partir de estos atributos del contenedor.
+  const followActionKind = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const surface = event.currentTarget
+    const target = event.type === "pointerleave" ? null : (event.target as Element)
+    const filter = target?.closest<HTMLElement>("[data-kind-filter]")
+    const mark = target?.closest<HTMLElement>("[data-action-kind]")
+    const focus = filter?.getAttribute("aria-pressed") === "true" ? filter.dataset.kindFilter : null
+    if (focus) surface.dataset.actionFocus = focus
+    else delete surface.dataset.actionFocus
+    if (mark?.dataset.actionKind) surface.dataset.actionHover = mark.dataset.actionKind
+    else delete surface.dataset.actionHover
+  }
+
   const nameOf = (id: string) =>
     plan.data?.elements.find((element) => element.id === id)?.name ?? id
 
@@ -285,6 +299,9 @@ export function CalendarPage() {
     <div className="flex min-h-0 w-full min-w-0 flex-1">
       {/* Con el detalle abierto, en pantallas anchas el plan le deja sitio y no queda tapado. */}
       <div
+        onPointerOver={followActionKind}
+        onPointerLeave={followActionKind}
+        data-calendar-surface
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
           (openId || openDay != null) && "xl:pr-[424px]"

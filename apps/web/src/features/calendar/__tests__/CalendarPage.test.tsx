@@ -938,6 +938,49 @@ describe("CalendarPage", () => {
       expect(filters).not.toHaveTextContent("Se ven")
     })
 
+    it("pasar por un tipo resalta sus marcas, y pasar por una marca señala su tipo", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+          element("permisos", "rodaje", "Pedir permisos", {
+            kind: "reminder",
+            position: 1,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+        ])
+      )
+      renderPage()
+
+      const filters = await screen.findByRole("group", { name: "Tipos de acción que se ven" })
+      const meetings = within(filters).getByRole("button", { name: "Reunión: 1" })
+      // El CSS atenúa lo que no es del tipo: aquí se comprueba lo que lee.
+      const surface = filters.closest<HTMLElement>("[data-calendar-surface]")!
+      fireEvent.pointerOver(meetings)
+      expect(surface.dataset.actionFocus).toBe("meeting")
+      expect(screen.getByLabelText(/^2 acciones:/)).toHaveAttribute(
+        "data-action-kind",
+        "meeting reminder"
+      )
+      fireEvent.pointerLeave(surface)
+      expect(surface.dataset.actionFocus).toBeUndefined()
+
+      // Un tipo oculto no resalta nada.
+      await userEvent.click(meetings)
+      fireEvent.pointerOver(meetings)
+      expect(surface.dataset.actionFocus).toBeUndefined()
+
+      fireEvent.pointerOver(
+        screen.getByRole("img", { name: "Recordatorio: Pedir permisos, 14 oct" })
+      )
+      expect(surface.dataset.actionHover).toBe("reminder")
+    })
+
     it("una celda con acciones enseña su lista, con lo de dentro si la fila está plegada", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([

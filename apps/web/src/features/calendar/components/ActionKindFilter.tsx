@@ -46,6 +46,7 @@ export function ActionKindFilter({ counts, hidden, onChange }: Readonly<ActionKi
               <Toggle
                 pressed={visible}
                 onClick={onClick(kind)}
+                data-kind-filter={kind}
                 aria-label={`${label}: ${counts[kind]}`}
                 style={{ "--kind": `var(--action-${kind})` } as CSSProperties}
                 className={cn(
