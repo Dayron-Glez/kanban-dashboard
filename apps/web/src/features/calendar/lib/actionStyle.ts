@@ -27,6 +27,15 @@ const WHAT: Record<ActionKind, string> = {
   hiring: "la contratación",
 }
 
+/** El título del formulario de crear, con el género de cada tipo. */
+export const NEW_ACTION_TITLE: Record<ActionKind, string> = {
+  event: "Nuevo evento",
+  task: "Nueva tarea",
+  meeting: "Nueva reunión",
+  reminder: "Nuevo recordatorio",
+  hiring: "Nueva contratación",
+}
+
 /** «la reunión “Lectura de guion”». */
 export const describeAction = (action: { kind: ActionKind; name: string }) =>
   `${WHAT[action.kind]} “${action.name}”`
