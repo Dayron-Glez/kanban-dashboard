@@ -151,6 +151,7 @@ Cualquier fecha se puede escribir a mano, también las calculadas. La app no la 
 La pantalla es «Calendario», con un selector entre las siete vistas del prototipo: Gantt (día a día), Semanal 1, Vertical, Mensual, Scroll, Semanal 3 y Semanal 2. De momento solo está el Gantt; las demás esperan a las acciones, las contrataciones y los festivos de los que viven.
 
 - **El Gantt es día a día y se abre centrado en hoy**, con zoom por día, semana o mes. La vista y el zoom van en la URL (`?vista=`, `?zoom=`).
+- **El mes de la cabecera se queda a la vista**: cada mes lleva su año, y su rótulo se queda pegado junto a la columna «Elemento» mientras se ve algún día suyo, hasta que el siguiente lo empuja (en el zoom por mes, el del año). Al desplazarse, siempre se sabe en qué mes se está.
 - **La semana 1 es la del inicio de Rodaje**, como en el motor; los fines de semana se sombrean solo en el zoom por día.
 - **Cada fase tiene un color**, y de él salen los de los dos temas con el mismo tono (en OKLCH): el relleno es el mismo pastel en los dos y, en claro, lleva un borde más oscuro del mismo tono. El texto de las barras es oscuro en los dos temas. Las subfases, procesos y acciones llevan una versión más suave del color de su fase.
 - **Una fase sin duración lo dice**: un aviso en su fila y, en la cabecera, cuántas hay.

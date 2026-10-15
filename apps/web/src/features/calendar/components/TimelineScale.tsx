@@ -22,17 +22,25 @@ interface TimelineScaleProps {
   hovered?: EpochDay | null
   /** Pulsar un día, una semana o un mes abre el panel del día (el primero). */
   onOpenDay?: (day: EpochDay) => void
+  /** Dónde se pegan el mes y el año al desplazarse: a la derecha de la columna fija. */
+  stickyLeft?: string
 }
 
 const HOT = "bg-primary/10 text-foreground"
 
-/** La cabecera del Gantt: el mes (con el año en enero), la semana desde el rodaje y el día. */
+/**
+ * La cabecera del Gantt: el mes con su año, la semana desde el rodaje y el día. El
+ * rótulo del mes (y el del año, en el zoom por mes) se queda pegado a la izquierda
+ * mientras se ve algún día suyo, hasta que el siguiente lo empuja: así siempre se
+ * sabe en qué mes se está.
+ */
 export function TimelineScale({
   timeline,
   rows,
   marks = { today: true, week1: true, weekends: true },
   hovered = null,
   onOpenDay,
+  stickyLeft,
 }: Readonly<TimelineScaleProps>) {
   const { pxPerDay, zoom } = timeline
   // Lejos (semana, mes) el año va en su propia fila; de cerca, con enero.
@@ -104,34 +112,40 @@ export function TimelineScale({
               {timeline.years.map((year) => (
                 <span
                   key={year.start}
-                  className="border-border text-foreground absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 font-semibold whitespace-nowrap"
+                  className="border-border text-foreground absolute inset-y-0 flex items-center overflow-clip border-l font-semibold whitespace-nowrap"
                   style={{ left: x(year.start, timeline), width: year.days * pxPerDay }}
                 >
-                  {year.year}
+                  <span className="sticky px-1.5" style={{ left: stickyLeft ?? 0 }}>
+                    {year.year}
+                  </span>
                 </span>
               ))}
             </div>
           )}
           {rows.month && (
             <div className="relative h-[26px]" style={{ width: timeline.width }}>
-              {timeline.months.map((month, index) => (
+              {timeline.months.map((month) => (
                 <span
                   key={month.start}
                   className={cn(
-                    "border-border absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
+                    // overflow-clip, no hidden: hidden haría de contenedor y el rótulo no se pegaría.
+                    "border-border absolute inset-y-0 flex items-center overflow-clip border-l whitespace-nowrap",
                     zoom === "mes" && month.start === hovered && HOT,
                     zoom === "mes" && opens(month.start)?.className
                   )}
                   onClick={zoom === "mes" ? opens(month.start)?.onClick : undefined}
                   style={{ left: x(month.start, timeline), width: month.days * pxPerDay }}
                 >
-                  {!yearRow && (month.month === 0 || index === 0) ? (
-                    <span className="text-foreground font-semibold">
-                      {MONTHS[month.month]} {month.year}
-                    </span>
-                  ) : (
-                    MONTHS[month.month]
-                  )}
+                  <span className="sticky px-1.5" style={{ left: stickyLeft ?? 0 }}>
+                    {yearRow ? (
+                      MONTHS[month.month]
+                    ) : (
+                      <>
+                        <span className="text-foreground font-semibold">{MONTHS[month.month]}</span>{" "}
+                        {month.year}
+                      </>
+                    )}
+                  </span>
                 </span>
               ))}
             </div>

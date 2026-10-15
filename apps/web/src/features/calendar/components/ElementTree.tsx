@@ -940,6 +940,7 @@ export function ElementTree({
             marks={marks}
             hovered={hovered?.cell.start ?? null}
             onOpenDay={onOpenDay && ((day) => onOpenDay(day, null))}
+            stickyLeft={ganttTable.width}
           />
         )}
       </div>
