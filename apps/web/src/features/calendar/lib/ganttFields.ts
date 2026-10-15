@@ -96,14 +96,23 @@ export const railFlag = flag("cauce.gantt.columnaContraida")
 /** Si ya se vio la nota que explica la columna contraída. */
 export const railHintFlag = flag("cauce.gantt.pistaColumna")
 
-/** Las columnas de la parte de tabla junto al Gantt, y lo que ocupa. */
-export function tableLayout(fields: GanttFields, nameWidth: number = NAME_WIDTH.initial) {
+/**
+ * Las columnas de la parte de tabla junto al Gantt, y lo que ocupa. Con
+ * `button`, una última para el botón que contrae la columna: va siempre al final.
+ */
+export function tableLayout(
+  fields: GanttFields,
+  nameWidth: number = NAME_WIDTH.initial,
+  button = false
+) {
   const columns = [
     "minmax(0,1fr)",
     fields.duration && "6.5rem",
     fields.start && "7rem",
     fields.end && "7rem",
+    button && "2rem",
   ].filter(Boolean)
-  const extra = (fields.duration ? 6.5 : 0) + (fields.start ? 7 : 0) + (fields.end ? 7 : 0)
+  const extra =
+    (fields.duration ? 6.5 : 0) + (fields.start ? 7 : 0) + (fields.end ? 7 : 0) + (button ? 2.5 : 0)
   return { gridTemplateColumns: columns.join(" "), width: `calc(${nameWidth}px + ${extra}rem)` }
 }

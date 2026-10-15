@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
 import { CalendarPage } from "../components/CalendarPage"
+import { DEFAULT_GANTT_FIELDS, saveGanttFields } from "../lib/ganttFields"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
@@ -597,7 +598,7 @@ describe("CalendarPage", () => {
     // Con el foco, las flechas lo mueven de 16 en 16 px.
     fireEvent.keyDown(border, { key: "ArrowRight" })
     expect(border).toHaveAttribute("aria-valuenow", "296")
-    expect(border).toHaveStyle({ left: "calc(296px + 6.5rem)" })
+    expect(border).toHaveStyle({ left: "calc(296px + 9rem)" })
     expect(localStorage.getItem("cauce.gantt.anchoElemento")).toBe("296")
 
     // Arrastrar: 100 px más ancha, sin pasar del máximo.
@@ -626,9 +627,19 @@ describe("CalendarPage", () => {
         }),
       ])
     )
+    saveGanttFields({ ...DEFAULT_GANTT_FIELDS, start: true, end: true })
     renderPage()
 
-    await userEvent.click(await screen.findByRole("button", { name: "Contraer la columna" }))
+    // El botón va al final de la tabla, detrás de la última columna.
+    const labels = (await screen.findByText("Fin")).parentElement!
+    expect(labels.lastElementChild).toContainElement(
+      screen.getByRole("button", { name: "Contraer la columna" })
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Contraer la columna" }))
+    // Contraída, solo la tira: ni duración, ni inicio, ni fin.
+    expect(screen.queryByText("Duración")).toBeNull()
+    expect(screen.queryByText("Inicio")).toBeNull()
+    expect(screen.queryByText("Fin")).toBeNull()
     // En la tira no se lee el nombre, pero sigue en los botones y en el Tooltip.
     expect(screen.queryByText("Rodaje", { selector: "span" })).toBeNull()
     expect(screen.getByRole("button", { name: "Ver el detalle de Rodaje" })).toBeInTheDocument()

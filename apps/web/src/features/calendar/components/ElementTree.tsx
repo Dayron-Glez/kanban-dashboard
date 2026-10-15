@@ -152,7 +152,6 @@ export function ElementTree({
   timeline = null,
 }: Readonly<ElementTreeProps>) {
   const showTimeline = view !== "tabla" && timeline != null
-  const columns = view === "tabla" ? { duration: true, start: true, end: true } : fields
   // El ancho de «Elemento» se arrastra en el borde con el Gantt, y se recuerda.
   const [nameWidth, setNameWidth] = useState<number>(loadNameWidth)
   const resizeName = (width: number) => {
@@ -164,6 +163,13 @@ export function ElementTree({
   const [railed, setRailed] = useState<boolean>(railFlag.load)
   const [railHintSeen, setRailHintSeen] = useState<boolean>(railHintFlag.load)
   const rail = view !== "tabla" && timeline != null && railed
+  // Contraída, la columna es solo la tira: sin duración, inicio ni fin.
+  const columns =
+    view === "tabla"
+      ? { duration: true, start: true, end: true }
+      : rail
+        ? { duration: false, start: false, end: false }
+        : fields
   const toggleRail = () => {
     railFlag.save(!railed)
     setRailed(!railed)
@@ -174,7 +180,18 @@ export function ElementTree({
   }
   const ganttTable = rail
     ? { gridTemplateColumns: "minmax(0,1fr)", width: `${RAIL_WIDTH}px` }
-    : tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields }, nameWidth)
+    : tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields }, nameWidth, showTimeline)
+  // Al añadir o quitar columnas, o al contraer, el ancho cambia sin saltos;
+  // mientras se arrastra el borde, al momento.
+  const [resizing, setResizing] = useState<boolean>(false)
+  const sizing = cn(
+    "transition-[width] duration-200 ease-out motion-reduce:transition-none",
+    resizing && "transition-none"
+  )
+  const sliding = cn(
+    "transition-[left] duration-200 ease-out motion-reduce:transition-none",
+    resizing && "transition-none"
+  )
   const table = view === "tabla" ? MOBILE_TABLE : ganttTable
   // Lo que contiene al elemento seleccionado se abre solo, para que se vea.
   const selectedPath = new Set<string>()
@@ -481,7 +498,10 @@ export function ElementTree({
           style={{ height: ROW_HEIGHT }}
         >
           <div
-            className="bg-background border-border/60 sticky left-0 z-10 grid shrink-0 items-center gap-2 border-r pr-2"
+            className={cn(
+              "bg-background border-border/60 sticky left-0 z-10 grid shrink-0 items-center gap-2 border-r pr-2",
+              sizing
+            )}
             style={table}
           >
             {rail ? (
@@ -602,7 +622,8 @@ export function ElementTree({
               "bg-background sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
               view === "tabla" && "flex-1",
               showTimeline && "border-border/60 border-r",
-              selected && "shadow-[inset_2px_0_0_var(--primary)]"
+              selected && "shadow-[inset_2px_0_0_var(--primary)]",
+              sizing
             )}
             style={table}
           >
@@ -778,7 +799,8 @@ export function ElementTree({
           className={cn(
             "bg-background text-muted-foreground sticky left-0 z-10 grid shrink-0 items-center gap-2 pr-2",
             view === "tabla" && "flex-1",
-            showTimeline && "border-border/60 items-end border-r pb-2.5"
+            showTimeline && "border-border/60 items-end border-r pb-2.5",
+            sizing
           )}
           style={table}
         >
@@ -831,7 +853,6 @@ export function ElementTree({
                 <span className="size-8" />
               )}
               <span aria-hidden>Elemento</span>
-              {showTimeline && <span className="mr-1 ml-auto">{railButton()}</span>}
             </span>
           )}
           {columns.duration && (
@@ -849,6 +870,7 @@ export function ElementTree({
               Fin
             </span>
           )}
+          {showTimeline && !rail && <span className="justify-self-end">{railButton()}</span>}
         </div>
         {showTimeline && (
           <TimelineScale
@@ -880,7 +902,11 @@ export function ElementTree({
       <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
         {content}
         {showTimeline && (
-          <ScrollBar orientation="horizontal" className="z-30" style={{ left: ganttTable.width }} />
+          <ScrollBar
+            orientation="horizontal"
+            className={cn("z-30", sliding)}
+            style={{ left: ganttTable.width }}
+          />
         )}
       </ScrollArea>
       {showTimeline && (
@@ -894,6 +920,7 @@ export function ElementTree({
           onChange={resizeName}
           collapsed={rail}
           onToggleCollapsed={toggleRail}
+          onDraggingChange={setResizing}
         />
       )}
     </div>

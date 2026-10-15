@@ -38,6 +38,11 @@ describe("campos visibles del Gantt", () => {
       gridTemplateColumns: "minmax(0,1fr) 6.5rem 7rem 7rem",
       width: "calc(360px + 20.5rem)",
     })
+    // Con el Gantt, una última columna para el botón de contraer.
+    expect(tableLayout(DEFAULT_GANTT_FIELDS, 280, true)).toEqual({
+      gridTemplateColumns: "minmax(0,1fr) 6.5rem 2rem",
+      width: "calc(280px + 9rem)",
+    })
   })
 
   it("el ancho de «Elemento» se recuerda, sin salirse de sus límites", () => {
