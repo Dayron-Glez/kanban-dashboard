@@ -44,13 +44,18 @@ export const NEW_ACTION_TITLE: Record<ActionKind, string> = {
 export const describeAction = (action: { kind: ActionKind; name: string }) =>
   `${WHAT[action.kind]} “${action.name}”`
 
-/** Cambiar el tipo: pasar a reunión o recordatorio deja la acción en un día, como pide la API. */
+/**
+ * Cambiar el tipo: pasar a reunión o recordatorio deja la acción en un día, como
+ * pide la API. Y una contratación sin baja, que es lo único que queda abierto,
+ * dura un día si deja de ser contratación.
+ */
 export function kindChange(
-  action: { startsOn: string | null; endsOn: string | null },
+  action: { kind: string; startsOn: string | null; endsOn: string | null },
   next: ActionKind
 ): EditElementInput {
   const multiDay = action.endsOn != null && action.endsOn !== action.startsOn
-  return SINGLE_DAY_ACTION_KINDS.includes(next) && multiDay
+  const open = action.kind === "hiring" && action.endsOn == null && next !== "hiring"
+  return (SINGLE_DAY_ACTION_KINDS.includes(next) && multiDay) || open
     ? { kind: next, duration: { amount: 1, unit: "days" } }
     : { kind: next }
 }
