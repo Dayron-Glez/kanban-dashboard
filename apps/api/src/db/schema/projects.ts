@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   foreignKey,
+  integer,
   pgSchema,
   text,
   timestamp,
@@ -85,5 +86,26 @@ export const projectInvitations = core.table(
     }).onDelete("cascade"),
     unique("project_invitations_token_key").on(table.token),
     check("project_invitations_status_check", sql`${table.status} in ('pending', 'accepted')`),
+  ]
+)
+
+export const departments = core.table(
+  "departments",
+  {
+    id: uuid()
+      .default(sql`uuidv7()`)
+      .primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    name: text().notNull(),
+    position: integer().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.projectId],
+      foreignColumns: [projects.id],
+      name: "departments_project_id_fkey",
+    }).onDelete("cascade"),
+    unique("departments_project_id_name_key").on(table.projectId, table.name),
+    check("departments_position_check", sql`${table.position} >= 0`),
   ]
 )

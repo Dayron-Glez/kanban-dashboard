@@ -1,0 +1,20 @@
+/** Los departamentos con los que nace un proyecto: los del prototipo del productor y Reparto. */
+export const DEFAULT_DEPARTMENTS: readonly string[] = [
+  "Producción",
+  "Dirección",
+  "Guion",
+  "Casting",
+  "Reparto",
+  "Fotografía y cámara",
+  "Eléctricos y maquinistas",
+  "Sonido",
+  "Arte",
+  "Vestuario",
+  "Maquillaje y peluquería",
+  "Efectos especiales",
+  "Efectos visuales (VFX)",
+  "Especialistas",
+  "Postproducción",
+  "Servicios y logística",
+  "Comunicación",
+]
