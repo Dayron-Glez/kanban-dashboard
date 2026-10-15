@@ -925,9 +925,7 @@ describe("CalendarPage", () => {
       await userEvent.keyboard("{Enter}")
       expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
       await userEvent.keyboard("{Shift>}{Enter}{/Shift}")
-      expect(
-        await screen.findByRole("heading", { name: /miércoles, 14 de octubre de 2026/i })
-      ).toBeInTheDocument()
+      expect(await screen.findByRole("heading", { name: "mié 14 oct 2026" })).toBeInTheDocument()
       await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
 
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
@@ -1066,9 +1064,7 @@ describe("CalendarPage", () => {
 
       await userEvent.click(await screen.findByTitle("mié 14 oct 2026"))
       const panel = await screen.findByRole("dialog")
-      expect(
-        within(panel).getByRole("heading", { name: /14 de octubre de 2026/ })
-      ).toBeInTheDocument()
+      expect(within(panel).getByRole("heading", { name: "mié 14 oct 2026" })).toBeInTheDocument()
       const actions = within(panel).getByRole("region", { name: "Acciones del día" })
       expect(within(actions).getByRole("button", { name: /Lectura de guion/ })).toHaveTextContent(
         "Rodaje"
@@ -1096,15 +1092,13 @@ describe("CalendarPage", () => {
       )
 
       await userEvent.click(within(panel).getByRole("button", { name: "Día siguiente" }))
-      expect(
-        within(panel).getByRole("heading", { name: /15 de octubre de 2026/ })
-      ).toBeInTheDocument()
+      expect(within(panel).getByRole("heading", { name: "jue 15 oct 2026" })).toBeInTheDocument()
       expect(within(panel).getByText("Nada este día.")).toBeInTheDocument()
 
       // Abrir un elemento cambia el panel por el suyo.
       await userEvent.click(within(panel).getByRole("button", { name: /Shooting/ }))
       expect(await screen.findByRole("heading", { name: "Shooting" })).toBeInTheDocument()
-      expect(screen.queryByRole("heading", { name: /15 de octubre/ })).toBeNull()
+      expect(screen.queryByRole("heading", { name: "jue 15 oct 2026" })).toBeNull()
     })
 
     it("desde una fila, el panel cuelga de su fase y no de las hermanas; sus flechas mueven la celda", async () => {
@@ -1192,9 +1186,7 @@ describe("CalendarPage", () => {
       fireEvent.focus(track)
       fireEvent.keyDown(track, { key: "ArrowRight" })
       fireEvent.keyDown(track, { key: "Enter", shiftKey: true })
-      expect(
-        await screen.findByRole("heading", { name: /miércoles, 14 de octubre de 2026/i })
-      ).toBeInTheDocument()
+      expect(await screen.findByRole("heading", { name: "mié 14 oct 2026" })).toBeInTheDocument()
     })
 
     it("las acciones se arrastran: el cuerpo las mueve y el borde alarga, salvo las de un día", async () => {
@@ -1457,6 +1449,27 @@ describe("CalendarPage", () => {
 
     await userEvent.keyboard("{Escape}")
     expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("el panel pasa de elemento con sus botones; pulsar el calendario no lo cierra, pulsar fuera sí", async () => {
+    api.elements.getPlan.mockResolvedValue(planOf([rodaje(), preparacion()]))
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ver el detalle de Rodaje" }))
+    const first = screen.getByRole("dialog", { name: "Rodaje" })
+    expect(within(first).getByRole("button", { name: "Elemento anterior" })).toBeDisabled()
+    await userEvent.click(within(first).getByRole("button", { name: "Elemento siguiente" }))
+    expect(screen.getByRole("dialog", { name: "Preparación" })).toBeInTheDocument()
+
+    // El calendario sigue vivo con el panel abierto.
+    await userEvent.pointer({
+      keys: "[MouseLeft]",
+      target: document.querySelector<HTMLElement>("[data-calendar-surface]")!,
+    })
+    expect(screen.getByRole("dialog", { name: "Preparación" })).toBeInTheDocument()
+    // Fuera de él (la navegación, la cabecera de la app), se cierra.
+    await userEvent.pointer({ keys: "[MouseLeft]", target: document.body })
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
   })
 
   it("la propietaria genera el calendario si está vacío", async () => {

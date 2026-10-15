@@ -158,6 +158,10 @@ export function CalendarPage() {
   const onRemoveRule = (elementId: string, point: DatePoint) =>
     changes.request({ type: "remove-rule", elementId, point })
 
+  // El elemento de arriba o de abajo en el árbol, para ↑ ↓ y los botones del panel.
+  const order = flattenTree(tree).map((node) => node.element.id)
+  const neighbour = (delta: -1 | 1) => (openId ? order[order.indexOf(openId) + delta] : undefined)
+
   // Con el inspector abierto: ↑ ↓ pasan al elemento de arriba o de abajo, Esc cierra.
   useEffect(() => {
     if (!openId || !elements) return
@@ -259,11 +263,13 @@ export function CalendarPage() {
 
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1">
-      {/* Con el detalle abierto, en pantallas anchas el plan le deja sitio y no queda tapado. */}
+      {/* Con el detalle abierto, en pantallas anchas el plan le deja sitio y no queda tapado.
+          Pulsar aquí no cierra el panel: se sigue trabajando con él abierto. */}
       <div
+        data-calendar-surface
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
-          (openId || openDay != null) && "xl:pr-[424px]"
+          (openId || openDay != null) && "xl:pr-[544px]"
         )}
       >
         <PlanHeader
@@ -365,6 +371,8 @@ export function CalendarPage() {
           onRemoveRule={onRemoveRule}
           onOpen={openElement}
           planSpan={summary.span}
+          onPrevious={neighbour(-1) ? () => setOpenId(neighbour(-1)!) : undefined}
+          onNext={neighbour(1) ? () => setOpenId(neighbour(1)!) : undefined}
         />
       )}
       {timeline && openDay != null && (
