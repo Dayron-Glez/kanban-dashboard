@@ -1,5 +1,5 @@
 import type { ActionKind, CalendarElement } from "@repo/contracts"
-import { IconCalendarEvent } from "@tabler/icons-react"
+import { IconCalendarEvent, IconTrash } from "@tabler/icons-react"
 import { cn, ScrollArea } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, lacksDuration } from "../lib/elementTree"
 import { ActionGlyph } from "./ActionGlyph"
@@ -21,6 +21,8 @@ interface ActionListProps {
   onOpen?: (elementId: string) => void
   /** Ver el día completo, en su panel. */
   onOpenDay?: () => void
+  /** Borrar una sin abrirla: una papelera en cada fila, al pasar o con el foco. */
+  onDelete?: (elementId: string) => void
 }
 
 /** «Ver el día completo»: lo mismo en el menú de la celda y en el calendario. */
@@ -57,6 +59,7 @@ export function ActionList({
   actions,
   onOpen,
   onOpenDay,
+  onDelete,
 }: Readonly<ActionListProps>) {
   const rowClass = "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm"
 
@@ -66,7 +69,9 @@ export function ActionList({
         <p className="text-base font-semibold first-letter:uppercase">{title}</p>
         <p className="text-muted-foreground text-sm">{subtitle}</p>
       </div>
-      <ScrollArea className="border-border max-h-[164px] border-t [&>[data-slot=scroll-area-viewport]]:max-h-[inherit]">
+      {/* El contenido de un ScrollArea es una tabla y crece con lo que lleva: en bloque,
+          la fila no pasa del ancho de la lista y la papelera no queda fuera. */}
+      <ScrollArea className="border-border max-h-[164px] border-t [&>[data-slot=scroll-area-viewport]]:max-h-[inherit] [&>[data-slot=scroll-area-viewport]>div]:!block">
         <div
           role={onOpen ? "menu" : "list"}
           aria-label="Acciones de la celda"
@@ -79,24 +84,41 @@ export function ActionList({
                   <ActionGlyph kind={element.kind as ActionKind} />
                 </span>
                 <TruncatedText text={element.name} />
-                <span className="ml-auto flex shrink-0 items-center gap-1.5">
+                <span className="ml-auto flex max-w-[50%] min-w-0 items-center gap-1.5">
                   {lacksDuration(element) && <MissingDurationHint />}
-                  <span className="text-muted-foreground text-xs">
+                  <span className="text-muted-foreground truncate text-xs">
                     {owner ?? ELEMENT_KIND_LABELS[element.kind]}
                   </span>
                 </span>
               </>
             )
             return onOpen ? (
-              <button
+              // La fila se resalta entera, y la papelera va al lado del botón que la
+              // abre: un botón no puede ir dentro de otro.
+              <div
                 key={element.id}
-                type="button"
-                role="menuitem"
-                onClick={() => onOpen(element.id)}
-                className={cn(rowClass, "hover:bg-muted focus-visible:bg-muted outline-none")}
+                className="group/row hover:bg-muted focus-within:bg-muted flex items-center rounded-md"
               >
-                {content}
-              </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => onOpen(element.id)}
+                  className={cn(rowClass, "min-w-0 flex-1 outline-none")}
+                >
+                  {content}
+                </button>
+                {onDelete && (
+                  <button
+                    type="button"
+                    aria-label={`Borrar ${element.name}`}
+                    title="Borrar"
+                    onClick={() => onDelete(element.id)}
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 focus-visible:text-destructive mr-1 flex size-7 shrink-0 items-center justify-center rounded-md opacity-0 outline-none group-focus-within/row:opacity-100 group-hover/row:opacity-100 focus-visible:opacity-100"
+                  >
+                    <IconTrash className="size-4" aria-hidden />
+                  </button>
+                )}
+              </div>
             ) : (
               <div key={element.id} role="listitem" className={rowClass}>
                 {content}

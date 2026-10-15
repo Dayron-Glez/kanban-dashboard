@@ -1410,7 +1410,7 @@ describe("CalendarPage", () => {
       expect(await screen.findByRole("menu", { name: "Tipo de acción" })).toBeInTheDocument()
     })
 
-    it("Supr borra la única acción de la celda, tras confirmarlo; con varias, abre su lista", async () => {
+    it("Supr borra la única acción de la celda, tras confirmarlo; con varias, abre su lista con papeleras", async () => {
       const lectura = element("lectura", "rodaje", "Lectura de guion", {
         kind: "meeting",
         startsOn: "2026-10-14",
@@ -1469,6 +1469,12 @@ describe("CalendarPage", () => {
       expect(await screen.findByRole("menu", { name: "Acciones de la celda" })).toBeInTheDocument()
       expect(screen.queryByRole("alertdialog")).toBeNull()
       expect(api.elements.deleteElement).toHaveBeenCalledTimes(1)
+
+      // En la lista, cada fila tiene su papelera: borra esa, tras confirmarlo.
+      await userEvent.click(screen.getByRole("button", { name: "Borrar Aviso 2" }))
+      expect(
+        await screen.findByRole("alertdialog", { name: "¿Borrar el recordatorio “Aviso 2”?" })
+      ).toBeInTheDocument()
     })
 
     it("el clic derecho en una acción: abrirla, cambiarla de tipo y borrarla", async () => {

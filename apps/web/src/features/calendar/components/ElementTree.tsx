@@ -456,6 +456,14 @@ export function ElementTree({
               if (action) selectCell(revealAndOpen(action), span.start)
               else onOpen(id)
             }}
+            onDelete={
+              canDelete
+                ? (id) => {
+                    closeMenu()
+                    onDeleteAction(id)
+                  }
+                : undefined
+            }
             onCancel={closeMenu}
             onOpenDay={
               onOpenDay &&
