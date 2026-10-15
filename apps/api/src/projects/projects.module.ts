@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common"
+import { CrewController } from "./crew.controller.js"
+import { CrewService } from "./crew.service.js"
 import { DepartmentsController } from "./departments.controller.js"
 import { DepartmentsService } from "./departments.service.js"
 import { InvitationsController } from "./invitations.controller.js"
@@ -15,6 +17,7 @@ import { ProjectsService } from "./projects.service.js"
     MembersController,
     InvitationsController,
     DepartmentsController,
+    CrewController,
   ],
   providers: [
     ProjectAccess,
@@ -22,6 +25,7 @@ import { ProjectsService } from "./projects.service.js"
     MembersService,
     InvitationsService,
     DepartmentsService,
+    CrewService,
   ],
   // El tablero comprueba el acceso con las mismas reglas.
   exports: [ProjectAccess],

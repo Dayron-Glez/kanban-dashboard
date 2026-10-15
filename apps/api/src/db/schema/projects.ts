@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   foreignKey,
+  index,
   integer,
   pgSchema,
   text,
@@ -107,5 +108,32 @@ export const departments = core.table(
     }).onDelete("cascade"),
     unique("departments_project_id_name_key").on(table.projectId, table.name),
     check("departments_position_check", sql`${table.position} >= 0`),
+  ]
+)
+
+export const crewMembers = core.table(
+  "crew_members",
+  {
+    id: uuid()
+      .default(sql`uuidv7()`)
+      .primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    fullName: text("full_name").notNull(),
+    email: text(),
+    departmentId: uuid("department_id"),
+    createdAt,
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.projectId],
+      foreignColumns: [projects.id],
+      name: "crew_members_project_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.departmentId],
+      foreignColumns: [departments.id],
+      name: "crew_members_department_id_fkey",
+    }).onDelete("set null"),
+    index("crew_members_project_id_idx").on(table.projectId),
   ]
 )

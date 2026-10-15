@@ -57,6 +57,13 @@
       "when": 1792102920926,
       "tag": "0007_departamentos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792103244847,
+      "tag": "0008_equipo",
+      "breakpoints": true
     }
   ]
 }
