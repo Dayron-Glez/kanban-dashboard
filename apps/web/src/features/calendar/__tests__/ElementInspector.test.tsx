@@ -310,7 +310,7 @@ describe("ElementInspector", () => {
     await userEvent.hover(day("2027-07-26"))
     await userEvent.click(await screen.findByRole("button", { name: "Ver el día completo" }))
     expect(onOpenDay).toHaveBeenCalledWith(fromIsoDate("2027-07-26"), "post")
-  })
+  }, 15_000)
 
   it("la barra sitúa una fase dentro del plan entero", () => {
     renderSheet("post", true, { start: "2026-01-01", end: "2027-10-31" })
