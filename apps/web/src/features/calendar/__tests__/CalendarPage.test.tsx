@@ -970,6 +970,58 @@ describe("CalendarPage", () => {
       expect(filters).not.toHaveTextContent("Se ven")
     })
 
+    it("los tipos sin acciones van al final, solo con su icono, y no se ocultan", async () => {
+      // De antes, oculto un tipo que ya no tiene acciones: no cuenta.
+      localStorage.setItem("cauce.gantt.acciones-ocultas", JSON.stringify(["reminder"]))
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+          element("casting", "rodaje", "Casting", {
+            kind: "task",
+            position: 1,
+            startsOn: "2026-10-16",
+            endsOn: "2026-10-16",
+          }),
+        ])
+      )
+      renderPage()
+
+      const filters = await screen.findByRole("group", { name: "Tipos de acción que se ven" })
+      expect(filters).not.toHaveTextContent("Se ven")
+      const buttons = within(filters).getAllByRole("button")
+      expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([
+        "Tarea: 1",
+        "Reunión: 1",
+        "Evento: aún no hay",
+        "Recordatorio: aún no hay",
+        "Contratación: aún no hay",
+      ])
+      // Deshabilitados pero enfocables: con el teclado se llega a su tooltip.
+      const hiring = within(filters).getByRole("button", { name: "Contratación: aún no hay" })
+      expect(hiring).toHaveAttribute("aria-disabled", "true")
+      expect(hiring).not.toBeDisabled()
+      await userEvent.hover(hiring)
+      expect(await screen.findByRole("tooltip")).toHaveTextContent("Contratación · aún no hay")
+      await userEvent.click(hiring)
+      expect(filters).not.toHaveTextContent("Se ven")
+
+      // Dejar solo las reuniones oculta las tareas, pero no los tipos vacíos.
+      fireEvent.click(within(filters).getByRole("button", { name: "Reunión: 1" }), {
+        altKey: true,
+      })
+      expect(filters).toHaveTextContent("Se ven 1 de 2")
+      expect(JSON.parse(localStorage.getItem("cauce.gantt.acciones-ocultas")!)).toEqual(["task"])
+      expect(within(filters).getByRole("button", { name: "Evento: aún no hay" })).toHaveAttribute(
+        "aria-disabled",
+        "true"
+      )
+    })
+
     it("pasar por un tipo resalta sus marcas, y pasar por una marca señala su tipo", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([

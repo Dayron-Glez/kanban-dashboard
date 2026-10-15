@@ -162,6 +162,8 @@ export function CalendarPage() {
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const actionCounts = useMemo(() => countActionKinds(tree), [tree])
+  // Un tipo sin acciones nunca está oculto: si se ocultó cuando tenía, al vaciarse deja de estarlo.
+  const hiddenWithActions = hiddenKinds.filter((kind) => actionCounts[kind] > 0)
   // El filtro es del Gantt: el árbol del móvil lo cuenta todo.
   const shownTree = useMemo(
     () => (view === "tabla" ? tree : hideActionKinds(tree, hiddenKinds)),
@@ -457,7 +459,7 @@ export function CalendarPage() {
             {view !== "tabla" && timeline && (
               <ActionKindFilter
                 counts={actionCounts}
-                hidden={hiddenKinds}
+                hidden={hiddenWithActions}
                 onChange={changeHiddenKinds}
               />
             )}

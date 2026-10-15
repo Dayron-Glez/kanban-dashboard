@@ -56,6 +56,10 @@ describe("filtro de tipos de acción", () => {
     expect(solo).toHaveLength(4)
     expect(soloKind(solo, "meeting")).toEqual([])
     expect(soloKind(solo, "task")).not.toContain("task")
+
+    // Solo entre los tipos con acciones: los vacíos no se ocultan.
+    expect(soloKind([], "meeting", ["task", "meeting"])).toEqual(["task"])
+    expect(soloKind(["task"], "meeting", ["task", "meeting"])).toEqual([])
   })
 
   it("quita las acciones ocultas a cualquier profundidad, y también las sueltas", () => {
