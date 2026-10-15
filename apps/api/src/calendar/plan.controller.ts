@@ -14,11 +14,13 @@ import {
 import {
   CreateActionInputSchema,
   DATE_POINTS,
+  EditElementInputSchema,
   SetElementRuleInputSchema,
   UpdateElementPlanInputSchema,
   type CalendarPlan,
   type CreateActionInput,
   type DatePoint,
+  type EditElementInput,
   type SetElementRuleInput,
   type UpdateElementPlanInput,
 } from "@repo/contracts"
@@ -47,6 +49,23 @@ export class PlanController {
     @Body({ schema: UpdateElementPlanInputSchema }) input: UpdateElementPlanInput
   ): Promise<CalendarPlan> {
     return this.plan.updateElementPlan(user.id, elementId, input)
+  }
+
+  @Patch("elements/:elementId/edits")
+  editElement(
+    @CurrentUser() user: AuthUser,
+    @Param("elementId", ParseUUIDPipe) elementId: string,
+    @Body({ schema: EditElementInputSchema }) input: EditElementInput
+  ): Promise<CalendarPlan> {
+    return this.plan.editElement(user.id, elementId, input)
+  }
+
+  @Delete("elements/:elementId")
+  deleteAction(
+    @CurrentUser() user: AuthUser,
+    @Param("elementId", ParseUUIDPipe) elementId: string
+  ): Promise<CalendarPlan> {
+    return this.plan.deleteAction(user.id, elementId)
   }
 
   @Post("elements/:parentId/actions")
