@@ -71,6 +71,31 @@ export function saveNameWidth(width: number) {
   }
 }
 
+/** El ancho de la columna contraída: la tira con la flecha y el color de cada fila. */
+export const RAIL_WIDTH = 56
+
+const flag = (key: string) => ({
+  load: () => {
+    try {
+      return localStorage.getItem(key) === "1"
+    } catch {
+      return false
+    }
+  },
+  save: (value: boolean) => {
+    try {
+      localStorage.setItem(key, value ? "1" : "0")
+    } catch {
+      // Sin almacenamiento: dura lo que la pestaña.
+    }
+  },
+})
+
+/** Si la columna «Elemento» está contraída. */
+export const railFlag = flag("cauce.gantt.columnaContraida")
+/** Si ya se vio la nota que explica la columna contraída. */
+export const railHintFlag = flag("cauce.gantt.pistaColumna")
+
 /** Las columnas de la parte de tabla junto al Gantt, y lo que ocupa. */
 export function tableLayout(fields: GanttFields, nameWidth: number = NAME_WIDTH.initial) {
   const columns = [

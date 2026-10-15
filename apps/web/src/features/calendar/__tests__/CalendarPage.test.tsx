@@ -615,6 +615,50 @@ describe("CalendarPage", () => {
     expect(border).toHaveAttribute("aria-valuenow", "280")
   })
 
+  it("la columna se contrae a una tira con su nota la primera vez, y se vuelve a abrir", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([
+        rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+        element("shooting", "rodaje", "Shooting", {
+          kind: "process",
+          startsOn: "2027-04-05",
+          endsOn: "2027-05-16",
+        }),
+      ])
+    )
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Contraer la columna" }))
+    // En la tira no se lee el nombre, pero sigue en los botones y en el Tooltip.
+    expect(screen.queryByText("Rodaje", { selector: "span" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Ver el detalle de Rodaje" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Desplegar Rodaje" })).toBeInTheDocument()
+    expect(screen.getByText("Columna contraída")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Entendido" }))
+    expect(screen.queryByText("Columna contraída")).toBeNull()
+    expect(localStorage.getItem("cauce.gantt.pistaColumna")).toBe("1")
+    expect(localStorage.getItem("cauce.gantt.columnaContraida")).toBe("1")
+
+    // Se abre con su botón; contraída otra vez, la nota ya no vuelve.
+    await userEvent.click(screen.getByRole("button", { name: "Abrir la columna" }))
+    expect(screen.getByRole("button", { name: "Ver el detalle de Rodaje" })).toHaveTextContent(
+      "Rodaje"
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Contraer la columna" }))
+    expect(screen.queryByText("Columna contraída")).toBeNull()
+
+    // También el borde la abre: con Enter, o arrastrándolo a la derecha.
+    const border = screen.getByRole("separator", { name: "Ancho de la columna de elementos" })
+    expect(border).toHaveAttribute("aria-expanded", "false")
+    fireEvent.keyDown(border, { key: "Enter" })
+    expect(border).toHaveAttribute("aria-expanded", "true")
+    fireEvent.keyDown(border, { key: "Enter" })
+    fireEvent.pointerDown(border, { button: 0, clientX: 56, pointerId: 1 })
+    fireEvent.pointerMove(border, { clientX: 120, pointerId: 1 })
+    fireEvent.pointerUp(border, { clientX: 120, pointerId: 1 })
+    expect(border).toHaveAttribute("aria-expanded", "true")
+  })
+
   it("el zoom cambia la rejilla: día a día, por semanas o por meses", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])

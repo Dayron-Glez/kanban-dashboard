@@ -5,6 +5,9 @@ import {
   IconChevronRight,
   IconChevronsDown,
   IconChevronsUp,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarLeftExpand,
+  IconListDetails,
   IconPin,
 } from "@tabler/icons-react"
 import {
@@ -39,6 +42,9 @@ import {
   DEFAULT_GANTT_FIELDS,
   loadNameWidth,
   NAME_WIDTH,
+  RAIL_WIDTH,
+  railFlag,
+  railHintFlag,
   saveNameWidth,
   tableLayout,
   type GanttFields,
@@ -150,7 +156,22 @@ export function ElementTree({
     setNameWidth(width)
     saveNameWidth(width)
   }
-  const ganttTable = tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields }, nameWidth)
+  // Contraída, la columna es una tira con la flecha y el color de cada fila; el
+  // nombre, en un Tooltip. La primera vez, una nota explica cómo volver.
+  const [railed, setRailed] = useState<boolean>(railFlag.load)
+  const [railHintSeen, setRailHintSeen] = useState<boolean>(railHintFlag.load)
+  const rail = view !== "tabla" && timeline != null && railed
+  const toggleRail = () => {
+    railFlag.save(!railed)
+    setRailed(!railed)
+  }
+  const seeRailHint = () => {
+    railHintFlag.save(true)
+    setRailHintSeen(true)
+  }
+  const ganttTable = rail
+    ? { gridTemplateColumns: "minmax(0,1fr)", width: `${RAIL_WIDTH}px` }
+    : tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields }, nameWidth)
   const table = view === "tabla" ? MOBILE_TABLE : ganttTable
   // Lo que contiene al elemento seleccionado se abre solo, para que se vea.
   const selectedPath = new Set<string>()
@@ -433,12 +454,29 @@ export function ElementTree({
             className="bg-background border-border/60 sticky left-0 z-10 grid shrink-0 items-center gap-2 border-r pr-2"
             style={table}
           >
-            <span
-              className="text-muted-foreground text-sm"
-              style={{ paddingLeft: `${(node.depth + 1) * 20 + 32}px` }}
-            >
-              Acciones · {node.actions.length}
-            </span>
+            {rail ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    aria-label={`Acciones · ${node.actions.length}`}
+                    className="text-muted-foreground flex items-center"
+                    style={{ paddingLeft: `${node.depth * 5 + 26}px` }}
+                  >
+                    <IconListDetails className="size-4" aria-hidden />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  Acciones de {node.element.name} · {node.actions.length}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span
+                className="text-muted-foreground text-sm"
+                style={{ paddingLeft: `${(node.depth + 1) * 20 + 32}px` }}
+              >
+                Acciones · {node.actions.length}
+              </span>
+            )}
           </div>
           {track(
             row,
@@ -460,6 +498,55 @@ export function ElementTree({
           )}
         </div>
       </li>
+    )
+  }
+
+  // La tira: la flecha de desplegar y el color de la fase, con la sangría por nivel;
+  // el nombre, en un Tooltip; un aviso, como un punto ámbar.
+  const railCell = (node: ElementNode, expanded: boolean, hasChildren: boolean) => {
+    const { element, depth } = node
+    const tint = phaseTint(node.phaseColor, depth === 0)
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1" style={{ paddingLeft: `${depth * 5 + 4}px` }}>
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => onToggle(element.id)}
+                aria-label={`${expanded ? "Plegar" : "Desplegar"} ${element.name}`}
+                className="text-muted-foreground hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
+              >
+                <IconChevronRight
+                  size={14}
+                  className={`transition-transform ${expanded ? "rotate-90" : ""}`}
+                />
+              </button>
+            ) : (
+              <span className="size-5 shrink-0" />
+            )}
+            <button
+              type="button"
+              onClick={() => onOpen(element.id)}
+              aria-label={`Ver el detalle de ${element.name}`}
+              className="relative flex size-5 shrink-0 items-center justify-center rounded"
+            >
+              <span
+                aria-hidden
+                className={cn("rounded-full", depth === 0 ? "h-4 w-1" : "size-1.5", tint.className)}
+                style={tint.style}
+              />
+              {depth === 0 && element.duration == null && (
+                <span
+                  aria-hidden
+                  className="bg-warn absolute top-0 right-0.5 size-1.5 rounded-full"
+                />
+              )}
+            </button>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right">{element.name}</TooltipContent>
+      </Tooltip>
     )
   }
 
@@ -489,113 +576,119 @@ export function ElementTree({
             )}
             style={table}
           >
-            <div
-              className="flex min-w-0 items-center gap-2"
-              style={{ paddingLeft: `${depth * 20 + 4}px` }}
-            >
-              {hasChildren ? (
-                <button
-                  type="button"
-                  onClick={() => onToggle(element.id)}
-                  aria-label={`${expanded ? "Plegar" : "Desplegar"} ${element.name}`}
-                  className="text-muted-foreground hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
+            {rail ? (
+              railCell(node, expanded, hasChildren)
+            ) : (
+              <>
+                <div
+                  className="flex min-w-0 items-center gap-2"
+                  style={{ paddingLeft: `${depth * 20 + 4}px` }}
                 >
-                  <IconChevronRight
-                    size={14}
-                    className={`transition-transform ${expanded ? "rotate-90" : ""}`}
-                  />
-                </button>
-              ) : (
-                <span className="size-5 shrink-0" />
-              )}
-              <span
-                aria-hidden
-                title={ELEMENT_KIND_LABELS[element.kind]}
-                className={cn(
-                  "shrink-0 rounded-full",
-                  depth === 0 ? "h-4 w-1" : "size-1.5",
-                  phaseTint(node.phaseColor, depth === 0).className
-                )}
-                style={phaseTint(node.phaseColor, depth === 0).style}
-              />
-              <button
-                type="button"
-                onClick={() => onOpen(element.id)}
-                aria-label={`Ver el detalle de ${element.name}`}
-                className={cn(
-                  "hover:text-primary flex min-w-0 text-left transition-colors",
-                  depth === 0 && "font-semibold"
-                )}
-              >
-                <TruncatedText text={element.name} />
-              </button>
-              {element.isAnchor ? (
-                <span
-                  className={cn(CHIP, "bg-primary/10 text-primary")}
-                  title="Fecha clave del plan"
-                >
-                  <IconAnchor size={11} aria-hidden />
-                  clave
-                </span>
-              ) : element.isPinned ? (
-                <span className={cn(CHIP, "bg-muted text-muted-foreground")} title="Fecha fija">
-                  <IconPin size={11} aria-hidden />
-                  fija
-                </span>
-              ) : (
-                // Con el Gantt, la regla se lee en la barra y en el inspector; en la
-                // tabla aparece al pasar el ratón, sin quitar sitio al nombre.
-                rule &&
-                view === "tabla" && (
+                  {hasChildren ? (
+                    <button
+                      type="button"
+                      onClick={() => onToggle(element.id)}
+                      aria-label={`${expanded ? "Plegar" : "Desplegar"} ${element.name}`}
+                      className="text-muted-foreground hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
+                    >
+                      <IconChevronRight
+                        size={14}
+                        className={`transition-transform ${expanded ? "rotate-90" : ""}`}
+                      />
+                    </button>
+                  ) : (
+                    <span className="size-5 shrink-0" />
+                  )}
                   <span
+                    aria-hidden
+                    title={ELEMENT_KIND_LABELS[element.kind]}
                     className={cn(
-                      CHIP,
-                      "bg-muted text-muted-foreground min-w-0 truncate",
-                      !selected && "hidden group-hover/row:inline-flex"
+                      "shrink-0 rounded-full",
+                      depth === 0 ? "h-4 w-1" : "size-1.5",
+                      phaseTint(node.phaseColor, depth === 0).className
+                    )}
+                    style={phaseTint(node.phaseColor, depth === 0).style}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onOpen(element.id)}
+                    aria-label={`Ver el detalle de ${element.name}`}
+                    className={cn(
+                      "hover:text-primary flex min-w-0 text-left transition-colors",
+                      depth === 0 && "font-semibold"
                     )}
                   >
-                    {rule}
-                  </span>
-                )
-              )}
-              {view === "tabla" && node.actions.length > 0 && (
-                // Sin rejilla (el móvil), las acciones de la fila se cuentan.
-                <span className={cn(CHIP, "bg-muted text-muted-foreground")}>
-                  {node.actions.length} {node.actions.length === 1 ? "acción" : "acciones"}
-                </span>
-              )}
-              {depth === 0 && element.duration == null && (
-                // Solo el icono: con texto, el badge cortaba el nombre de la fase.
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                    <TruncatedText text={element.name} />
+                  </button>
+                  {element.isAnchor ? (
                     <span
-                      tabIndex={0}
-                      aria-label="Sin duración"
-                      className="bg-warn-soft text-warn border-warn/30 flex size-5 shrink-0 items-center justify-center rounded-full border"
+                      className={cn(CHIP, "bg-primary/10 text-primary")}
+                      title="Fecha clave del plan"
                     >
-                      <IconAlertTriangle size={11} aria-hidden />
+                      <IconAnchor size={11} aria-hidden />
+                      clave
                     </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Sin duración: no tiene fin, y lo que depende de ella tampoco
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+                  ) : element.isPinned ? (
+                    <span className={cn(CHIP, "bg-muted text-muted-foreground")} title="Fecha fija">
+                      <IconPin size={11} aria-hidden />
+                      fija
+                    </span>
+                  ) : (
+                    // Con el Gantt, la regla se lee en la barra y en el inspector; en la
+                    // tabla aparece al pasar el ratón, sin quitar sitio al nombre.
+                    rule &&
+                    view === "tabla" && (
+                      <span
+                        className={cn(
+                          CHIP,
+                          "bg-muted text-muted-foreground min-w-0 truncate",
+                          !selected && "hidden group-hover/row:inline-flex"
+                        )}
+                      >
+                        {rule}
+                      </span>
+                    )
+                  )}
+                  {view === "tabla" && node.actions.length > 0 && (
+                    // Sin rejilla (el móvil), las acciones de la fila se cuentan.
+                    <span className={cn(CHIP, "bg-muted text-muted-foreground")}>
+                      {node.actions.length} {node.actions.length === 1 ? "acción" : "acciones"}
+                    </span>
+                  )}
+                  {depth === 0 && element.duration == null && (
+                    // Solo el icono: con texto, el badge cortaba el nombre de la fase.
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          tabIndex={0}
+                          aria-label="Sin duración"
+                          className="bg-warn-soft text-warn border-warn/30 flex size-5 shrink-0 items-center justify-center rounded-full border"
+                        >
+                          <IconAlertTriangle size={11} aria-hidden />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Sin duración: no tiene fin, y lo que depende de ella tampoco
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
 
-            {columns.duration && (
-              <DurationEditor
-                label={`Duración de ${element.name}`}
-                value={element.duration}
-                editable={editable}
-                pending={pending}
-                emptyLabel="+ duración"
-                quiet
-                onSave={(duration) => onUpdate(element.id, { duration })}
-              />
+                {columns.duration && (
+                  <DurationEditor
+                    label={`Duración de ${element.name}`}
+                    value={element.duration}
+                    editable={editable}
+                    pending={pending}
+                    emptyLabel="+ duración"
+                    quiet
+                    onSave={(duration) => onUpdate(element.id, { duration })}
+                  />
+                )}
+                {columns.start && dateCell(element, "start")}
+                {columns.end && dateCell(element, "end")}
+              </>
             )}
-            {columns.start && dateCell(element, "start")}
-            {columns.end && dateCell(element, "end")}
           </div>
 
           {showTimeline &&
@@ -624,6 +717,28 @@ export function ElementTree({
     )
   }
 
+  const railButton = () => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          onClick={toggleRail}
+          aria-label={rail ? "Abrir la columna" : "Contraer la columna"}
+        >
+          {rail ? (
+            <IconLayoutSidebarLeftExpand aria-hidden />
+          ) : (
+            <IconLayoutSidebarLeftCollapse aria-hidden />
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {rail ? "Abrir la columna de elementos" : "Contraer la columna de elementos"}
+      </TooltipContent>
+    </Tooltip>
+  )
+
   const content = (
     <div className={cn(showTimeline && "w-max min-w-full")}>
       <div className="border-border bg-background sticky top-0 z-20 flex min-h-9 border-b text-sm font-medium">
@@ -637,32 +752,58 @@ export function ElementTree({
           )}
           style={table}
         >
-          <span className="flex items-center gap-1 pl-1">
-            {onToggleAll ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    onClick={onToggleAll}
-                    aria-label={expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
-                  >
-                    {expandedIds.size > 0 ? (
-                      <IconChevronsUp aria-hidden />
-                    ) : (
-                      <IconChevronsDown aria-hidden />
-                    )}
+          {rail ? (
+            <Popover open={!railHintSeen} onOpenChange={(open) => !open && seeRailHint()}>
+              <PopoverAnchor asChild>
+                <span className="flex justify-center">{railButton()}</span>
+              </PopoverAnchor>
+              <PopoverContent
+                side="right"
+                align="start"
+                className="w-64"
+                onOpenAutoFocus={(event) => event.preventDefault()}
+              >
+                <p className="text-base font-semibold">Columna contraída</p>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Pasa el ratón por una fila para ver su nombre. Para verla entera otra vez, pulsa
+                  el botón de arriba o arrastra el borde.
+                </p>
+                <div className="mt-2 flex justify-end">
+                  <Button size="sm" variant="outline" onClick={seeRailHint}>
+                    Entendido
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <span className="size-8" />
-            )}
-            <span aria-hidden>Elemento</span>
-          </span>
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <span className="flex items-center gap-1 pl-1">
+              {onToggleAll ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={onToggleAll}
+                      aria-label={expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                    >
+                      {expandedIds.size > 0 ? (
+                        <IconChevronsUp aria-hidden />
+                      ) : (
+                        <IconChevronsDown aria-hidden />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {expandedIds.size > 0 ? "Plegar todo" : "Desplegar todo"}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <span className="size-8" />
+              )}
+              <span aria-hidden>Elemento</span>
+              {showTimeline && <span className="mr-1 ml-auto">{railButton()}</span>}
+            </span>
+          )}
           {columns.duration && (
             <span aria-hidden className="px-1.5">
               Duración
@@ -721,6 +862,8 @@ export function ElementTree({
           initial={NAME_WIDTH.initial}
           label="Ancho de la columna de elementos"
           onChange={resizeName}
+          collapsed={rail}
+          onToggleCollapsed={toggleRail}
         />
       )}
     </div>

@@ -12,6 +12,9 @@ interface ColumnResizerProps {
   initial: number
   label: string
   onChange: (width: number) => void
+  /** Contraída, el borde la abre: arrastrándolo, con las flechas o con Enter. */
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
 }
 
 const STEP = 16
@@ -28,6 +31,8 @@ export function ColumnResizer({
   initial,
   label,
   onChange,
+  collapsed = false,
+  onToggleCollapsed,
 }: Readonly<ColumnResizerProps>) {
   const drag = useRef<{ x: number; width: number } | null>(null)
   const [dragging, setDragging] = useState<boolean>(false)
@@ -36,13 +41,22 @@ export function ColumnResizer({
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
     event.preventDefault()
-    drag.current = { x: event.clientX, width: value }
+    drag.current = { x: event.clientX, width: collapsed ? 0 : value }
     setDragging(true)
     event.currentTarget.setPointerCapture?.(event.pointerId)
   }
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!drag.current) return
-    const next = clamp(drag.current.width + event.clientX - drag.current.x)
+    const moved = event.clientX - drag.current.x
+    // Contraída, se abre en cuanto se arrastra un poco a la derecha.
+    if (collapsed) {
+      if (moved > 40) {
+        drag.current = { x: event.clientX, width: value }
+        onToggleCollapsed?.()
+      }
+      return
+    }
+    const next = clamp(drag.current.width + moved)
     if (next !== value) onChange(next)
   }
   const stop = () => {
@@ -50,8 +64,13 @@ export function ColumnResizer({
     setDragging(false)
   }
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" && onToggleCollapsed) {
+      event.preventDefault()
+      return onToggleCollapsed()
+    }
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
     event.preventDefault()
+    if (collapsed) return event.key === "ArrowRight" && onToggleCollapsed?.()
     onChange(clamp(value + (event.key === "ArrowLeft" ? -STEP : STEP)))
   }
 
@@ -62,7 +81,8 @@ export function ColumnResizer({
           role="separator"
           aria-orientation="vertical"
           aria-label={label}
-          aria-valuenow={value}
+          aria-valuenow={collapsed ? min : value}
+          aria-expanded={onToggleCollapsed ? !collapsed : undefined}
           aria-valuemin={min}
           aria-valuemax={max}
           tabIndex={0}
@@ -70,7 +90,7 @@ export function ColumnResizer({
           onPointerMove={onPointerMove}
           onPointerUp={stop}
           onPointerCancel={stop}
-          onDoubleClick={() => onChange(initial)}
+          onDoubleClick={() => (collapsed ? onToggleCollapsed?.() : onChange(initial))}
           onKeyDown={onKeyDown}
           data-dragging={dragging || undefined}
           className={cn(
@@ -94,7 +114,9 @@ export function ColumnResizer({
         </div>
       </TooltipTrigger>
       <TooltipContent side="right">
-        Arrastra para ajustar · doble clic para restablecer
+        {collapsed
+          ? "Arrastra para abrir la columna"
+          : "Arrastra para ajustar · doble clic para restablecer"}
       </TooltipContent>
     </Tooltip>
   )
