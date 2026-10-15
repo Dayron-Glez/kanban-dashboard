@@ -63,6 +63,7 @@ body,
   --action-meeting: #7c3aed;
   --action-reminder: #db2777;
   --action-hiring: #059669;
+  --action-travel: #ea580c;
   /* Las líneas entre celdas del Gantt. */
   --grid-cell: hsl(215 25% 40% / 0.12);
 
@@ -147,6 +148,7 @@ body,
   --action-meeting: #a78bfa;
   --action-reminder: #f472b6;
   --action-hiring: #34d399;
+  --action-travel: #f97316;
 
   --p0: hsl(0 84% 71%);
   --p0-soft: hsl(0 84% 71% / 0.1);
@@ -195,6 +197,7 @@ body,
   --color-action-meeting: var(--action-meeting);
   --color-action-reminder: var(--action-reminder);
   --color-action-hiring: var(--action-hiring);
+  --color-action-travel: var(--action-travel);
   --color-p0: var(--p0);
   --color-p0-soft: var(--p0-soft);
   --color-p1: var(--p1);
@@ -300,14 +303,16 @@ body,
 [data-action-focus="task"] [data-action-kind]:not([data-action-kind~="task"]),
 [data-action-focus="meeting"] [data-action-kind]:not([data-action-kind~="meeting"]),
 [data-action-focus="reminder"] [data-action-kind]:not([data-action-kind~="reminder"]),
-[data-action-focus="hiring"] [data-action-kind]:not([data-action-kind~="hiring"]) {
+[data-action-focus="hiring"] [data-action-kind]:not([data-action-kind~="hiring"]),
+[data-action-focus="travel"] [data-action-kind]:not([data-action-kind~="travel"]) {
   opacity: 0.3;
 }
 [data-action-hover~="event"] [data-kind-filter="event"],
 [data-action-hover~="task"] [data-kind-filter="task"],
 [data-action-hover~="meeting"] [data-kind-filter="meeting"],
 [data-action-hover~="reminder"] [data-kind-filter="reminder"],
-[data-action-hover~="hiring"] [data-kind-filter="hiring"] {
+[data-action-hover~="hiring"] [data-kind-filter="hiring"],
+[data-action-hover~="travel"] [data-kind-filter="travel"] {
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--kind) 45%, transparent);
 }
 

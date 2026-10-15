@@ -82,6 +82,28 @@ describe("guardar de una vez lo del panel", () => {
     })
   })
 
+  it("una contratación sin baja que pasa a viaje con un día de duración acaba ese día", async () => {
+    const rodaje = byKey(await planOf(), "rodaje")
+    const created = await as(ana).post(`/elements/${rodaje.id}/actions`, {
+      kind: "hiring",
+      name: "Conductor de producción",
+      startsOn: "2027-03-08",
+    })
+    const hiring = byName(created.body as CalendarPlan, "Conductor de producción")!
+    expect(hiring.endsOn).toBeNull()
+
+    const response = await editOf(hiring.id, {
+      kind: "travel",
+      duration: { amount: 1, unit: "days" },
+    })
+    expect(response.status).toBe(200)
+    expect(byName(response.body as CalendarPlan, "Conductor de producción")).toMatchObject({
+      kind: "travel",
+      startsOn: "2027-03-08",
+      endsOn: "2027-03-08",
+    })
+  })
+
   it("es todo o nada: si una parte falla, no se guarda ninguna", async () => {
     const plan = await planOf()
     const rodaje = byKey(plan, "rodaje")

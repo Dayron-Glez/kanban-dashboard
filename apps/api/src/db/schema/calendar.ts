@@ -56,7 +56,7 @@ export const elements = calendar.table(
     index("elements_parent_id_idx").on(table.parentId),
     check(
       "elements_kind_check",
-      sql`${table.kind} in ('phase', 'subphase', 'process', 'event', 'task', 'meeting', 'reminder', 'hiring')`
+      sql`${table.kind} in ('phase', 'subphase', 'process', 'event', 'task', 'meeting', 'reminder', 'hiring', 'travel')`
     ),
     check("elements_position_check", sql`${table.position} >= 0`),
     check("elements_parent_check", sql`(${table.parentId} is null) = (${table.kind} = 'phase')`),

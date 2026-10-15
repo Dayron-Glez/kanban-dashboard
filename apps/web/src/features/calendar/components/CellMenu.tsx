@@ -8,6 +8,7 @@ import {
 import { toIsoDate } from "@repo/domain"
 import { IconPlus } from "@tabler/icons-react"
 import { Button, Input } from "@/shared/index"
+import { NEW_ACTION_TITLE } from "../lib/actionStyle"
 import { ELEMENT_KIND_LABELS } from "../lib/elementTree"
 import { formatLongDate, formatShortDay } from "../lib/planFormat"
 import { ActionGlyph } from "./ActionGlyph"
@@ -19,6 +20,7 @@ const HINTS: Record<ActionKind, string> = {
   meeting: "solo un día",
   reminder: "solo un día",
   hiring: "del alta a la baja",
+  travel: "de la ida a la vuelta",
 }
 
 interface CellMenuProps {
@@ -89,7 +91,7 @@ export function CellMenu({
     return (
       <form onSubmit={submit} className="flex flex-col gap-3">
         <div>
-          <p className="text-base font-semibold">Nueva {ELEMENT_KIND_LABELS[kind].toLowerCase()}</p>
+          <p className="text-base font-semibold">{NEW_ACTION_TITLE[kind]}</p>
           <p className="text-muted-foreground text-sm first-letter:uppercase">
             {when} · en {parentName}
           </p>

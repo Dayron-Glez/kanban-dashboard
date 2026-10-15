@@ -65,6 +65,33 @@ describe("crear acciones", () => {
     expect(meeting.position).toBe(Math.max(...siblings.map((element) => element.position)))
   })
 
+  it("un viaje va de la ida a la vuelta, en varios días", async () => {
+    const travel = await create("rodaje", {
+      kind: "travel",
+      name: "Viaje a Almería",
+      startsOn: "2027-04-02",
+      endsOn: "2027-04-04",
+    })
+    expect(actionNamed(travel.body as CalendarPlan, "Viaje a Almería")).toMatchObject({
+      kind: "travel",
+      endsOn: "2027-04-04",
+      duration: { amount: 3, unit: "days" },
+    })
+  })
+
+  it("un viaje sin fecha de vuelta dura un día, no queda abierto como una contratación", async () => {
+    const travel = await create("rodaje", {
+      kind: "travel",
+      name: "Viaje a Bilbao",
+      startsOn: "2027-04-06",
+    })
+    expect(actionNamed(travel.body as CalendarPlan, "Viaje a Bilbao")).toMatchObject({
+      kind: "travel",
+      startsOn: "2027-04-06",
+      endsOn: "2027-04-06",
+    })
+  })
+
   it("una tarea puede ser un periodo, y una contratación no saber aún su baja", async () => {
     const task = await create("rodaje", {
       kind: "task",

@@ -60,6 +60,7 @@ export const ELEMENT_KIND_LABELS: Record<ElementKind, string> = {
   meeting: "Reunión",
   reminder: "Recordatorio",
   hiring: "Contratación",
+  travel: "Viaje",
 }
 
 /** Del árbol plano de la API al anidado, cada nivel por posición. */

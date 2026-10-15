@@ -43,6 +43,13 @@
       "when": 1791756600228,
       "tag": "0005_plan_con_fechas",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792091842952,
+      "tag": "0006_tipo_de_viaje",
+      "breakpoints": true
     }
   ]
 }

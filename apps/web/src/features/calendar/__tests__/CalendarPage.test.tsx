@@ -1017,6 +1017,7 @@ describe("CalendarPage", () => {
         "Evento: aún no hay",
         "Recordatorio: aún no hay",
         "Contratación: aún no hay",
+        "Viaje: aún no hay",
       ])
       // Deshabilitados pero enfocables: con el teclado se llega a su tooltip.
       const hiring = within(filters).getByRole("button", { name: "Contratación: aún no hay" })
