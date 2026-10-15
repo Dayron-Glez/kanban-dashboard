@@ -154,7 +154,8 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **La semana 1 es la del inicio de Rodaje**, como en el motor; los fines de semana se sombrean solo en el zoom por día.
 - **Cada fase tiene un color**, y de él salen los de los dos temas con el mismo tono (en OKLCH): el relleno es el mismo pastel en los dos y, en claro, lleva un borde más oscuro del mismo tono. El texto de las barras es oscuro en los dos temas. Las subfases, procesos y acciones llevan una versión más suave del color de su fase.
 - **Una fase sin duración lo dice**: un aviso en su fila y, en la cabecera, cuántas hay.
-- **Qué columnas y filas de la cabecera se ven, y la leyenda**, son preferencias de cada persona, en su navegador.
+- **No hay leyenda fija** (15 de octubre): mezclaba capas del gráfico, un glosario y categorías. Hoy, la semana 1 y los fines de semana se apagan en «Vista»; lo que se aprende una vez (fase, subfase, sin fin, clave, fija) se explica donde aparece, en su Tooltip, y todo junto en la guía «Cómo leer el Gantt» (el botón ?).
+- **Qué columnas, filas de la cabecera y marcas del tiempo se ven, y los tipos de acción ocultos**, son preferencias de cada persona, en su navegador.
 - **En el móvil**, solo el árbol, sin rejilla.
 - **«Fases» pasará a ser la sección de configuración** (añadir, renombrar, borrar, bloques y colores), con las siete fases en su orden fijo.
 
@@ -165,6 +166,7 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **Las acciones no son filas del árbol**: cada elemento con acciones tiene, al desplegarlo, una fila «Acciones» propia. Las de un día van arriba y los números (varias en una celda) a la misma altura; los periodos, debajo, en dos carriles que no se pisan; lo que no cabe se suma al número de su celda.
 - **Plegado, un elemento resume lo de dentro bajo su barra**: marcas pequeñas, números y una línea por periodo, más apagados. Al abrir una acción desde ese resumen, se despliega lo que la contiene y la celda elegida pasa a su fila.
 - **Cada tipo de acción tiene un icono y un color**, los mismos en toda la app: evento (bandera, ámbar), tarea (casilla, azul), reunión (personas, violeta), recordatorio (campana, rosa) y contratación (maletín, esmeralda). Los números van neutros e invertidos.
+- **Los tipos de acción se filtran sobre el Gantt**: un botón por tipo con cuántas hay. Un clic lo oculta en todo el Gantt (filas, resúmenes y números); Alt + clic o doble clic deja solo ese. Si algo está oculto se dice («Se ven 9 de 14 · Mostrar todas»). Al pasar por un tipo se atenúan los demás; al pasar por una marca, se señala su tipo.
 - **Las acciones se arrastran como las barras**: el cuerpo las mueve y el borde del fin las alarga. Reuniones y recordatorios son de un solo día: ni al crearlas ni después se alargan, y la API lo comprueba.
 - **Una acción sin duración** solo ocupa su día de inicio y lo avisa; la contratación sin baja sigue en curso.
 - **El panel del día** enseña sus acciones y lo que está en curso, y deja crear. Si se abre desde una fila, se cuelga dentro de su fase; desde la cabecera, de cualquier fase, subfase o proceso.

@@ -16,7 +16,7 @@ interface TimelineScaleProps {
   timeline: Timeline
   /** Qué filas se ven (campos visibles). */
   rows: Pick<GanttFields, "month" | "week" | "day">
-  /** Hoy, la semana 1 y los fines de semana se pueden apagar desde la leyenda. */
+  /** Hoy, la semana 1 y los fines de semana se pueden apagar en «Vista». */
   marks?: TimelineMarks
   /** El inicio de la celda bajo el ratón: su día, semana o mes se resalta. */
   hovered?: EpochDay | null
@@ -141,7 +141,13 @@ export function TimelineScale({
               {timeline.weeks.map((week) => (
                 <span
                   key={week.start}
-                  title={week.number != null ? `Semana ${signed(week.number)}` : undefined}
+                  title={
+                    week.number === 1
+                      ? "Semana 1 · empieza el rodaje; de ella se cuentan las demás"
+                      : week.number != null
+                        ? `Semana ${signed(week.number)}`
+                        : undefined
+                  }
                   className={cn(
                     "border-border/60 absolute inset-y-0 flex items-center overflow-hidden border-l pl-1.5 whitespace-nowrap",
                     marks.week1 && week.number === 1 && "bg-primary/10 text-primary font-semibold",
@@ -167,7 +173,7 @@ export function TimelineScale({
                 return (
                   <span
                     key={day.day}
-                    title={formatLongDate(toIsoDate(day.day))}
+                    title={`${formatLongDate(toIsoDate(day.day))}${day.day === timeline.today ? " · hoy" : ""}`}
                     data-hovered={day.day === hovered || undefined}
                     className={cn(
                       "absolute inset-y-0 flex flex-col items-center justify-center leading-none",

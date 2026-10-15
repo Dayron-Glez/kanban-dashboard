@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type {
+  ActionKind,
   DatePoint,
   EditElementInput,
   SetElementRuleInput,
@@ -32,7 +33,13 @@ import {
 } from "../lib/planPreview"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
-import { loadLegend, saveLegend, type GanttLegend } from "../lib/ganttLegend"
+import { loadMarks, saveMarks } from "../lib/ganttMarks"
+import {
+  countActionKinds,
+  hideActionKinds,
+  loadHiddenKinds,
+  saveHiddenKinds,
+} from "../lib/actionFilter"
 import {
   buildTimeline,
   dragTarget,
@@ -40,7 +47,9 @@ import {
   scrollLeftFor,
   type BarDrag,
   type PlanZoom,
+  type TimelineMarks,
 } from "../lib/timeline"
+import { ActionKindFilter } from "./ActionKindFilter"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { DaySheet } from "./DaySheet"
 import { DiscardDialog } from "./DiscardDialog"
@@ -48,7 +57,7 @@ import type { WhenChange } from "./WhenPicker"
 import type { DayPanel } from "../hooks/useGanttCells"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
-import { GanttLegendStrip } from "./GanttLegend"
+import { GanttGuide } from "./GanttGuide"
 import { GoToDate } from "./GoToDate"
 import { PlanHeader } from "./PlanHeader"
 import { PlanSetup } from "./PlanSetup"
@@ -130,13 +139,25 @@ export function CalendarPage() {
     setFields(next)
     saveGanttFields(next)
   }
-  const [legend, setLegend] = useState<GanttLegend>(loadLegend)
-  const changeLegend = (next: GanttLegend) => {
-    setLegend(next)
-    saveLegend(next)
+  const [marks, setMarks] = useState<TimelineMarks>(loadMarks)
+  const changeMarks = (next: TimelineMarks) => {
+    setMarks(next)
+    saveMarks(next)
+  }
+  // Los tipos de acción ocultos en el Gantt, también recordados.
+  const [hiddenKinds, setHiddenKinds] = useState<ActionKind[]>(loadHiddenKinds)
+  const changeHiddenKinds = (next: ActionKind[]) => {
+    setHiddenKinds(next)
+    saveHiddenKinds(next)
   }
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
+  const actionCounts = useMemo(() => countActionKinds(tree), [tree])
+  // El filtro es del Gantt: el árbol del móvil lo cuenta todo.
+  const shownTree = useMemo(
+    () => (view === "tabla" ? tree : hideActionKinds(tree, hiddenKinds)),
+    [tree, view, hiddenKinds]
+  )
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
   const timeline = useMemo(() => buildTimeline(elements ?? [], undefined, zoom), [elements, zoom])
@@ -212,6 +233,20 @@ export function CalendarPage() {
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
   }, [openId, elements, tree, dirty])
+
+  // Resaltar un tipo de acción sin volver a pintar el Gantt: lo hace el CSS
+  // (tailwind.css) a partir de estos atributos del contenedor.
+  const followActionKind = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const surface = event.currentTarget
+    const target = event.type === "pointerleave" ? null : (event.target as Element)
+    const filter = target?.closest<HTMLElement>("[data-kind-filter]")
+    const mark = target?.closest<HTMLElement>("[data-action-kind]")
+    const focus = filter?.getAttribute("aria-pressed") === "true" ? filter.dataset.kindFilter : null
+    if (focus) surface.dataset.actionFocus = focus
+    else delete surface.dataset.actionFocus
+    if (mark?.dataset.actionKind) surface.dataset.actionHover = mark.dataset.actionKind
+    else delete surface.dataset.actionHover
+  }
 
   const nameOf = (id: string) =>
     plan.data?.elements.find((element) => element.id === id)?.name ?? id
@@ -342,6 +377,8 @@ export function CalendarPage() {
       {/* Con el detalle abierto, en pantallas anchas el plan le deja sitio y no queda tapado.
           Pulsar aquí no cierra el panel: se sigue trabajando con él abierto. */}
       <div
+        onPointerOver={followActionKind}
+        onPointerLeave={followActionKind}
         data-calendar-surface
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
@@ -371,9 +408,10 @@ export function CalendarPage() {
                     <ViewOptionsMenu
                       fields={fields}
                       onFieldsChange={changeFields}
-                      legend={legend}
-                      onLegendChange={changeLegend}
+                      marks={marks}
+                      onMarksChange={changeMarks}
                     />
+                    <GanttGuide />
                   </>
                 )}
               </>
@@ -404,10 +442,16 @@ export function CalendarPage() {
         ) : (
           <>
             {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
-            {view !== "tabla" && timeline && <GanttLegendStrip legend={legend} />}
+            {view !== "tabla" && timeline && (
+              <ActionKindFilter
+                counts={actionCounts}
+                hidden={hiddenKinds}
+                onChange={changeHiddenKinds}
+              />
+            )}
             <div className="-mx-6 min-h-0 flex-1 px-6">
               <ElementTree
-                nodes={tree}
+                nodes={shownTree}
                 dependencies={plan.data.dependencies}
                 editable={isOwner}
                 pending={changes.pending}
@@ -429,7 +473,7 @@ export function CalendarPage() {
                 viewportRef={viewportRef}
                 fields={fields}
                 headerRows={fields}
-                marks={legend}
+                marks={marks}
                 selectedId={openId}
                 view={view}
                 timeline={timeline}

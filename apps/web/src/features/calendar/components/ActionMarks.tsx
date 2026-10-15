@@ -16,6 +16,9 @@ const label = (action: ElementNode) => {
     endsOn && endsOn !== startsOn ? `${short(startsOn!)} → ${short(endsOn)}` : short(startsOn!)
   return `${ELEMENT_KIND_LABELS[kind]}: ${name}, ${when}`
 }
+// Los tipos de una marca, para resaltarla con su filtro (ver tailwind.css).
+const kindsOf = (list: ElementNode[]) =>
+  [...new Set(list.map((action) => action.element.kind))].join(" ")
 const countLabel = (list: ElementNode[]) =>
   `${list.length} ${list.length === 1 ? "acción" : "acciones"}: ${list.map(label).join("\n")}`
 
@@ -105,6 +108,7 @@ export function ActionLane({
         ) : (
           <span
             key={start}
+            data-action-kind={kindsOf(list)}
             title={list.map(label).join("\n")}
             aria-label={countLabel(list)}
             className={cn(COUNT, "h-[18px] min-w-5 px-1.5 text-xs")}
@@ -135,6 +139,7 @@ export function ActionRollup({
         return (
           <span
             key={action.element.id}
+            data-action-kind={action.element.kind}
             role="img"
             aria-label={label(action)}
             title={label(action)}
@@ -155,6 +160,7 @@ export function ActionRollup({
         list.length === 1 && timeline.zoom === "dia" ? (
           <span
             key={start}
+            data-action-kind={kindsOf(list)}
             role="img"
             aria-label={label(list[0]!)}
             title={label(list[0]!)}
@@ -169,6 +175,7 @@ export function ActionRollup({
         ) : (
           <span
             key={start}
+            data-action-kind={kindsOf(list)}
             title={list.map(label).join("\n")}
             aria-label={countLabel(list)}
             className={cn(COUNT, "h-4 min-w-[18px] px-1.5 text-[10px]")}
@@ -219,6 +226,7 @@ function ActionMark({
   const common = {
     type: "button" as const,
     "data-bar": true,
+    "data-action-kind": action.element.kind,
     "aria-label": label(action),
     "aria-keyshortcuts": free ? "ArrowLeft ArrowRight" : undefined,
     title: label(action),
