@@ -970,6 +970,26 @@ describe("CalendarPage", () => {
       expect(filters).not.toHaveTextContent("Se ven")
     })
 
+    it("los tipos de acción sin ninguna acción quedan deshabilitados", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+        ])
+      )
+      renderPage()
+
+      const filters = await screen.findByRole("group", { name: "Tipos de acción que se ven" })
+      expect(within(filters).getByRole("button", { name: "Reunión: 1" })).toBeEnabled()
+      const empty = within(filters).getAllByRole("button", { name: /: 0$/ })
+      expect(empty.length).toBeGreaterThan(0)
+      for (const button of empty) expect(button).toBeDisabled()
+    })
+
     it("pasar por un tipo resalta sus marcas, y pasar por una marca señala su tipo", async () => {
       api.elements.getPlan.mockResolvedValue(
         planOf([

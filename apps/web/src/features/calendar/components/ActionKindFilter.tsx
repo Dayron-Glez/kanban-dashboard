@@ -40,33 +40,40 @@ export function ActionKindFilter({ counts, hidden, onChange }: Readonly<ActionKi
       {ACTION_KINDS.map((kind) => {
         const visible = !hidden.includes(kind)
         const label = ELEMENT_KIND_LABELS[kind]
+        // Un tipo oculto sigue activo aunque no tenga acciones, para poder volver a mostrarlo.
+        const empty = counts[kind] === 0 && visible
         return (
           <Tooltip key={kind}>
             <TooltipTrigger asChild>
-              <Toggle
-                pressed={visible}
-                onClick={onClick(kind)}
-                data-kind-filter={kind}
-                aria-label={`${label}: ${counts[kind]}`}
-                style={{ "--kind": `var(--action-${kind})` } as CSSProperties}
-                className={cn(
-                  "h-7 min-w-0 gap-1.5 rounded-full border px-2.5 pl-2 text-sm select-none hover:text-current",
-                  "data-[state=on]:text-foreground data-[state=on]:border-[color-mix(in_oklch,var(--kind)_35%,transparent)] data-[state=on]:bg-[color-mix(in_oklch,var(--kind)_12%,transparent)]",
-                  "data-[state=on]:hover:bg-[color-mix(in_oklch,var(--kind)_20%,transparent)]",
-                  "data-[state=off]:text-muted-foreground/70 data-[state=off]:border-border data-[state=off]:border-dashed"
-                )}
-              >
-                <ActionGlyph kind={kind} className={cn("size-3.5", !visible && "text-current")} />
-                <span className={cn(!visible && "line-through")}>{label}</span>
-                {visible ? (
-                  <span className="text-muted-foreground tabular-nums">{counts[kind]}</span>
-                ) : (
-                  <IconEyeOff aria-hidden className="size-3.5" />
-                )}
-              </Toggle>
+              <span className="inline-flex">
+                <Toggle
+                  pressed={visible}
+                  disabled={empty}
+                  onClick={onClick(kind)}
+                  data-kind-filter={kind}
+                  aria-label={`${label}: ${counts[kind]}`}
+                  style={{ "--kind": `var(--action-${kind})` } as CSSProperties}
+                  className={cn(
+                    "h-7 min-w-0 gap-1.5 rounded-full border px-2.5 pl-2 text-sm select-none hover:text-current",
+                    "data-[state=on]:text-foreground data-[state=on]:border-[color-mix(in_oklch,var(--kind)_35%,transparent)] data-[state=on]:bg-[color-mix(in_oklch,var(--kind)_12%,transparent)]",
+                    "data-[state=on]:hover:bg-[color-mix(in_oklch,var(--kind)_20%,transparent)]",
+                    "data-[state=off]:text-muted-foreground/70 data-[state=off]:border-border data-[state=off]:border-dashed"
+                  )}
+                >
+                  <ActionGlyph kind={kind} className={cn("size-3.5", !visible && "text-current")} />
+                  <span className={cn(!visible && "line-through")}>{label}</span>
+                  {visible ? (
+                    <span className="text-muted-foreground tabular-nums">{counts[kind]}</span>
+                  ) : (
+                    <IconEyeOff aria-hidden className="size-3.5" />
+                  )}
+                </Toggle>
+              </span>
             </TooltipTrigger>
             <TooltipContent>
-              {visible ? "Ocultar" : "Mostrar"} · Alt+clic: solo {label.toLowerCase()}
+              {empty
+                ? `No hay acciones de ${label.toLowerCase()}`
+                : `${visible ? "Ocultar" : "Mostrar"} · Alt+clic: solo ${label.toLowerCase()}`}
             </TooltipContent>
           </Tooltip>
         )
