@@ -27,9 +27,16 @@ export const toggleKind = (hidden: readonly ActionKind[], kind: ActionKind): Act
     ? hidden.filter((other) => other !== kind)
     : ACTION_KINDS.filter((other) => other === kind || hidden.includes(other))
 
-/** Dejar solo un tipo; si ya era el único, se vuelven a ver todos. */
-export function soloKind(hidden: readonly ActionKind[], kind: ActionKind): ActionKind[] {
-  const others = ACTION_KINDS.filter((other) => other !== kind)
+/**
+ * Dejar solo un tipo; si ya era el único, se vuelven a ver todos. Solo entre los
+ * que tienen acciones (`available`): un tipo vacío nunca se oculta.
+ */
+export function soloKind(
+  hidden: readonly ActionKind[],
+  kind: ActionKind,
+  available: readonly ActionKind[] = ACTION_KINDS
+): ActionKind[] {
+  const others = available.filter((other) => other !== kind)
   const alreadySolo = hidden.length === others.length && !hidden.includes(kind)
   return alreadySolo ? [] : others
 }
