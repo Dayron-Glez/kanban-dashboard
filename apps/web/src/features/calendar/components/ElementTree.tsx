@@ -43,6 +43,7 @@ import {
   loadNameWidth,
   NAME_WIDTH,
   RAIL_WIDTH,
+  deleteHintFlag,
   railFlag,
   railHintFlag,
   saveNameWidth,
@@ -91,6 +92,8 @@ interface ElementTreeProps {
   ) => { days: number; reason: string | null }
   /** Crear una acción en las celdas elegidas; `done` cierra el menú si sale bien. */
   onCreateAction?: (parentId: string, input: CreateActionInput, done: () => void) => void
+  /** Pedir que se borre una acción (Supr en su celda): la confirmación va fuera. */
+  onDeleteAction?: (elementId: string) => void
   /** Desplegar lo que contiene a un elemento, para que se vea su fila. */
   onReveal?: (elementIds: string[]) => void
   /** Abrir el panel con todo el proyecto en un día. */
@@ -136,6 +139,7 @@ export function ElementTree({
   onDragBar,
   limitDrag,
   onCreateAction,
+  onDeleteAction,
   onOpenDay,
   onReveal,
   dayPanel = null,
@@ -262,6 +266,9 @@ export function ElementTree({
     return actionsInSpan(node, false, from, to)
   }
 
+  // La pista de Supr sale en la celda de una sola acción hasta que se usa una vez.
+  const [deleteHintSeen, setDeleteHintSeen] = useState<boolean>(deleteHintFlag.load)
+  const canDelete = editable && onDeleteAction != null
   const { hovered, selection, span, trackProps, menuOpen, closeMenu, showHint, selectCell } =
     useGanttCells(
       showTimeline ? timeline : null,
@@ -276,6 +283,20 @@ export function ElementTree({
         const here = cellItems(row, cell.start, cell.start + cell.days - 1)
         if (here.length > 1) return "list"
         if (here.length === 1) return { row: revealAndOpen(here[0]!) }
+      },
+      // Supr borra la única acción de la celda, tras confirmarlo; con varias, se
+      // abre su lista para elegir cuál.
+      (row, day) => {
+        if (!timeline || !canDelete) return
+        const cell = cellAt(timeline, day)
+        const here = cellItems(row, cell.start, cell.start + cell.days - 1)
+        if (here.length > 1) return "list"
+        if (here.length === 0) return
+        onDeleteAction(here[0]!.element.id)
+        if (!deleteHintSeen) {
+          deleteHintFlag.save(true)
+          setDeleteHintSeen(true)
+        }
       }
     )
 
@@ -287,6 +308,24 @@ export function ElementTree({
       .querySelector("[data-cell-selection]")
       ?.scrollIntoView({ block: "nearest", inline: "nearest" })
   }, [panelDay])
+
+  // Vacía, la celda no abre nada con un clic: la pista dice cómo crear. Con una
+  // sola acción, cómo borrarla, hasta que se haga una vez.
+  const cellHint = (count: number) => {
+    const text =
+      showHint && editable && count === 0
+        ? "Doble clic o Enter para crear"
+        : canDelete && !deleteHintSeen && count === 1
+          ? "Supr para borrar"
+          : null
+    return (
+      text && (
+        <span className="bg-foreground text-background absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap shadow-sm">
+          {text}
+        </span>
+      )
+    )
+  }
 
   const cellDays = (start: number) => (timeline ? cellAt(timeline, start).days : 1)
   const spanLabel = (cell: TimelineCell) => {
@@ -465,14 +504,7 @@ export function ElementTree({
                 {spanLabel(span)}
               </span>
             ) : (
-              // Vacía, la celda no abre nada con un clic: la pista dice cómo crear.
-              showHint &&
-              editable &&
-              cellItems(row, span.start, span.start + span.days - 1).length === 0 && (
-                <span className="bg-foreground text-background absolute -top-1 left-0 z-20 -translate-y-full rounded px-1.5 py-0.5 text-sm font-medium whitespace-nowrap shadow-sm">
-                  Doble clic o Enter para crear
-                </span>
-              )
+              cellHint(cellItems(row, span.start, span.start + span.days - 1).length)
             )}
           </span>
         )}

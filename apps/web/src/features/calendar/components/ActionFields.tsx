@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import {
   ACTION_KINDS,
   ACTION_PARENT_KINDS,
@@ -8,21 +8,7 @@ import {
   type EditElementInput,
 } from "@repo/contracts"
 import { IconTrash } from "@tabler/icons-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Button,
-  buttonVariants,
-  cn,
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/shared/index"
+import { Button, cn, ToggleGroup, ToggleGroupItem } from "@/shared/index"
 import { ELEMENT_KIND_LABELS, flattenTree, type ElementNode } from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
 import { ActionGlyph } from "./ActionGlyph"
@@ -139,56 +125,21 @@ export function ActionFields({
   )
 }
 
-// Para decir qué se borra: «la reunión», «el evento».
-const WHAT: Record<ActionKind, string> = {
-  event: "el evento",
-  task: "la tarea",
-  meeting: "la reunión",
-  reminder: "el recordatorio",
-  hiring: "la contratación",
-}
-
-/** Borrar una acción, tras confirmarlo: no se puede deshacer. */
+/** El botón de borrar del panel: la confirmación la pide quien lo usa. */
 export function DeleteAction({
-  name,
-  kind,
   disabled,
   onDelete,
-}: Readonly<{ name: string; kind: ActionKind; disabled: boolean; onDelete: () => void }>) {
-  const [open, setOpen] = useState<boolean>(false)
+}: Readonly<{ disabled: boolean; onDelete: () => void }>) {
   return (
-    <>
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={disabled}
-        onClick={() => setOpen(true)}
-        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-      >
-        <IconTrash aria-hidden />
-        Borrar
-      </Button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-semibold">
-              ¿Borrar {WHAT[kind]} “{name}”?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm">
-              Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={onDelete}
-              className={buttonVariants({ variant: "destructive" })}
-            >
-              Borrar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={disabled}
+      onClick={onDelete}
+      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+    >
+      <IconTrash aria-hidden />
+      Borrar
+    </Button>
   )
 }

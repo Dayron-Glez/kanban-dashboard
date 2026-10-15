@@ -31,6 +31,7 @@ import {
   previewChange,
   type PlanChange,
 } from "../lib/planPreview"
+import { describeAction } from "../lib/actionStyle"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { loadMarks, saveMarks } from "../lib/ganttMarks"
@@ -52,6 +53,7 @@ import {
 import { ActionKindFilter } from "./ActionKindFilter"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { DaySheet } from "./DaySheet"
+import { DeleteActionDialog } from "./DeleteActionDialog"
 import { DiscardDialog } from "./DiscardDialog"
 import type { WhenChange } from "./WhenPicker"
 import type { DayPanel } from "../hooks/useGanttCells"
@@ -83,6 +85,8 @@ export function CalendarPage() {
   const generate = useGenerateFromTemplate(projectId)
   const createAction = useCreateAction(projectId)
   const deleteElement = useDeleteElement(projectId)
+  // La acción que se va a borrar, a falta de confirmarlo (desde el panel o con Supr).
+  const [toDelete, setToDelete] = useState<string | null>(null)
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
   // A la derecha va un panel cada vez: el de un elemento o el de un día.
@@ -328,6 +332,9 @@ export function CalendarPage() {
     } else if (change.end && !move("end", change.end)) return
     commitDraft(elementId, input)
   }
+  const deleting =
+    (toDelete && plan.data?.elements.find((element) => element.id === toDelete)) || null
+
   const saveDraft = () => {
     if (!openId || !dirty) return
     const elementId = openId
@@ -462,6 +469,7 @@ export function CalendarPage() {
                 onMoveDate={onMoveDate}
                 onDragBar={onDragBar}
                 limitDrag={limitDrag}
+                onDeleteAction={setToDelete}
                 onCreateAction={(parentId, input, done) =>
                   createAction.mutate({ parentId, input }, { onSuccess: done })
                 }
@@ -495,14 +503,7 @@ export function CalendarPage() {
           }
           onApplyWhen={applyWhen}
           onEdit={(elementId, input) => addToDraft({ type: "edit", elementId, input })}
-          onDelete={(elementId) =>
-            deleteElement.mutate(elementId, {
-              onSuccess: () => {
-                navigate(null)
-                toast.success("Acción borrada", { id: "plan-change" })
-              },
-            })
-          }
+          onDelete={setToDelete}
           onOpenDay={openDayPanel}
           bounds={timeline?.range}
           onSetRule={(elementId, point, input: SetElementRuleInput) =>
@@ -520,6 +521,34 @@ export function CalendarPage() {
           }}
         />
       )}
+      <DeleteActionDialog
+        action={
+          deleting && {
+            kind: deleting.kind as ActionKind,
+            name: deleting.name,
+            startsOn: deleting.startsOn,
+            endsOn: deleting.endsOn,
+            parent: deleting.parentId ? nameOf(deleting.parentId) : null,
+          }
+        }
+        onCancel={() => setToDelete(null)}
+        onConfirm={() => {
+          if (!deleting) return
+          setToDelete(null)
+          deleteElement.mutate(deleting.id, {
+            onSuccess: () => {
+              // Si estaba abierta, el panel se cierra: lo que tuviera sin guardar ya no vale.
+              if (openId === deleting.id) navigate(null)
+              toast.success(
+                `Se borró ${describeAction({ kind: deleting.kind as ActionKind, name: deleting.name })}`,
+                {
+                  id: "plan-change",
+                }
+              )
+            },
+          })
+        }}
+      />
       <DiscardDialog
         open={leaving != null}
         name={plan.data?.elements.find((element) => element.id === openId)?.name ?? ""}
