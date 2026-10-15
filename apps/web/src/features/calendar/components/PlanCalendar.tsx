@@ -1,12 +1,23 @@
 import { createContext, useContext, useState } from "react"
 import type { ActionKind } from "@repo/contracts"
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react"
-
 import { fromIsoDate, toISODate, toIsoDate, type EpochDay } from "@repo/domain"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import type { CustomComponents, DayButton } from "react-day-picker"
-import { Button, Calendar, cn, HoverCard, HoverCardContent, HoverCardTrigger } from "@/shared/index"
+import {
+  Button,
+  Calendar,
+  cn,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/index"
 import { ACTION_BG } from "../lib/actionStyle"
 import { formatLongDate } from "../lib/planFormat"
 import { ActionList, type ListedAction } from "./ActionList"
@@ -32,6 +43,8 @@ interface PlanCalendarProps {
   numberOfMonths?: 1 | 2
   /** Los días con acciones llevan puntos del color de su tipo. */
   occupancy?: CalendarOccupancy
+  /** Los días que se pueden elegir: los del Gantt. Fuera, desactivados. */
+  bounds?: { start: EpochDay; end: EpochDay }
 }
 
 const NO_OCCUPANCY: CalendarOccupancy = { scope: "", days: {} }
@@ -39,8 +52,16 @@ const NO_OCCUPANCY: CalendarOccupancy = { scope: "", days: {} }
 // hay cada día le llega por contexto.
 const OccupancyContext = createContext<CalendarOccupancy>(NO_OCCUPANCY)
 
+const MONTHS = Array.from({ length: 12 }, (_, index) =>
+  format(new Date(2026, index, 1), "LLLL", { locale: es })
+)
+const THIS_YEAR = new Date().getFullYear()
+
 const toDate = (day: EpochDay) => parseISO(toIsoDate(day))
 const toDay = (date: Date) => fromIsoDate(toISODate(date))
+// Los meses como un número seguido, para compararlos y moverse entre ellos.
+const monthIndex = (date: Date) => date.getFullYear() * 12 + date.getMonth()
+const fromIndex = (index: number) => new Date(Math.floor(index / 12), index % 12, 1)
 
 /**
  * El calendario para elegir fechas, sobre el Calendar de shadcn: la navegación y
@@ -54,10 +75,21 @@ export function PlanCalendar({
   defaultMonth,
   numberOfMonths = 1,
   occupancy = NO_OCCUPANCY,
+  bounds,
 }: Readonly<PlanCalendarProps>) {
-  const [month, setMonth] = useState<Date>(() =>
-    toDate(defaultMonth ?? value.start ?? fromIsoDate(toISODate(new Date())))
+  // El primer mes que se puede ver y el último en que puede empezar la vista: con
+  // dos meses, el anterior al del fin.
+  const first = bounds ? monthIndex(toDate(bounds.start)) : -Infinity
+  const last = bounds
+    ? Math.max(first, monthIndex(toDate(bounds.end)) - numberOfMonths + 1)
+    : Infinity
+  const clamp = (index: number) => fromIndex(Math.min(last, Math.max(first, index)))
+
+  const [month, setMonthState] = useState<Date>(() =>
+    clamp(monthIndex(toDate(defaultMonth ?? value.start ?? fromIsoDate(toISODate(new Date())))))
   )
+  const setMonth = (date: Date) => setMonthState(clamp(monthIndex(date)))
+  const current = monthIndex(month)
   // El primer día de un periodo, mientras se elige el segundo, y por dónde va el ratón.
   const [picking, setPicking] = useState<EpochDay | null>(null)
   const [hovered, setHovered] = useState<EpochDay | null>(null)
@@ -81,8 +113,16 @@ export function PlanCalendar({
     onChange({ start: Math.min(picking, day), end: Math.max(picking, day) })
   }
 
-  const step = (delta: number) =>
-    setMonth((current) => new Date(current.getFullYear(), current.getMonth() + delta, 1))
+  // Los años del selector: los del plan o, sin él, diez atrás y quince adelante.
+  const firstYear = bounds ? toDate(bounds.start).getFullYear() : THIS_YEAR - 10
+  const lastYear = bounds ? toDate(bounds.end).getFullYear() : THIS_YEAR + 15
+  const years = Array.from({ length: lastYear - firstYear + 1 }, (_, index) => firstYear + index)
+
+  // Un mes del selector sin ningún día del plan.
+  const outside = (index: number) =>
+    bounds != null && (index < first || index > monthIndex(toDate(bounds.end)))
+
+  const step = (delta: number) => setMonth(fromIndex(current + delta))
 
   const days = (predicate: (day: EpochDay) => boolean) => (date: Date) => predicate(toDay(date))
   const modifiers =
@@ -103,21 +143,53 @@ export function PlanCalendar({
             variant="outline"
             size="icon-sm"
             aria-label="Mes anterior"
+            disabled={current <= first}
             onClick={() => step(-1)}
           >
             <IconChevronLeft aria-hidden />
           </Button>
-          <span className="text-muted-foreground text-sm">
-            {mode === "single"
-              ? "Elige el día"
-              : picking != null
-                ? "Elige el día de fin"
-                : "Pulsa el inicio y el fin"}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <Select
+              value={String(month.getMonth())}
+              onValueChange={(next) => setMonth(new Date(month.getFullYear(), Number(next), 1))}
+            >
+              <SelectTrigger size="sm" aria-label="Mes" className="capitalize">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((name, index) => (
+                  <SelectItem
+                    key={name}
+                    value={String(index)}
+                    disabled={outside(month.getFullYear() * 12 + index)}
+                    className="capitalize"
+                  >
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={String(month.getFullYear())}
+              onValueChange={(next) => setMonth(new Date(Number(next), month.getMonth(), 1))}
+            >
+              <SelectTrigger size="sm" aria-label="Año">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                {years.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Button
             variant="outline"
             size="icon-sm"
             aria-label="Mes siguiente"
+            disabled={current >= last}
             onClick={() => step(1)}
           >
             <IconChevronRight aria-hidden />
@@ -131,6 +203,7 @@ export function PlanCalendar({
           month={month}
           onMonthChange={setMonth}
           numberOfMonths={numberOfMonths}
+          disabled={bounds && [{ before: toDate(bounds.start) }, { after: toDate(bounds.end) }]}
           onDayClick={pick}
           onDayMouseEnter={(date) => picking != null && setHovered(toDay(date))}
           modifiers={modifiers}
@@ -140,7 +213,11 @@ export function PlanCalendar({
             months: "flex gap-6",
             month: "flex flex-1 flex-col",
             month_grid: "w-full border-collapse",
-            month_caption: "flex h-7 items-center justify-center first-letter:uppercase",
+            // Con un mes, ya lo dicen los selectores; con dos, cada uno lleva el suyo.
+            month_caption: cn(
+              "flex h-7 items-center justify-center",
+              numberOfMonths === 1 && "sr-only"
+            ),
             caption_label: "text-sm font-semibold capitalize",
             weekday:
               "min-w-(--cell-size) flex-1 text-xs font-normal text-muted-foreground select-none",
@@ -155,6 +232,11 @@ export function PlanCalendar({
           }}
           components={{ Root: PlanRoot, DayButton: PlanDay }}
         />
+        {mode === "range" && (
+          <p className="text-muted-foreground text-center text-sm">
+            {picking != null ? "Ahora, el día de fin" : "Pulsa el día de inicio y el de fin"}
+          </p>
+        )}
       </div>
     </OccupancyContext>
   )
@@ -167,7 +249,7 @@ const PlanRoot: CustomComponents["Root"] = ({ className, rootRef, ...props }) =>
 )
 
 // Un día: el número, inicio y fin en el color principal, hoy subrayado y, si
-// hay acciones, hasta tres puntos con su color y un Tooltip con lo que hay.
+// hay acciones, hasta tres puntos con su color y, al pasar por encima, la lista de lo que hay.
 function PlanDay({ day, modifiers, className, ...props }: React.ComponentProps<typeof DayButton>) {
   const occupancy = useContext(OccupancyContext)
   const busy = occupancy.days[toISODate(day.date)] ?? []
@@ -184,7 +266,9 @@ function PlanDay({ day, modifiers, className, ...props }: React.ComponentProps<t
         weekend && !edge && "text-muted-foreground",
         edge
           ? "text-primary-foreground before:bg-primary font-bold before:absolute before:inset-0.5 before:rounded-lg"
-          : "hover:ring-primary hover:ring-1 hover:ring-inset",
+          : !modifiers.disabled && "hover:ring-primary hover:ring-1 hover:ring-inset",
+        // Fuera del plan: el Gantt no llega ahí.
+        modifiers.disabled && "cursor-not-allowed opacity-30",
         className
       )}
     >

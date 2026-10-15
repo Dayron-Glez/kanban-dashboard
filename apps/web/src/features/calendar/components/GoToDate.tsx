@@ -16,6 +16,8 @@ interface GoToDateProps {
   /** Saltos habituales: el inicio del rodaje, el del plan… */
   shortcuts: { label: string; day: EpochDay }[]
   today: EpochDay
+  /** Lo que dibuja el Gantt: fuera no se puede ir. */
+  bounds: { start: EpochDay; end: EpochDay }
   onGo: (day: EpochDay) => void
 }
 
@@ -23,7 +25,7 @@ interface GoToDateProps {
  * Moverse en el tiempo, en un solo control: «Hoy», lo más usado, con texto; y el
  * calendario para ir a cualquier otro día, solo icono con su tooltip.
  */
-export function GoToDate({ shortcuts, today, onGo }: Readonly<GoToDateProps>) {
+export function GoToDate({ shortcuts, today, bounds, onGo }: Readonly<GoToDateProps>) {
   const [open, setOpen] = useState<boolean>(false)
   const go = (day: EpochDay) => {
     onGo(day)
@@ -64,6 +66,7 @@ export function GoToDate({ shortcuts, today, onGo }: Readonly<GoToDateProps>) {
               value={{ start: null, end: null }}
               onChange={({ start }) => start != null && go(start)}
               defaultMonth={shortcuts[0]?.day ?? today}
+              bounds={bounds}
             />
           </div>
           {shortcuts.length > 0 && (

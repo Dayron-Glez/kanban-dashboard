@@ -3,7 +3,7 @@ import type { CalendarElement } from "@repo/contracts"
 import { fromIsoDate, toIsoDate } from "@repo/domain"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { beforeAll, describe, expect, it, vi } from "vitest"
 import { PlanCalendar, type CalendarValue } from "../components/PlanCalendar"
 
 const day = (iso: string) => document.querySelector(`[data-day="${iso}"] button`) as HTMLElement
@@ -44,14 +44,21 @@ function Range({ onChange }: Readonly<{ onChange: (value: CalendarValue) => void
   )
 }
 
+// El Select de Radix usa la captura del puntero y scrollIntoView, que jsdom no tiene.
+beforeAll(() => {
+  Element.prototype.hasPointerCapture ??= () => false
+  Element.prototype.releasePointerCapture ??= () => {}
+  Element.prototype.scrollIntoView ??= () => {}
+})
+
 describe("PlanCalendar", () => {
   it("un periodo: el primer clic es el inicio y el segundo, el fin, en cualquier orden", async () => {
     const onChange = vi.fn()
     render(<Range onChange={onChange} />)
 
-    expect(screen.getByText("Pulsa el inicio y el fin")).toBeInTheDocument()
+    expect(screen.getByText("Pulsa el día de inicio y el de fin")).toBeInTheDocument()
     await userEvent.click(day("2026-11-05"))
-    expect(screen.getByText("Elige el día de fin")).toBeInTheDocument()
+    expect(screen.getByText("Ahora, el día de fin")).toBeInTheDocument()
     await userEvent.click(day("2026-10-20"))
 
     expect(iso(onChange.mock.lastCall![0])).toEqual({ start: "2026-10-20", end: "2026-11-05" })
@@ -65,6 +72,44 @@ describe("PlanCalendar", () => {
     await userEvent.click(screen.getByRole("button", { name: "Mes siguiente" }))
     expect(screen.queryByText("octubre 2026")).toBeNull()
     expect(screen.getByText("diciembre 2026")).toBeInTheDocument()
+  })
+
+  it("se salta a cualquier mes y año con sus selectores", async () => {
+    render(<Range onChange={() => {}} />)
+
+    await userEvent.click(screen.getByRole("combobox", { name: "Año" }))
+    await userEvent.click(screen.getByRole("option", { name: "2028" }))
+    await userEvent.click(screen.getByRole("combobox", { name: "Mes" }))
+    await userEvent.click(screen.getByRole("option", { name: "marzo" }))
+
+    expect(screen.getByText("marzo 2028")).toBeInTheDocument()
+    expect(screen.getByText("abril 2028")).toBeInTheDocument()
+  })
+
+  it("fuera de lo que dibuja el Gantt, los días, los meses y las flechas se apagan", async () => {
+    const onChange = vi.fn()
+    render(
+      <PlanCalendar
+        mode="single"
+        defaultMonth={fromIsoDate("2026-01-01")}
+        bounds={{ start: fromIsoDate("2026-05-21"), end: fromIsoDate("2026-06-10") }}
+        value={{ start: null, end: null }}
+        onChange={onChange}
+      />
+    )
+    // Abre en el primer mes del plan, aunque se pidiera uno anterior.
+    expect(screen.getByRole("button", { name: "Mes anterior" })).toBeDisabled()
+    expect(day("2026-05-20")).toBeDisabled()
+    await userEvent.click(day("2026-05-21"))
+    expect(iso(onChange.mock.lastCall![0]).start).toBe("2026-05-21")
+
+    await userEvent.click(screen.getByRole("button", { name: "Mes siguiente" }))
+    expect(day("2026-06-11")).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Mes siguiente" })).toBeDisabled()
+
+    await userEvent.click(screen.getByRole("combobox", { name: "Mes" }))
+    expect(screen.getByRole("option", { name: "julio" })).toHaveAttribute("aria-disabled", "true")
+    expect(screen.getByRole("option", { name: "mayo" })).not.toHaveAttribute("aria-disabled")
   })
 
   it("un día: un solo clic basta", async () => {

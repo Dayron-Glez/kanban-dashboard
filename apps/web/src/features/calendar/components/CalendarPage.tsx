@@ -286,7 +286,12 @@ export function CalendarPage() {
                 {view !== "tabla" && timeline && (
                   <>
                     <ZoomControl value={zoom} onChange={setZoom} />
-                    <GoToDate shortcuts={shortcuts} today={timeline.today} onGo={goTo} />
+                    <GoToDate
+                      shortcuts={shortcuts}
+                      today={timeline.today}
+                      bounds={timeline.range}
+                      onGo={goTo}
+                    />
                     <ViewOptionsMenu
                       fields={fields}
                       onFieldsChange={changeFields}
