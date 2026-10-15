@@ -7,8 +7,7 @@ import {
   type UpdateAlertInput,
 } from "@repo/contracts"
 import { and, asc, eq, inArray, sql } from "drizzle-orm"
-import type { Transaction } from "../calendar/calendar-template.js"
-import { DB, type Database } from "../db/db.module.js"
+import { DB, type Database, type Transaction } from "../db/db.module.js"
 import { alerts, alertTargets, crewMembers, departments } from "../db/schema/index.js"
 import { toIso } from "../db/timestamps.js"
 import { ProjectAccess } from "../projects/project-access.js"

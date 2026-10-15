@@ -2,11 +2,9 @@ import { Inject, Injectable, NotFoundException } from "@nestjs/common"
 import { ColumnSchema, type Column, type ColumnCategory } from "@repo/contracts"
 import { applyColumnOrder } from "@repo/domain"
 import { and, count, eq, ne } from "drizzle-orm"
-import { DB, type Database } from "../db/db.module.js"
+import { DB, type Database, type Transaction } from "../db/db.module.js"
 import { columns } from "../db/schema/index.js"
 import { ProjectAccess } from "../projects/project-access.js"
-
-type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
 
 const toColumn = (row: typeof columns.$inferSelect): Column =>
   ColumnSchema.parse({

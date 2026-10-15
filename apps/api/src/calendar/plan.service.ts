@@ -27,10 +27,9 @@ import {
 } from "@repo/domain"
 import { and, eq, max } from "drizzle-orm"
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino"
-import { DB, type Database } from "../db/db.module.js"
+import { DB, type Database, type Transaction } from "../db/db.module.js"
 import { elementDependencies, elements, projects } from "../db/schema/index.js"
 import { ProjectAccess } from "../projects/project-access.js"
-import type { Transaction } from "./calendar-template.js"
 import { loadPlan, recalculatePlan } from "./plan.js"
 
 type EditableElement = {

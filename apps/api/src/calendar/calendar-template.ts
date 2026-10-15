@@ -1,9 +1,7 @@
 import type { ProjectKind } from "@repo/contracts"
 import { buildCalendarTemplate, buildTemplateDependencies } from "@repo/domain"
-import type { Database } from "../db/db.module.js"
+import type { Transaction } from "../db/db.module.js"
 import { elementDependencies, elements } from "../db/schema/index.js"
-
-export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
 
 // Nivel a nivel, para que cada hijo conozca el id que la base dio a su padre;
 // después, las dependencias, que se escriben por clave.
