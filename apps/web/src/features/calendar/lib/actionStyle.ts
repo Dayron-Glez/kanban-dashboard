@@ -8,3 +8,12 @@ export const ACTION_COLOR: Record<ActionKind, string> = {
   reminder: "text-action-reminder",
   hiring: "text-action-hiring",
 }
+
+/** El mismo color, de fondo: los puntos del calendario. */
+export const ACTION_BG: Record<ActionKind, string> = {
+  event: "bg-action-event",
+  task: "bg-action-task",
+  meeting: "bg-action-meeting",
+  reminder: "bg-action-reminder",
+  hiring: "bg-action-hiring",
+}

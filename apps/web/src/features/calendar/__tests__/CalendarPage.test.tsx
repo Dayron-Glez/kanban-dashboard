@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
 import { CalendarPage } from "../components/CalendarPage"
+import { DEFAULT_GANTT_FIELDS, saveGanttFields } from "../lib/ganttFields"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
@@ -617,7 +618,7 @@ describe("CalendarPage", () => {
     // Con el foco, las flechas lo mueven de 16 en 16 px.
     fireEvent.keyDown(border, { key: "ArrowRight" })
     expect(border).toHaveAttribute("aria-valuenow", "296")
-    expect(border).toHaveStyle({ left: "calc(296px + 6.5rem)" })
+    expect(border).toHaveStyle({ left: "calc(296px + 9rem)" })
     expect(localStorage.getItem("cauce.gantt.anchoElemento")).toBe("296")
 
     // Arrastrar: 100 px más ancha, sin pasar del máximo.
@@ -646,9 +647,19 @@ describe("CalendarPage", () => {
         }),
       ])
     )
+    saveGanttFields({ ...DEFAULT_GANTT_FIELDS, start: true, end: true })
     renderPage()
 
-    await userEvent.click(await screen.findByRole("button", { name: "Contraer la columna" }))
+    // El botón va al final de la tabla, detrás de la última columna.
+    const labels = (await screen.findByText("Fin")).parentElement!
+    expect(labels.lastElementChild).toContainElement(
+      screen.getByRole("button", { name: "Contraer la columna" })
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Contraer la columna" }))
+    // Contraída, solo la tira: ni duración, ni inicio, ni fin.
+    expect(screen.queryByText("Duración")).toBeNull()
+    expect(screen.queryByText("Inicio")).toBeNull()
+    expect(screen.queryByText("Fin")).toBeNull()
     // En la tira no se lee el nombre, pero sigue en los botones y en el Tooltip.
     expect(screen.queryByText("Rodaje", { selector: "span" })).toBeNull()
     expect(screen.getByRole("button", { name: "Ver el detalle de Rodaje" })).toBeInTheDocument()
@@ -1043,9 +1054,7 @@ describe("CalendarPage", () => {
       await userEvent.keyboard("{Enter}")
       expect(screen.queryByRole("heading", { name: "Lectura de guion" })).toBeNull()
       await userEvent.keyboard("{Shift>}{Enter}{/Shift}")
-      expect(
-        await screen.findByRole("heading", { name: /miércoles, 14 de octubre de 2026/i })
-      ).toBeInTheDocument()
+      expect(await screen.findByRole("heading", { name: "mié 14 oct 2026" })).toBeInTheDocument()
       await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
 
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
@@ -1184,9 +1193,7 @@ describe("CalendarPage", () => {
 
       await userEvent.click(await screen.findByTitle("mié 14 oct 2026"))
       const panel = await screen.findByRole("dialog")
-      expect(
-        within(panel).getByRole("heading", { name: /14 de octubre de 2026/ })
-      ).toBeInTheDocument()
+      expect(within(panel).getByRole("heading", { name: "mié 14 oct 2026" })).toBeInTheDocument()
       const actions = within(panel).getByRole("region", { name: "Acciones del día" })
       expect(within(actions).getByRole("button", { name: /Lectura de guion/ })).toHaveTextContent(
         "Rodaje"
@@ -1214,15 +1221,13 @@ describe("CalendarPage", () => {
       )
 
       await userEvent.click(within(panel).getByRole("button", { name: "Día siguiente" }))
-      expect(
-        within(panel).getByRole("heading", { name: /15 de octubre de 2026/ })
-      ).toBeInTheDocument()
+      expect(within(panel).getByRole("heading", { name: "jue 15 oct 2026" })).toBeInTheDocument()
       expect(within(panel).getByText("Nada este día.")).toBeInTheDocument()
 
       // Abrir un elemento cambia el panel por el suyo.
       await userEvent.click(within(panel).getByRole("button", { name: /Shooting/ }))
       expect(await screen.findByRole("heading", { name: "Shooting" })).toBeInTheDocument()
-      expect(screen.queryByRole("heading", { name: /15 de octubre/ })).toBeNull()
+      expect(screen.queryByRole("heading", { name: "jue 15 oct 2026" })).toBeNull()
     })
 
     it("desde una fila, el panel cuelga de su fase y no de las hermanas; sus flechas mueven la celda", async () => {
@@ -1310,9 +1315,7 @@ describe("CalendarPage", () => {
       fireEvent.focus(track)
       fireEvent.keyDown(track, { key: "ArrowRight" })
       fireEvent.keyDown(track, { key: "Enter", shiftKey: true })
-      expect(
-        await screen.findByRole("heading", { name: /miércoles, 14 de octubre de 2026/i })
-      ).toBeInTheDocument()
+      expect(await screen.findByRole("heading", { name: "mié 14 oct 2026" })).toBeInTheDocument()
     })
 
     it("las acciones se arrastran: el cuerpo las mueve y el borde alarga, salvo las de un día", async () => {
@@ -1575,6 +1578,118 @@ describe("CalendarPage", () => {
 
     await userEvent.keyboard("{Escape}")
     expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("el panel pasa de elemento con sus botones; pulsar el calendario no lo cierra, pulsar fuera sí", async () => {
+    api.elements.getPlan.mockResolvedValue(planOf([rodaje(), preparacion()]))
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ver el detalle de Rodaje" }))
+    const first = screen.getByRole("dialog", { name: "Rodaje" })
+    expect(within(first).getByRole("button", { name: "Elemento anterior" })).toBeDisabled()
+    await userEvent.click(within(first).getByRole("button", { name: "Elemento siguiente" }))
+    expect(screen.getByRole("dialog", { name: "Preparación" })).toBeInTheDocument()
+
+    // El calendario sigue vivo con el panel abierto.
+    await userEvent.pointer({
+      keys: "[MouseLeft]",
+      target: document.querySelector<HTMLElement>("[data-calendar-surface]")!,
+    })
+    expect(screen.getByRole("dialog", { name: "Preparación" })).toBeInTheDocument()
+    // Fuera de él (la navegación, la cabecera de la app), se cierra.
+    await userEvent.pointer({ keys: "[MouseLeft]", target: document.body })
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  })
+
+  it("el panel edita un borrador: nada se guarda hasta Guardar, y salir con cambios pregunta", async () => {
+    const withWeeks = (amount: number) =>
+      planOf(
+        [
+          preparacion({
+            startsOn: "2027-02-01",
+            endsOn: "2027-04-04",
+            duration: { amount, unit: "weeks" },
+          }),
+          rodaje({
+            startsOn: "2027-04-05",
+            endsOn: "2027-05-30",
+            duration: { amount: 8, unit: "weeks" },
+          }),
+        ],
+        [preparacionAntesDelRodaje]
+      )
+    api.elements.getPlan.mockResolvedValue(withWeeks(9))
+    api.elements.editElement.mockResolvedValue(withWeeks(10))
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Ver el detalle de Preparación" })
+    )
+    const panel = screen.getByRole("dialog", { name: "Preparación" })
+    // En «Cuándo»: una semana más y Aplicar, que la suma al borrador.
+    const oneMore = async () => {
+      await userEvent.click(within(panel).getByRole("button", { name: /^Cuándo:/ }))
+      await userEvent.click(screen.getByRole("button", { name: "Una unidad más" }))
+      await userEvent.click(screen.getByRole("button", { name: "Aplicar" }))
+    }
+    expect(within(panel).getByText("Sin cambios")).toBeInTheDocument()
+
+    await oneMore()
+    expect(within(panel).getByText("1 cambio sin guardar")).toBeInTheDocument()
+    expect(api.elements.editElement).not.toHaveBeenCalled()
+    expect(api.elements.updatePlan).not.toHaveBeenCalled()
+
+    // Cancelar vuelve a lo guardado.
+    await userEvent.click(within(panel).getByRole("button", { name: "Cancelar" }))
+    expect(within(panel).getByText("Sin cambios")).toBeInTheDocument()
+
+    // Salir con cambios pregunta; «Seguir editando» los conserva.
+    await oneMore()
+    await userEvent.keyboard("{Escape}")
+    const ask = await screen.findByRole("alertdialog", { name: "¿Descartar los cambios?" })
+    expect(ask).toHaveTextContent("1 cambio sin guardar en “Preparación”")
+    await userEvent.click(within(ask).getByRole("button", { name: "Seguir editando" }))
+    expect(within(panel).getByText("1 cambio sin guardar")).toBeInTheDocument()
+
+    await userEvent.click(within(panel).getByRole("button", { name: "Guardar" }))
+    expect(api.elements.editElement).toHaveBeenCalledWith("preparacion", {
+      duration: { amount: 10, unit: "weeks" },
+    })
+    expect(await within(panel).findByText("Sin cambios")).toBeInTheDocument()
+
+    // Descartar cierra el panel sin guardar nada más.
+    await oneMore()
+    await userEvent.click(within(panel).getByRole("button", { name: "Elemento siguiente" }))
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Descartar" })
+    )
+    expect(await screen.findByRole("dialog", { name: "Rodaje" })).toBeInTheDocument()
+    expect(api.elements.editElement).toHaveBeenCalledTimes(1)
+  }, 15_000)
+
+  it("una acción se borra desde su panel y el panel se cierra", async () => {
+    const lectura = element("lectura", "rodaje", "Lectura de guion", {
+      kind: "meeting",
+      startsOn: "2027-04-07",
+    })
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }), lectura])
+    )
+    api.elements.deleteElement.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+    await userEvent.click(await screen.findByRole("button", { name: /Lectura de guion/ }))
+    const panel = await screen.findByRole("dialog", { name: "Lectura de guion" })
+    await userEvent.click(within(panel).getByRole("button", { name: "Borrar" }))
+    await userEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Borrar" })
+    )
+
+    expect(api.elements.deleteElement).toHaveBeenCalledWith("lectura")
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
   })
 
   it("la propietaria genera el calendario si está vacío", async () => {

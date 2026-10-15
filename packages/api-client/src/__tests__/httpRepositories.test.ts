@@ -347,4 +347,22 @@ describe("createHttpApi", () => {
     await expect(api.elements.createAction(TOKEN, input)).resolves.toEqual(plan)
     expect(sent()).toEqual([{ method: "POST", path: `/elements/${TOKEN}/actions`, body: input }])
   })
+
+  it("el panel guarda lo editado de una vez, y una acción se borra; los dos devuelven el plan", async () => {
+    const plan = { elements: [], dependencies: [] }
+    const { api, sent } = setup(() => json(plan))
+    const input = {
+      name: "Ensayo general",
+      duration: { amount: 4, unit: "days" },
+      rules: { end: null },
+    } as const
+
+    await expect(api.elements.editElement(TOKEN, input)).resolves.toEqual(plan)
+    await expect(api.elements.deleteElement(TOKEN)).resolves.toEqual(plan)
+
+    expect(sent()).toEqual([
+      { method: "PATCH", path: `/elements/${TOKEN}/edits`, body: input },
+      { method: "DELETE", path: `/elements/${TOKEN}`, body: undefined },
+    ])
+  })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { fromIsoDate } from "../planDates"
-import { moveEnd, moveStart, type PlanEditContext } from "../planEdits"
+import { durationBetween, moveEnd, moveStart, type PlanEditContext } from "../planEdits"
 import type { ScheduleDependency, ScheduledDates, ScheduleElement } from "../schedule"
 
 const d = fromIsoDate
@@ -165,5 +165,21 @@ describe("moveEnd", () => {
     expect(moveEnd(context(element("sin-fechas")), d("2027-05-10"))).toEqual({
       error: "missing-reference",
     })
+  })
+})
+
+describe("durationBetween", () => {
+  const between = (start: string, end: string, unit: "days" | "weeks" | "months" | null) =>
+    durationBetween(fromIsoDate(start), fromIsoDate(end), unit)
+
+  it("en la unidad que tenía si sale exacta", () => {
+    expect(between("2027-04-05", "2027-05-30", "weeks")).toEqual({ amount: 8, unit: "weeks" })
+    expect(between("2027-01-01", "2027-03-31", "months")).toEqual({ amount: 3, unit: "months" })
+  })
+
+  it("si no sale exacta, en semanas y, si tampoco, en días", () => {
+    expect(between("2027-04-05", "2027-04-18", "months")).toEqual({ amount: 2, unit: "weeks" })
+    expect(between("2027-04-05", "2027-04-14", "weeks")).toEqual({ amount: 10, unit: "days" })
+    expect(between("2027-04-05", "2027-04-05", null)).toEqual({ amount: 1, unit: "days" })
   })
 })

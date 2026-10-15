@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { CalendarElement, CalendarPlan, ElementDependency } from "@repo/contracts"
+import { fromIsoDate } from "@repo/domain"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import { ElementInspector } from "../components/ElementInspector"
 
@@ -66,6 +67,16 @@ const plan: CalendarPlan = {
       endsOn: "2027-08-28",
     }),
     element("creacion", "Creación VFX", "vfx", { kind: "process" }),
+    element("lectura", "Lectura con VFX", "post", {
+      kind: "meeting",
+      startsOn: "2027-07-26",
+    }),
+    element("montaje", "Montaje de prueba", "edicion", {
+      kind: "task",
+      duration: { amount: 3, unit: "days" },
+      startsOn: "2027-07-26",
+      endsOn: "2027-07-28",
+    }),
   ],
   dependencies: [
     rule("d1", "post", "start", "edicion", "start", 0, "days"),
@@ -74,6 +85,8 @@ const plan: CalendarPlan = {
   ],
 }
 
+const day = (iso: string) => document.querySelector(`[data-day="${iso}"] button`) as HTMLElement
+
 const renderSheet = (
   elementId: string,
   editable = true,
@@ -81,11 +94,14 @@ const renderSheet = (
 ) => {
   const handlers = {
     onUpdate: vi.fn(),
-    onMoveDate: vi.fn(),
+    onApplyWhen: vi.fn(),
+    onEdit: vi.fn(),
+    onDelete: vi.fn(),
     onSetRule: vi.fn(),
     onRemoveRule: vi.fn(),
     onClose: vi.fn(),
     onOpen: vi.fn(),
+    onOpenDay: vi.fn(),
   }
   render(
     <ElementInspector
@@ -94,6 +110,7 @@ const renderSheet = (
       editable={editable}
       pending={false}
       planSpan={planSpan}
+      draft={{ input: {}, onSave: vi.fn(), onDiscard: vi.fn() }}
       {...handlers}
     />
   )
@@ -106,7 +123,9 @@ describe("ElementInspector", () => {
 
     expect(screen.getByRole("heading", { name: "VFX" })).toBeInTheDocument()
     expect(screen.getByText("Postproducción › Subfase")).toBeInTheDocument()
-    expect(screen.getByText("dom 25 jul 2027")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Cuándo: dom 25 jul → sáb 28 ago 2027" })
+    ).toHaveTextContent("5 semanas · 35 días naturales")
     expect(screen.getByRole("button", { name: "Cuánto" })).toHaveTextContent("4 semanas")
     expect(screen.getByRole("button", { name: "Antes, a la vez o después" })).toHaveTextContent(
       "antes del"
@@ -165,7 +184,9 @@ describe("ElementInspector", () => {
     await userEvent.click(screen.getByRole("button", { name: "De qué elemento" }))
     expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
       "Postproducción",
+      "Lectura con VFX",
       "Edición",
+      "Montaje de prueba",
     ])
 
     await userEvent.type(screen.getByPlaceholderText("Buscar un elemento…"), "post")
@@ -185,13 +206,39 @@ describe("ElementInspector", () => {
     expect(screen.queryByRole("button", { name: "De qué elemento" })).toBeNull()
   })
 
-  it("las fechas se escriben directamente, también las calculadas", async () => {
-    const { onMoveDate } = renderSheet("vfx")
+  it("en «Cuándo», pulsar solo el inicio mueve el tramo entero; nada cambia hasta Aplicar", async () => {
+    const { onApplyWhen } = renderSheet("vfx")
 
-    await userEvent.click(screen.getByRole("button", { name: "Inicio de VFX" }))
-    await userEvent.click(screen.getByRole("button", { name: /1 de agosto de 2027/ }))
+    await userEvent.click(screen.getByRole("button", { name: /^Cuándo:/ }))
+    await userEvent.click(day("2027-08-01"))
+    expect(onApplyWhen).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }))
 
-    expect(onMoveDate).toHaveBeenCalledWith("vfx", "start", "2027-08-01")
+    expect(onApplyWhen).toHaveBeenCalledWith("vfx", { start: "2027-08-01" })
+  })
+
+  it("en «Cuándo», el inicio y el fin se eligen en el calendario", async () => {
+    const { onApplyWhen } = renderSheet("vfx")
+
+    await userEvent.click(screen.getByRole("button", { name: /^Cuándo:/ }))
+    await userEvent.click(day("2027-08-01"))
+    await userEvent.click(day("2027-08-14"))
+    expect(document.querySelector("[data-slot=popover-content]")).toHaveTextContent("2 semanas")
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }))
+
+    expect(onApplyWhen).toHaveBeenCalledWith("vfx", { start: "2027-08-01", end: "2027-08-14" })
+  })
+
+  it("las reuniones son de un día: un mes y sin duración", async () => {
+    const { onApplyWhen } = renderSheet("lectura")
+
+    await userEvent.click(screen.getByRole("button", { name: /^Cuándo:/ }))
+    expect(screen.queryByRole("button", { name: "Una unidad más" })).toBeNull()
+    expect(screen.getAllByRole("grid")).toHaveLength(1)
+    await userEvent.click(day("2027-07-28"))
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }))
+
+    expect(onApplyWhen).toHaveBeenCalledWith("lectura", { start: "2027-07-28" })
   })
 
   it("se puede fijar el fin a otro elemento y quitar la regla de inicio", async () => {
@@ -228,14 +275,41 @@ describe("ElementInspector", () => {
   })
 
   it("el contador suma una unidad y cambiar de unidad conserva lo que dura", async () => {
-    const { onUpdate } = renderSheet("vfx")
+    const { onApplyWhen } = renderSheet("vfx")
+    const open = () => userEvent.click(screen.getByRole("button", { name: /^Cuándo:/ }))
+    const apply = () => userEvent.click(screen.getByRole("button", { name: "Aplicar" }))
 
+    await open()
     await userEvent.click(screen.getByRole("button", { name: "Una unidad más" }))
-    expect(onUpdate).toHaveBeenLastCalledWith("vfx", { duration: { amount: 6, unit: "weeks" } })
+    await apply()
+    expect(onApplyWhen).toHaveBeenLastCalledWith("vfx", {
+      duration: { amount: 6, unit: "weeks" },
+    })
 
     // Del 25 jul al 28 ago son 35 días: en días, 35.
+    await open()
     await userEvent.click(screen.getByRole("radio", { name: "días" }))
-    expect(onUpdate).toHaveBeenLastCalledWith("vfx", { duration: { amount: 35, unit: "days" } })
+    await apply()
+    expect(onApplyWhen).toHaveBeenLastCalledWith("vfx", {
+      duration: { amount: 35, unit: "days" },
+    })
+  })
+
+  it("los puntos del calendario son las acciones de su fase; su lista abre cada una o el día", async () => {
+    const { onOpen, onOpenDay } = renderSheet("vfx")
+
+    await userEvent.click(screen.getByRole("button", { name: /^Cuándo:/ }))
+    await userEvent.hover(day("2027-07-26"))
+    const list = await screen.findByRole("menu", { name: "Acciones de la celda" })
+    expect(list).toHaveTextContent("Lectura con VFX")
+    expect(list).toHaveTextContent("Postproducción")
+    await userEvent.click(within(list).getByRole("menuitem", { name: /Lectura con VFX/ }))
+    expect(onOpen).toHaveBeenCalledWith("lectura")
+
+    await userEvent.click(screen.getByRole("button", { name: /^Cuándo:/ }))
+    await userEvent.hover(day("2027-07-26"))
+    await userEvent.click(await screen.findByRole("button", { name: "Ver el día completo" }))
+    expect(onOpenDay).toHaveBeenCalledWith(fromIsoDate("2027-07-26"), "post")
   })
 
   it("la barra sitúa una fase dentro del plan entero", () => {
@@ -255,5 +329,68 @@ describe("ElementInspector", () => {
     expect(
       within(suggestions).getByRole("button", { name: /Duración de Creación VFX/ })
     ).toHaveTextContent("otra…")
+  })
+
+  it("una acción: tipo, cuándo y de qué cuelga; sin reglas", async () => {
+    const { onEdit } = renderSheet("lectura")
+
+    expect(screen.queryByRole("region", { name: "De qué depende" })).toBeNull()
+    const kinds = screen.getByRole("region", { name: "Tipo" })
+    expect(within(kinds).getByRole("radio", { name: "Reunión" })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    )
+    await userEvent.click(within(kinds).getByRole("radio", { name: "Tarea" }))
+    expect(onEdit).toHaveBeenLastCalledWith("lectura", { kind: "task" })
+
+    // «Cuelga de» ofrece lo de su fase que puede tener acciones.
+    await userEvent.click(screen.getByRole("button", { name: "Cuelga de" }))
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Postproducción",
+      "Edición",
+      "VFX",
+      "Creación VFX",
+    ])
+    await userEvent.click(screen.getByRole("option", { name: "Edición" }))
+    expect(onEdit).toHaveBeenLastCalledWith("lectura", { parentId: "edicion" })
+  })
+
+  it("una tarea de varios días que pasa a recordatorio se queda en un día", async () => {
+    const { onEdit } = renderSheet("montaje")
+
+    await userEvent.click(screen.getByRole("radio", { name: "Recordatorio" }))
+    expect(onEdit).toHaveBeenLastCalledWith("montaje", {
+      kind: "reminder",
+      duration: { amount: 1, unit: "days" },
+    })
+  })
+
+  it("el nombre se cambia en la cabecera: al pulsar Enter, al borrador", async () => {
+    const { onEdit } = renderSheet("lectura")
+
+    const name = screen.getByRole("textbox", { name: "Nombre" })
+    await userEvent.clear(name)
+    await userEvent.type(name, "Lectura de guion{Enter}")
+    expect(onEdit).toHaveBeenCalledWith("lectura", { name: "Lectura de guion" })
+
+    // Vacío no vale: vuelve al que tenía.
+    await userEvent.clear(name)
+    await userEvent.tab()
+    expect(onEdit).toHaveBeenCalledTimes(1)
+  })
+
+  it("una acción se borra tras confirmarlo; una fase no tiene Borrar", async () => {
+    const { onDelete } = renderSheet("lectura")
+
+    await userEvent.click(screen.getByRole("button", { name: "Borrar" }))
+    const ask = screen.getByRole("alertdialog", { name: "¿Borrar la reunión “Lectura con VFX”?" })
+    await userEvent.click(within(ask).getByRole("button", { name: "Borrar" }))
+    expect(onDelete).toHaveBeenCalledWith("lectura")
+  })
+
+  it("una fase no se borra ni cambia de tipo", () => {
+    renderSheet("post")
+    expect(screen.queryByRole("button", { name: "Borrar" })).toBeNull()
+    expect(screen.queryByRole("region", { name: "Tipo" })).toBeNull()
   })
 })

@@ -95,3 +95,21 @@ export const SetElementRuleInputSchema = z.object({
   lag: z.object({ amount: z.number(), unit: DurationUnitSchema }),
 })
 export type SetElementRuleInput = z.infer<typeof SetElementRuleInputSchema>
+
+/**
+ * Lo que se guarda de una vez desde el panel de un elemento: todo en una sola
+ * transacción, con un solo recálculo. El tipo y el padre solo cambian en las
+ * acciones; en las reglas, null quita la de ese extremo.
+ */
+export const EditElementInputSchema = UpdateElementPlanInputSchema.extend({
+  name: z.string().trim().min(1).max(200).optional(),
+  kind: ActionKindSchema.optional(),
+  parentId: z.uuid().optional(),
+  rules: z
+    .object({
+      start: SetElementRuleInputSchema.nullable().optional(),
+      end: SetElementRuleInputSchema.nullable().optional(),
+    })
+    .optional(),
+})
+export type EditElementInput = z.infer<typeof EditElementInputSchema>

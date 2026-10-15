@@ -33,4 +33,11 @@ export const createElementsRepository = (http: HttpClient): ElementsRepository =
       body: input,
       schema: CalendarPlanSchema,
     }),
+  editElement: (elementId, input) =>
+    http.request("PATCH", `/elements/${elementId}/edits`, {
+      body: input,
+      schema: CalendarPlanSchema,
+    }),
+  deleteElement: (elementId) =>
+    http.request("DELETE", `/elements/${elementId}`, { schema: CalendarPlanSchema }),
 })

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
   CreateActionInput,
   DatePoint,
+  EditElementInput,
   SetElementRuleInput,
   UpdateElementPlanInput,
 } from "@repo/contracts"
@@ -59,6 +60,33 @@ export const useSetRule = (projectId: string) => {
       api.elements.setRule(elementId, point, input),
     onSuccess: (plan) => queryClient.setQueryData(queryKeys.projects.plan(projectId), plan),
     meta: { errorMessage: "No se pudo guardar la regla" },
+  })
+}
+
+interface EditElementVariables {
+  elementId: string
+  input: EditElementInput
+}
+
+export const useEditElement = (projectId: string) => {
+  const api = useApi()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ elementId, input }: EditElementVariables) =>
+      api.elements.editElement(elementId, input),
+    onSuccess: (plan) => queryClient.setQueryData(queryKeys.projects.plan(projectId), plan),
+    meta: { errorMessage: "No se pudieron guardar los cambios" },
+  })
+}
+
+// Solo acciones: devuelve el plan sin ella.
+export const useDeleteElement = (projectId: string) => {
+  const api = useApi()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (elementId: string) => api.elements.deleteElement(elementId),
+    onSuccess: (plan) => queryClient.setQueryData(queryKeys.projects.plan(projectId), plan),
+    meta: { errorMessage: "No se pudo borrar la acción" },
   })
 }
 

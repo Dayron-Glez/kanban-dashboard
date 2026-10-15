@@ -4,25 +4,33 @@ import { IconTemplate } from "@tabler/icons-react"
 import type {
   ActionKind,
   DatePoint,
+  EditElementInput,
   SetElementRuleInput,
   UpdateElementPlanInput,
 } from "@repo/contracts"
-import {
-  describePhaseViolation,
-  fromIsoDate,
-  moveEnd,
-  moveStart,
-  toIsoDate,
-  type EpochDay,
-} from "@repo/domain"
+import { describePhaseViolation, fromIsoDate, toIsoDate, type EpochDay } from "@repo/domain"
 import { toast } from "sonner"
 import { Button, cn, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
-import { useCreateAction, useGenerateFromTemplate, usePlan } from "../api/elements"
+import {
+  useCreateAction,
+  useDeleteElement,
+  useGenerateFromTemplate,
+  usePlan,
+} from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
 import { buildElementTree, flattenTree, type ElementNode } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
-import { changeForEdit, clampMove, describeShift, editContext } from "../lib/planPreview"
+import {
+  applyDraft,
+  clampMove,
+  countChanges,
+  describeShift,
+  mergeChange,
+  planMove,
+  previewChange,
+  type PlanChange,
+} from "../lib/planPreview"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { loadMarks, saveMarks } from "../lib/ganttMarks"
@@ -44,6 +52,8 @@ import {
 import { ActionKindFilter } from "./ActionKindFilter"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { DaySheet } from "./DaySheet"
+import { DiscardDialog } from "./DiscardDialog"
+import type { WhenChange } from "./WhenPicker"
 import type { DayPanel } from "../hooks/useGanttCells"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
@@ -62,28 +72,40 @@ const parentIds = (nodes: ElementNode[]): string[] =>
     ...parentIds(node.children),
   ])
 
-const EDIT_ERRORS = {
-  "missing-reference": "No se puede calcular: depende de algo que todavía no tiene fecha",
-  inverted: "El inicio no puede quedar después del fin",
-} as const
+// Adónde se va desde el panel: otro elemento, un día, o cerrar.
+type PanelTarget = { element: string } | { day: DayPanel } | null
+
+const NO_DRAFT: EditElementInput = {}
 
 export function CalendarPage() {
   const { id: projectId = "" } = useParams<{ id: string }>()
   const plan = usePlan(projectId)
   const generate = useGenerateFromTemplate(projectId)
   const createAction = useCreateAction(projectId)
+  const deleteElement = useDeleteElement(projectId)
   const changes = usePlanChanges(projectId, plan.data)
   const [openId, setOpenId] = useState<string | null>(null)
   // A la derecha va un panel cada vez: el de un elemento o el de un día.
   const [openDay, setOpenDay] = useState<DayPanel | null>(null)
-  const openElement = (id: string) => {
-    setOpenDay(null)
-    setOpenId(id)
+  // Lo editado en el panel del elemento, sin guardar todavía.
+  const [draft, setDraft] = useState<{ elementId: string; input: EditElementInput } | null>(null)
+  const draftInput = draft && draft.elementId === openId ? draft.input : NO_DRAFT
+  const dirty = countChanges(draftInput) > 0
+  // Salir del panel con cambios pregunta antes; esto es adónde se iba.
+  const [leaving, setLeaving] = useState<{ target: PanelTarget } | null>(null)
+  const navigate = (target: PanelTarget) => {
+    setDraft(null)
+    setOpenId(target && "element" in target ? target.element : null)
+    setOpenDay(target && "day" in target ? target.day : null)
   }
-  const openDayPanel = (day: EpochDay, rowId: string | null) => {
-    setOpenId(null)
-    setOpenDay({ day, rowId })
+  const go = (target: PanelTarget) => {
+    const same = target && "element" in target && target.element === openId
+    if (same) return
+    if (dirty) setLeaving({ target })
+    else navigate(target)
   }
+  const openElement = (id: string) => go({ element: id })
+  const openDayPanel = (day: EpochDay, rowId: string | null) => go({ day: { day, rowId } })
   // Todo empieza plegado: el plan entero de golpe es demasiado.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
@@ -178,10 +200,10 @@ export function CalendarPage() {
 
   const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
     changes.request({ type: "update", elementId, input })
-  const onSetRule = (elementId: string, point: DatePoint, input: SetElementRuleInput) =>
-    changes.request({ type: "set-rule", elementId, point, input })
-  const onRemoveRule = (elementId: string, point: DatePoint) =>
-    changes.request({ type: "remove-rule", elementId, point })
+
+  // El elemento de arriba o de abajo en el árbol, para ↑ ↓ y los botones del panel.
+  const order = flattenTree(tree).map((node) => node.element.id)
+  const neighbour = (delta: -1 | 1) => (openId ? order[order.indexOf(openId) + delta] : undefined)
 
   // Con el inspector abierto: ↑ ↓ pasan al elemento de arriba o de abajo, Esc cierra.
   useEffect(() => {
@@ -195,18 +217,22 @@ export function CalendarPage() {
         )
       )
         return
-      if (event.key === "Escape") setOpenId(null)
+      const leave = (id: string | null) => {
+        if (dirty) setLeaving({ target: id ? { element: id } : null })
+        else setOpenId(id)
+      }
+      if (event.key === "Escape") leave(null)
       if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
       const index = order.indexOf(openId)
       const next = order[index + (event.key === "ArrowDown" ? 1 : -1)]
       if (next) {
         event.preventDefault()
-        setOpenId(next)
+        leave(next)
       }
     }
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
-  }, [openId, elements, tree])
+  }, [openId, elements, tree, dirty])
 
   // Resaltar un tipo de acción sin volver a pintar el Gantt: lo hace el CSS
   // (tailwind.css) a partir de estos atributos del contenedor.
@@ -234,30 +260,80 @@ export function CalendarPage() {
     title: (date: EpochDay) => string
   ) => {
     if (!plan.data) return
-    const clamped = clampMove(plan.data, elementId, point, requested)
-    if ("error" in clamped) {
-      toast.error(EDIT_ERRORS[clamped.error])
+    const move = planMove(plan.data, elementId, point, requested, nameOf)
+    if ("error" in move) {
+      toast.error(move.error, { id: "plan-change", description: move.description })
       return
     }
-    const reason = clamped.limit && describePhaseViolation(clamped.limit, nameOf)
-    const result = (point === "start" ? moveStart : moveEnd)(
-      editContext(plan.data, elementId),
-      clamped.date
+    changes.request(move.change, title(move.date), move.note)
+  }
+
+  // El plan tal como quedaría con el borrador: lo que enseña el panel.
+  const shownPlan =
+    plan.data && openId && dirty
+      ? (applyDraft(plan.data, { type: "edit", elementId: openId, input: draftInput }) ?? plan.data)
+      : plan.data
+
+  // En el panel, cada cambio se suma al borrador; se comprueba ya, para no dejar
+  // guardar algo que la API rechazaría.
+  const commitDraft = (elementId: string, input: EditElementInput) => {
+    if (!plan.data) return
+    const preview = previewChange(plan.data, { type: "edit", elementId, input })
+    if ("cycle" in preview) {
+      toast.error("Esa regla cerraría un ciclo", {
+        description: preview.cycle.map(nameOf).join(" → "),
+      })
+      return
+    }
+    const [broken] = preview.broken
+    if (broken) {
+      toast.error("No se puede hacer ese cambio", {
+        id: "plan-change",
+        description: describePhaseViolation(broken, nameOf),
+      })
+      return
+    }
+    setDraft({ elementId, input })
+  }
+  const addToDraft = (change: PlanChange) =>
+    plan.data && commitDraft(change.elementId, mergeChange(plan.data, draftInput, change))
+
+  // Lo elegido en «Cuándo», en orden: el inicio, y después la duración o el fin,
+  // cada uno sobre el plan que deja el anterior.
+  const applyWhen = (elementId: string, change: WhenChange) => {
+    const base = plan.data
+    if (!base) return
+    let input = draftInput
+    const current = () =>
+      countChanges(input) > 0
+        ? (applyDraft(base, { type: "edit", elementId, input }) ?? base)
+        : base
+    const move = (point: DatePoint, date: string) => {
+      const result = planMove(current(), elementId, point, fromIsoDate(date), nameOf)
+      if ("error" in result) {
+        toast.error(result.error, { id: "plan-change", description: result.description })
+        return false
+      }
+      if (result.note) toast.info(result.note, { id: "plan-change" })
+      input = mergeChange(base, input, result.change)
+      return true
+    }
+    if (change.start && !move("start", change.start)) return
+    if (change.duration) {
+      input = mergeChange(base, input, {
+        type: "update",
+        elementId,
+        input: { duration: change.duration },
+      })
+    } else if (change.end && !move("end", change.end)) return
+    commitDraft(elementId, input)
+  }
+  const saveDraft = () => {
+    if (!openId || !dirty) return
+    const elementId = openId
+    changes.request({ type: "edit", elementId, input: draftInput }, undefined, undefined, () =>
+      setDraft((current) => (current?.elementId === elementId ? null : current))
     )
-    if ("error" in result) {
-      toast.error(EDIT_ERRORS[result.error])
-      return
-    }
-    const change = changeForEdit(plan.data, elementId, result.edit)
-    if (clamped.date === editContext(plan.data, elementId).dates.get(elementId)?.[point]) {
-      toast.error("Ya está en el tope", { id: "plan-change", description: reason ?? undefined })
-      return
-    }
-    const adjusted =
-      clamped.date !== requested && reason
-        ? `Ajustado al ${formatPlanDate(toIsoDate(clamped.date))}: ${reason}.`
-        : undefined
-    changes.request(change, title(clamped.date), adjusted)
   }
 
   const onMoveDate = (elementId: string, point: DatePoint, date: string) =>
@@ -298,14 +374,15 @@ export function CalendarPage() {
 
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1">
-      {/* Con el detalle abierto, en pantallas anchas el plan le deja sitio y no queda tapado. */}
+      {/* Con el detalle abierto, en pantallas anchas el plan le deja sitio y no queda tapado.
+          Pulsar aquí no cierra el panel: se sigue trabajando con él abierto. */}
       <div
         onPointerOver={followActionKind}
         onPointerLeave={followActionKind}
         data-calendar-surface
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
-          (openId || openDay != null) && "xl:pr-[424px]"
+          (openId || openDay != null) && "xl:pr-[544px]"
         )}
       >
         <PlanHeader
@@ -322,7 +399,12 @@ export function CalendarPage() {
                 {view !== "tabla" && timeline && (
                   <>
                     <ZoomControl value={zoom} onChange={setZoom} />
-                    <GoToDate shortcuts={shortcuts} today={timeline.today} onGo={goTo} />
+                    <GoToDate
+                      shortcuts={shortcuts}
+                      today={timeline.today}
+                      bounds={timeline.range}
+                      onGo={goTo}
+                    />
                     <ViewOptionsMenu
                       fields={fields}
                       onFieldsChange={changeFields}
@@ -401,21 +483,53 @@ export function CalendarPage() {
           </>
         )}
       </div>
-      {plan.data && openId && (
+      {shownPlan && openId && (
         <ElementInspector
           elementId={openId}
-          plan={plan.data}
+          plan={shownPlan}
           editable={isOwner}
-          pending={changes.pending}
-          onClose={() => setOpenId(null)}
-          onUpdate={onUpdate}
-          onMoveDate={onMoveDate}
-          onSetRule={onSetRule}
-          onRemoveRule={onRemoveRule}
+          pending={changes.pending || deleteElement.isPending}
+          onClose={() => go(null)}
+          onUpdate={(elementId, input: UpdateElementPlanInput) =>
+            addToDraft({ type: "update", elementId, input })
+          }
+          onApplyWhen={applyWhen}
+          onEdit={(elementId, input) => addToDraft({ type: "edit", elementId, input })}
+          onDelete={(elementId) =>
+            deleteElement.mutate(elementId, {
+              onSuccess: () => {
+                navigate(null)
+                toast.success("Acción borrada", { id: "plan-change" })
+              },
+            })
+          }
+          onOpenDay={openDayPanel}
+          bounds={timeline?.range}
+          onSetRule={(elementId, point, input: SetElementRuleInput) =>
+            addToDraft({ type: "set-rule", elementId, point, input })
+          }
+          onRemoveRule={(elementId, point) => addToDraft({ type: "remove-rule", elementId, point })}
           onOpen={openElement}
           planSpan={summary.span}
+          onPrevious={neighbour(-1) ? () => openElement(neighbour(-1)!) : undefined}
+          onNext={neighbour(1) ? () => openElement(neighbour(1)!) : undefined}
+          draft={{
+            input: draftInput,
+            onSave: saveDraft,
+            onDiscard: () => setDraft(null),
+          }}
         />
       )}
+      <DiscardDialog
+        open={leaving != null}
+        name={plan.data?.elements.find((element) => element.id === openId)?.name ?? ""}
+        changes={countChanges(draftInput)}
+        onStay={() => setLeaving(null)}
+        onDiscard={() => {
+          if (leaving) navigate(leaving.target)
+          setLeaving(null)
+        }}
+      />
       {timeline && openDay != null && (
         <DaySheet
           day={openDay.day}
@@ -425,7 +539,7 @@ export function CalendarPage() {
           canCreate={isOwner}
           creating={createAction.isPending}
           onDay={(day) => setOpenDay({ ...openDay, day })}
-          onClose={() => setOpenDay(null)}
+          onClose={() => go(null)}
           onOpen={openElement}
           onCreateAction={(parentId, input, done) =>
             createAction.mutate({ parentId, input }, { onSuccess: done })

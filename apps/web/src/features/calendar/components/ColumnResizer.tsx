@@ -15,6 +15,8 @@ interface ColumnResizerProps {
   /** Contraída, el borde la abre: arrastrándolo, con las flechas o con Enter. */
   collapsed?: boolean
   onToggleCollapsed?: () => void
+  /** Mientras se arrastra, lo que cambia de ancho no se anima: iría con retraso. */
+  onDraggingChange?: (dragging: boolean) => void
 }
 
 const STEP = 16
@@ -33,6 +35,7 @@ export function ColumnResizer({
   onChange,
   collapsed = false,
   onToggleCollapsed,
+  onDraggingChange,
 }: Readonly<ColumnResizerProps>) {
   const drag = useRef<{ x: number; width: number } | null>(null)
   const [dragging, setDragging] = useState<boolean>(false)
@@ -43,6 +46,7 @@ export function ColumnResizer({
     event.preventDefault()
     drag.current = { x: event.clientX, width: collapsed ? 0 : value }
     setDragging(true)
+    onDraggingChange?.(true)
     event.currentTarget.setPointerCapture?.(event.pointerId)
   }
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -62,6 +66,7 @@ export function ColumnResizer({
   const stop = () => {
     drag.current = null
     setDragging(false)
+    onDraggingChange?.(false)
   }
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" && onToggleCollapsed) {
@@ -98,7 +103,9 @@ export function ColumnResizer({
             // La línea se ilumina al pasar, con el foco y mientras se arrastra.
             "before:bg-border before:h-full before:w-px before:transition-all",
             "hover:before:bg-primary focus-visible:before:bg-primary data-dragging:before:bg-primary",
-            "hover:before:w-[3px] focus-visible:before:w-[3px] data-dragging:before:w-[3px]"
+            "hover:before:w-[3px] focus-visible:before:w-[3px] data-dragging:before:w-[3px]",
+            // Sigue suave al borde de la tabla cuando cambia de ancho.
+            "transition-[left] duration-200 ease-out data-dragging:transition-none motion-reduce:transition-none"
           )}
           style={{ left }}
         >

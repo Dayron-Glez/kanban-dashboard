@@ -1,11 +1,14 @@
 import type {
   CalendarPlan,
   DatePoint,
+  EditElementInput,
+  ElementDependency,
   SetElementRuleInput,
   UpdateElementPlanInput,
 } from "@repo/contracts"
 import {
   computeSchedule,
+  describePhaseViolation,
   diffSchedules,
   fromIsoDate,
   moveEnd,
@@ -32,6 +35,8 @@ export type PlanChange =
   | { type: "update"; elementId: string; input: UpdateElementPlanInput }
   | { type: "set-rule"; elementId: string; point: DatePoint; input: SetElementRuleInput }
   | { type: "remove-rule"; elementId: string; point: DatePoint }
+  /** Lo editado en el panel, de una vez. */
+  | { type: "edit"; elementId: string; input: EditElementInput }
 
 export type PlanPreview =
   | {
@@ -72,7 +77,10 @@ const withoutRule = (dependencies: ScheduleDependency[], elementId: string, poin
   )
 
 // El mismo cambio que hará la API, aplicado a la entrada del motor.
-function applyChange(plan: CalendarPlan, change: PlanChange) {
+function applyChange(
+  plan: CalendarPlan,
+  change: PlanChange
+): { elements: ScheduleElement[]; dependencies: ScheduleDependency[] } {
   const { elements, dependencies } = toEngine(plan)
   switch (change.type) {
     case "update": {
@@ -101,20 +109,40 @@ function applyChange(plan: CalendarPlan, change: PlanChange) {
         elements,
         dependencies: [
           ...withoutRule(dependencies, change.elementId, change.point),
-          {
-            predecessorId: change.input.predecessorId,
-            successorId: change.elementId,
-            predecessorPoint: change.input.predecessorPoint,
-            successorPoint: change.point,
-            lagAmount: change.input.lag.amount,
-            lagUnit: change.input.lag.unit,
-          },
+          toEngineRule(change.elementId, change.point, change.input),
         ],
       }
     case "remove-rule":
       return { elements, dependencies: withoutRule(dependencies, change.elementId, change.point) }
+    case "edit": {
+      const { rules, ...input } = change.input
+      const updated = applyChange(plan, { type: "update", elementId: change.elementId, input })
+      let next = updated.dependencies
+      for (const point of POINTS) {
+        const rule = rules?.[point]
+        if (rule === undefined) continue
+        next = withoutRule(next, change.elementId, point)
+        if (rule) next.push(toEngineRule(change.elementId, point, rule))
+      }
+      return { elements: updated.elements, dependencies: next }
+    }
   }
 }
+
+const POINTS = ["start", "end"] as const
+
+const toEngineRule = (
+  elementId: string,
+  point: DatePoint,
+  rule: SetElementRuleInput
+): ScheduleDependency => ({
+  predecessorId: rule.predecessorId,
+  successorId: elementId,
+  predecessorPoint: rule.predecessorPoint,
+  successorPoint: point,
+  lagAmount: rule.lag.amount,
+  lagUnit: rule.lag.unit,
+})
 
 const flatten = (nodes: ElementNode[]): string[] =>
   nodes.flatMap((node) => [node.element.id, ...flatten(node.children)])
@@ -131,6 +159,9 @@ export function previewChange(plan: CalendarPlan, change: PlanChange): PlanPrevi
     const before = computeSchedule(current.elements, current.dependencies)
     const after = computeSchedule(next.elements, next.dependencies)
     const parents = new Map(plan.elements.map((element) => [element.id, element.parentId]))
+    if (change.type === "edit" && change.input.parentId) {
+      parents.set(change.elementId, change.input.parentId)
+    }
     const changes = diffSchedules(
       flatten(buildElementTree(plan.elements)),
       before,
@@ -327,6 +358,22 @@ export function describeMove(change: ScheduleChange, plural = false): string {
  */
 export function inverseOf(plan: CalendarPlan, change: PlanChange): PlanChange {
   const element = plan.elements.find((candidate) => candidate.id === change.elementId)!
+  if (change.type === "edit") {
+    const { name, kind, parentId, rules, ...dates } = change.input
+    const back = inverseOf(plan, { type: "update", elementId: change.elementId, input: dates })
+    const input: EditElementInput = back.type === "update" ? { ...back.input } : {}
+    if (name !== undefined) input.name = element.name
+    if (kind !== undefined) input.kind = element.kind as EditElementInput["kind"]
+    if (parentId !== undefined && element.parentId) input.parentId = element.parentId
+    if (rules) {
+      input.rules = {}
+      for (const point of POINTS) {
+        if (rules[point] === undefined) continue
+        input.rules[point] = ruleOf(plan, change.elementId, point) ?? null
+      }
+    }
+    return { type: "edit", elementId: change.elementId, input }
+  }
   if (change.type === "update") {
     const { duration, fixedStart, isPinned } = change.input
     const input: UpdateElementPlanInput = {}
@@ -411,9 +458,195 @@ export function summarizeMoves(changes: ScheduleChange[], plan: CalendarPlan): M
   }
 }
 
+// La regla que hay en un extremo, tal como se manda a la API.
+function ruleOf(plan: CalendarPlan, elementId: string, point: DatePoint) {
+  const rule = plan.dependencies.find(
+    (dependency) => dependency.successorId === elementId && dependency.successorPoint === point
+  )
+  return rule
+    ? { predecessorId: rule.predecessorId, predecessorPoint: rule.predecessorPoint, lag: rule.lag }
+    : undefined
+}
+
+const sameRule = (a: SetElementRuleInput | null | undefined, b: SetElementRuleInput | undefined) =>
+  (a ?? undefined) === b ||
+  (a != null &&
+    b != null &&
+    a.predecessorId === b.predecessorId &&
+    a.predecessorPoint === b.predecessorPoint &&
+    a.lag.amount === b.lag.amount &&
+    a.lag.unit === b.lag.unit)
+
+/**
+ * Suma un cambio al borrador del panel. Lo que vuelve a su valor de antes deja
+ * de contar: si se deshace a mano, el panel queda sin cambios.
+ */
+export function mergeChange(
+  plan: CalendarPlan,
+  draft: EditElementInput,
+  change: PlanChange
+): EditElementInput {
+  const next: EditElementInput = { ...draft, rules: { ...draft.rules } }
+  if (change.type === "update" || change.type === "edit") {
+    const { rules, ...rest } = change.input as EditElementInput
+    Object.assign(next, rest)
+    Object.assign(next.rules!, rules)
+  } else {
+    next.rules![change.point] = change.type === "set-rule" ? change.input : null
+  }
+
+  const element = plan.elements.find((candidate) => candidate.id === change.elementId)!
+  if (next.name !== undefined && next.name === element.name) delete next.name
+  if (next.kind !== undefined && next.kind === element.kind) delete next.kind
+  if (next.parentId !== undefined && next.parentId === element.parentId) delete next.parentId
+  if (
+    next.duration !== undefined &&
+    next.duration?.amount === element.duration?.amount &&
+    next.duration?.unit === element.duration?.unit
+  ) {
+    delete next.duration
+  }
+  if (next.isPinned !== undefined && next.isPinned === element.isPinned) delete next.isPinned
+  if (
+    next.fixedStart !== undefined &&
+    next.fixedStart === element.startsOn &&
+    next.isPinned === undefined
+  ) {
+    delete next.fixedStart
+  }
+  for (const point of POINTS) {
+    if (
+      next.rules![point] !== undefined &&
+      sameRule(next.rules![point], ruleOf(plan, change.elementId, point))
+    ) {
+      delete next.rules![point]
+    }
+  }
+  if (Object.keys(next.rules!).length === 0) delete next.rules
+  return next
+}
+
+/** Cuántos cambios lleva el borrador, como los cuenta el pie del panel. */
+export const countChanges = (draft: EditElementInput) =>
+  Object.keys(draft).filter((key) => key !== "rules" && key !== "isPinned").length +
+  Object.keys(draft.rules ?? {}).length +
+  (draft.isPinned !== undefined && draft.fixedStart === undefined ? 1 : 0)
+
+/**
+ * El plan como quedaría con el cambio, con el mismo motor que el servidor: lo
+ * que enseña el panel mientras se edita. Solo cambian las fechas que se mueven.
+ * Null si el cambio cierra un ciclo.
+ */
+export function applyDraft(plan: CalendarPlan, change: PlanChange): CalendarPlan | null {
+  const current = toEngine(plan)
+  const next = applyChange(plan, change)
+  let changes: ScheduleChange[]
+  try {
+    changes = diffSchedules(
+      plan.elements.map((element) => element.id),
+      computeSchedule(current.elements, current.dependencies),
+      computeSchedule(next.elements, next.dependencies),
+      () => null
+    )
+  } catch (error) {
+    if (error instanceof ScheduleCycleError) return null
+    throw error
+  }
+  const moved = new Map(changes.map((item) => [item.id, item.after]))
+  const engine = new Map(next.elements.map((element) => [element.id, element]))
+  const own = change.type === "edit" ? change.input : {}
+
+  const dependencies = next.dependencies.map((rule): ElementDependency => {
+    const existing = plan.dependencies.find(
+      (dependency) =>
+        dependency.successorId === rule.successorId &&
+        dependency.successorPoint === rule.successorPoint &&
+        dependency.predecessorId === rule.predecessorId
+    )
+    return {
+      id: existing?.id ?? `borrador-${rule.successorId}-${rule.successorPoint}`,
+      predecessorId: rule.predecessorId,
+      successorId: rule.successorId,
+      predecessorPoint: rule.predecessorPoint,
+      successorPoint: rule.successorPoint,
+      lag: { amount: rule.lagAmount, unit: rule.lagUnit },
+    }
+  })
+
+  return {
+    dependencies,
+    elements: plan.elements.map((element) => {
+      const dates = moved.get(element.id)
+      const scheduled = engine.get(element.id)!
+      const edited = element.id === change.elementId
+      return {
+        ...element,
+        ...(edited && own.name !== undefined && { name: own.name }),
+        ...(edited && own.kind !== undefined && { kind: own.kind }),
+        ...(edited && own.parentId !== undefined && { parentId: own.parentId }),
+        duration:
+          scheduled.durationAmount != null && scheduled.durationUnit
+            ? { amount: scheduled.durationAmount, unit: scheduled.durationUnit }
+            : null,
+        isPinned: scheduled.isPinned,
+        ...(dates && {
+          startsOn: dates.start != null ? toIsoDate(dates.start) : null,
+          endsOn: dates.end != null ? toIsoDate(dates.end) : null,
+        }),
+      }
+    }),
+  }
+}
+
+export type PlanMove =
+  | {
+      change: PlanChange
+      /** La fecha a la que se llega: la pedida, o el tope si no cabe. */
+      date: EpochDay
+      /** Si hubo que quedarse en el tope, por qué. */
+      note?: string
+    }
+  | { error: string; description?: string }
+
+const MOVE_ERRORS = {
+  "missing-reference": "No se puede calcular: depende de algo que todavía no tiene fecha",
+  inverted: "El inicio no puede quedar después del fin",
+} as const
+
+/**
+ * Escribir una fecha a mano o arrastrar una barra: el cambio que hay que mandar,
+ * quedándose en el tope si la fecha pedida rompe el orden de las fases.
+ */
+export function planMove(
+  plan: CalendarPlan,
+  elementId: string,
+  point: DatePoint,
+  requested: EpochDay,
+  nameOf: (id: string) => string
+): PlanMove {
+  const clamped = clampMove(plan, elementId, point, requested)
+  if ("error" in clamped) return { error: MOVE_ERRORS[clamped.error] }
+  const reason = clamped.limit ? describePhaseViolation(clamped.limit, nameOf) : null
+  const context = editContext(plan, elementId)
+  const result = (point === "start" ? moveStart : moveEnd)(context, clamped.date)
+  if ("error" in result) return { error: MOVE_ERRORS[result.error] }
+  if (clamped.date === context.dates.get(elementId)?.[point]) {
+    return { error: "Ya está en el tope", description: reason ?? undefined }
+  }
+  return {
+    change: changeForEdit(plan, elementId, result.edit),
+    date: clamped.date,
+    note:
+      clamped.date !== requested && reason
+        ? `Ajustado al ${formatPlanDate(toIsoDate(clamped.date))}: ${reason}.`
+        : undefined,
+  }
+}
+
 /** El título de la vista previa: qué cambio se va a aplicar. */
 export function describeChange(plan: CalendarPlan, change: PlanChange): string {
   const name = plan.elements.find((element) => element.id === change.elementId)?.name ?? ""
+  if (change.type === "edit") return `Guardar los cambios de ${name}`
   if (change.type === "update") {
     if (change.input.fixedStart)
       return `Mover ${name} al ${formatPlanDate(change.input.fixedStart)}`

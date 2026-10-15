@@ -1,19 +1,17 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react"
 import {
   ACTION_KINDS,
-  type CalendarElement,
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CreateActionInput,
 } from "@repo/contracts"
 import { toIsoDate } from "@repo/domain"
-import { IconCalendarEvent, IconPlus } from "@tabler/icons-react"
+import { IconPlus } from "@tabler/icons-react"
 import { Button, Input } from "@/shared/index"
-import { ELEMENT_KIND_LABELS, lacksDuration } from "../lib/elementTree"
+import { ELEMENT_KIND_LABELS } from "../lib/elementTree"
 import { formatLongDate, formatShortDay } from "../lib/planFormat"
 import { ActionGlyph } from "./ActionGlyph"
-import { MissingDurationHint } from "./MissingDurationHint"
-import { TruncatedText } from "./TruncatedText"
+import { ActionList, DayLink, type ListedAction } from "./ActionList"
 
 const HINTS: Record<ActionKind, string> = {
   event: "un día o periodo",
@@ -29,7 +27,7 @@ interface CellMenuProps {
   end: number
   parentName: string
   /** Lo que ya hay en esas celdas; `owner`, de qué cuelga si no es de la fila. */
-  actions: { element: CalendarElement; owner: string | null }[]
+  actions: ListedAction[]
   canCreate: boolean
   pending: boolean
   onOpen: (elementId: string) => void
@@ -64,21 +62,7 @@ export function CellMenu({
       ? formatLongDate(toIsoDate(start))
       : `${formatShortDay(start)} → ${formatShortDay(end)} · ${days} días`
 
-  const dayLink = onOpenDay && (
-    <div className="border-border mt-1 border-t pt-1">
-      <button
-        type="button"
-        onClick={onOpenDay}
-        className="hover:bg-muted focus-visible:bg-muted flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm outline-none"
-      >
-        <IconCalendarEvent className="text-muted-foreground size-3.5" aria-hidden />
-        Ver el día completo
-        <kbd className="text-muted-foreground border-border ml-auto rounded border px-1 text-[10px]">
-          Mayús + Enter
-        </kbd>
-      </button>
-    </div>
-  )
+  const dayLink = onOpenDay && <DayLink onClick={onOpenDay} shortcut="Mayús + Enter" />
 
   // Lo que promete la pista del enlace: Mayús + Enter abre el día desde cualquier punto del menú.
   const onKeyDown = (event: KeyboardEvent) => {
@@ -135,36 +119,7 @@ export function CellMenu({
         className="flex flex-col outline-none"
         onKeyDown={onKeyDown}
       >
-        <div className="px-2 pt-1 pb-2">
-          <p className="text-base font-semibold first-letter:uppercase">{when}</p>
-          <p className="text-muted-foreground text-sm">en {parentName}</p>
-        </div>
-        <div
-          role="menu"
-          aria-label="Acciones de la celda"
-          className="border-border flex flex-col border-t pt-1"
-        >
-          {actions.map(({ element, owner }) => (
-            <button
-              key={element.id}
-              type="button"
-              role="menuitem"
-              onClick={() => onOpen(element.id)}
-              className="hover:bg-muted focus-visible:bg-muted flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm outline-none"
-            >
-              <span className="text-muted-foreground flex w-[18px] justify-center">
-                <ActionGlyph kind={element.kind as ActionKind} />
-              </span>
-              <TruncatedText text={element.name} />
-              <span className="ml-auto flex shrink-0 items-center gap-1.5">
-                {lacksDuration(element) && <MissingDurationHint />}
-                <span className="text-muted-foreground text-xs">
-                  {owner ?? ELEMENT_KIND_LABELS[element.kind]}
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
+        <ActionList title={when} subtitle={`en ${parentName}`} actions={actions} onOpen={onOpen} />
         {canCreate && (
           <div className="border-border mt-1 border-t pt-1">
             <button
@@ -211,7 +166,7 @@ export function CellMenu({
               onClick={() => setKind(option)}
               className="hover:bg-muted focus-visible:bg-muted flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm outline-none disabled:pointer-events-none disabled:opacity-45"
             >
-              <span className="text-muted-foreground flex w-[18px] justify-center">
+              <span className="text-muted-foreground flex w-[18px] shrink-0 justify-center">
                 <ActionGlyph kind={option} />
               </span>
               {ELEMENT_KIND_LABELS[option]}

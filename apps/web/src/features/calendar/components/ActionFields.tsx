@@ -1,0 +1,194 @@
+import { useState, type ReactNode } from "react"
+import {
+  ACTION_KINDS,
+  ACTION_PARENT_KINDS,
+  SINGLE_DAY_ACTION_KINDS,
+  type ActionKind,
+  type CalendarElement,
+  type EditElementInput,
+} from "@repo/contracts"
+import { IconTrash } from "@tabler/icons-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  buttonVariants,
+  cn,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/shared/index"
+import { ELEMENT_KIND_LABELS, flattenTree, type ElementNode } from "../lib/elementTree"
+import { phaseTint } from "../lib/phaseColors"
+import { ActionGlyph } from "./ActionGlyph"
+import { ElementPicker } from "./ElementPicker"
+
+interface ActionFieldsProps {
+  element: CalendarElement
+  /** La fase de la acción: de ella, o de lo que tiene dentro, puede colgar. */
+  phase: ElementNode | undefined
+  editable: boolean
+  /** Qué partes llevan cambios sin guardar: la marca cian. */
+  changed: { kind: boolean; parent: boolean }
+  mark: (changed: boolean) => string | false
+  onEdit: (input: EditElementInput) => void
+  /** Va entre el tipo y «Cuelga de»: el campo «Cuándo». */
+  children: ReactNode
+}
+
+const heading = "text-muted-foreground text-sm font-semibold tracking-wider uppercase"
+
+/**
+ * Lo propio de una acción en el panel: su tipo, cuándo y de qué cuelga. Lo que
+ * se cambia va al borrador, como todo en el panel.
+ */
+export function ActionFields({
+  element,
+  phase,
+  editable,
+  changed,
+  mark,
+  onEdit,
+  children,
+}: Readonly<ActionFieldsProps>) {
+  const kind = element.kind as ActionKind
+  const parents = phase
+    ? flattenTree([phase]).filter((node) => ACTION_PARENT_KINDS.includes(node.element.kind))
+    : []
+
+  // Pasar a reunión o recordatorio deja la acción en un día, como pide la API.
+  const changeKind = (next: ActionKind) => {
+    const multiDay = element.endsOn != null && element.endsOn !== element.startsOn
+    onEdit(
+      SINGLE_DAY_ACTION_KINDS.includes(next) && multiDay
+        ? { kind: next, duration: { amount: 1, unit: "days" } }
+        : { kind: next }
+    )
+  }
+
+  return (
+    <>
+      <section
+        aria-labelledby="inspector-kind"
+        className={cn("flex flex-col gap-2", mark(changed.kind))}
+      >
+        <h3 id="inspector-kind" className={heading}>
+          Tipo
+        </h3>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          aria-label="Tipo de acción"
+          value={kind}
+          disabled={!editable}
+          onValueChange={(next) => next && changeKind(next as ActionKind)}
+          className="w-full"
+        >
+          {ACTION_KINDS.map((option) => (
+            <ToggleGroupItem
+              key={option}
+              value={option}
+              aria-label={ELEMENT_KIND_LABELS[option]}
+              className="h-14 flex-1 flex-col gap-1 px-1 text-xs"
+            >
+              <ActionGlyph kind={option} />
+              {ELEMENT_KIND_LABELS[option]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </section>
+
+      {children}
+
+      <section
+        aria-labelledby="inspector-parent"
+        className={cn("flex flex-col gap-2", mark(changed.parent))}
+      >
+        <h3 id="inspector-parent" className={heading}>
+          Cuelga de
+        </h3>
+        {editable ? (
+          <ElementPicker
+            label="Cuelga de"
+            options={parents.map((node) => ({
+              element: node.element,
+              depth: node.depth,
+              tint: phaseTint(node.phaseColor, node.depth === 0),
+            }))}
+            value={element.parentId}
+            onChange={(parentId) => onEdit({ parentId })}
+            placeholder="Elige una fase, subfase o proceso"
+          />
+        ) : (
+          <p className="text-base">
+            {parents.find((node) => node.element.id === element.parentId)?.element.name}
+          </p>
+        )}
+        {phase && (
+          <p className="text-muted-foreground text-sm">
+            Dentro de {phase.element.name}: su fase, sus subfases o sus procesos.
+          </p>
+        )}
+      </section>
+    </>
+  )
+}
+
+// Para decir qué se borra: «la reunión», «el evento».
+const WHAT: Record<ActionKind, string> = {
+  event: "el evento",
+  task: "la tarea",
+  meeting: "la reunión",
+  reminder: "el recordatorio",
+  hiring: "la contratación",
+}
+
+/** Borrar una acción, tras confirmarlo: no se puede deshacer. */
+export function DeleteAction({
+  name,
+  kind,
+  disabled,
+  onDelete,
+}: Readonly<{ name: string; kind: ActionKind; disabled: boolean; onDelete: () => void }>) {
+  const [open, setOpen] = useState<boolean>(false)
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+      >
+        <IconTrash aria-hidden />
+        Borrar
+      </Button>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-semibold">
+              ¿Borrar {WHAT[kind]} “{name}”?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={onDelete}
+              className={buttonVariants({ variant: "destructive" })}
+            >
+              Borrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
