@@ -584,6 +584,37 @@ describe("CalendarPage", () => {
     })
   })
 
+  it("el borde entre la tabla y el Gantt ajusta la columna «Elemento», y se recuerda", async () => {
+    api.elements.getPlan.mockResolvedValue(
+      planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
+    )
+    renderPage()
+
+    const border = await screen.findByRole("separator", {
+      name: "Ancho de la columna de elementos",
+    })
+    expect(border).toHaveAttribute("aria-valuenow", "280")
+    // Con el foco, las flechas lo mueven de 16 en 16 px.
+    fireEvent.keyDown(border, { key: "ArrowRight" })
+    expect(border).toHaveAttribute("aria-valuenow", "296")
+    expect(border).toHaveStyle({ left: "calc(296px + 6.5rem)" })
+    expect(localStorage.getItem("cauce.gantt.anchoElemento")).toBe("296")
+
+    // Arrastrar: 100 px más ancha, sin pasar del máximo.
+    fireEvent.pointerDown(border, { button: 0, clientX: 500, pointerId: 1 })
+    fireEvent.pointerMove(border, { clientX: 600, pointerId: 1 })
+    fireEvent.pointerUp(border, { clientX: 600, pointerId: 1 })
+    expect(border).toHaveAttribute("aria-valuenow", "396")
+    fireEvent.pointerDown(border, { button: 0, clientX: 500, pointerId: 1 })
+    fireEvent.pointerMove(border, { clientX: 2000, pointerId: 1 })
+    fireEvent.pointerUp(border, { clientX: 2000, pointerId: 1 })
+    expect(border).toHaveAttribute("aria-valuenow", "480")
+
+    // El doble clic lo restablece.
+    fireEvent.doubleClick(border)
+    expect(border).toHaveAttribute("aria-valuenow", "280")
+  })
+
   it("el zoom cambia la rejilla: día a día, por semanas o por meses", async () => {
     api.elements.getPlan.mockResolvedValue(
       planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])

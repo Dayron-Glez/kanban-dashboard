@@ -1,0 +1,101 @@
+import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
+import { IconGripVertical } from "@tabler/icons-react"
+import { cn, Tooltip, TooltipContent, TooltipTrigger } from "@/shared/index"
+
+interface ColumnResizerProps {
+  /** El ancho actual, en píxeles, y dónde se pinta el borde. */
+  value: number
+  /** Dónde está el borde, en CSS: el ancho de la columna con lo que la acompaña. */
+  left: string
+  min: number
+  max: number
+  initial: number
+  label: string
+  onChange: (width: number) => void
+}
+
+const STEP = 16
+
+/**
+ * El borde entre la tabla y el Gantt: se arrastra para repartir el espacio, el
+ * doble clic lo restablece y, con el foco, ← → lo mueven.
+ */
+export function ColumnResizer({
+  value,
+  left,
+  min,
+  max,
+  initial,
+  label,
+  onChange,
+}: Readonly<ColumnResizerProps>) {
+  const drag = useRef<{ x: number; width: number } | null>(null)
+  const [dragging, setDragging] = useState<boolean>(false)
+  const clamp = (width: number) => Math.round(Math.min(max, Math.max(min, width)))
+
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    drag.current = { x: event.clientX, width: value }
+    setDragging(true)
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+  }
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return
+    const next = clamp(drag.current.width + event.clientX - drag.current.x)
+    if (next !== value) onChange(next)
+  }
+  const stop = () => {
+    drag.current = null
+    setDragging(false)
+  }
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+    event.preventDefault()
+    onChange(clamp(value + (event.key === "ArrowLeft" ? -STEP : STEP)))
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={label}
+          aria-valuenow={value}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          tabIndex={0}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={stop}
+          onPointerCancel={stop}
+          onDoubleClick={() => onChange(initial)}
+          onKeyDown={onKeyDown}
+          data-dragging={dragging || undefined}
+          className={cn(
+            "group/resizer absolute inset-y-0 z-30 -ml-1 flex w-2.5 cursor-col-resize touch-none justify-center outline-none",
+            // La línea se ilumina al pasar, con el foco y mientras se arrastra.
+            "before:bg-border before:h-full before:w-px before:transition-all",
+            "hover:before:bg-primary focus-visible:before:bg-primary data-dragging:before:bg-primary",
+            "hover:before:w-[3px] focus-visible:before:w-[3px] data-dragging:before:w-[3px]"
+          )}
+          style={{ left }}
+        >
+          <span
+            aria-hidden
+            className={cn(
+              "bg-card border-border text-muted-foreground absolute top-1/2 flex h-8 w-3.5 -translate-y-1/2 items-center justify-center rounded-md border opacity-0 transition-opacity",
+              "group-hover/resizer:opacity-100 group-focus-visible/resizer:opacity-100 group-data-dragging/resizer:opacity-100"
+            )}
+          >
+            <IconGripVertical className="size-3" />
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        Arrastra para ajustar · doble clic para restablecer
+      </TooltipContent>
+    </Tooltip>
+  )
+}

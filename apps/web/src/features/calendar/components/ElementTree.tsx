@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode, type Ref } from "react"
+import { useEffect, useState, type ReactNode, type Ref } from "react"
 import {
   IconAlertTriangle,
   IconAnchor,
@@ -35,7 +35,14 @@ import {
   ELEMENT_KIND_LABELS,
   type ElementNode,
 } from "../lib/elementTree"
-import { DEFAULT_GANTT_FIELDS, tableLayout, type GanttFields } from "../lib/ganttFields"
+import {
+  DEFAULT_GANTT_FIELDS,
+  loadNameWidth,
+  NAME_WIDTH,
+  saveNameWidth,
+  tableLayout,
+  type GanttFields,
+} from "../lib/ganttFields"
 import { phaseTint } from "../lib/phaseColors"
 import { describeIssue, describeRule, formatPlanDate, formatShortDay } from "../lib/planFormat"
 import {
@@ -53,6 +60,7 @@ import {
 } from "../lib/timeline"
 import { ActionLane, ActionRollup } from "./ActionMarks"
 import { CellMenu } from "./CellMenu"
+import { ColumnResizer } from "./ColumnResizer"
 import { DateEditor, DurationEditor } from "./PlanEditors"
 import { TimelineBar } from "./TimelineBar"
 import { TimelineScale } from "./TimelineScale"
@@ -136,7 +144,13 @@ export function ElementTree({
 }: Readonly<ElementTreeProps>) {
   const showTimeline = view !== "tabla" && timeline != null
   const columns = view === "tabla" ? { duration: true, start: true, end: true } : fields
-  const ganttTable = tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields })
+  // El ancho de «Elemento» se arrastra en el borde con el Gantt, y se recuerda.
+  const [nameWidth, setNameWidth] = useState<number>(loadNameWidth)
+  const resizeName = (width: number) => {
+    setNameWidth(width)
+    saveNameWidth(width)
+  }
+  const ganttTable = tableLayout({ ...DEFAULT_GANTT_FIELDS, ...fields }, nameWidth)
   const table = view === "tabla" ? MOBILE_TABLE : ganttTable
   // Lo que contiene al elemento seleccionado se abre solo, para que se vea.
   const selectedPath = new Set<string>()
@@ -691,11 +705,24 @@ export function ElementTree({
   // La cuadrícula ocupa el alto que le dejan y lleva su propio scroll, con la
   // cabecera fija: las dos barras quedan siempre a la vista.
   return (
-    <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
-      {content}
+    <div className="relative h-full w-full">
+      <ScrollArea className="h-full w-full" viewportRef={viewportRef}>
+        {content}
+        {showTimeline && (
+          <ScrollBar orientation="horizontal" className="z-30" style={{ left: ganttTable.width }} />
+        )}
+      </ScrollArea>
       {showTimeline && (
-        <ScrollBar orientation="horizontal" className="z-30" style={{ left: ganttTable.width }} />
+        <ColumnResizer
+          value={nameWidth}
+          left={ganttTable.width}
+          min={NAME_WIDTH.min}
+          max={NAME_WIDTH.max}
+          initial={NAME_WIDTH.initial}
+          label="Ancho de la columna de elementos"
+          onChange={resizeName}
+        />
       )}
-    </ScrollArea>
+    </div>
   )
 }
