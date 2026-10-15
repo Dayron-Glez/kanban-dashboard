@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
-import type { DatePoint, SetElementRuleInput, UpdateElementPlanInput } from "@repo/contracts"
+import type {
+  ActionKind,
+  DatePoint,
+  SetElementRuleInput,
+  UpdateElementPlanInput,
+} from "@repo/contracts"
 import {
   describePhaseViolation,
   fromIsoDate,
@@ -22,6 +27,12 @@ import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { loadLegend, saveLegend, type GanttLegend } from "../lib/ganttLegend"
 import {
+  countActionKinds,
+  hideActionKinds,
+  loadHiddenKinds,
+  saveHiddenKinds,
+} from "../lib/actionFilter"
+import {
   buildTimeline,
   dragTarget,
   PLAN_ZOOMS,
@@ -29,6 +40,7 @@ import {
   type BarDrag,
   type PlanZoom,
 } from "../lib/timeline"
+import { ActionKindFilter } from "./ActionKindFilter"
 import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { DaySheet } from "./DaySheet"
 import type { DayPanel } from "../hooks/useGanttCells"
@@ -109,8 +121,20 @@ export function CalendarPage() {
     setLegend(next)
     saveLegend(next)
   }
+  // Los tipos de acción ocultos en el Gantt, también recordados.
+  const [hiddenKinds, setHiddenKinds] = useState<ActionKind[]>(loadHiddenKinds)
+  const changeHiddenKinds = (next: ActionKind[]) => {
+    setHiddenKinds(next)
+    saveHiddenKinds(next)
+  }
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
+  const actionCounts = useMemo(() => countActionKinds(tree), [tree])
+  // El filtro es del Gantt: el árbol del móvil lo cuenta todo.
+  const shownTree = useMemo(
+    () => (view === "tabla" ? tree : hideActionKinds(tree, hiddenKinds)),
+    [tree, view, hiddenKinds]
+  )
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
   const timeline = useMemo(() => buildTimeline(elements ?? [], undefined, zoom), [elements, zoom])
@@ -317,10 +341,19 @@ export function CalendarPage() {
         ) : (
           <>
             {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
-            {view !== "tabla" && timeline && <GanttLegendStrip legend={legend} />}
+            {view !== "tabla" && timeline && (
+              <>
+                <ActionKindFilter
+                  counts={actionCounts}
+                  hidden={hiddenKinds}
+                  onChange={changeHiddenKinds}
+                />
+                <GanttLegendStrip legend={legend} />
+              </>
+            )}
             <div className="-mx-6 min-h-0 flex-1 px-6">
               <ElementTree
-                nodes={tree}
+                nodes={shownTree}
                 dependencies={plan.data.dependencies}
                 editable={isOwner}
                 pending={changes.pending}

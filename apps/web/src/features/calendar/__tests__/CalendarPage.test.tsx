@@ -561,9 +561,8 @@ describe("CalendarPage", () => {
     const legend = await screen.findByRole("note", { name: "Leyenda" })
     expect(within(legend).getByText("Hoy")).toBeInTheDocument()
     expect(within(legend).getByText("Subfase o proceso")).toBeInTheDocument()
-    // Los tipos de acción, cada uno con su icono y su color.
-    expect(within(legend).getByText("Reunión")).toBeInTheDocument()
-    expect(within(legend).getByText("Contratación")).toBeInTheDocument()
+    // Los tipos de acción no van: tienen sus propios filtros.
+    expect(within(legend).queryByText("Reunión")).toBeNull()
     // Las explicaciones largas, en el tooltip.
     await userEvent.hover(within(legend).getByText("Semana 1"))
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
@@ -882,6 +881,61 @@ describe("CalendarPage", () => {
 
       await userEvent.click(meeting)
       expect(await screen.findByRole("heading", { name: "Lectura de guion" })).toBeInTheDocument()
+    })
+
+    it("los tipos de acción se ocultan sobre el Gantt, uno o todos menos uno, y se recuerda", async () => {
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("lectura", "rodaje", "Lectura de guion", {
+            kind: "meeting",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+          element("permisos", "rodaje", "Pedir permisos", {
+            kind: "reminder",
+            position: 1,
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-14",
+          }),
+          element("casting", "rodaje", "Casting", {
+            kind: "meeting",
+            position: 2,
+            startsOn: "2026-10-16",
+            endsOn: "2026-10-16",
+          }),
+        ])
+      )
+      renderPage()
+
+      const filters = await screen.findByRole("group", { name: "Tipos de acción que se ven" })
+      const meetings = within(filters).getByRole("button", { name: "Reunión: 2" })
+      expect(meetings).toHaveAttribute("aria-pressed", "true")
+      // Dos el mismo día, en un número.
+      expect(screen.getByLabelText(/^2 acciones:/)).toBeInTheDocument()
+
+      // Ocultar las reuniones: solo queda el recordatorio, ya sin número, y se avisa.
+      await userEvent.click(meetings)
+      expect(meetings).toHaveAttribute("aria-pressed", "false")
+      expect(screen.queryByLabelText(/^2 acciones:/)).toBeNull()
+      expect(screen.queryByRole("img", { name: /Lectura de guion/ })).toBeNull()
+      expect(
+        screen.getByRole("img", { name: "Recordatorio: Pedir permisos, 14 oct" })
+      ).toBeInTheDocument()
+      expect(filters).toHaveTextContent("Se ven 1 de 3")
+      expect(JSON.parse(localStorage.getItem("cauce.gantt.acciones-ocultas")!)).toEqual(["meeting"])
+
+      // Alt+clic deja solo ese tipo.
+      fireEvent.click(within(filters).getByRole("button", { name: "Reunión: 2" }), {
+        altKey: true,
+      })
+      expect(screen.queryByRole("img", { name: /Pedir permisos/ })).toBeNull()
+      expect(screen.getByRole("img", { name: "Reunión: Casting, 16 oct" })).toBeInTheDocument()
+      expect(filters).toHaveTextContent("Se ven 2 de 3")
+
+      await userEvent.click(within(filters).getByRole("button", { name: "Mostrar todas" }))
+      expect(screen.getByLabelText(/^2 acciones:/)).toBeInTheDocument()
+      expect(filters).not.toHaveTextContent("Se ven")
     })
 
     it("una celda con acciones enseña su lista, con lo de dentro si la fila está plegada", async () => {
