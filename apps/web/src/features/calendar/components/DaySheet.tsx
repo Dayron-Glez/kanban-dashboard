@@ -41,6 +41,9 @@ interface DaySheetProps {
 
 const signed = (n: number) => (n < 0 ? `−${-n}` : String(n))
 
+// Los títulos de sección, como en el panel del elemento.
+const HEADING = "text-muted-foreground text-sm font-semibold tracking-wider uppercase"
+
 /**
  * Todo el proyecto en un día: sus acciones por tipo y lo que está en curso. Desde
  * aquí también se crea, eligiendo de qué cuelga. ← → pasan de un día a otro.
@@ -125,6 +128,15 @@ export function DaySheet({
   return (
     <SidePanel
       onClose={onClose}
+      footer={
+        canCreate &&
+        !adding && (
+          <Button className="flex-1" onClick={() => setAdding(true)}>
+            <IconPlus aria-hidden />
+            Nueva acción
+          </Button>
+        )
+      }
       actions={
         <>
           <Button
@@ -165,89 +177,82 @@ export function DaySheet({
         </>
       }
     >
-      <section aria-label="Acciones del día" className="flex flex-col gap-2">
-        <h3 className="text-muted-foreground text-sm font-semibold">Acciones · {actions.length}</h3>
-        {actions.length === 0 && <p className="text-muted-foreground text-sm">Nada este día.</p>}
-        {ACTION_KINDS.map((kind) => {
-          const ofKind = actions.filter((node) => node.element.kind === kind)
-          if (ofKind.length === 0) return null
-          return (
-            <div key={kind} className="flex flex-col">
-              <p className="text-muted-foreground text-xs">{ELEMENT_KIND_LABELS[kind]}</p>
-              {ofKind.map(({ element }) => (
-                <button
-                  key={element.id}
-                  type="button"
-                  onClick={() => onOpen(element.id)}
-                  className="hover:bg-muted focus-visible:bg-muted flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left outline-none"
-                >
-                  <span className="text-muted-foreground flex w-[18px] justify-center">
-                    <ActionGlyph kind={element.kind as ActionKind} />
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <TruncatedText text={element.name} className="text-sm" />
-                    <TruncatedText
-                      text={nameOf(element.parentId) ?? ""}
-                      className="text-muted-foreground text-xs"
-                    />
-                  </span>
-                  {lacksDuration(element) && <MissingDurationHint />}
-                </button>
-              ))}
-            </div>
-          )
-        })}
+      {canCreate && adding && (
+        <div className="border-border flex flex-col gap-2 rounded-lg border p-2">
+          <div className="flex flex-col gap-1 px-1">
+            <span className="text-muted-foreground text-xs">Cuelga de</span>
+            <ElementPicker
+              label="Cuelga de"
+              options={parents.map((node) => ({
+                element: node.element,
+                depth: node.depth,
+                tint: phaseTint(node.phaseColor, node.depth === 0),
+                hint: activeIds.has(node.element.id) ? "en curso" : undefined,
+              }))}
+              value={parent?.element.id ?? null}
+              onChange={setParentId}
+              placeholder="Elige una fase, subfase o proceso"
+            />
+          </div>
+          {parent && (
+            <CellMenu
+              key={parent.element.id}
+              start={day}
+              end={day}
+              parentName={parent.element.name}
+              actions={[]}
+              canCreate
+              pending={creating}
+              onOpen={onOpen}
+              onCancel={() => setAdding(false)}
+              onCreate={(input) => onCreateAction(parent.element.id, input, () => setAdding(false))}
+            />
+          )}
+        </div>
+      )}
 
-        {canCreate && !adding && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-primary mt-1"
-            onClick={() => setAdding(true)}
-          >
-            <IconPlus aria-hidden />
-            Nueva acción
-          </Button>
-        )}
-        {canCreate && adding && (
-          <div className="border-border flex flex-col gap-2 rounded-lg border p-2">
-            <div className="flex flex-col gap-1 px-1">
-              <span className="text-muted-foreground text-xs">Cuelga de</span>
-              <ElementPicker
-                label="Cuelga de"
-                options={parents.map((node) => ({
-                  element: node.element,
-                  depth: node.depth,
-                  tint: phaseTint(node.phaseColor, node.depth === 0),
-                  hint: activeIds.has(node.element.id) ? "en curso" : undefined,
-                }))}
-                value={parent?.element.id ?? null}
-                onChange={setParentId}
-                placeholder="Elige una fase, subfase o proceso"
-              />
-            </div>
-            {parent && (
-              <CellMenu
-                key={parent.element.id}
-                start={day}
-                end={day}
-                parentName={parent.element.name}
-                actions={[]}
-                canCreate
-                pending={creating}
-                onOpen={onOpen}
-                onCancel={() => setAdding(false)}
-                onCreate={(input) =>
-                  onCreateAction(parent.element.id, input, () => setAdding(false))
-                }
-              />
-            )}
+      <section aria-label="Acciones del día" className="flex flex-col gap-2">
+        <h3 className={HEADING}>Acciones · {actions.length}</h3>
+        {actions.length === 0 && <p className="text-muted-foreground text-sm">Nada este día.</p>}
+        {actions.length > 0 && (
+          <div className="border-border bg-card flex flex-col gap-1 rounded-xl border p-1.5">
+            {ACTION_KINDS.map((kind) => {
+              const ofKind = actions.filter((node) => node.element.kind === kind)
+              if (ofKind.length === 0) return null
+              return (
+                <div key={kind} className="flex flex-col">
+                  <p className="text-muted-foreground px-1.5 pt-1 text-xs">
+                    {ELEMENT_KIND_LABELS[kind]}
+                  </p>
+                  {ofKind.map(({ element }) => (
+                    <button
+                      key={element.id}
+                      type="button"
+                      onClick={() => onOpen(element.id)}
+                      className="hover:bg-muted focus-visible:bg-muted flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left outline-none"
+                    >
+                      <span className="text-muted-foreground flex w-[18px] shrink-0 justify-center">
+                        <ActionGlyph kind={element.kind as ActionKind} />
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <TruncatedText text={element.name} className="text-sm" />
+                        <TruncatedText
+                          text={nameOf(element.parentId) ?? ""}
+                          className="text-muted-foreground text-xs"
+                        />
+                      </span>
+                      {lacksDuration(element) && <MissingDurationHint />}
+                    </button>
+                  ))}
+                </div>
+              )
+            })}
           </div>
         )}
       </section>
 
       <section aria-label="En curso" className="flex flex-col gap-1">
-        <h3 className="text-muted-foreground text-sm font-semibold">En curso · {active.length}</h3>
+        <h3 className={HEADING}>En curso · {active.length}</h3>
         {active.map((node) => {
           return (
             <button
