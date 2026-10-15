@@ -56,3 +56,27 @@ export type TaskSize = z.infer<typeof TaskSizeSchema>
 export const COLUMN_CATEGORIES = ["todo", "doing", "blocked", "done"] as const
 export const ColumnCategorySchema = z.enum(COLUMN_CATEGORIES)
 export type ColumnCategory = z.infer<typeof ColumnCategorySchema>
+
+export const HOURS_MODES = ["daily", "continuous"] as const
+export const HoursModeSchema = z.enum(HOURS_MODES)
+export type HoursMode = z.infer<typeof HoursModeSchema>
+
+export const ALERT_CAUSES = [
+  "unavailability",
+  "illness",
+  "strike",
+  "weather",
+  "permits",
+  "supplier",
+  "other",
+] as const
+export const AlertCauseSchema = z.enum(ALERT_CAUSES)
+export type AlertCause = z.infer<typeof AlertCauseSchema>
+
+export const ALERT_CERTAINTIES = ["confirmed", "possible"] as const
+export const AlertCertaintySchema = z.enum(ALERT_CERTAINTIES)
+export type AlertCertainty = z.infer<typeof AlertCertaintySchema>
+
+export const ALERT_SCOPES = ["project", "targeted"] as const
+export const AlertScopeSchema = z.enum(ALERT_SCOPES)
+export type AlertScope = z.infer<typeof AlertScopeSchema>
