@@ -142,6 +142,7 @@ Cualquier fecha se puede escribir a mano, también las calculadas. La app no la 
 - **Antes de guardar, la app enseña qué más se mueve**: el cambio («Mover Rodaje 1 semana más tarde»), cuánto se desplaza el plan («+1 semana para 45 elementos»), cuánto cada fase, lo que pasa a empezar fuera de su fase y, si se pide, la tabla de fechas de antes y después. Si no se mueve nada más, se guarda sin preguntar. La vista previa sale del mismo motor que el servidor.
 - **Cambiar una regla** (de qué elemento depende un extremo, de qué punto y con qué desfase) pasa por la misma vista previa. Una regla que cerraría un ciclo no se puede elegir, y si llega a la API se rechaza con el camino que lo forma.
 - **El último cambio se puede deshacer**: se aplica el cambio contrario (la duración, el desfase o la regla de antes). No hay historial de cambios.
+- **En el panel de un elemento, los cambios se juntan en un borrador** y se guardan de una vez, en una sola petición: o se guarda todo o nada, con un solo recálculo. Mientras se edita, el panel enseña el plan como quedaría, con el mismo motor. Deshacer revierte el conjunto. Arrastrar en el Gantt y escribir en la tabla siguen guardando al momento.
 - **Las fases no cambian de orden, y cada una solo puede solaparse con la siguiente hasta el 25 % de la duración de esa siguiente.** Es una restricción, no un aviso: el motor la comprueba, la API rechaza el cambio con un 409 que dice qué fase la incumple, y al arrastrar la barra se para en el tope.
 - **Si un cambio deja un elemento empezando fuera de su fase, la app avisa**, pero no lo cambia de fase: eso es mover el elemento en el árbol, y lo decide quien planifica.
 
@@ -168,7 +169,20 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **Una acción sin duración** solo ocupa su día de inicio y lo avisa; la contratación sin baja sigue en curso.
 - **El panel del día** enseña sus acciones y lo que está en curso, y deja crear. Si se abre desde una fila, se cuelga dentro de su fase; desde la cabecera, de cualquier fase, subfase o proceso.
 - **Hoy**: el número marcado en la cabecera y una línea cian que pasa por encima de las barras.
-- **La columna «Elemento»** se ajusta arrastrando su borde y se contrae a una tira con el color de cada fila (el nombre, en un Tooltip). Arrastrar la cabecera de fechas desplaza el Gantt; Mayús + rueda, también.
+- **La columna «Elemento»** se ajusta arrastrando su borde y se contrae a una tira con el color de cada fila (el nombre, en un Tooltip). Contraída, no enseña duración, inicio ni fin. El botón para contraerla va siempre al final de la tabla, y el ancho cambia sin saltos. Arrastrar la cabecera de fechas desplaza el Gantt; Mayús + rueda, también.
+
+### Paneles laterales
+
+- **Un panel cada vez a la derecha, el de un elemento o el de un día**, del mismo ancho (520 px) y con la misma forma: cabecera, cuerpo con scroll y pie fijo.
+- **No son modales**: el Gantt se sigue viendo y tocando con el panel abierto. Esc, la X o pulsar fuera del calendario lo cierran; ↑ ↓ pasan de un elemento a otro, y ← → de un día a otro.
+- **Nada se guarda al tocar.** Cada campo cambiado lleva una marca cian; el pie cuenta los cambios y deja guardarlos o descartarlos. Salir con cambios (cerrar, pasar a otro elemento, abrir un día) pregunta antes.
+- **«Cuándo» es un solo campo**: el tramo y lo que dura. Al abrirlo, la duración con su unidad y un calendario de dos meses (uno, en reuniones y recordatorios), limitado a lo que dibuja el Gantt:
+  - pulsar solo el inicio mueve el tramo entero, con lo que dura;
+  - pulsar inicio y fin da la duración, en la unidad que tenía si sale exacta;
+  - los puntos de cada día son las acciones de la misma fase, con su lista al pasar por encima, para no pisarse. Los conflictos de verdad (la misma persona o el mismo sitio a la misma hora) llegan con la hora, el lugar y los participantes.
+- **Una acción** muestra su tipo, cuándo y de qué cuelga (su fase, sus subfases o sus procesos), sin reglas. Se borra desde el pie, tras confirmarlo; las fases, subfases y procesos no se borran desde aquí.
+- **El nombre de cualquier elemento** se cambia en la cabecera del panel.
+- **El panel del día** tiene «Nueva acción» en el pie.
 
 ## Decidido con el productor
 
@@ -210,6 +224,7 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 **15 de octubre de 2026:**
 
 1. **Ver y editar, separados**: un clic en una celda es para ver (el detalle o la lista); crear, con doble clic o Enter.
+2. **Los paneles laterales no son modales**, y lo que se edita en ellos se guarda con Guardar, de una vez.
 
 ## Pendiente
 
