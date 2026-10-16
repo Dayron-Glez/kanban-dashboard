@@ -181,7 +181,7 @@ Lo que cruza la medianoche es «seguido», nunca «cada día». La base lo compr
 - **Una acción o un proceso choca con una alerta** si se cruzan sus fechas y horas y además la alerta es de todo el proyecto, o en él interviene una persona afectada (responsable, ejecutantes, participantes, viajeros, el contratado), o hay un departamento afectado, directamente o por el de sus personas. Las fases y subfases no: ya se marca lo que tienen dentro.
 - **Total o parcial**: sin horas, un elemento cuenta como de día entero. Contra una alerta con horas, el conflicto es parcial en los días que solo ocupa en parte; en una alerta «seguido», los días de en medio son enteros. Una contratación sin baja sigue activa, y choca con todo lo que venga después de su alta.
 - **Nunca mueve fechas**: avisa y la persona decide, como el resto del Calendario.
-- **«Lo asumo»**: un conflicto se marca como revisado, por par (alerta, elemento), y deja de avisar.
+- **«Lo asumo»**: un conflicto se marca como revisado, por par (alerta, elemento), y deja de avisar. Solo en acciones y procesos, que son los únicos con conflictos.
 - **Por partes**: de momento solo calculan conflictos las alertas de todo el proyecto. Las de personas y departamentos se guardan y se verán en el Gantt, pero sus conflictos llegan con la asignación de los elementos (5c).
 
 ## Vistas del Calendario

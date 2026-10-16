@@ -150,12 +150,20 @@ Table core.crew_members {
   project_id uuid [not null, ref: > core.projects.id]
   user_id uuid [ref: > identity.users.id, note: 'Opcional: la mayoría del equipo no tiene cuenta']
   department_id uuid [ref: > core.departments.id]
-  full_name text [not null]
+  full_name text [not null, note: 'CHECK: de 1 a 200 caracteres']
   job_title text [note: 'Cargo: director de producción, ayudante de dirección, foquista…']
   email text [note: 'Para enviarle avisos aunque no tenga cuenta']
   phone text
 
-  Note: 'El equipo del proyecto, con o sin cuenta. Compartido: el Calendario asigna elementos y el Plan de rodaje o el Presupuesto usarán a las mismas personas.'
+  indexes {
+    project_id
+  }
+
+  Note: '''
+  El equipo del proyecto, con o sin cuenta. Compartido: el Calendario asigna elementos y el Plan de rodaje o el Presupuesto usarán a las mismas personas.
+
+  Hoy existe en su forma mínima: nombre, email y departamento. user_id, job_title y phone llegan con el 5c.
+  '''
 }
 
 Table core.files {
@@ -290,6 +298,8 @@ Table core.alert_targets {
   indexes {
     (alert_id, department_id) [unique]
     (alert_id, crew_member_id) [unique]
+    department_id
+    crew_member_id
   }
 
   Note: 'A quién afecta una alerta de scope targeted: un departamento o una persona del equipo (CHECK: uno de los dos).'
@@ -487,9 +497,10 @@ Table calendar.alert_conflict_reviews {
 
   indexes {
     (alert_id, element_id) [pk]
+    element_id
   }
 
-  Note: '«Lo asumo»: el conflicto de esta alerta con este elemento está revisado y deja de avisar. En calendar porque apunta a un elemento; core nunca apunta a calendar.'
+  Note: '«Lo asumo»: el conflicto de esta alerta con este elemento está revisado y deja de avisar. Solo en acciones y procesos, nunca en fases ni subfases. En calendar porque apunta a un elemento; core nunca apunta a calendar.'
 }
 
 Table calendar.element_links {
