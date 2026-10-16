@@ -9,6 +9,8 @@ Dos ficheros [DBML](https://dbml.dbdiagram.io/docs/), versionados junto al códi
 
 Para verlos como diagrama, pega el contenido en [dbdiagram.io](https://dbdiagram.io/d). Las tablas no se agrupan por módulo en el dibujo (en dbdiagram eso es de pago); el esquema va en el nombre de cada tabla.
 
+[`campos.md`](campos.md) inventaría los campos de cada tipo de acción y de la alerta: dónde se guarda cada uno, sus reglas y cuándo llega.
+
 ## Reglas del modelo de destino
 
 - **Un esquema de Postgres por módulo de la API**, y cada módulo solo escribe en el suyo:
