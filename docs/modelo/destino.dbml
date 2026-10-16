@@ -102,6 +102,7 @@ Table core.projects {
   name text [not null]
   description text
   color text [not null]
+  currency text [not null, default: 'EUR', note: 'Código ISO 4217. Los importes del proyecto (viajes, alojamiento) van en esta moneda, sin conversión']
   created_at timestamptz [not null, default: `now()`]
 
   Note: 'Una producción. Su plan vive en calendar.'
@@ -154,16 +155,34 @@ Table core.crew_members {
   job_title text [note: 'Cargo: director de producción, ayudante de dirección, foquista…']
   email text [note: 'Para enviarle avisos aunque no tenga cuenta']
   phone text
+  document_id text [note: 'DNI, NIE o pasaporte, hasta 30. Lo pide la contratación']
 
   indexes {
     project_id
+    (project_id, document_id) [unique, note: 'Parcial: WHERE document_id IS NOT NULL. Un DNI no puede ser de dos personas del proyecto']
   }
 
   Note: '''
   El equipo del proyecto, con o sin cuenta. Compartido: el Calendario asigna elementos y el Plan de rodaje o el Presupuesto usarán a las mismas personas.
 
-  Hoy existe en su forma mínima: nombre, email y departamento. user_id, job_title y phone llegan con el 5c.
+  Hoy existe en su forma mínima: nombre, email y departamento. user_id, job_title, phone y document_id llegan con el 5c. Los actores son parte del equipo, en el departamento Reparto (campos.md, 7.13).
   '''
+}
+
+Table core.job_titles {
+  id uuid [pk]
+  project_id uuid [not null, ref: > core.projects.id]
+  department_id uuid [not null, ref: > core.departments.id, note: 'Se borra con el departamento']
+  name text [not null, note: 'Director/a de fotografía, Ayudante de producción, Foquista…']
+  code text [note: 'Código numérico de hasta 8 dígitos']
+  abbreviation text [note: 'El «ID» del cargo en el prototipo: DF para Director/a de fotografía']
+  position integer [not null]
+
+  indexes {
+    (project_id, name) [unique]
+  }
+
+  Note: 'Catálogo de cargos del proyecto, por departamento. Se siembra al crearlo con los del prototipo del productor (puestos.ts) y se edita libremente, como los departamentos. Compartido: lo usan la contratación, el equipo y el futuro módulo de personal.'
 }
 
 Table core.files {
@@ -367,6 +386,29 @@ Enum calendar.notification_channel {
   push [note: 'Notificación en el móvil']
 }
 
+Enum calendar.video_app {
+  meet [note: 'Google Meet']
+  teams [note: 'Microsoft Teams']
+  zoom [note: 'Zoom']
+  webex [note: 'Webex']
+  other [note: 'Otra']
+}
+
+Enum calendar.travel_direction {
+  outbound [note: 'Ida']
+  return [note: 'Vuelta']
+}
+
+Enum calendar.travel_mode {
+  plane [note: 'Avión']
+  train [note: 'Tren']
+  car [note: 'Coche']
+  van [note: 'Furgoneta']
+  bus [note: 'Autobús']
+  boat [note: 'Barco']
+  other [note: 'Otro medio']
+}
+
 Enum calendar.priority {
   high [note: 'Alta']
   normal [note: 'Normal']
@@ -379,16 +421,18 @@ Table calendar.elements {
   kind calendar.element_kind [not null]
   parent_id uuid [ref: > calendar.elements.id, note: 'La fase, subfase o proceso al que pertenece: donde empieza. Vacío solo en las fases: no hay acciones sueltas']
   position integer [not null, note: 'Orden entre hermanos']
-  name text [not null, note: 'Rodaje, Rodaje 2 (Almería), Montaje de Sonido, Foley, Reunión de producción…']
+  name text [not null, note: 'Rodaje, Rodaje 2 (Almería), Montaje de Sonido, Foley, Reunión de producción… En la contratación lo escribe la API: «Puesto — Trabajador»']
   color text
   template_key text [note: 'De qué pieza de la plantilla salió (p. ej. postproduccion.vfx.render). Vacío si lo creó el usuario. No bloquea nada: todo se puede renombrar o borrar']
-  description text [note: 'Información del elemento']
+  description text [note: 'Información del elemento. A decidir si se queda: FFCal solo tiene notas (campos.md, 7.7)']
   notes text
-  location text [note: 'Por ahora texto libre. Con el Plan de rodaje, las localizaciones serán una entidad de core']
+  location text [note: 'Hasta 200. Por ahora texto libre; en la contratación se llama «Lugar». Con el Plan de rodaje, las localizaciones serán una entidad de core']
+  video_app calendar.video_app [note: 'Solo en reuniones (CHECK). Vacía: presencial']
+  video_url text [note: 'Enlace de la videollamada: https o http. Solo en reuniones (CHECK)']
   completed_at timestamptz [note: 'Solo en tareas (CHECK): cuándo se marcó hecha. Vacía: pendiente']
   completed_by uuid [ref: > identity.users.id]
   priority calendar.priority [note: 'Solo para resolver conflictos entre acciones que se solapan; normal si no se indica']
-  recurrence_rule text [note: 'Si se repite y con qué ciclo, en formato RRULE (RFC 5545). Las repeticiones se calculan al consultar']
+  recurrence_rule text [note: 'Si se repite y con qué ciclo, en formato RRULE (RFC 5545): FREQ diaria, semanal, mensual o anual; INTERVAL de 1 a 999; UNTIL opcional. Solo acciones de un día y nunca la contratación (CHECK). Las repeticiones se calculan al consultar. Llega en su propio PR, después del 5c']
   starts_on date [note: 'Calculada por el motor de fechas, salvo en el ancla y en los elementos fijados']
   ends_on date [note: 'En reuniones y recordatorios, igual que starts_on (CHECK). En una contratación es la baja: vacía mientras sigue activa']
   all_day boolean [not null, default: true, note: 'El mismo «Cuándo» que core.alerts, sin el fin abierto (salvo en la contratación), y con las mismas reglas']
@@ -399,7 +443,7 @@ Table calendar.elements {
   duration_unit calendar.duration_unit
   duration_basis calendar.day_basis [not null, default: 'calendar', note: 'Naturales por defecto; laborables en las excepciones. Los laborables salen de core.work_calendars']
   is_anchor boolean [not null, default: false, note: 'La fecha que se escribe a mano y de la que sale el plan. Normalmente el inicio de rodaje']
-  is_pinned boolean [not null, default: false, note: 'Fijado: no lo mueve el motor de fechas y corta la propagación']
+  is_pinned boolean [not null, default: false, note: 'Fijado: no lo mueve el motor de fechas y corta la propagación. Un viaje siempre está fijado: sus fechas las escribe la API desde sus trayectos']
   dependency_join calendar.dependency_join [not null, default: 'all', note: 'Cómo se combinan sus dependencias si tiene varias']
   created_by uuid [ref: > identity.users.id]
   created_at timestamptz [not null, default: `now()`]
@@ -453,9 +497,11 @@ Table calendar.element_assignees {
 
   indexes {
     (element_id, crew_member_id) [pk]
+    element_id [unique, name: 'element_assignees_one_responsible', note: 'Parcial: WHERE role = responsible. Como mucho un responsable']
+    crew_member_id
   }
 
-  Note: 'Participantes: el responsable y los ejecutantes, con su cargo concreto (core.crew_members.job_title). Sustituye a tasks.assignee_id.'
+  Note: 'El responsable y los ejecutantes, siempre personas del equipo, con su cargo concreto (core.crew_members.job_title). Ni el viaje ni la contratación los usan: tienen viajeros y trabajador. Sustituye a tasks.assignee_id.'
 }
 
 Table calendar.element_departments {
@@ -464,7 +510,10 @@ Table calendar.element_departments {
 
   indexes {
     (element_id, department_id) [pk]
+    department_id
   }
+
+  Note: 'Departamentos que intervienen en la acción. Con sus personas, deciden los conflictos con las alertas de departamentos.'
 }
 
 Table calendar.element_guests {
@@ -472,9 +521,14 @@ Table calendar.element_guests {
   element_id uuid [not null, ref: > calendar.elements.id]
   crew_member_id uuid [ref: > core.crew_members.id]
   email text [note: 'Invitado de fuera del equipo']
-  full_name text
+  full_name text [note: 'Obligatorio si es de fuera, como el email: los dos hacen falta para la convocatoria']
 
-  Note: 'Invitados: alguien del equipo o un correo suelto (CHECK: uno de los dos).'
+  indexes {
+    (element_id, crew_member_id) [unique]
+    (element_id, email) [unique]
+  }
+
+  Note: 'Participantes: alguien del equipo, o nombre y email de alguien de fuera (CHECK: o crew_member_id, o full_name y email). No en viajes ni contrataciones.'
 }
 
 Table calendar.element_notifications {
@@ -483,10 +537,14 @@ Table calendar.element_notifications {
   relative_to calendar.notification_anchor [not null, default: 'start']
   offset_amount integer [not null, default: 1, note: 'Cuánto antes avisar']
   offset_unit calendar.notification_unit [not null, default: 'days']
+  offset_basis calendar.day_basis [not null, default: 'calendar', note: 'Laborables para «el día laborable anterior» o «3 días de trabajo antes del final»']
   channel calendar.notification_channel [not null, default: 'app']
   sent_at timestamptz [note: 'Vacío hasta que se envía']
 
-  Note: 'Avisos de comienzo y de fin. Un elemento puede tener varios: un día antes por correo, una hora antes en el móvil.'
+  Note: '''
+  Avisos de comienzo y de fin. Un elemento puede tener varios: un día antes por correo, una hora antes en el móvil. offset_amount es un entero ≥ 0 (CHECK): 0, al empezar.
+  Solo se guardan los que se escriben. Los automáticos del viaje y de la contratación (3 días antes o el laborable anterior; el día siguiente a la baja) los calcula @repo/domain desde las fechas y no se pueden quitar; en esos dos tipos, como mucho 3 propios. En lo que es de todo el día, la hora de referencia es las 9:00 (campos.md, 7.9).
+  '''
 }
 
 Table calendar.alert_conflict_reviews {
@@ -506,9 +564,94 @@ Table calendar.alert_conflict_reviews {
 Table calendar.element_links {
   id uuid [pk]
   element_id uuid [not null, ref: > calendar.elements.id]
-  url text [not null]
+  url text [not null, note: 'CHECK: empieza por https:, http:, mailto: o file:']
   title text
   position integer [not null]
+}
+
+Table calendar.element_tags {
+  element_id uuid [not null, ref: > calendar.elements.id]
+  tag text [not null, note: 'De 1 a 60 caracteres, sin «#»']
+
+  indexes {
+    (element_id, tag) [pk]
+    tag
+  }
+
+  Note: 'Etiquetas escritas a mano. Las de serie (personas, cargos, departamentos, viajeros) no se guardan: salen de los datos de la acción.'
+}
+
+// Lo propio de cada tipo de acción, en tablas aparte para no llenar elements de
+// columnas que solo usa uno. La clave es el propio elemento.
+
+Table calendar.hirings {
+  element_id uuid [pk, ref: - calendar.elements.id, note: 'Solo de una acción de tipo hiring (lo comprueba la API)']
+  job_title_id uuid [ref: > core.job_titles.id, note: 'Pasa a null si se borra el cargo; queda job_title_name']
+  job_title_name text [not null, note: 'El puesto, hasta 120. Se copia del catálogo al elegirlo, o se escribe a mano («Otro»), y así no se pierde si se borra el cargo']
+  department_id uuid [ref: > core.departments.id, note: 'El del cargo, o el elegido si es «Otro»']
+  crew_member_id uuid [ref: > core.crew_members.id, note: 'Quien ocupa el puesto. Vacío: sin cubrir todavía']
+
+  Note: '''
+  El puesto y quien lo ocupa. El alta y la baja son el inicio y el fin del elemento; los días de contrato se calculan.
+  El nombre y el DNI del trabajador van en su ficha del equipo, no aquí. Salario, grupo de cotización y tipo de contrato irán en el módulo de personal.
+  '''
+}
+
+Table calendar.travels {
+  element_id uuid [pk, ref: - calendar.elements.id, note: 'Solo de una acción de tipo travel (lo comprueba la API)']
+  origin text [note: 'Hasta 200']
+  destination text [note: 'Hasta 200']
+  fare_class text [note: 'Turista, Turista superior, Business, Preferente, Primera… Hasta 60']
+  price numeric(12, 2) [note: 'Precio de los billetes, ≥ 0, en la moneda del proyecto']
+  per_diem boolean [not null, default: false, note: 'Dietas']
+  lodging boolean [not null, default: false, note: 'Con alojamiento: entonces cuentan las columnas lodging_*']
+  lodging_name text [note: 'Hotel o casa, hasta 200']
+  lodging_address text [note: 'Hasta 300']
+  lodging_check_in date [note: 'Por defecto, el día que llega la ida']
+  lodging_nights integer [note: 'De 0 a 365. Se propone desde los trayectos y se puede cambiar; la salida es entrada + noches']
+  lodging_nightly_price numeric(12, 2) [note: '≥ 0. El total es noches × importe']
+  lodging_booking text [note: 'Nº de reserva, hasta 60']
+
+  Note: 'Los datos del viaje que no son de un trayecto.'
+}
+
+Table calendar.travel_legs {
+  id uuid [pk]
+  element_id uuid [not null, ref: > calendar.travels.element_id, note: 'Se borra con el viaje']
+  direction calendar.travel_direction [not null]
+  departs_on date [not null]
+  departs_at time
+  arrives_at time [note: 'Antes que departs_at: se llega al día siguiente']
+  mode calendar.travel_mode [not null, default: 'plane']
+  locator text [note: 'Código de la reserva, hasta 60']
+  carrier text [note: 'Compañía, hasta 200']
+  number text [note: 'Vuelo, tren o número, hasta 40']
+  seat text [note: 'Hasta 40']
+  from_terminal text [note: 'Terminal (avión) o estación o lugar de salida, hasta 60']
+  to_terminal text [note: 'De llegada, hasta 60']
+
+  indexes {
+    (element_id, direction) [unique, note: 'Una ida y, si es de ida y vuelta, una vuelta']
+  }
+
+  Note: 'La ida (obligatoria) y la vuelta. El inicio del viaje es la fecha de la ida y su fin, la llegada de la vuelta (o de la ida si no hay vuelta), contando la llegada al día siguiente. La vuelta no sale antes que la ida (lo comprueba la API).'
+}
+
+Table calendar.element_travelers {
+  id uuid [pk]
+  element_id uuid [not null, ref: > calendar.elements.id]
+  crew_member_id uuid [ref: > core.crew_members.id, note: 'Si es del equipo (o del reparto): sus datos salen de su ficha']
+  full_name text [note: 'Si es de fuera: nombre y apellidos, hasta 200']
+  email text
+  role_label text [note: 'Cargo o personaje, hasta 200']
+  department_id uuid [ref: > core.departments.id, note: 'Reparto para los actores']
+
+  indexes {
+    (element_id, crew_member_id) [unique]
+    (element_id, email) [unique]
+  }
+
+  Note: 'Quién viaja: alguien del equipo o alguien de fuera (CHECK: crew_member_id o full_name). Solo en viajes. Deciden los conflictos del viaje con las alertas de personas y departamentos.'
 }
 
 Table calendar.element_attachments {
