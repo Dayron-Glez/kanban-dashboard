@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import type {
-  CalendarElement,
-  CalendarPlan,
-  ElementDependency,
-  ProjectSummary,
+import {
+  DEFAULT_ELEMENT_DETAILS,
+  type CalendarElement,
+  type CalendarPlan,
+  type ElementDependency,
+  type ProjectSummary,
 } from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { MemoryRouter, Route, Routes } from "react-router"
@@ -42,6 +43,7 @@ const element = (
   isAnchor: false,
   isPinned: false,
   issue: null,
+  ...DEFAULT_ELEMENT_DETAILS,
   ...overrides,
 })
 

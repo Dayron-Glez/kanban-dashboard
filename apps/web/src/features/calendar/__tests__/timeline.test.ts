@@ -1,4 +1,8 @@
-import type { CalendarElement, ElementDependency } from "@repo/contracts"
+import {
+  DEFAULT_ELEMENT_DETAILS,
+  type CalendarElement,
+  type ElementDependency,
+} from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
 import {
@@ -30,6 +34,7 @@ const element = (id: string, overrides: Partial<CalendarElement> = {}): Calendar
   isAnchor: false,
   isPinned: false,
   issue: null,
+  ...DEFAULT_ELEMENT_DETAILS,
   ...overrides,
 })
 

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { CalendarElement } from "@repo/contracts"
+import { DEFAULT_ELEMENT_DETAILS, type CalendarElement } from "@repo/contracts"
 import { fromIsoDate, toIsoDate } from "@repo/domain"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -22,6 +22,7 @@ const action = (name: string, kind: CalendarElement["kind"]): CalendarElement =>
   isAnchor: false,
   isPinned: false,
   issue: null,
+  ...DEFAULT_ELEMENT_DETAILS,
 })
 const iso = (value: CalendarValue) => ({
   start: value.start != null ? toIsoDate(value.start) : null,

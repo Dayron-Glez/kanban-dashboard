@@ -1,11 +1,16 @@
 import * as z from "zod"
 import {
   ActionKindSchema,
+  ActionPrioritySchema,
   DatePointSchema,
   DurationUnitSchema,
   ElementKindSchema,
   SINGLE_DAY_ACTION_KINDS,
+  VideoAppSchema,
+  type ActionKind,
+  type ElementKind,
 } from "./enums.js"
+import { ALL_DAY, hoursIssues, HoursSchema, whenIssues, type Hours } from "./when.js"
 
 /** Por qué a un elemento le falta alguna fecha. */
 export const ScheduleIssueSchema = z.discriminatedUnion("code", [
@@ -38,8 +43,26 @@ export const CalendarElementSchema = z.object({
   isAnchor: z.boolean(),
   isPinned: z.boolean(),
   issue: ScheduleIssueSchema.nullable(),
+  priority: ActionPrioritySchema,
+  hours: HoursSchema,
+  location: z.string().nullable(),
+  notes: z.string().nullable(),
+  completedAt: z.iso.datetime({ offset: true }).nullable(),
+  videoApp: VideoAppSchema.nullable(),
+  videoUrl: z.string().nullable(),
 })
 export type CalendarElement = z.infer<typeof CalendarElementSchema>
+
+/** Lo que no es plan de un elemento, por defecto: sin horas, sin hacer y sin videollamada. */
+export const DEFAULT_ELEMENT_DETAILS = {
+  priority: "normal",
+  hours: ALL_DAY,
+  location: null,
+  notes: null,
+  completedAt: null,
+  videoApp: null,
+  videoUrl: null,
+} satisfies Partial<CalendarElement>
 
 /** Fija el inicio o el fin de un elemento a partir de otro, con un desfase literal. */
 export const ElementDependencySchema = z.object({
@@ -69,6 +92,55 @@ export const UpdateElementPlanInputSchema = z.object({
 })
 export type UpdateElementPlanInput = z.infer<typeof UpdateElementPlanInputSchema>
 
+const NameSchema = z.string().trim().min(1).max(120)
+const LocationSchema = z.string().trim().max(200).nullable()
+const NotesSchema = z.string().trim().max(10_000).nullable()
+const VideoUrlSchema = z
+  .url({ protocol: /^https?$/ })
+  .max(2000)
+  .nullable()
+
+type ActionRuleFields = {
+  kind: ElementKind
+  startsOn: string | null
+  endsOn: string | null
+  hours: Hours
+  completed?: boolean
+  videoApp: string | null
+  videoUrl: string | null
+}
+
+/**
+ * Las reglas de una acción que dependen de su tipo o de sus fechas: los campos
+ * que fallan. Las de las horas que no dependen de los días van en HoursSchema. Las comprueban la creación, la API al guardar (con las fechas ya
+ * calculadas) y el formulario.
+ */
+export const actionIssues = (action: ActionRuleFields): string[][] => {
+  const issues: string[][] = []
+  const { kind, startsOn, endsOn, hours } = action
+  if (startsOn !== null && endsOn !== null && endsOn < startsOn) issues.push(["endsOn"])
+  if (
+    SINGLE_DAY_ACTION_KINDS.includes(kind as ActionKind) &&
+    endsOn !== null &&
+    endsOn !== startsOn
+  ) {
+    issues.push(["endsOn"])
+  }
+  if (kind === "hiring" && !hours.allDay) issues.push(["hours", "allDay"])
+  else if (startsOn !== null) {
+    // Las que no dependen de los días ya las comprueba HoursSchema.
+    const own = new Set<string>(hoursIssues(hours))
+    const when = { ...hours, startsOn, endsOn: endsOn ?? startsOn }
+    for (const path of whenIssues(when)) {
+      if (path !== "startsOn" && path !== "endsOn" && !own.has(path)) issues.push(["hours", path])
+    }
+  }
+  if (action.completed && kind !== "task") issues.push(["completed"])
+  if (kind !== "meeting" && action.videoApp !== null) issues.push(["videoApp"])
+  if (action.videoUrl !== null && action.videoApp === null) issues.push(["videoUrl"])
+  return issues
+}
+
 /**
  * Una acción nueva en un día o un periodo. Sin fin, dura un día; una contratación
  * sin fin es una baja que aún no se conoce. Reuniones y recordatorios, un solo día.
@@ -76,17 +148,25 @@ export type UpdateElementPlanInput = z.infer<typeof UpdateElementPlanInputSchema
 export const CreateActionInputSchema = z
   .object({
     kind: ActionKindSchema,
-    name: z.string().trim().min(1).max(200),
+    name: NameSchema,
     startsOn: z.iso.date(),
     endsOn: z.iso.date().nullable().optional(),
+    priority: ActionPrioritySchema.default("normal"),
+    hours: HoursSchema.default(ALL_DAY),
+    location: LocationSchema.default(null),
+    notes: NotesSchema.default(null),
+    completed: z.boolean().default(false),
+    videoApp: VideoAppSchema.nullable().default(null),
+    videoUrl: VideoUrlSchema.default(null),
   })
-  .refine(({ startsOn, endsOn }) => endsOn == null || endsOn >= startsOn, { path: ["endsOn"] })
-  .refine(
-    ({ kind, startsOn, endsOn }) =>
-      !SINGLE_DAY_ACTION_KINDS.includes(kind) || endsOn == null || endsOn === startsOn,
-    { path: ["endsOn"] }
-  )
-export type CreateActionInput = z.infer<typeof CreateActionInputSchema>
+  .superRefine((input, ctx) => {
+    const endsOn = input.endsOn ?? (input.kind === "hiring" ? null : input.startsOn)
+    for (const path of actionIssues({ ...input, endsOn })) ctx.addIssue({ code: "custom", path })
+  })
+/** Lo que se envía: lo que tiene valor por defecto puede faltar. */
+export type CreateActionInput = z.input<typeof CreateActionInputSchema>
+/** Lo que recibe la API, ya validado y con los valores por defecto puestos. */
+export type CreateActionData = z.output<typeof CreateActionInputSchema>
 
 /** De qué elemento depende un extremo, de qué punto de ese elemento y con qué desfase. */
 export const SetElementRuleInputSchema = z.object({
@@ -102,7 +182,7 @@ export type SetElementRuleInput = z.infer<typeof SetElementRuleInputSchema>
  * acciones; en las reglas, null quita la de ese extremo.
  */
 export const EditElementInputSchema = UpdateElementPlanInputSchema.extend({
-  name: z.string().trim().min(1).max(200).optional(),
+  name: NameSchema.optional(),
   kind: ActionKindSchema.optional(),
   parentId: z.uuid().optional(),
   rules: z
@@ -111,5 +191,12 @@ export const EditElementInputSchema = UpdateElementPlanInputSchema.extend({
       end: SetElementRuleInputSchema.nullable().optional(),
     })
     .optional(),
+  priority: ActionPrioritySchema.optional(),
+  hours: HoursSchema.optional(),
+  location: LocationSchema.optional(),
+  notes: NotesSchema.optional(),
+  completed: z.boolean().optional(),
+  videoApp: VideoAppSchema.nullable().optional(),
+  videoUrl: VideoUrlSchema.optional(),
 })
 export type EditElementInput = z.infer<typeof EditElementInputSchema>

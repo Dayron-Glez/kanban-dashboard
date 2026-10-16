@@ -1,6 +1,11 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import type { CalendarElement, CalendarPlan, ElementDependency } from "@repo/contracts"
+import {
+  DEFAULT_ELEMENT_DETAILS,
+  type CalendarElement,
+  type CalendarPlan,
+  type ElementDependency,
+} from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import { ElementInspector } from "../components/ElementInspector"
@@ -25,6 +30,7 @@ const element = (
   isAnchor: false,
   isPinned: false,
   issue: null,
+  ...DEFAULT_ELEMENT_DETAILS,
   ...overrides,
 })
 

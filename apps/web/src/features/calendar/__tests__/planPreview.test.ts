@@ -1,4 +1,9 @@
-import type { CalendarElement, CalendarPlan, ElementDependency } from "@repo/contracts"
+import {
+  DEFAULT_ELEMENT_DETAILS,
+  type CalendarElement,
+  type CalendarPlan,
+  type ElementDependency,
+} from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
 import {
@@ -35,6 +40,7 @@ const element = (
   isAnchor: false,
   isPinned: false,
   issue: null,
+  ...DEFAULT_ELEMENT_DETAILS,
   ...overrides,
 })
 

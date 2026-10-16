@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import { DEFAULT_ELEMENT_DETAILS } from "@repo/contracts"
 import { createHttpApi } from "../http/createHttpApi"
 import { createHttpClient } from "../http/httpClient"
 
@@ -226,6 +227,7 @@ describe("createHttpApi", () => {
       isAnchor: false,
       isPinned: false,
       issue: null,
+      ...DEFAULT_ELEMENT_DETAILS,
     }
     const { api, sent } = setup(() => json([element]))
 
@@ -256,6 +258,7 @@ describe("createHttpApi", () => {
           isAnchor: false,
           isPinned: false,
           issue: null,
+          ...DEFAULT_ELEMENT_DETAILS,
         },
       ])
     )
@@ -283,6 +286,7 @@ describe("createHttpApi", () => {
           isAnchor: true,
           isPinned: false,
           issue: null,
+          ...DEFAULT_ELEMENT_DETAILS,
         },
       ],
       dependencies: [],
