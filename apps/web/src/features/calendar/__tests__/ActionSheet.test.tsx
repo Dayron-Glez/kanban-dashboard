@@ -183,6 +183,12 @@ describe("el Sheet de una acción guardada", { timeout: 15_000 }, () => {
     )
   })
 
+  it("en «Cuándo», su sitio dentro de lo que cuelga", () => {
+    renderEdit(meeting)
+    expect(screen.getByText("Rodaje · 5 abr 2027")).toBeInTheDocument()
+    expect(screen.getByText("16 may 2027")).toBeInTheDocument()
+  })
+
   it("una tarea de varios días que pasa a recordatorio se queda en un día", async () => {
     const { onDraftChange } = renderEdit(task)
     await userEvent.click(screen.getByRole("radio", { name: "Recordatorio" }))
