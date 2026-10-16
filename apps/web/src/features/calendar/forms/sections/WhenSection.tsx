@@ -2,7 +2,10 @@ import { useFormContext, useWatch } from "react-hook-form"
 import type { CalendarElement, CalendarPlan } from "@repo/contracts"
 import { endFromStart, fromIsoDate, toIsoDate, type EpochDay } from "@repo/domain"
 import { Switch } from "@/shared/index"
+import { buildElementTree, flattenTree } from "../../lib/elementTree"
 import { occupancyFor } from "../../lib/occupancy"
+import { phaseTint } from "../../lib/phaseColors"
+import { PlaceInParent } from "../../components/PlaceInParent"
 import { WhenPicker, type WhenChange } from "../../components/WhenPicker"
 import { HoursField } from "../fields/HoursField"
 import { isSingleDay, type ActionFormValues } from "../actionForm"
@@ -26,6 +29,15 @@ export function WhenSection({ preview, plan, bounds, onApply }: Readonly<WhenSec
   const startsOn = useWatch({ control, name: "startsOn" })
   const completed = useWatch({ control, name: "completed" })
   const severalDays = endsOn != null && endsOn !== startsOn
+  // Su sitio dentro de lo que cuelga, con el color de su fase.
+  const parent = plan.elements.find((element) => element.id === preview.parentId)
+  const parentNode = flattenTree(buildElementTree(plan.elements)).find(
+    (node) => node.element.id === preview.parentId
+  )
+  const context =
+    parent?.startsOn && parent.endsOn
+      ? { name: parent.name, start: parent.startsOn, end: parent.endsOn }
+      : null
 
   const dirty = { shouldDirty: true }
   const apply = (change: WhenChange) => {
@@ -70,6 +82,12 @@ export function WhenSection({ preview, plan, bounds, onApply }: Readonly<WhenSec
         bounds={bounds}
         occupancy={occupancyFor(plan, preview.id)}
         onApply={onApply ?? apply}
+      />
+      <PlaceInParent
+        context={context}
+        startsOn={preview.startsOn}
+        endsOn={preview.endsOn}
+        tint={phaseTint(parentNode?.phaseColor, false)}
       />
       {kind === "hiring" ? (
         <p className="text-muted-foreground text-sm">

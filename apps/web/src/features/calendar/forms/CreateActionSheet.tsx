@@ -26,6 +26,8 @@ export interface CreateActionSheetProps extends ActionSheetBaseProps {
   /** Si hay algo escrito: cerrar pregunta antes. */
   onDirtyChange: (dirty: boolean) => void
   onCreate: (values: ActionFormData) => void
+  /** Cancelar: descarta lo que haya sin guardar y cierra el panel, sin preguntar. */
+  onCancel: () => void
 }
 
 const SINGLE_DAY_KINDS: readonly ActionKind[] = ["meeting", "reminder"]
@@ -43,6 +45,7 @@ export function CreateActionSheet({
   onDirtyChange,
   onClose,
   onCreate,
+  onCancel,
 }: Readonly<CreateActionSheetProps>) {
   const form = useForm<ActionFormValues, unknown, ActionFormData>({
     resolver: zodResolver(ActionFormSchema),
@@ -88,7 +91,7 @@ export function CreateActionSheet({
       footer={
         <>
           <span className="text-muted-foreground mr-auto text-sm">Ctrl + Enter para crear</span>
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
             Cancelar
           </Button>
           <Button type="submit" size="sm" disabled={pending}>
