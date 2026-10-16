@@ -80,3 +80,12 @@ export type AlertCertainty = z.infer<typeof AlertCertaintySchema>
 export const ALERT_SCOPES = ["project", "targeted"] as const
 export const AlertScopeSchema = z.enum(ALERT_SCOPES)
 export type AlertScope = z.infer<typeof AlertScopeSchema>
+
+/** Solo sirve para resolver conflictos entre acciones que se solapan. */
+export const ACTION_PRIORITIES = ["high", "normal", "low"] as const
+export const ActionPrioritySchema = z.enum(ACTION_PRIORITIES)
+export type ActionPriority = z.infer<typeof ActionPrioritySchema>
+
+export const VIDEO_APPS = ["meet", "teams", "zoom", "webex", "other"] as const
+export const VideoAppSchema = z.enum(VIDEO_APPS)
+export type VideoApp = z.infer<typeof VideoAppSchema>

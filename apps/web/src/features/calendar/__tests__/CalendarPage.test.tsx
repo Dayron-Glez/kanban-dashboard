@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import type {
-  CalendarElement,
-  CalendarPlan,
-  ElementDependency,
-  ProjectSummary,
+import {
+  DEFAULT_ELEMENT_DETAILS,
+  type CalendarElement,
+  type CalendarPlan,
+  type ElementDependency,
+  type ProjectSummary,
 } from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { MemoryRouter, Route, Routes } from "react-router"
@@ -42,6 +43,7 @@ const element = (
   isAnchor: false,
   isPinned: false,
   issue: null,
+  ...DEFAULT_ELEMENT_DETAILS,
   ...overrides,
 })
 
@@ -825,7 +827,7 @@ describe("CalendarPage", () => {
       vi.useRealTimers()
     })
 
-    it("al elegir celdas se crea una acción: el tipo y el nombre, con las fechas ya puestas", async () => {
+    it("al elegir celdas y un tipo se abre el Sheet de la acción nueva, con las fechas ya puestas", async () => {
       const plan = planOf([rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" })])
       api.elements.getPlan.mockResolvedValue(plan)
       api.elements.createAction.mockResolvedValue(plan)
@@ -840,20 +842,26 @@ describe("CalendarPage", () => {
 
       const menu = await screen.findByRole("menu", { name: "Tipo de acción" })
       await userEvent.click(within(menu).getByRole("menuitem", { name: /Reunión/ }))
-      await userEvent.type(
-        screen.getByRole("textbox", { name: "Nombre" }),
-        "Lectura de guion{Enter}"
-      )
+      const sheet = await screen.findByRole("form", { name: "Nueva reunión" })
+      // La reunión nace de 10:00 a 11:00, y el foco está en el título.
+      expect(within(sheet).getByLabelText("Desde")).toHaveValue("10:00")
+      expect(within(sheet).getByRole("textbox", { name: /Título/ })).toHaveFocus()
+      await userEvent.keyboard("Lectura de guion{Enter}")
 
       await waitFor(() =>
-        expect(api.elements.createAction).toHaveBeenCalledWith("rodaje", {
-          kind: "meeting",
-          name: "Lectura de guion",
-          startsOn: "2026-10-14",
-          endsOn: null,
-        })
+        expect(api.elements.createAction).toHaveBeenCalledWith(
+          "rodaje",
+          expect.objectContaining({
+            kind: "meeting",
+            name: "Lectura de guion",
+            startsOn: "2026-10-14",
+            endsOn: null,
+            hours: { allDay: false, startTime: "10:00", endTime: "11:00", hoursMode: null },
+            priority: "normal",
+          })
+        )
       )
-      await waitFor(() => expect(screen.queryByRole("textbox", { name: "Nombre" })).toBeNull())
+      await waitFor(() => expect(screen.queryByRole("form", { name: "Nueva reunión" })).toBeNull())
 
       // Un periodo: reunión y recordatorio no se ofrecen; una tarea lleva su fin.
       fireEvent.pointerDown(track, { button: 0, clientX: 110, pointerType: "mouse" })
@@ -862,14 +870,18 @@ describe("CalendarPage", () => {
       const range = await screen.findByRole("menu", { name: "Tipo de acción" })
       expect(within(range).getByRole("menuitem", { name: /Reunión/ })).toBeDisabled()
       await userEvent.click(within(range).getByRole("menuitem", { name: /Tarea/ }))
-      await userEvent.type(screen.getByRole("textbox", { name: "Nombre" }), "Ensayos{Enter}")
+      await screen.findByRole("form", { name: "Nueva tarea" })
+      await userEvent.keyboard("Ensayos{Enter}")
       await waitFor(() =>
-        expect(api.elements.createAction).toHaveBeenLastCalledWith("rodaje", {
-          kind: "task",
-          name: "Ensayos",
-          startsOn: "2026-10-14",
-          endsOn: "2026-10-16",
-        })
+        expect(api.elements.createAction).toHaveBeenLastCalledWith(
+          "rodaje",
+          expect.objectContaining({
+            kind: "task",
+            name: "Ensayos",
+            startsOn: "2026-10-14",
+            endsOn: "2026-10-16",
+          })
+        )
       )
     })
 
@@ -1262,7 +1274,7 @@ describe("CalendarPage", () => {
       renderPage()
 
       await userEvent.click(await screen.findByTitle("mié 14 oct 2026"))
-      const panel = await screen.findByRole("dialog")
+      let panel = await screen.findByRole("dialog")
       expect(within(panel).getByRole("heading", { name: "mié 14 oct 2026" })).toBeInTheDocument()
       const actions = within(panel).getByRole("region", { name: "Acciones del día" })
       expect(within(actions).getByRole("button", { name: /Lectura de guion/ })).toHaveTextContent(
@@ -1280,16 +1292,23 @@ describe("CalendarPage", () => {
       expect(await screen.findByRole("option", { name: /Rodaje/ })).toBeInTheDocument()
       await userEvent.click(screen.getByRole("option", { name: /Shooting/ }))
       await userEvent.click(within(panel).getByRole("menuitem", { name: /Recordatorio/ }))
-      await userEvent.type(within(panel).getByRole("textbox", { name: "Nombre" }), "Fotos{Enter}")
+      // El Sheet de la acción nueva sustituye al del día.
+      await screen.findByRole("form", { name: "Nuevo recordatorio" })
+      await userEvent.keyboard("Fotos{Enter}")
       await waitFor(() =>
-        expect(api.elements.createAction).toHaveBeenCalledWith("shooting", {
-          kind: "reminder",
-          name: "Fotos",
-          startsOn: "2026-10-14",
-          endsOn: null,
-        })
+        expect(api.elements.createAction).toHaveBeenCalledWith(
+          "shooting",
+          expect.objectContaining({
+            kind: "reminder",
+            name: "Fotos",
+            startsOn: "2026-10-14",
+            endsOn: null,
+          })
+        )
       )
 
+      await userEvent.click(await screen.findByTitle("mié 14 oct 2026"))
+      panel = await screen.findByRole("dialog")
       await userEvent.click(within(panel).getByRole("button", { name: "Día siguiente" }))
       expect(within(panel).getByRole("heading", { name: "jue 15 oct 2026" })).toBeInTheDocument()
       expect(within(panel).getByText("Nada este día.")).toBeInTheDocument()

@@ -10,6 +10,7 @@ import {
   pgSchema,
   primaryKey,
   text,
+  time,
   timestamp,
   unique,
   uniqueIndex,
@@ -40,6 +41,17 @@ export const elements = calendar.table(
     endsOn: date("ends_on"),
     isAnchor: boolean("is_anchor").default(false).notNull(),
     isPinned: boolean("is_pinned").default(false).notNull(),
+    priority: text().default("normal").notNull(),
+    allDay: boolean("all_day").default(true).notNull(),
+    startTime: time("start_time"),
+    endTime: time("end_time"),
+    hoursMode: text("hours_mode"),
+    location: text(),
+    notes: text(),
+    completedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }),
+    completedBy: uuid("completed_by"),
+    videoApp: text("video_app"),
+    videoUrl: text("video_url"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .defaultNow()
       .notNull(),
@@ -55,6 +67,11 @@ export const elements = calendar.table(
       foreignColumns: [table.id],
       name: "elements_parent_id_fkey",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.completedBy],
+      foreignColumns: [users.id],
+      name: "elements_completed_by_fkey",
+    }).onDelete("set null"),
     index("elements_project_id_idx").on(table.projectId),
     index("elements_parent_id_idx").on(table.parentId),
     check(
@@ -67,6 +84,33 @@ export const elements = calendar.table(
       "elements_duration_check",
       sql`(${table.durationAmount} is null) = (${table.durationUnit} is null) and ${table.durationAmount} > 0 and ${table.durationUnit} in ('days', 'weeks', 'months')`
     ),
+    check("elements_name_check", sql`char_length(${table.name}) between 1 and 200`),
+    check("elements_priority_check", sql`${table.priority} in ('high', 'normal', 'low')`),
+    check("elements_hours_mode_check", sql`${table.hoursMode} in ('daily', 'continuous')`),
+    check(
+      "elements_all_day_check",
+      sql`not ${table.allDay} or (${table.startTime} is null and ${table.endTime} is null and ${table.hoursMode} is null)`
+    ),
+    check("elements_start_time_check", sql`${table.allDay} or ${table.startTime} is not null`),
+    check(
+      "elements_daily_check",
+      sql`${table.hoursMode} is distinct from 'daily' or (${table.endTime} is not null and ${table.endTime} > ${table.startTime})`
+    ),
+    check("elements_hiring_all_day_check", sql`${table.kind} <> 'hiring' or ${table.allDay}`),
+    check(
+      "elements_location_check",
+      sql`${table.location} is null or char_length(${table.location}) <= 200`
+    ),
+    check("elements_completed_check", sql`${table.completedAt} is null or ${table.kind} = 'task'`),
+    check(
+      "elements_video_app_check",
+      sql`${table.videoApp} in ('meet', 'teams', 'zoom', 'webex', 'other')`
+    ),
+    check(
+      "elements_video_check",
+      sql`(${table.videoApp} is null and ${table.videoUrl} is null) or (${table.kind} = 'meeting' and ${table.videoApp} is not null)`
+    ),
+    check("elements_video_url_check", sql`${table.videoUrl} ~ '^https?://'`),
     uniqueIndex("elements_one_anchor_per_project")
       .on(table.projectId)
       .where(sql`${table.isAnchor}`),

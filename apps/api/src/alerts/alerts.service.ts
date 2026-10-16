@@ -9,15 +9,12 @@ import {
 import { and, asc, eq, inArray, sql } from "drizzle-orm"
 import { DB, type Database, type Transaction } from "../db/db.module.js"
 import { alerts, alertTargets, crewMembers, departments } from "../db/schema/index.js"
-import { toIso } from "../db/timestamps.js"
+import { toIso, toTime } from "../db/timestamps.js"
 import { ProjectAccess } from "../projects/project-access.js"
 
 type AlertRow = typeof alerts.$inferSelect
 type TargetRow = typeof alertTargets.$inferSelect
 type Targets = { departmentIds: string[]; crewMemberIds: string[] }
-
-// Postgres devuelve las horas con segundos («09:00:00»); los contratos, HH:MM.
-const toTime = (time: string | null) => time?.slice(0, 5) ?? null
 
 const toAlert = (row: AlertRow, targets: TargetRow[]): Alert =>
   AlertSchema.parse({

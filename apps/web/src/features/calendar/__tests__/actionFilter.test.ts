@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest"
-import type { CalendarElement } from "@repo/contracts"
+import { DEFAULT_ELEMENT_DETAILS, type CalendarElement } from "@repo/contracts"
 import {
   countActionKinds,
   hideActionKinds,
@@ -29,6 +29,7 @@ const element = (
   isAnchor: false,
   isPinned: false,
   issue: null,
+  ...DEFAULT_ELEMENT_DETAILS,
   ...overrides,
 })
 

@@ -1,6 +1,11 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import type { CalendarElement, CalendarPlan, ElementDependency } from "@repo/contracts"
+import {
+  DEFAULT_ELEMENT_DETAILS,
+  type CalendarElement,
+  type CalendarPlan,
+  type ElementDependency,
+} from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import { ElementInspector } from "../components/ElementInspector"
@@ -25,6 +30,7 @@ const element = (
   isAnchor: false,
   isPinned: false,
   issue: null,
+  ...DEFAULT_ELEMENT_DETAILS,
   ...overrides,
 })
 
@@ -96,7 +102,6 @@ const renderSheet = (
     onUpdate: vi.fn(),
     onApplyWhen: vi.fn(),
     onEdit: vi.fn(),
-    onDelete: vi.fn(),
     onSetRule: vi.fn(),
     onRemoveRule: vi.fn(),
     onClose: vi.fn(),
@@ -331,40 +336,6 @@ describe("ElementInspector", () => {
     ).toHaveTextContent("otra…")
   })
 
-  it("una acción: tipo, cuándo y de qué cuelga; sin reglas", async () => {
-    const { onEdit } = renderSheet("lectura")
-
-    expect(screen.queryByRole("region", { name: "De qué depende" })).toBeNull()
-    const kinds = screen.getByRole("region", { name: "Tipo" })
-    expect(within(kinds).getByRole("radio", { name: "Reunión" })).toHaveAttribute(
-      "aria-checked",
-      "true"
-    )
-    await userEvent.click(within(kinds).getByRole("radio", { name: "Tarea" }))
-    expect(onEdit).toHaveBeenLastCalledWith("lectura", { kind: "task" })
-
-    // «Cuelga de» ofrece lo de su fase que puede tener acciones.
-    await userEvent.click(screen.getByRole("button", { name: "Cuelga de" }))
-    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
-      "Postproducción",
-      "Edición",
-      "VFX",
-      "Creación VFX",
-    ])
-    await userEvent.click(screen.getByRole("option", { name: "Edición" }))
-    expect(onEdit).toHaveBeenLastCalledWith("lectura", { parentId: "edicion" })
-  })
-
-  it("una tarea de varios días que pasa a recordatorio se queda en un día", async () => {
-    const { onEdit } = renderSheet("montaje")
-
-    await userEvent.click(screen.getByRole("radio", { name: "Recordatorio" }))
-    expect(onEdit).toHaveBeenLastCalledWith("montaje", {
-      kind: "reminder",
-      duration: { amount: 1, unit: "days" },
-    })
-  })
-
   it("el nombre se cambia en la cabecera: al pulsar Enter, al borrador", async () => {
     const { onEdit } = renderSheet("lectura")
 
@@ -377,13 +348,6 @@ describe("ElementInspector", () => {
     await userEvent.clear(name)
     await userEvent.tab()
     expect(onEdit).toHaveBeenCalledTimes(1)
-  })
-
-  it("Borrar, en el pie de una acción, pide que se borre (la confirmación va fuera)", async () => {
-    const { onDelete } = renderSheet("lectura")
-
-    await userEvent.click(screen.getByRole("button", { name: "Borrar" }))
-    expect(onDelete).toHaveBeenCalledWith("lectura")
   })
 
   it("una fase no se borra ni cambia de tipo", () => {

@@ -14,7 +14,6 @@ import {
   ACTION_PARENT_KINDS,
   type ActionKind,
   type CalendarElement,
-  type CreateActionInput,
   type DatePoint,
   type ElementDependency,
   type UpdateElementPlanInput,
@@ -67,6 +66,7 @@ import {
   type TimelineMarks,
 } from "../lib/timeline"
 import { ActionLane, ActionRollup } from "./ActionMarks"
+import type { NewActionRequest } from "../forms/actionForm"
 import { CellMenu } from "./CellMenu"
 import { ColumnResizer } from "./ColumnResizer"
 import { DateEditor, DurationEditor } from "./PlanEditors"
@@ -91,8 +91,8 @@ interface ElementTreeProps {
     drag: BarDrag,
     days: number
   ) => { days: number; reason: string | null }
-  /** Crear una acción en las celdas elegidas; `done` cierra el menú si sale bien. */
-  onCreateAction?: (parentId: string, input: CreateActionInput, done: () => void) => void
+  /** Crear una acción en las celdas elegidas: abre su Sheet con el tipo y las fechas. */
+  onNewAction?: (request: NewActionRequest) => void
   /** Pedir que se borre una acción (Supr en su celda): la confirmación va fuera. */
   onDeleteAction?: (elementId: string) => void
   /** Cambiar el tipo de una acción desde su menú, guardándolo al momento. */
@@ -103,7 +103,6 @@ interface ElementTreeProps {
   onOpenDay?: (day: EpochDay, rowId: string | null) => void
   /** El panel del día abierto: la celda elegida lo sigue. */
   dayPanel?: DayPanel | null
-  creating?: boolean
   /** El elemento que hace scroll, para llevar el Gantt a un día. */
   viewportRef?: Ref<HTMLDivElement>
   /** Desplegar todo, o plegarlo si hay algo abierto: va en la cabecera de la columna. */
@@ -141,13 +140,12 @@ export function ElementTree({
   onMoveDate,
   onDragBar,
   limitDrag,
-  onCreateAction,
+  onNewAction,
   onDeleteAction,
   onChangeActionKind,
   onOpenDay,
   onReveal,
   dayPanel = null,
-  creating = false,
   expanded: expandedIds,
   onToggle,
   onToggleAll,
@@ -405,8 +403,7 @@ export function ElementTree({
     const end = span.days === cellDays(span.start) ? span.start : span.start + span.days - 1
     const last = span.start + span.days - 1
     const inCell = cellItems(row, span.start, last)
-    const canCreate =
-      editable && onCreateAction != null && ACTION_PARENT_KINDS.includes(element.kind)
+    const canCreate = editable && onNewAction != null && ACTION_PARENT_KINDS.includes(element.kind)
     if (inCell.length === 0 && !canCreate) return null
     return (
       <Popover open onOpenChange={(open) => !open && closeMenu()}>
@@ -449,7 +446,6 @@ export function ElementTree({
                 action.element.parentId === element.id ? null : nameOf(action.element.parentId!),
             }))}
             canCreate={canCreate}
-            pending={creating}
             onOpen={(id) => {
               closeMenu()
               const action = inCell.find((candidate) => candidate.element.id === id)
@@ -464,7 +460,6 @@ export function ElementTree({
                   }
                 : undefined
             }
-            onCancel={closeMenu}
             onOpenDay={
               onOpenDay &&
               (() => {
@@ -472,7 +467,10 @@ export function ElementTree({
                 onOpenDay(span.start, row)
               })
             }
-            onCreate={(input) => onCreateAction?.(element.id, input, closeMenu)}
+            onNewAction={(request) => {
+              closeMenu()
+              onNewAction?.({ ...request, parentId: element.id })
+            }}
           />
         </PopoverContent>
       </Popover>

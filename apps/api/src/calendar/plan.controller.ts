@@ -18,7 +18,7 @@ import {
   SetElementRuleInputSchema,
   UpdateElementPlanInputSchema,
   type CalendarPlan,
-  type CreateActionInput,
+  type CreateActionData,
   type DatePoint,
   type EditElementInput,
   type SetElementRuleInput,
@@ -72,7 +72,7 @@ export class PlanController {
   createAction(
     @CurrentUser() user: AuthUser,
     @Param("parentId", ParseUUIDPipe) parentId: string,
-    @Body({ schema: CreateActionInputSchema }) input: CreateActionInput
+    @Body({ schema: CreateActionInputSchema }) input: CreateActionData
   ): Promise<CalendarPlan> {
     return this.plan.createAction(user.id, parentId, input)
   }

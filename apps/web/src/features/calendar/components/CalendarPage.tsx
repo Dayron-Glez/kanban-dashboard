@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react"
 import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type {
@@ -23,6 +30,7 @@ import {
   buildElementTree,
   ELEMENT_KIND_LABELS,
   flattenTree,
+  isAction,
   type ElementNode,
 } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
@@ -36,7 +44,16 @@ import {
   previewChange,
   type PlanChange,
 } from "../lib/planPreview"
-import { describeAction, kindChange } from "../lib/actionStyle"
+import { describeAction, kindChange, NEW_ACTION_TITLE } from "../lib/actionStyle"
+import { ActionSheet } from "../forms/ActionSheet"
+import {
+  newActionValues,
+  PREVIEW_ID,
+  previewElement,
+  type ActionFormData,
+  type NewActionRequest,
+  type PlanEdit,
+} from "../forms/actionForm"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { loadMarks, saveMarks } from "../lib/ganttMarks"
@@ -79,8 +96,8 @@ const parentIds = (nodes: ElementNode[]): string[] =>
     ...parentIds(node.children),
   ])
 
-// Adónde se va desde el panel: otro elemento, un día, o cerrar.
-type PanelTarget = { element: string } | { day: DayPanel } | null
+// Adónde se va desde el panel: otro elemento, un día, una acción nueva, o cerrar.
+type PanelTarget = { element: string } | { day: DayPanel } | { newAction: NewActionRequest } | null
 
 const NO_DRAFT: EditElementInput = {}
 
@@ -99,13 +116,23 @@ export function CalendarPage() {
   // Lo editado en el panel del elemento, sin guardar todavía.
   const [draft, setDraft] = useState<{ elementId: string; input: EditElementInput } | null>(null)
   const draftInput = draft && draft.elementId === openId ? draft.input : NO_DRAFT
-  const dirty = countChanges(draftInput) > 0
+  // La acción que se está creando, con lo escrito hasta ahora (su vista previa).
+  const [newAction, setNewAction] = useState<NewActionRequest | null>(null)
+  const [newValues, setNewValues] = useState<ActionFormData | null>(null)
+  const [newDirty, setNewDirty] = useState<boolean>(false)
+  // Sube al guardar o descartar en el Sheet de una acción: vuelve a empezar desde lo guardado.
+  const [sheetVersion, setSheetVersion] = useState<number>(0)
+  const dirty = countChanges(draftInput) > 0 || (newAction != null && newDirty)
   // Salir del panel con cambios pregunta antes; esto es adónde se iba.
   const [leaving, setLeaving] = useState<{ target: PanelTarget } | null>(null)
   const navigate = (target: PanelTarget) => {
     setDraft(null)
     setOpenId(target && "element" in target ? target.element : null)
     setOpenDay(target && "day" in target ? target.day : null)
+    const request = target && "newAction" in target ? target.newAction : null
+    setNewAction(request)
+    setNewValues(request && newActionValues(request))
+    setNewDirty(false)
   }
   const go = (target: PanelTarget) => {
     const same = target && "element" in target && target.element === openId
@@ -115,6 +142,8 @@ export function CalendarPage() {
   }
   const openElement = (id: string) => go({ element: id })
   const openDayPanel = (day: EpochDay, rowId: string | null) => go({ day: { day, rowId } })
+  const openNewAction = (request: NewActionRequest) => go({ newAction: request })
+  const onNewPreview = useCallback((values: ActionFormData) => setNewValues(values), [])
   // Todo empieza plegado: el plan entero de golpe es demasiado.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
@@ -284,17 +313,57 @@ export function CalendarPage() {
     plan.data && openId && dirty
       ? (applyDraft(plan.data, { type: "edit", elementId: openId, input: draftInput }) ?? plan.data)
       : plan.data
+  // Con una acción a medio crear, el plan la lleva ya pintada.
+  const previewPlan = useMemo(
+    () =>
+      plan.data && newAction && newValues
+        ? {
+            ...plan.data,
+            elements: [...plan.data.elements, previewElement(newValues, projectId)],
+          }
+        : plan.data,
+    [plan.data, newAction, newValues, projectId]
+  )
+  const previewTree = useMemo(
+    () => (previewPlan === plan.data ? tree : buildElementTree(previewPlan?.elements ?? [])),
+    [previewPlan, plan.data, tree]
+  )
+  const ganttTree = useMemo(
+    () =>
+      previewTree === tree
+        ? shownTree
+        : view === "tabla"
+          ? previewTree
+          : hideActionKinds(previewTree, hiddenKinds),
+    [previewTree, tree, shownTree, view, hiddenKinds]
+  )
+
+  const createNewAction = ({ parentId, ...input }: ActionFormData) => {
+    const before = new Set(plan.data?.elements.map((element) => element.id))
+    createAction.mutate(
+      { parentId, input },
+      {
+        onSuccess: (next) => {
+          const created = next.elements.find((element) => !before.has(element.id))
+          navigate(created ? { element: created.id } : null)
+          toast.success(`Se creó ${describeAction({ kind: input.kind, name: input.name })}`, {
+            id: "plan-change",
+          })
+        },
+      }
+    )
+  }
 
   // En el panel, cada cambio se suma al borrador; se comprueba ya, para no dejar
   // guardar algo que la API rechazaría.
-  const commitDraft = (elementId: string, input: EditElementInput) => {
-    if (!plan.data) return
+  const checkDraft = (elementId: string, input: EditElementInput) => {
+    if (!plan.data) return false
     const preview = previewChange(plan.data, { type: "edit", elementId, input })
     if ("cycle" in preview) {
       toast.error("Esa regla cerraría un ciclo", {
         description: preview.cycle.map(nameOf).join(" → "),
       })
-      return
+      return false
     }
     const [broken] = preview.broken
     if (broken) {
@@ -302,19 +371,60 @@ export function CalendarPage() {
         id: "plan-change",
         description: describePhaseViolation(broken, nameOf),
       })
-      return
+      return false
     }
-    setDraft({ elementId, input })
+    return true
   }
+  const commitDraft = (elementId: string, input: EditElementInput) => {
+    if (checkDraft(elementId, input)) setDraft({ elementId, input })
+  }
+
+  // El Sheet de una acción lleva su borrador; aquí llega para pintarlo y contarlo.
+  const onActionDraft = useCallback(
+    (input: EditElementInput) =>
+      setDraft((current) => {
+        if (!openId) return current
+        if (
+          current?.elementId === openId &&
+          JSON.stringify(current.input) === JSON.stringify(input)
+        )
+          return current
+        return countChanges(input) > 0 ? { elementId: openId, input } : null
+      }),
+    [openId]
+  )
+  const restartSheet = () => {
+    setDraft(null)
+    setSheetVersion((version) => version + 1)
+  }
+  const pathOf = (elementId: string) => {
+    const names: string[] = []
+    for (
+      let current = plan.data?.elements.find((element) => element.id === elementId);
+      current?.parentId;
+    ) {
+      const parent = plan.data?.elements.find((element) => element.id === current?.parentId)
+      if (!parent) break
+      names.unshift(parent.name)
+      current = parent
+    }
+    return names
+  }
+  const savedOpen = plan.data?.elements.find((element) => element.id === openId)
+  const shownOpen = shownPlan?.elements.find((element) => element.id === openId)
   const addToDraft = (change: PlanChange) =>
     plan.data && commitDraft(change.elementId, mergeChange(plan.data, draftInput, change))
 
   // Lo elegido en «Cuándo», en orden: el inicio, y después la duración o el fin,
-  // cada uno sobre el plan que deja el anterior.
-  const applyWhen = (elementId: string, change: WhenChange) => {
+  // cada uno sobre el plan que deja el anterior. Devuelve el borrador que queda.
+  const resolveWhen = (
+    elementId: string,
+    change: WhenChange,
+    from: EditElementInput
+  ): EditElementInput | null => {
     const base = plan.data
-    if (!base) return
-    let input = draftInput
+    if (!base) return null
+    let input = from
     const current = () =>
       countChanges(input) > 0
         ? (applyDraft(base, { type: "edit", elementId, input }) ?? base)
@@ -329,15 +439,19 @@ export function CalendarPage() {
       input = mergeChange(base, input, result.change)
       return true
     }
-    if (change.start && !move("start", change.start)) return
+    if (change.start && !move("start", change.start)) return null
     if (change.duration) {
       input = mergeChange(base, input, {
         type: "update",
         elementId,
         input: { duration: change.duration },
       })
-    } else if (change.end && !move("end", change.end)) return
-    commitDraft(elementId, input)
+    } else if (change.end && !move("end", change.end)) return null
+    return checkDraft(elementId, input) ? input : null
+  }
+  const applyWhen = (elementId: string, change: WhenChange) => {
+    const input = resolveWhen(elementId, change, draftInput)
+    if (input) setDraft({ elementId, input })
   }
   const deleting =
     (toDelete && plan.data?.elements.find((element) => element.id === toDelete)) || null
@@ -396,7 +510,7 @@ export function CalendarPage() {
         data-calendar-surface
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
-          (openId || openDay != null) && "xl:pr-[544px]"
+          (openId || openDay != null || newAction) && "xl:pr-[544px]"
         )}
       >
         <PlanHeader
@@ -465,7 +579,7 @@ export function CalendarPage() {
             )}
             <div className="-mx-6 min-h-0 flex-1 px-6">
               <ElementTree
-                nodes={shownTree}
+                nodes={ganttTree}
                 dependencies={plan.data.dependencies}
                 editable={isOwner}
                 pending={changes.pending}
@@ -485,10 +599,7 @@ export function CalendarPage() {
                     `Cambiar ${action.name} a ${ELEMENT_KIND_LABELS[kind].toLowerCase()}`
                   )
                 }}
-                onCreateAction={(parentId, input, done) =>
-                  createAction.mutate({ parentId, input }, { onSuccess: done })
-                }
-                creating={createAction.isPending}
+                onNewAction={openNewAction}
                 expanded={expanded}
                 onToggle={toggle}
                 onReveal={(ids) => setExpanded((current) => new Set([...current, ...ids]))}
@@ -497,7 +608,7 @@ export function CalendarPage() {
                 fields={fields}
                 headerRows={fields}
                 marks={marks}
-                selectedId={openId}
+                selectedId={newAction ? PREVIEW_ID : openId}
                 view={view}
                 timeline={timeline}
               />
@@ -506,7 +617,50 @@ export function CalendarPage() {
           </>
         )}
       </div>
-      {shownPlan && openId && (
+      {previewPlan && newAction && (
+        <ActionSheet
+          key={JSON.stringify(newAction)}
+          mode="create"
+          request={newAction}
+          projectId={projectId}
+          plan={previewPlan}
+          tree={previewTree}
+          bounds={timeline?.range}
+          pending={createAction.isPending}
+          onPreview={onNewPreview}
+          onDirtyChange={setNewDirty}
+          onClose={() => go(null)}
+          onCreate={createNewAction}
+        />
+      )}
+      {shownPlan && openId && savedOpen && shownOpen && isAction(savedOpen) && (
+        <ActionSheet
+          key={`${openId}:${sheetVersion}`}
+          mode="edit"
+          saved={savedOpen}
+          shown={shownOpen}
+          projectId={projectId}
+          plan={shownPlan}
+          tree={tree}
+          bounds={timeline?.range}
+          editable={isOwner}
+          pending={changes.pending || deleteElement.isPending}
+          path={[...pathOf(openId), ELEMENT_KIND_LABELS[savedOpen.kind]].join(" › ")}
+          onClose={() => go(null)}
+          onDraftChange={onActionDraft}
+          onResolveWhen={(change, from) => resolveWhen(openId, change, from) as PlanEdit | null}
+          onSave={(input) =>
+            changes.request({ type: "edit", elementId: openId, input }, undefined, undefined, () =>
+              restartSheet()
+            )
+          }
+          onDiscard={restartSheet}
+          onDelete={() => setToDelete(openId)}
+          onPrevious={neighbour(-1) ? () => openElement(neighbour(-1)!) : undefined}
+          onNext={neighbour(1) ? () => openElement(neighbour(1)!) : undefined}
+        />
+      )}
+      {shownPlan && openId && !(savedOpen && isAction(savedOpen)) && (
         <ElementInspector
           elementId={openId}
           plan={shownPlan}
@@ -518,7 +672,6 @@ export function CalendarPage() {
           }
           onApplyWhen={applyWhen}
           onEdit={(elementId, input) => addToDraft({ type: "edit", elementId, input })}
-          onDelete={setToDelete}
           onOpenDay={openDayPanel}
           bounds={timeline?.range}
           onSetRule={(elementId, point, input: SetElementRuleInput) =>
@@ -566,8 +719,13 @@ export function CalendarPage() {
       />
       <DiscardDialog
         open={leaving != null}
-        name={plan.data?.elements.find((element) => element.id === openId)?.name ?? ""}
+        name={
+          newAction
+            ? newValues?.name.trim() || NEW_ACTION_TITLE[newValues?.kind ?? newAction.kind]
+            : (plan.data?.elements.find((element) => element.id === openId)?.name ?? "")
+        }
         changes={countChanges(draftInput)}
+        creating={newAction != null}
         onStay={() => setLeaving(null)}
         onDiscard={() => {
           if (leaving) navigate(leaving.target)
@@ -581,13 +739,10 @@ export function CalendarPage() {
           tree={tree}
           timeline={timeline}
           canCreate={isOwner}
-          creating={createAction.isPending}
           onDay={(day) => setOpenDay({ ...openDay, day })}
           onClose={() => go(null)}
           onOpen={openElement}
-          onCreateAction={(parentId, input, done) =>
-            createAction.mutate({ parentId, input }, { onSuccess: done })
-          }
+          onNewAction={openNewAction}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import type { CalendarElement } from "@repo/contracts"
+import { DEFAULT_ELEMENT_DETAILS, type CalendarElement } from "@repo/contracts"
 import { fromIsoDate } from "@repo/domain"
 import { describe, expect, it } from "vitest"
 import { layoutActions } from "../lib/actionLayout"
@@ -26,6 +26,7 @@ const action = (
     isAnchor: false,
     isPinned: true,
     issue: null,
+    ...DEFAULT_ELEMENT_DETAILS,
   },
   depth: 2,
   phaseColor: null,

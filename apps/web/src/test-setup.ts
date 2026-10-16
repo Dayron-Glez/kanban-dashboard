@@ -1,4 +1,7 @@
 import "@testing-library/jest-dom"
+import { configureFormErrors } from "@/shared/lib/formErrors"
+
+configureFormErrors()
 
 // jsdom no trae matchMedia, y useIsMobile lo usa para saber si es móvil.
 if (!window.matchMedia) {

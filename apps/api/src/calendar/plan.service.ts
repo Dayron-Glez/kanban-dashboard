@@ -8,13 +8,15 @@ import {
 import {
   ACTION_KINDS,
   ACTION_PARENT_KINDS,
+  actionIssues,
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CalendarPlan,
-  type CreateActionInput,
+  type CreateActionData,
   type DatePoint,
   type EditElementInput,
   type ElementKind,
+  type Hours,
   type SetElementRuleInput,
   type UpdateElementPlanInput,
 } from "@repo/contracts"
@@ -25,10 +27,11 @@ import {
   phaseSpansOf,
   wouldCreateCycle,
 } from "@repo/domain"
-import { and, eq, max } from "drizzle-orm"
+import { and, eq, max, sql } from "drizzle-orm"
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino"
 import { DB, type Database, type Transaction } from "../db/db.module.js"
 import { elementDependencies, elements, projects } from "../db/schema/index.js"
+import { toTime } from "../db/timestamps.js"
 import { ProjectAccess } from "../projects/project-access.js"
 import { loadPlan, recalculatePlan } from "./plan.js"
 
@@ -40,10 +43,18 @@ type EditableElement = {
   isPinned: boolean
   durationAmount: number | null
   durationUnit: string | null
+  allDay: boolean
+  startTime: string | null
+  endTime: string | null
+  hoursMode: string | null
+  completedAt: string | null
+  videoApp: string | null
+  videoUrl: string | null
 }
 const isSingleDay = (kind: string) => SINGLE_DAY_ACTION_KINDS.includes(kind as ActionKind)
 const isAction = (kind: string) => (ACTION_KINDS as readonly string[]).includes(kind)
 const ONE_DAY = "Las reuniones y los recordatorios duran un solo día"
+const DETAILS_MISMATCH = "Las horas o los datos de la acción no cuadran con sus fechas o su tipo"
 
 type EditContext = {
   elementId: string
@@ -60,6 +71,33 @@ const planValues = (input: UpdateElementPlanInput) => ({
   ...(input.fixedStart !== undefined && { startsOn: input.fixedStart }),
   ...(input.isPinned !== undefined && { isPinned: input.isPinned }),
 })
+
+// Las horas y lo propio de cada tipo, tal como se guardan.
+const detailValues = (
+  input: Pick<EditElementInput, "priority" | "location" | "notes" | "videoApp" | "videoUrl"> & {
+    hours?: Hours
+  }
+) => ({
+  ...(input.priority !== undefined && { priority: input.priority }),
+  ...(input.hours !== undefined && {
+    allDay: input.hours.allDay,
+    startTime: input.hours.startTime,
+    endTime: input.hours.endTime,
+    hoursMode: input.hours.hoursMode,
+  }),
+  ...(input.location !== undefined && { location: input.location || null }),
+  ...(input.notes !== undefined && { notes: input.notes || null }),
+  ...(input.videoApp !== undefined && { videoApp: input.videoApp }),
+  ...(input.videoUrl !== undefined && { videoUrl: input.videoUrl }),
+})
+
+// Marcarla hecha otra vez no cambia cuándo se hizo.
+const completedValues = (userId: string, completed: boolean | undefined) =>
+  completed === undefined
+    ? {}
+    : completed
+      ? { completedAt: sql`coalesce(${elements.completedAt}, now())`, completedBy: userId }
+      : { completedAt: null, completedBy: null }
 
 @Injectable()
 export class PlanService {
@@ -102,6 +140,22 @@ export class PlanService {
     }
     const kind = input.kind ?? element.kind
     this.checkPlan(element, input, kind)
+    // Lo que depende del tipo, antes de escribir; lo que depende de las fechas, al recalcular.
+    const [issue] = actionIssues({
+      kind: kind as ElementKind,
+      startsOn: null,
+      endsOn: null,
+      hours: input.hours ?? {
+        allDay: element.allDay,
+        startTime: toTime(element.startTime),
+        endTime: toTime(element.endTime),
+        hoursMode: element.hoursMode as Hours["hoursMode"],
+      },
+      completed: input.completed ?? element.completedAt !== null,
+      videoApp: input.videoApp !== undefined ? input.videoApp : element.videoApp,
+      videoUrl: input.videoUrl !== undefined ? input.videoUrl : element.videoUrl,
+    })
+    if (issue) throw new BadRequestException(DETAILS_MISMATCH)
     const pinned = input.isPinned ?? element.isPinned
     if (input.rules?.start && (element.isAnchor || pinned)) {
       throw new BadRequestException("El inicio del ancla y de los fijados se escribe a mano")
@@ -143,6 +197,8 @@ export class PlanService {
       }
       const values = {
         ...planValues(input),
+        ...detailValues(input),
+        ...completedValues(userId, input.completed),
         ...(input.name !== undefined && { name: input.name }),
         ...(input.kind !== undefined && { kind: input.kind }),
         ...(position !== undefined && { parentId: input.parentId, position }),
@@ -175,7 +231,7 @@ export class PlanService {
   async createAction(
     userId: string,
     parentId: string,
-    input: CreateActionInput
+    input: CreateActionData
   ): Promise<CalendarPlan> {
     const parent = await this.findEditable(userId, parentId)
     if (!ACTION_PARENT_KINDS.includes(parent.kind as ElementKind)) {
@@ -202,6 +258,8 @@ export class PlanService {
           durationUnit: days == null ? null : "days",
           startsOn: input.startsOn,
           isPinned: true,
+          ...detailValues(input),
+          ...(input.completed && { completedAt: sql`now()`, completedBy: userId }),
         })
       }
     )
@@ -333,6 +391,13 @@ export class PlanService {
         isPinned: elements.isPinned,
         durationAmount: elements.durationAmount,
         durationUnit: elements.durationUnit,
+        allDay: elements.allDay,
+        startTime: elements.startTime,
+        endTime: elements.endTime,
+        hoursMode: elements.hoursMode,
+        completedAt: elements.completedAt,
+        videoApp: elements.videoApp,
+        videoUrl: elements.videoUrl,
       })
       .from(elements)
       .where(eq(elements.id, elementId))
@@ -358,6 +423,13 @@ export class PlanService {
         .for("update")
       await change(tx)
       const recalculated = await recalculatePlan(tx, projectId)
+      // Las horas que dependen de cuántos días dura, ya con las fechas calculadas.
+      for (const element of recalculated.elements) {
+        const [issue] = actionIssues({ ...element, completed: element.completedAt !== null })
+        if (issue) {
+          throw new BadRequestException(`${DETAILS_MISMATCH}: ${element.name}`)
+        }
+      }
       const [violation] = phaseRuleViolations(phaseSpansOf(recalculated.elements))
       if (violation) {
         const nameOf = (id: string) =>

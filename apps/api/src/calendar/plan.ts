@@ -9,6 +9,7 @@ import { computeSchedule, fromIsoDate, toIsoDate, type ScheduledDates } from "@r
 import { asc, eq } from "drizzle-orm"
 import type { Database, Transaction } from "../db/db.module.js"
 import { elementDependencies, elements } from "../db/schema/index.js"
+import { toIso, toTime } from "../db/timestamps.js"
 
 type ElementRow = typeof elements.$inferSelect
 type DependencyRow = typeof elementDependencies.$inferSelect
@@ -70,6 +71,18 @@ const toPlan = (
       isAnchor: row.isAnchor,
       isPinned: row.isPinned,
       issue: dates.get(row.id)?.issue ?? null,
+      priority: row.priority,
+      hours: {
+        allDay: row.allDay,
+        startTime: toTime(row.startTime),
+        endTime: toTime(row.endTime),
+        hoursMode: row.hoursMode,
+      },
+      location: row.location,
+      notes: row.notes,
+      completedAt: row.completedAt && toIso(row.completedAt),
+      videoApp: row.videoApp,
+      videoUrl: row.videoUrl,
     })
   ),
   dependencies: dependencyRows.map((row) =>
