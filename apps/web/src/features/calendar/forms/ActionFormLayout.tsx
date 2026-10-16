@@ -13,6 +13,7 @@ import { MeetingSection } from "./sections/MeetingSection"
 import { NotesSection } from "./sections/NotesSection"
 import { PlaceSection } from "./sections/PlaceSection"
 import { WhenSection } from "./sections/WhenSection"
+import { FIELD, FIELD_GAP } from "./fieldStyle"
 
 /** Lo que comparten crear y editar una acción. */
 export interface ActionSheetBaseProps {
@@ -105,7 +106,7 @@ export function ActionFormLayout({
         header={
           <>
             {heading}
-            <fieldset disabled={!editable} className="mt-2 flex min-w-0 flex-col gap-3">
+            <fieldset disabled={!editable} className="mt-2 flex min-w-0 flex-col gap-4">
               <div className={cn(changedMark(isDirty("kind")))}>
                 <KindPicker value={kind} disabled={disabledKinds} onChange={onKindChange} />
               </div>
@@ -115,7 +116,7 @@ export function ActionFormLayout({
                 render={({ field, fieldState }) => (
                   <Field
                     data-invalid={fieldState.invalid}
-                    className={cn(changedMark(isDirty("name")))}
+                    className={cn(FIELD_GAP, changedMark(isDirty("name")))}
                   >
                     <FieldLabel htmlFor="action-name">
                       Título <span className="text-destructive">*</span>
@@ -127,7 +128,7 @@ export function ActionFormLayout({
                       autoComplete="off"
                       placeholder={`Título ${TITLE_HINT[kind]}`}
                       aria-invalid={fieldState.invalid}
-                      className="h-10 text-base font-semibold"
+                      className={cn(FIELD, "font-semibold")}
                     />
                     <FieldError errors={[fieldState.error]} />
                   </Field>
@@ -138,14 +139,14 @@ export function ActionFormLayout({
         }
         footer={footer}
       >
-        <fieldset disabled={!editable} className="flex min-w-0 flex-col gap-6">
+        <fieldset disabled={!editable} className="flex min-w-0 flex-col gap-4">
           <div className={cn(changedMark(isDirty("plan", "hours", "completed")))}>
             <WhenSection preview={preview} plan={plan} bounds={bounds} onApply={onApplyWhen} />
           </div>
           <div className={cn(changedMark(isDirty("parentId", "priority", "location")))}>
             <PlaceSection phase={phaseOf(tree, parentId)} />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4">
             {kind === "meeting" && <MeetingSection changed={isDirty("videoApp", "videoUrl")} />}
             <NotesSection changed={isDirty("notes")} />
           </div>

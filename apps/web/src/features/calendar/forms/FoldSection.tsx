@@ -53,7 +53,7 @@ export function FoldSection({
           )}
         />
       </CollapsibleTrigger>
-      <CollapsibleContent className="flex flex-col gap-4 px-3 pt-1 pb-3">
+      <CollapsibleContent className="flex flex-col gap-4 px-3 pt-1 pb-4">
         {children}
       </CollapsibleContent>
     </Collapsible>

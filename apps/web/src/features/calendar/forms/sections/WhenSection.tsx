@@ -69,7 +69,7 @@ export function WhenSection({ preview, plan, bounds, onApply }: Readonly<WhenSec
   }
 
   return (
-    <section aria-labelledby="action-when" className="flex flex-col gap-3">
+    <section aria-labelledby="action-when" className="flex flex-col gap-4">
       <h3 id="action-when" className={heading}>
         {kind === "hiring" ? "Alta y baja" : "Cuándo"}
       </h3>
