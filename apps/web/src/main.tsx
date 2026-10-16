@@ -5,9 +5,10 @@ import "@fontsource/jetbrains-mono/600.css"
 import { createRoot } from "react-dom/client"
 import { QueryClientProvider } from "@tanstack/react-query"
 import App from "./App.tsx"
-import { ErrorBoundary, ThemeProvider, Toaster } from "@/shared/index"
+import { configureFormErrors, ErrorBoundary, ThemeProvider, Toaster } from "@/shared/index"
 import { ApiProvider, createApi, createQueryClient, QueryDevtools } from "@/shared/api"
 
+configureFormErrors()
 const api = createApi()
 const queryClient = createQueryClient()
 
