@@ -1,0 +1,3 @@
+CREATE INDEX "alert_targets_department_id_idx" ON "core"."alert_targets" USING btree ("department_id");--> statement-breakpoint
+CREATE INDEX "alert_targets_crew_member_id_idx" ON "core"."alert_targets" USING btree ("crew_member_id");--> statement-breakpoint
+ALTER TABLE "core"."crew_members" ADD CONSTRAINT "crew_members_full_name_check" CHECK (char_length("core"."crew_members"."full_name") between 1 and 200);

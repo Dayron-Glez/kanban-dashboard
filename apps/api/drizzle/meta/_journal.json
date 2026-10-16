@@ -78,6 +78,13 @@
       "when": 1792105703248,
       "tag": "0010_conflictos_asumidos",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792108955947,
+      "tag": "0011_equipo_y_destinos",
+      "breakpoints": true
     }
   ]
 }

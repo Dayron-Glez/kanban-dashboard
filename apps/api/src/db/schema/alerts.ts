@@ -114,6 +114,8 @@ export const alertTargets = core.table(
       foreignColumns: [crewMembers.id],
       name: "alert_targets_crew_member_id_fkey",
     }).onDelete("cascade"),
+    index("alert_targets_department_id_idx").on(table.departmentId),
+    index("alert_targets_crew_member_id_idx").on(table.crewMemberId),
     unique("alert_targets_alert_id_department_id_key").on(table.alertId, table.departmentId),
     unique("alert_targets_alert_id_crew_member_id_key").on(table.alertId, table.crewMemberId),
     check(

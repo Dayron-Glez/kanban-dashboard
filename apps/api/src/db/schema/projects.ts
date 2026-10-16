@@ -135,5 +135,6 @@ export const crewMembers = core.table(
       name: "crew_members_department_id_fkey",
     }).onDelete("set null"),
     index("crew_members_project_id_idx").on(table.projectId),
+    check("crew_members_full_name_check", sql`char_length(${table.fullName}) between 1 and 200`),
   ]
 )
