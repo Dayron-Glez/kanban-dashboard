@@ -12,12 +12,14 @@ interface WhenSectionProps {
   preview: CalendarElement
   plan: CalendarPlan
   bounds?: { start: EpochDay; end: EpochDay }
+  /** Al editar, lo elegido se convierte en un cambio de plan; al crear, son las fechas. */
+  onApply?: (change: WhenChange) => void
 }
 
 const heading = "text-muted-foreground text-sm font-semibold tracking-wider uppercase"
 
 /** Las fechas, en el calendario de siempre; debajo, las horas y si ya se hizo. */
-export function WhenSection({ preview, plan, bounds }: Readonly<WhenSectionProps>) {
+export function WhenSection({ preview, plan, bounds, onApply }: Readonly<WhenSectionProps>) {
   const { control, getValues, setValue } = useFormContext<ActionFormValues>()
   const kind = useWatch({ control, name: "kind" })
   const endsOn = useWatch({ control, name: "endsOn" })
@@ -67,7 +69,7 @@ export function WhenSection({ preview, plan, bounds }: Readonly<WhenSectionProps
         pending={false}
         bounds={bounds}
         occupancy={occupancyFor(plan, preview.id)}
-        onApply={apply}
+        onApply={onApply ?? apply}
       />
       {kind === "hiring" ? (
         <p className="text-muted-foreground text-sm">

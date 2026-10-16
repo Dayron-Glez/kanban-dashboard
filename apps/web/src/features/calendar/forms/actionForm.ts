@@ -5,13 +5,23 @@ import {
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CalendarElement,
+  type EditElementInput,
 } from "@repo/contracts"
 import { actionDefaults, fromIsoDate } from "@repo/domain"
 import * as z from "zod"
 import { NEW_ACTION_TITLE } from "../lib/actionStyle"
 
-/** El formulario de una acción: lo que se crea, más de qué cuelga. */
-export const ActionFormSchema = CreateActionInputSchema.safeExtend({ parentId: z.string().min(1) })
+/** Lo que cambia del plan de una acción al tocar sus fechas: duración, fecha fija y reglas. */
+export type PlanEdit = Pick<EditElementInput, "duration" | "fixedStart" | "isPinned" | "rules">
+
+/**
+ * El formulario de una acción: lo que se crea, más de qué cuelga. Al editar, las
+ * fechas las pone el plan y lo que se cambia de ellas va en `plan`.
+ */
+export const ActionFormSchema = CreateActionInputSchema.safeExtend({
+  parentId: z.string().min(1),
+  plan: z.custom<PlanEdit>().default({}),
+})
 export type ActionFormValues = z.input<typeof ActionFormSchema>
 export type ActionFormData = z.output<typeof ActionFormSchema>
 
@@ -38,7 +48,51 @@ export const newActionValues = ({
   startsOn,
   endsOn: isSingleDay(kind) ? null : endsOn,
   ...actionDefaults(kind),
+  plan: {},
 })
+
+/** Una acción guardada, tal como la edita el formulario. */
+export const editValues = (element: CalendarElement): ActionFormData => ({
+  parentId: element.parentId ?? "",
+  kind: element.kind as ActionKind,
+  name: element.name,
+  startsOn: element.startsOn ?? "",
+  endsOn: element.endsOn === element.startsOn && element.kind !== "hiring" ? null : element.endsOn,
+  priority: element.priority,
+  hours: element.hours,
+  location: element.location,
+  notes: element.notes,
+  completed: element.completedAt !== null,
+  videoApp: element.videoApp,
+  videoUrl: element.videoUrl,
+  plan: {},
+})
+
+// Lo que se guarda tal cual si cambió; las fechas no, que van en `plan`.
+const EDITABLE = [
+  "name",
+  "kind",
+  "parentId",
+  "priority",
+  "hours",
+  "location",
+  "notes",
+  "completed",
+  "videoApp",
+  "videoUrl",
+] as const
+
+type Dirty = Partial<Record<keyof ActionFormData, unknown>>
+
+/** Lo cambiado, en la forma en que lo guarda la API: solo los campos tocados. */
+export const editInput = (values: ActionFormData, dirty: Dirty): EditElementInput => {
+  const input: EditElementInput = { ...values.plan }
+  for (const key of EDITABLE) {
+    if (dirty[key])
+      Object.assign(input, { [key]: key === "name" ? values.name.trim() : values[key] })
+  }
+  return input
+}
 
 const sameHours = (a: ActionFormData["hours"], b: ActionFormData["hours"]) =>
   a.allDay === b.allDay &&

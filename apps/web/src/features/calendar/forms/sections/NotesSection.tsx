@@ -5,7 +5,7 @@ import { FoldSection } from "../FoldSection"
 import type { ActionFormValues } from "../actionForm"
 
 /** Las notas, en texto libre. */
-export function NotesSection() {
+export function NotesSection({ changed = false }: Readonly<{ changed?: boolean }>) {
   const { control, formState } = useFormContext<ActionFormValues>()
   const notes = useWatch({ control, name: "notes" })
 
@@ -15,6 +15,7 @@ export function NotesSection() {
       title="Notas"
       summary={notes ? notes.split("\n")[0]! : "Sin notas"}
       invalid={formState.errors.notes != null}
+      changed={changed}
     >
       <Controller
         name="notes"

@@ -30,6 +30,7 @@ import {
   buildElementTree,
   ELEMENT_KIND_LABELS,
   flattenTree,
+  isAction,
   type ElementNode,
 } from "../lib/elementTree"
 import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
@@ -51,6 +52,7 @@ import {
   previewElement,
   type ActionFormData,
   type NewActionRequest,
+  type PlanEdit,
 } from "../forms/actionForm"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
@@ -118,6 +120,8 @@ export function CalendarPage() {
   const [newAction, setNewAction] = useState<NewActionRequest | null>(null)
   const [newValues, setNewValues] = useState<ActionFormData | null>(null)
   const [newDirty, setNewDirty] = useState<boolean>(false)
+  // Sube al guardar o descartar en el Sheet de una acción: vuelve a empezar desde lo guardado.
+  const [sheetVersion, setSheetVersion] = useState<number>(0)
   const dirty = countChanges(draftInput) > 0 || (newAction != null && newDirty)
   // Salir del panel con cambios pregunta antes; esto es adónde se iba.
   const [leaving, setLeaving] = useState<{ target: PanelTarget } | null>(null)
@@ -352,14 +356,14 @@ export function CalendarPage() {
 
   // En el panel, cada cambio se suma al borrador; se comprueba ya, para no dejar
   // guardar algo que la API rechazaría.
-  const commitDraft = (elementId: string, input: EditElementInput) => {
-    if (!plan.data) return
+  const checkDraft = (elementId: string, input: EditElementInput) => {
+    if (!plan.data) return false
     const preview = previewChange(plan.data, { type: "edit", elementId, input })
     if ("cycle" in preview) {
       toast.error("Esa regla cerraría un ciclo", {
         description: preview.cycle.map(nameOf).join(" → "),
       })
-      return
+      return false
     }
     const [broken] = preview.broken
     if (broken) {
@@ -367,19 +371,60 @@ export function CalendarPage() {
         id: "plan-change",
         description: describePhaseViolation(broken, nameOf),
       })
-      return
+      return false
     }
-    setDraft({ elementId, input })
+    return true
   }
+  const commitDraft = (elementId: string, input: EditElementInput) => {
+    if (checkDraft(elementId, input)) setDraft({ elementId, input })
+  }
+
+  // El Sheet de una acción lleva su borrador; aquí llega para pintarlo y contarlo.
+  const onActionDraft = useCallback(
+    (input: EditElementInput) =>
+      setDraft((current) => {
+        if (!openId) return current
+        if (
+          current?.elementId === openId &&
+          JSON.stringify(current.input) === JSON.stringify(input)
+        )
+          return current
+        return countChanges(input) > 0 ? { elementId: openId, input } : null
+      }),
+    [openId]
+  )
+  const restartSheet = () => {
+    setDraft(null)
+    setSheetVersion((version) => version + 1)
+  }
+  const pathOf = (elementId: string) => {
+    const names: string[] = []
+    for (
+      let current = plan.data?.elements.find((element) => element.id === elementId);
+      current?.parentId;
+    ) {
+      const parent = plan.data?.elements.find((element) => element.id === current?.parentId)
+      if (!parent) break
+      names.unshift(parent.name)
+      current = parent
+    }
+    return names
+  }
+  const savedOpen = plan.data?.elements.find((element) => element.id === openId)
+  const shownOpen = shownPlan?.elements.find((element) => element.id === openId)
   const addToDraft = (change: PlanChange) =>
     plan.data && commitDraft(change.elementId, mergeChange(plan.data, draftInput, change))
 
   // Lo elegido en «Cuándo», en orden: el inicio, y después la duración o el fin,
-  // cada uno sobre el plan que deja el anterior.
-  const applyWhen = (elementId: string, change: WhenChange) => {
+  // cada uno sobre el plan que deja el anterior. Devuelve el borrador que queda.
+  const resolveWhen = (
+    elementId: string,
+    change: WhenChange,
+    from: EditElementInput
+  ): EditElementInput | null => {
     const base = plan.data
-    if (!base) return
-    let input = draftInput
+    if (!base) return null
+    let input = from
     const current = () =>
       countChanges(input) > 0
         ? (applyDraft(base, { type: "edit", elementId, input }) ?? base)
@@ -394,15 +439,19 @@ export function CalendarPage() {
       input = mergeChange(base, input, result.change)
       return true
     }
-    if (change.start && !move("start", change.start)) return
+    if (change.start && !move("start", change.start)) return null
     if (change.duration) {
       input = mergeChange(base, input, {
         type: "update",
         elementId,
         input: { duration: change.duration },
       })
-    } else if (change.end && !move("end", change.end)) return
-    commitDraft(elementId, input)
+    } else if (change.end && !move("end", change.end)) return null
+    return checkDraft(elementId, input) ? input : null
+  }
+  const applyWhen = (elementId: string, change: WhenChange) => {
+    const input = resolveWhen(elementId, change, draftInput)
+    if (input) setDraft({ elementId, input })
   }
   const deleting =
     (toDelete && plan.data?.elements.find((element) => element.id === toDelete)) || null
@@ -571,6 +620,7 @@ export function CalendarPage() {
       {previewPlan && newAction && (
         <ActionSheet
           key={JSON.stringify(newAction)}
+          mode="create"
           request={newAction}
           projectId={projectId}
           plan={previewPlan}
@@ -583,7 +633,34 @@ export function CalendarPage() {
           onCreate={createNewAction}
         />
       )}
-      {shownPlan && openId && (
+      {shownPlan && openId && savedOpen && shownOpen && isAction(savedOpen) && (
+        <ActionSheet
+          key={`${openId}:${sheetVersion}`}
+          mode="edit"
+          saved={savedOpen}
+          shown={shownOpen}
+          projectId={projectId}
+          plan={shownPlan}
+          tree={tree}
+          bounds={timeline?.range}
+          editable={isOwner}
+          pending={changes.pending || deleteElement.isPending}
+          path={[...pathOf(openId), ELEMENT_KIND_LABELS[savedOpen.kind]].join(" › ")}
+          onClose={() => go(null)}
+          onDraftChange={onActionDraft}
+          onResolveWhen={(change, from) => resolveWhen(openId, change, from) as PlanEdit | null}
+          onSave={(input) =>
+            changes.request({ type: "edit", elementId: openId, input }, undefined, undefined, () =>
+              restartSheet()
+            )
+          }
+          onDiscard={restartSheet}
+          onDelete={() => setToDelete(openId)}
+          onPrevious={neighbour(-1) ? () => openElement(neighbour(-1)!) : undefined}
+          onNext={neighbour(1) ? () => openElement(neighbour(1)!) : undefined}
+        />
+      )}
+      {shownPlan && openId && !(savedOpen && isAction(savedOpen)) && (
         <ElementInspector
           elementId={openId}
           plan={shownPlan}
@@ -595,7 +672,6 @@ export function CalendarPage() {
           }
           onApplyWhen={applyWhen}
           onEdit={(elementId, input) => addToDraft({ type: "edit", elementId, input })}
-          onDelete={setToDelete}
           onOpenDay={openDayPanel}
           bounds={timeline?.range}
           onSetRule={(elementId, point, input: SetElementRuleInput) =>

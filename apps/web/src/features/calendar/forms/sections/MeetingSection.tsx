@@ -25,7 +25,7 @@ const VIDEO_APP_LABELS: Record<VideoApp, string> = {
 }
 
 /** La reunión: presencial o por videollamada, con su app y su enlace. */
-export function MeetingSection() {
+export function MeetingSection({ changed = false }: Readonly<{ changed?: boolean }>) {
   const { control, setValue, formState } = useFormContext<ActionFormValues>()
   const videoApp = useWatch({ control, name: "videoApp" })
   const online = videoApp != null
@@ -39,6 +39,7 @@ export function MeetingSection() {
       summary={online ? VIDEO_APP_LABELS[videoApp] : "Presencial"}
       defaultOpen
       invalid={invalid}
+      changed={changed}
     >
       <label className="flex w-fit items-center gap-2 text-base">
         <Switch

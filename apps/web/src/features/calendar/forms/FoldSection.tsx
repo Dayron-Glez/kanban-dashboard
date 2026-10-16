@@ -10,6 +10,8 @@ interface FoldSectionProps {
   defaultOpen?: boolean
   /** Con un error dentro se abre, para que se vea. */
   invalid?: boolean
+  /** Con cambios sin guardar dentro: la marca cian. */
+  changed?: boolean
   children: ReactNode
 }
 
@@ -20,6 +22,7 @@ export function FoldSection({
   summary,
   defaultOpen = false,
   invalid = false,
+  changed = false,
   children,
 }: Readonly<FoldSectionProps>) {
   const [open, setOpen] = useState<boolean>(defaultOpen)
@@ -33,6 +36,9 @@ export function FoldSection({
       <CollapsibleTrigger className="hover:bg-muted/40 flex h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left">
         <SectionIcon size={16} className="text-muted-foreground shrink-0" aria-hidden />
         <span className="text-base font-semibold">{title}</span>
+        {changed && (
+          <span aria-label="Con cambios sin guardar" className="bg-primary size-1.5 rounded-full" />
+        )}
         {!shown && (
           <span className="text-muted-foreground ml-auto max-w-[55%] truncate text-sm">
             {summary}

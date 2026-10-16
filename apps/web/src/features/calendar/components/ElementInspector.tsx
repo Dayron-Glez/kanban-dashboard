@@ -1,15 +1,6 @@
-import { useState, type ReactNode } from "react"
+import { useState } from "react"
 import { IconAnchor, IconChevronDown, IconChevronUp, IconPin } from "@tabler/icons-react"
-import {
-  Button,
-  cn,
-  Input,
-  SheetDescription,
-  SheetTitle,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/shared/index"
+import { Button, cn, Input, SheetDescription, SheetTitle } from "@/shared/index"
 import {
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
@@ -21,13 +12,14 @@ import {
 } from "@repo/contracts"
 import type { EpochDay } from "@repo/domain"
 import { validPredecessors } from "@repo/domain"
-import { buildElementTree, ELEMENT_KIND_LABELS, flattenTree, isAction } from "../lib/elementTree"
+import { buildElementTree, ELEMENT_KIND_LABELS, flattenTree } from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
 import { countDependents, describeIssue, describeRule } from "../lib/planFormat"
 import { occupancyFor } from "../lib/occupancy"
 import { countChanges } from "../lib/planPreview"
-import { ActionFields, DeleteAction } from "./ActionFields"
+import { changedMark } from "../lib/changedMark"
 import { RuleSentence } from "./RuleSentence"
+import { StepButton } from "./StepButton"
 import { SidePanel } from "./SidePanel"
 import { WhenField } from "./WhenField"
 import type { WhenChange } from "./WhenPicker"
@@ -56,10 +48,8 @@ interface ElementInspectorProps {
   onNext?: () => void
   /** Lo editado sin guardar: el pie lo cuenta y deja guardarlo o descartarlo. */
   draft?: { input: EditElementInput; onSave: () => void; onDiscard: () => void }
-  /** Nombre, tipo o de qué cuelga: van al borrador. */
+  /** El nombre: va al borrador. */
   onEdit: (elementId: string, input: EditElementInput) => void
-  /** Pedir que se borre (solo acciones): la confirmación la pinta quien lo usa. */
-  onDelete?: (elementId: string) => void
 }
 
 // El nombre, editable en la cabecera: se aplica al salir del campo o con Enter.
@@ -90,38 +80,6 @@ function NameInput({
   )
 }
 
-// La marca cian de un campo cambiado y sin guardar, a la izquierda.
-const changedMark = (changed: boolean) =>
-  changed &&
-  "relative before:bg-primary before:absolute before:inset-y-0 before:-left-3 before:w-0.5 before:rounded-full"
-
-// Un botón de la cabecera con su Tooltip y su atajo.
-function StepButton({
-  label,
-  shortcut,
-  onClick,
-  children,
-}: Readonly<{ label: string; shortcut: string; onClick?: () => void; children: ReactNode }>) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={label}
-          disabled={!onClick}
-          onClick={onClick}
-        >
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        {label} <kbd className="ml-1 opacity-70">{shortcut}</kbd>
-      </TooltipContent>
-    </Tooltip>
-  )
-}
-
 /**
  * El inspector de un elemento, en un Sheet a la derecha. No es modal: el plan
  * se sigue viendo y tocando, y ↑ ↓ pasan de un elemento a otro. Arriba, cuándo;
@@ -145,7 +103,6 @@ export function ElementInspector({
   onNext,
   draft,
   onEdit,
-  onDelete,
 }: Readonly<ElementInspectorProps>) {
   const [addingEnd, setAddingEnd] = useState<boolean>(false)
   const element = plan.elements.find((candidate) => candidate.id === elementId)
@@ -212,15 +169,6 @@ export function ElementInspector({
         ? { name: "Plan", ...planSpan }
         : null
   const reason = element.issue ? describeIssue(element.issue, nameOf) : undefined
-  const isActionElement = isAction(element)
-  let rootId: string | null = element.id
-  for (let current = element; current.parentId;) {
-    const up = plan.elements.find((candidate) => candidate.id === current.parentId)
-    if (!up) break
-    rootId = up.id
-    current = up
-  }
-  const phaseNode = buildElementTree(plan.elements).find((root) => root.element.id === rootId)
   const occupancy = occupancyFor(plan, element.id)
   const edits = draft?.input ?? {}
   const count = countChanges(edits)
@@ -372,9 +320,6 @@ export function ElementInspector({
         editable &&
         draft && (
           <>
-            {isActionElement && onDelete && (
-              <DeleteAction disabled={pending} onDelete={() => onDelete(element.id)} />
-            )}
             <span className="text-muted-foreground mr-auto flex items-center gap-1.5 text-sm">
               {count > 0 ? (
                 <>
@@ -432,24 +377,9 @@ export function ElementInspector({
         </>
       }
     >
-      {isActionElement ? (
-        <ActionFields
-          element={element}
-          phase={phaseNode}
-          editable={editable}
-          changed={{ kind: edits.kind !== undefined, parent: edits.parentId !== undefined }}
-          mark={changedMark}
-          onEdit={(input) => onEdit(element.id, input)}
-        >
-          {when}
-        </ActionFields>
-      ) : (
-        <>
-          {when}
-          {rules}
-          {dependentsList}
-        </>
-      )}
+      {when}
+      {rules}
+      {dependentsList}
     </SidePanel>
   )
 }
