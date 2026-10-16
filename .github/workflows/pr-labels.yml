@@ -31,19 +31,19 @@ jobs:
             const pr = context.payload.pull_request;
             const issue_number = pr.number;
 
-            // Solo la sección «Tipo de cambio», hasta la siguiente separación.
-            const body = pr.body ?? '';
-            const start = body.indexOf('Tipo de cambio');
+            // Solo la sección del encabezado «Tipo de cambio» (el texto puede nombrarla
+            // antes), hasta la siguiente separación o el siguiente encabezado.
+            const lines = (pr.body ?? '').split(/\r?\n/);
+            const start = lines.findIndex((line) => /^#{1,6}\s.*Tipo de cambio/.test(line));
             if (start === -1) {
               core.info('El cuerpo no tiene la sección «Tipo de cambio»: no se toca nada.');
               return;
             }
-            const end = body.indexOf('\n---', start);
-            const section = body.slice(start, end === -1 ? undefined : end);
+            const rest = lines.slice(start + 1);
+            const end = rest.findIndex((line) => /^(---|#{1,6}\s)/.test(line));
+            const section = end === -1 ? rest : rest.slice(0, end);
             const checked = (text) =>
-              section
-                .split('\n')
-                .some((line) => /^\s*[-*]\s*\[[xX]\]/.test(line) && line.includes(text));
+              section.some((line) => /^\s*[-*]\s*\[[xX]\]/.test(line) && line.includes(text));
 
             const current = new Set(pr.labels.map((label) => label.name));
             const add = kinds.filter((kind) => checked(kind.text) && !current.has(kind.label));
