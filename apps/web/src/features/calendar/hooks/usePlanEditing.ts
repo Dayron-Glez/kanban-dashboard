@@ -178,3 +178,5 @@ export function usePlanEditing(plan: CalendarPlan | undefined, changes: PlanChan
       changes.request({ type: "edit", elementId, input }, undefined, undefined, onSaved),
   }
 }
+
+export type PlanEditing = ReturnType<typeof usePlanEditing>

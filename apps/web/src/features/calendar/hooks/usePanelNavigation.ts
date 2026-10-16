@@ -2,6 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useState } from "react"
 import type { EditElementInput } from "@repo/contracts"
 import type { EpochDay } from "@repo/domain"
 import { newActionValues, type ActionFormData, type NewActionRequest } from "../forms/actionForm"
+import { NEW_ACTION_TITLE } from "../lib/actionStyle"
 import { countChanges } from "../lib/planPreview"
 import type { DayPanel } from "./useGanttCells"
 
@@ -35,6 +36,9 @@ export function usePanelNavigation(order: readonly string[]) {
   const [leaving, setLeaving] = useState<{ target: PanelTarget } | null>(null)
 
   const draftInput = draft?.elementId === openId ? draft.input : NO_DRAFT
+  // Cómo se llama la acción que se está creando: lo escrito, o el título de su tipo.
+  const newActionName =
+    newAction && (newValues?.name.trim() || NEW_ACTION_TITLE[newValues?.kind ?? newAction.kind])
   const dirty = countChanges(draftInput) > 0 || (newAction != null && newDirty)
 
   const navigate = (target: PanelTarget) => {
@@ -92,6 +96,7 @@ export function usePanelNavigation(order: readonly string[]) {
     openDay,
     newAction,
     newValues,
+    newActionName,
     draftInput,
     dirty,
     resetKey,
@@ -120,3 +125,5 @@ export function usePanelNavigation(order: readonly string[]) {
     },
   }
 }
+
+export type PanelNavigation = ReturnType<typeof usePanelNavigation>
