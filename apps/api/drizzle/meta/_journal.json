@@ -92,6 +92,13 @@
       "when": 1792148035204,
       "tag": "0012_campos_de_las_acciones",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792172799488,
+      "tag": "0013_personas_de_los_elementos",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,7 @@ import {
   ACTION_KINDS,
   ACTION_PARENT_KINDS,
   actionIssues,
+  peopleCount,
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CalendarPlan,
@@ -17,6 +18,7 @@ import {
   type EditElementInput,
   type ElementKind,
   type Hours,
+  type PeopleData,
   type SetElementRuleInput,
   type UpdateElementPlanInput,
 } from "@repo/contracts"
@@ -27,10 +29,19 @@ import {
   phaseSpansOf,
   wouldCreateCycle,
 } from "@repo/domain"
-import { and, eq, max, sql } from "drizzle-orm"
+import { and, eq, inArray, max, sql } from "drizzle-orm"
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino"
 import { DB, type Database, type Transaction } from "../db/db.module.js"
-import { elementDependencies, elements, projects } from "../db/schema/index.js"
+import {
+  crewMembers,
+  departments,
+  elementAssignees,
+  elementDependencies,
+  elementDepartments,
+  elementGuests,
+  elements,
+  projects,
+} from "../db/schema/index.js"
 import { toTime } from "../db/timestamps.js"
 import { ProjectAccess } from "../projects/project-access.js"
 import { loadPlan, recalculatePlan } from "./plan.js"
@@ -212,6 +223,9 @@ export class PlanService {
         if (rule === null) await this.deleteRule(tx, elementId, point)
         else await this.writeRule(tx, element.projectId, elementId, point, rule)
       }
+      if (input.people !== undefined) {
+        await this.writePeople(tx, element.projectId, elementId, input.people)
+      }
     })
   }
 
@@ -248,19 +262,25 @@ export class PlanService {
           .select({ position: max(elements.position) })
           .from(elements)
           .where(eq(elements.parentId, parentId))
-        await tx.insert(elements).values({
-          projectId: parent.projectId,
-          kind: input.kind,
-          parentId,
-          position: last?.position == null ? 0 : last.position + 1,
-          name: input.name,
-          durationAmount: days,
-          durationUnit: days == null ? null : "days",
-          startsOn: input.startsOn,
-          isPinned: true,
-          ...detailValues(input),
-          ...(input.completed && { completedAt: sql`now()`, completedBy: userId }),
-        })
+        const [created] = await tx
+          .insert(elements)
+          .values({
+            projectId: parent.projectId,
+            kind: input.kind,
+            parentId,
+            position: last?.position == null ? 0 : last.position + 1,
+            name: input.name,
+            durationAmount: days,
+            durationUnit: days == null ? null : "days",
+            startsOn: input.startsOn,
+            isPinned: true,
+            ...detailValues(input),
+            ...(input.completed && { completedAt: sql`now()`, completedBy: userId }),
+          })
+          .returning({ id: elements.id })
+        if (peopleCount(input.people) > 0) {
+          await this.writePeople(tx, parent.projectId, created!.id, input.people)
+        }
       }
     )
   }
@@ -425,7 +445,11 @@ export class PlanService {
       const recalculated = await recalculatePlan(tx, projectId)
       // Las horas que dependen de cuántos días dura, ya con las fechas calculadas.
       for (const element of recalculated.elements) {
-        const [issue] = actionIssues({ ...element, completed: element.completedAt !== null })
+        const [issue] = actionIssues({
+          ...element,
+          completed: element.completedAt !== null,
+          hasPeople: peopleCount(element.people) > 0,
+        })
         if (issue) {
           throw new BadRequestException(`${DETAILS_MISMATCH}: ${element.name}`)
         }
@@ -452,6 +476,81 @@ export class PlanService {
       "Plan recalculado"
     )
     return plan
+  }
+
+  // Sustituye las personas de un elemento. Todas, del equipo y los departamentos
+  // del proyecto, bloqueadas hasta el final para que no se borren a mitad.
+  private async writePeople(
+    tx: Transaction,
+    projectId: string,
+    elementId: string,
+    people: PeopleData
+  ) {
+    const crewIds = [
+      ...new Set([
+        ...(people.responsibleId ? [people.responsibleId] : []),
+        ...people.executorIds,
+        ...people.guests.flatMap((guest) => guest.crewMemberId ?? []),
+      ]),
+    ]
+    const [ownCrew, ownDepartments] = await Promise.all([
+      crewIds.length
+        ? tx
+            .select({ id: crewMembers.id })
+            .from(crewMembers)
+            .where(and(eq(crewMembers.projectId, projectId), inArray(crewMembers.id, crewIds)))
+            .for("key share")
+        : [],
+      people.departmentIds.length
+        ? tx
+            .select({ id: departments.id })
+            .from(departments)
+            .where(
+              and(
+                eq(departments.projectId, projectId),
+                inArray(departments.id, people.departmentIds)
+              )
+            )
+            .for("key share")
+        : [],
+    ])
+    if (
+      ownCrew.length !== crewIds.length ||
+      ownDepartments.length !== people.departmentIds.length
+    ) {
+      throw new BadRequestException(
+        "Las personas y los departamentos tienen que ser del equipo del proyecto"
+      )
+    }
+
+    await Promise.all([
+      tx.delete(elementAssignees).where(eq(elementAssignees.elementId, elementId)),
+      tx.delete(elementDepartments).where(eq(elementDepartments.elementId, elementId)),
+      tx.delete(elementGuests).where(eq(elementGuests.elementId, elementId)),
+    ])
+    const assignees = [
+      ...(people.responsibleId
+        ? [{ elementId, crewMemberId: people.responsibleId, role: "responsible" }]
+        : []),
+      ...people.executorIds.map((crewMemberId) => ({ elementId, crewMemberId, role: "executor" })),
+    ]
+    if (assignees.length) await tx.insert(elementAssignees).values(assignees)
+    if (people.departmentIds.length) {
+      await tx
+        .insert(elementDepartments)
+        .values(people.departmentIds.map((departmentId) => ({ elementId, departmentId })))
+    }
+    if (people.guests.length) {
+      await tx.insert(elementGuests).values(
+        people.guests.map((guest, position) => ({
+          elementId,
+          position,
+          crewMemberId: guest.crewMemberId,
+          fullName: guest.fullName,
+          email: guest.email?.toLowerCase() ?? null,
+        }))
+      )
+    }
   }
 
   private deleteRule(tx: Transaction, elementId: string, point: DatePoint) {

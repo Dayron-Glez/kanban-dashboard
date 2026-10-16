@@ -2,6 +2,7 @@ import {
   ACTION_KINDS,
   CreateActionInputSchema,
   DEFAULT_ELEMENT_DETAILS,
+  NO_PEOPLE,
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CalendarElement,
@@ -48,6 +49,7 @@ export const newActionValues = ({
   startsOn,
   endsOn: isSingleDay(kind) ? null : endsOn,
   ...actionDefaults(kind),
+  people: NO_PEOPLE,
   plan: {},
 })
 
@@ -65,6 +67,7 @@ export const editValues = (element: CalendarElement): ActionFormData => ({
   completed: element.completedAt !== null,
   videoApp: element.videoApp,
   videoUrl: element.videoUrl,
+  people: element.people,
   plan: {},
 })
 
