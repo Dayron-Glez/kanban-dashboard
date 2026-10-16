@@ -74,7 +74,7 @@ export function CreateActionSheet({
       heading={
         <>
           <div className="flex items-center gap-2">
-            <ActionGlyph kind={kind} className="size-[18px]" />
+            <ActionGlyph kind={kind} className="size-4.5" />
             <SheetTitle className="text-base">{NEW_ACTION_TITLE[kind]}</SheetTitle>
             <Badge variant="secondary" className="text-primary">
               Sin guardar
