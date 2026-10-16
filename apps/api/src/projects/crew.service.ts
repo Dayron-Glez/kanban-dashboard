@@ -6,7 +6,7 @@ import {
   type UpdateCrewMemberInput,
 } from "@repo/contracts"
 import { and, asc, eq } from "drizzle-orm"
-import { DB, type Database } from "../db/db.module.js"
+import { DB, type Database, type Transaction } from "../db/db.module.js"
 import { crewMembers, departments } from "../db/schema/index.js"
 import { ProjectAccess } from "./project-access.js"
 
@@ -42,17 +42,19 @@ export class CrewService {
     input: CreateCrewMemberInput
   ): Promise<CrewMember> {
     await this.access.requireOwner(projectId, userId)
-    await this.checkDepartment(projectId, input.departmentId)
-    const [row] = await this.db
-      .insert(crewMembers)
-      .values({
-        projectId,
-        fullName: input.fullName,
-        email: input.email ?? null,
-        departmentId: input.departmentId ?? null,
-      })
-      .returning()
-    return toCrewMember(row!)
+    return this.db.transaction(async (tx) => {
+      await this.checkDepartment(tx, projectId, input.departmentId)
+      const [row] = await tx
+        .insert(crewMembers)
+        .values({
+          projectId,
+          fullName: input.fullName,
+          email: input.email ?? null,
+          departmentId: input.departmentId ?? null,
+        })
+        .returning()
+      return toCrewMember(row!)
+    })
   }
 
   async update(
@@ -61,13 +63,16 @@ export class CrewService {
     input: UpdateCrewMemberInput
   ): Promise<CrewMember> {
     const projectId = await this.findProject(userId, crewMemberId)
-    await this.checkDepartment(projectId, input.departmentId)
-    const [row] = await this.db
-      .update(crewMembers)
-      .set(input)
-      .where(eq(crewMembers.id, crewMemberId))
-      .returning()
-    return toCrewMember(row!)
+    return this.db.transaction(async (tx) => {
+      await this.checkDepartment(tx, projectId, input.departmentId)
+      const [row] = await tx
+        .update(crewMembers)
+        .set(input)
+        .where(eq(crewMembers.id, crewMemberId))
+        .returning()
+      if (!row) throw new NotFoundException("La persona no existe")
+      return toCrewMember(row)
+    })
   }
 
   async remove(userId: string, crewMemberId: string): Promise<void> {
@@ -85,12 +90,18 @@ export class CrewService {
     return member.projectId
   }
 
-  private async checkDepartment(projectId: string, departmentId: string | null | undefined) {
+  // Bloquea el departamento hasta el final de la transacción: no se borra a mitad.
+  private async checkDepartment(
+    tx: Transaction,
+    projectId: string,
+    departmentId: string | null | undefined
+  ) {
     if (departmentId == null) return
-    const [department] = await this.db
+    const [department] = await tx
       .select({ id: departments.id })
       .from(departments)
       .where(and(eq(departments.id, departmentId), eq(departments.projectId, projectId)))
+      .for("key share")
     if (!department) throw new BadRequestException("El departamento no es de este proyecto")
   }
 }

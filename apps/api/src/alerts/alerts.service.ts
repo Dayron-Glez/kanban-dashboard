@@ -87,8 +87,8 @@ export class AlertsService {
 
   async create(userId: string, projectId: string, input: CreateAlertInput): Promise<Alert> {
     await this.access.requireOwner(projectId, userId)
-    await this.checkTargets(projectId, input)
     return this.db.transaction(async (tx) => {
+      await this.checkTargets(tx, projectId, input)
       const [row] = await tx
         .insert(alerts)
         .values({
@@ -110,8 +110,10 @@ export class AlertsService {
   async update(userId: string, alertId: string, input: UpdateAlertInput): Promise<Alert> {
     const projectId = await this.findProject(userId, alertId)
     const { scope, departmentIds = [], crewMemberIds = [], when, notes, ...fields } = input
-    if (scope !== undefined) await this.checkTargets(projectId, { departmentIds, crewMemberIds })
     return this.db.transaction(async (tx) => {
+      if (scope !== undefined) {
+        await this.checkTargets(tx, projectId, { departmentIds, crewMemberIds })
+      }
       const [row] = await tx
         .update(alerts)
         .set({
@@ -123,12 +125,13 @@ export class AlertsService {
         })
         .where(eq(alerts.id, alertId))
         .returning()
+      if (!row) throw new NotFoundException("La alerta no existe")
       if (scope !== undefined) {
         await tx.delete(alertTargets).where(eq(alertTargets.alertId, alertId))
         await this.insertTargets(tx, alertId, { departmentIds, crewMemberIds })
       }
       const targets = await tx.select().from(alertTargets).where(eq(alertTargets.alertId, alertId))
-      return toAlert(row!, targets)
+      return toAlert(row, targets)
     })
   }
 
@@ -147,23 +150,30 @@ export class AlertsService {
     return alert.projectId
   }
 
-  private async checkTargets(projectId: string, { departmentIds, crewMemberIds }: Targets) {
+  // Bloquea los destinos hasta el final de la transacción: no se borran a mitad.
+  private async checkTargets(
+    tx: Transaction,
+    projectId: string,
+    { departmentIds, crewMemberIds }: Targets
+  ) {
     const [ownDepartments, ownCrew] = await Promise.all([
       departmentIds.length
-        ? this.db
+        ? tx
             .select({ id: departments.id })
             .from(departments)
             .where(
               and(eq(departments.projectId, projectId), inArray(departments.id, departmentIds))
             )
+            .for("key share")
         : [],
       crewMemberIds.length
-        ? this.db
+        ? tx
             .select({ id: crewMembers.id })
             .from(crewMembers)
             .where(
               and(eq(crewMembers.projectId, projectId), inArray(crewMembers.id, crewMemberIds))
             )
+            .for("key share")
         : [],
     ])
     if (ownDepartments.length !== departmentIds.length || ownCrew.length !== crewMemberIds.length) {
