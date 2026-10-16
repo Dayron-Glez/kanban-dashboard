@@ -96,6 +96,9 @@ const parentIds = (nodes: ElementNode[]): string[] =>
     ...parentIds(node.children),
   ])
 
+// Lo que se cambia en el panel: lo del plan, o lo elegido en «Cuándo».
+type PanelChange = PlanChange | { type: "when"; elementId: string; change: WhenChange }
+
 // Adónde se va desde el panel: otro elemento, un día, una acción nueva, o cerrar.
 type PanelTarget = { element: string } | { day: DayPanel } | { newAction: NewActionRequest } | null
 
@@ -375,10 +378,6 @@ export function CalendarPage() {
     }
     return true
   }
-  const commitDraft = (elementId: string, input: EditElementInput) => {
-    if (checkDraft(elementId, input)) setDraft({ elementId, input })
-  }
-
   // El Sheet de una acción lleva su borrador; aquí llega para pintarlo y contarlo.
   const onActionDraft = useCallback(
     (input: EditElementInput) =>
@@ -412,18 +411,20 @@ export function CalendarPage() {
   }
   const savedOpen = plan.data?.elements.find((element) => element.id === openId)
   const shownOpen = shownPlan?.elements.find((element) => element.id === openId)
-  const addToDraft = (change: PlanChange) =>
-    plan.data && commitDraft(change.elementId, mergeChange(plan.data, draftInput, change))
 
-  // Lo elegido en «Cuándo», en orden: el inicio, y después la duración o el fin,
-  // cada uno sobre el plan que deja el anterior. Devuelve el borrador que queda.
-  const resolveWhen = (
-    elementId: string,
-    change: WhenChange,
-    from: EditElementInput
-  ): EditElementInput | null => {
+  // Cada cambio del panel, convertido en el borrador que deja sobre `from`, o nada
+  // (con su aviso) si cerraría un ciclo o rompería el orden de las fases. Lo elegido
+  // en «Cuándo» va en orden: el inicio, y después la duración o el fin, cada uno
+  // sobre el plan que deja el anterior.
+  const resolveChange = (change: PanelChange, from: EditElementInput): EditElementInput | null => {
     const base = plan.data
     if (!base) return null
+    const { elementId } = change
+    if (change.type !== "when") {
+      const input = mergeChange(base, from, change)
+      return checkDraft(elementId, input) ? input : null
+    }
+    const when = change.change
     let input = from
     const current = () =>
       countChanges(input) > 0
@@ -439,19 +440,19 @@ export function CalendarPage() {
       input = mergeChange(base, input, result.change)
       return true
     }
-    if (change.start && !move("start", change.start)) return null
-    if (change.duration) {
+    if (when.start && !move("start", when.start)) return null
+    if (when.duration) {
       input = mergeChange(base, input, {
         type: "update",
         elementId,
-        input: { duration: change.duration },
+        input: { duration: when.duration },
       })
-    } else if (change.end && !move("end", change.end)) return null
+    } else if (when.end && !move("end", when.end)) return null
     return checkDraft(elementId, input) ? input : null
   }
-  const applyWhen = (elementId: string, change: WhenChange) => {
-    const input = resolveWhen(elementId, change, draftInput)
-    if (input) setDraft({ elementId, input })
+  const addToDraft = (change: PanelChange) => {
+    const input = resolveChange(change, draftInput)
+    if (input) setDraft({ elementId: change.elementId, input })
   }
   const deleting =
     (toDelete && plan.data?.elements.find((element) => element.id === toDelete)) || null
@@ -648,7 +649,9 @@ export function CalendarPage() {
           path={[...pathOf(openId), ELEMENT_KIND_LABELS[savedOpen.kind]].join(" › ")}
           onClose={() => go(null)}
           onDraftChange={onActionDraft}
-          onResolveWhen={(change, from) => resolveWhen(openId, change, from) as PlanEdit | null}
+          onResolveWhen={(change, from) =>
+            resolveChange({ type: "when", elementId: openId, change }, from) as PlanEdit | null
+          }
           onSave={(input) =>
             changes.request({ type: "edit", elementId: openId, input }, undefined, undefined, () =>
               restartSheet()
@@ -670,7 +673,7 @@ export function CalendarPage() {
           onUpdate={(elementId, input: UpdateElementPlanInput) =>
             addToDraft({ type: "update", elementId, input })
           }
-          onApplyWhen={applyWhen}
+          onApplyWhen={(elementId, change) => addToDraft({ type: "when", elementId, change })}
           onEdit={(elementId, input) => addToDraft({ type: "edit", elementId, input })}
           onOpenDay={openDayPanel}
           bounds={timeline?.range}
