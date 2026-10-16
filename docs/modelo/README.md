@@ -220,14 +220,15 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 
 - **Un panel cada vez a la derecha, el de un elemento o el de un día**, del mismo ancho (520 px) y con la misma forma: cabecera, cuerpo con scroll y pie fijo.
 - **No son modales**: el Gantt se sigue viendo y tocando con el panel abierto. Esc, la X o pulsar fuera del calendario lo cierran; ↑ ↓ pasan de un elemento a otro, y ← → de un día a otro.
-- **Nada se guarda al tocar.** Cada campo cambiado lleva una marca cian; el pie cuenta los cambios y deja guardarlos o descartarlos. Salir con cambios (cerrar, pasar a otro elemento, abrir un día) pregunta antes.
+- **Nada se guarda al tocar.** Cada campo cambiado lleva una marca cian; el pie cuenta los cambios y deja guardarlos. **Cancelar descarta lo que haya y cierra el panel**, sin preguntar, porque es explícito. Salir con cambios de cualquier otra forma (la X, Esc, pasar a otro elemento, abrir un día) pregunta antes.
 - **«Cuándo» es un solo campo**: el tramo y lo que dura. Al abrirlo, la duración con su unidad y un calendario de dos meses (uno, en reuniones y recordatorios), limitado a lo que dibuja el Gantt:
   - pulsar solo el inicio mueve el tramo entero, con lo que dura;
   - pulsar inicio y fin da la duración, en la unidad que tenía si sale exacta;
   - los puntos de cada día son las acciones de la misma fase, con su lista al pasar por encima, para no pisarse. Los conflictos de verdad (la misma persona o el mismo sitio a la misma hora) llegan con la hora, el lugar y los participantes.
 - **Una acción tiene su propio Sheet, el mismo para crearla y para editarla** (variante C de la maqueta `formulario-acciones.html`): arriba, el tipo y el título; siempre abiertos, «Cuándo» (fechas, todo el día u horas, el horario de varios días y «Hecha» en las tareas) y «Dónde» (de qué cuelga, prioridad y ubicación); plegados con su resumen, la videollamada de la reunión y las notas. Sin reglas: una acción está fijada en sus fechas. Se borra desde el pie, tras confirmarlo; las fases, subfases y procesos no se borran desde aquí.
 - **Crear una acción** es elegir su tipo en la celda (o en «Nueva acción» del día): se abre el Sheet en modo «Nueva», con el día o el periodo, de qué cuelga, los valores de su tipo y el cursor en el título, sin pedir antes el nombre. La acción se pinta ya en el Gantt mientras se rellena. «Crear» (o Ctrl + Enter) la guarda de una vez y el Sheet pasa a editarla; salir con algo escrito pregunta antes.
-- **El nombre de cualquier elemento** se cambia en la cabecera del panel.
+- **El nombre de cualquier elemento** se cambia en la cabecera del panel: es un campo más, que cuenta como cambio y se guarda con el resto.
+- **«Cuándo» sitúa el elemento dentro de lo que lo contiene** con una barrita de su color (en una fase, dentro del plan entero), también en el Sheet de las acciones.
 - **El panel del día** tiene «Nueva acción» en el pie.
 
 ## Formularios del Calendario
@@ -235,11 +236,12 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 Decidido con el usuario el 16 de octubre de 2026, antes de los formularios de las acciones y de la alerta. Vale para todo el Calendario.
 
 - **Una sola fuente de reglas: los esquemas de `@repo/contracts`.** El formulario usa `CreateActionInputSchema` tal cual con `zodResolver`; la web no lo reescribe. Solo se extiende (`.safeExtend()`, que conserva sus reglas) con lo que el formulario necesita y la creación no lleva: de qué cuelga y lo que cambia de las fechas. Las reglas que dependen del tipo o de los días que dura (`actionIssues`) son las mismas en contracts, la API y el formulario.
-- **react-hook-form en todos los formularios, también el borrador del panel lateral entero**, fechas del plan incluidas. Hecho en las acciones; las fases, subfases y procesos siguen con el borrador de `CalendarPage` hasta pasar también a RHF:
+- **react-hook-form en todos los formularios, también el borrador del panel lateral entero**, fechas del plan incluidas: el Sheet de las acciones y el panel de fases, subfases y procesos, que tiene dos campos (el nombre y `plan`, con la duración, la fecha fija y las reglas).
   - `dirtyFields` da la marca cian de cada campo y el contador de cambios del pie;
-  - Cancelar y Guardar vuelven a empezar el formulario desde lo guardado;
+  - Guardar devuelve el formulario a lo guardado (`reset()`), sin volver a montar el panel; Cancelar descarta y cierra el panel;
   - Guardar manda solo lo cambiado, en una petición (`PATCH /elements/:id/edits`);
-  - lo que cambia de las fechas va en un campo del formulario (`plan`), con la misma conversión en regla, duración o fecha fija de siempre, y la vista previa del Gantt sigue saliendo de `applyDraft`.
+  - cada cambio de las fechas o de las reglas pasa por una sola función (`resolveChange`) que lo convierte en regla, duración o fecha fija, y avisa si cerraría un ciclo o rompería el orden de las fases;
+  - `CalendarPage` ya no guarda un borrador propio: cada panel le pasa el suyo, solo para pintarlo en el Gantt (`applyDraft`) y para preguntar al salir con cambios.
 - **Mensajes en español en un solo sitio** (`shared/lib/formErrors.ts`, global porque lo usarán también la alerta y los demás formularios): un mapa propio en lenguaje normal («Hace falta rellenarlo», «La hora de fin tiene que ser posterior a la de inicio»…) y, debajo, la traducción de Zod (`z.locales.es`), que suena a máquina. Un mensaje escrito en un esquema manda sobre el mapa. contracts sigue sin mensajes: la API no los necesita.
 - **Los errores del servidor van a su campo.** El 400 de la API devuelve los errores de validación con su ruta, `ApiError` los conserva y la web los coloca con `setError`. Cubre lo que el cliente no puede saber, como un DNI repetido o un destino de otro proyecto.
 - **Los valores por defecto de cada tipo** (la reunión, de 10:00 a 11:00…) salen de una función pura de `@repo/domain`, `actionDefaults(kind)`, que pueden usar la web y la API. Los avisos de serie se sumarán con los avisos.
@@ -256,6 +258,21 @@ Decidido con el usuario el 16 de octubre de 2026, antes de los formularios de la
     FoldSection.tsx        una sección plegable con su resumen
     sections/              Tipo, Cuándo, Dónde, y una por tipo (de momento, la videollamada) más las notas
     fields/                HoursField; con el resto de atributos, CrewPicker, DepartmentPicker…
+  ```
+
+- **`CalendarPage` solo conecta y pinta** (auditoría del 16 de octubre, tras los avisos de SonarQube: complejidad cognitiva de 45 sobre 15). Lo demás va en hooks y componentes de `features/calendar/`:
+
+  ```
+  hooks/usePanelNavigation   el panel de la derecha: cuál está abierto, su borrador, salir con cambios y ↑ ↓ Esc
+  hooks/usePlanEditing       lo que cambia el plan: fechas escritas, arrastre, cambio de tipo y el borrador del panel
+  hooks/useActionLifecycle   crear una acción y borrarla con confirmación
+  hooks/usePlanPreview       el plan con la acción nueva pintada y el árbol del Gantt sin los tipos ocultos
+  hooks/useGanttScroll       ir a una fecha y centrarse en hoy al abrir el proyecto
+  hooks/useExpanded          qué está desplegado en el árbol
+  hooks/useUrlChoice         la vista y el zoom, en la URL
+  hooks/usePersistedState    campos, marcas y tipos ocultos, en el navegador
+  components/PlanStatus      carga, error, plan vacío o el plan
+  components/CalendarPanels  el panel que toque, uno cada vez
   ```
 
 - **Tests**: cada regla, una vez, en contracts. Los formularios, con Testing Library: campos que aparecen según otros, errores y lo que se envía.
