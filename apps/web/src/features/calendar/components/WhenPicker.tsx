@@ -147,9 +147,10 @@ export function WhenPicker({
     if (single) return { main: day(shown.start, true), sub: "Un solo día" }
     if (shown.end == null)
       return { main: `${day(shown.start, true)} → sin fin`, sub: "Falta la duración" }
+    const days = `${shown.end - shown.start + 1} días naturales`
     return {
       main: `${day(shown.start)} → ${day(shown.end, true)}`,
-      sub: `${shown.duration ? `${formatDuration(shown.duration)} · ` : ""}${shown.end - shown.start + 1} días naturales`,
+      sub: shown.duration ? `${formatDuration(shown.duration)} · ${days}` : days,
     }
   }
   const current = summary(saved)

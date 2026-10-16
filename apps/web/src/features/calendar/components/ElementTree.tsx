@@ -372,7 +372,8 @@ export function ElementTree({
   const bar = (node: ElementNode, rule: string | null) => {
     if (!timeline || !node.element.startsOn) return null
     const { element, depth } = node
-    const label = `${element.name}: ${formatPlanDate(element.startsOn!)}${element.endsOn ? ` → ${formatPlanDate(element.endsOn)}` : ", sin fin"}`
+    const end = element.endsOn ? ` → ${formatPlanDate(element.endsOn)}` : ", sin fin"
+    const label = `${element.name}: ${formatPlanDate(node.element.startsOn)}${end}`
     const modes = barDragModes(element, dependencies)
     const lockedBy = modes.locked ? `Se mueve con ${modes.by.map(nameOf).join(" y ")}` : null
     const endless = element.endsOn ? null : "Tiene inicio, pero aún no se sabe cuándo acaba"

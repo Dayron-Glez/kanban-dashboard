@@ -355,6 +355,7 @@ function FixedDate({
   element,
   movesCount,
 }: Readonly<{ element: CalendarElement; movesCount: number }>) {
+  const moves = movesCount === 1 ? "1 elemento" : `${movesCount} elementos`
   return (
     <div
       className={cn(
@@ -375,8 +376,7 @@ function FixedDate({
           {element.isAnchor
             ? "Todo se calcula desde aquí: si la mueves, el plan entero se mueve con ella."
             : "Se escribe a mano y no se mueve con el plan."}
-          {movesCount > 0 &&
-            ` Mueve ${movesCount === 1 ? "1 elemento" : `${movesCount} elementos`}.`}
+          {movesCount > 0 && ` Mueve ${moves}.`}
         </p>
       </div>
     </div>
