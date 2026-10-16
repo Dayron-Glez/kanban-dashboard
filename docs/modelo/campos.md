@@ -49,9 +49,9 @@ Las tablas son de `calendar` salvo que se indique otra cosa: `elements.name` es 
 | Campo     | Dónde se guarda      | Oblig.           | Por defecto        | Validación                                                                                   | Llega |
 | --------- | -------------------- | ---------------- | ------------------ | -------------------------------------------------------------------------------------------- | ----- |
 | Tipo      | `elements.kind`      | Sí               | El de la celda     | Uno de los seis. Cambiarlo ajusta la duración (`kindChange`: reunión y recordatorio, un día) | Hecho |
-| Título    | `elements.name`      | Sí (salvo cont.) | «Nuevo evento»…    | 1 a 200 caracteres hoy; FFCal dice 120                                                       | Hecho |
+| Título    | `elements.name`      | Sí (salvo cont.) | «Nuevo evento»…    | 1 a 120 caracteres (la base admite hasta 200, por los nombres de antes)                      | Hecho |
 | Cuelga de | `elements.parent_id` | Sí               | La fase de la fila | Fase, subfase o proceso de la fase de la acción (`ACTION_PARENT_KINDS`)                      | Hecho |
-| Prioridad | `elements.priority`  | Sí               | Normal             | Alta, normal o baja. Solo sirve para resolver conflictos                                     | 5c    |
+| Prioridad | `elements.priority`  | Sí               | Normal             | Alta, normal o baja. Solo sirve para resolver conflictos                                     | Hecho |
 
 - **Título con sugerencias**: FFCal sugiere las acciones habituales de la fase. Aquí salen de la plantilla (`template_key`) y de las acciones ya creadas en esa fase. No se guarda nada nuevo.
 - **«Fase o subfase» y «Proceso» son un solo campo, «Cuelga de»**: el árbol ya permite colgar de cualquiera de los tres.
@@ -63,15 +63,15 @@ Las tablas son de `calendar` salvo que se indique otra cosa: `elements.name` es 
 | -------------- | --------------------------------------- | -------------------- | --------------------- | ---------------------------------------------------------------- | ----- |
 | Inicio         | `elements.starts_on`, calculado         | Sí                   | El día de la celda    | Lo calcula el motor: regla de inicio (la «fórmula») o fecha fija | Hecho |
 | Fin            | `elements.ends_on`, calculado           | Sí (salvo cont.)     | Igual que el inicio   | Por duración o regla de fin. No anterior al inicio               | Hecho |
-| Todo el día    | `elements.all_day`                      | Sí                   | Sí (no en la reunión) | Las reglas de `checkWhen`, las mismas que la alerta              | 5c    |
-| Hora de inicio | `elements.start_time`                   | Cond. (con horas)    | Vacía                 | HH:MM, hora local del proyecto, sin zona                         | 5c    |
-| Hora de fin    | `elements.end_time`                     | Cond. (con horas)    | Vacía                 | Un día: posterior a la de inicio. Varios días: según el horario  | 5c    |
-| Horario        | `elements.hours_mode`                   | Cond. (horas y días) | Cada día              | Cada día o seguido. Lo que cruza la medianoche es «seguido»      | 5c    |
-| Ya se realizó  | `elements.completed_at`, `completed_by` | No                   | Sin marcar            | Solo en tareas (CHECK). Tacha la acción y quita sus avisos       | 5c    |
+| Todo el día    | `elements.all_day`                      | Sí                   | Sí (no en la reunión) | Las reglas de `checkWhen`, las mismas que la alerta              | Hecho |
+| Hora de inicio | `elements.start_time`                   | Cond. (con horas)    | Vacía                 | HH:MM, hora local del proyecto, sin zona                         | Hecho |
+| Hora de fin    | `elements.end_time`                     | Cond. (con horas)    | Vacía                 | Un día: posterior a la de inicio. Varios días: según el horario  | Hecho |
+| Horario        | `elements.hours_mode`                   | Cond. (horas y días) | Cada día              | Cada día o seguido. Lo que cruza la medianoche es «seguido»      | Hecho |
+| Ya se realizó  | `elements.completed_at`, `completed_by` | No                   | Sin marcar            | Solo en tareas (CHECK). Tacha la acción y quita sus avisos       | Hecho |
 
 - **Las fechas no son campos libres**: inicio y fin salen del motor (duración más reglas). La «fórmula» de FFCal («−1 semana inicio de Rodaje») es una regla de dependencia, ya hecha (`SetElementRuleInput`). Escribir una fecha a mano fija la acción.
 - **FFCal escribe la duración de las horas** (hora de inicio + duración = hora de fin). Aquí se guarda la hora de fin y la duración se muestra en el formulario, calculada: es un campo solo de interfaz.
-- **Reunión y recordatorio** son de un día: sin campo de fin. contracts ya lo comprueba; el CHECK `ends_on = starts_on` llega con el 5c.
+- **Reunión y recordatorio** son de un día: sin campo de fin. Lo comprueban contracts y la API; no hay CHECK, porque la fecha de fin la escribe el motor después de insertar la fila y la incumpliría.
 - **El «Cuándo» de las acciones no tiene fin abierto**, salvo la contratación sin baja. El de la alerta sí (`OpenWhenSchema`).
 
 ### 3.3. Avisos
@@ -120,10 +120,10 @@ Las tablas son de `calendar` salvo que se indique otra cosa: `elements.name` es 
 | Campo     | Dónde se guarda                              | Oblig. | Por defecto | Validación                                              | Llega        |
 | --------- | -------------------------------------------- | ------ | ----------- | ------------------------------------------------------- | ------------ |
 | Etiquetas | `element_tags` (nueva)                       | No     | —           | Texto de 1 a 60, sin «#», sin repetir en la acción      | 5c           |
-| Notas     | `elements.notes`                             | No     | —           | Texto largo                                             | 5c           |
+| Notas     | `elements.notes`                             | No     | —           | Texto largo                                             | Hecho        |
 | Enlaces   | `element_links` (`url`, `title`, `position`) | No     | —           | `https:`, `http:`, `mailto:` o `file:`                  | 5c           |
 | Archivos  | `element_attachments` + `core.files`         | No     | —           | Hasta 25 MB cada uno                                    | Más adelante |
-| Ubicación | `elements.location`                          | No     | —           | Texto de hasta 200. En la contratación se llama «Lugar» | 5c           |
+| Ubicación | `elements.location`                          | No     | —           | Texto de hasta 200. En la contratación se llama «Lugar» | Hecho        |
 
 - **Las etiquetas de serie no se guardan**: personas, cargos, departamentos y viajeros ya son datos de la acción, y el filtro los trata como etiquetas. Solo se guardan las que se escriben a mano.
 - **`elements.description` y `elements.notes`**: el dbml tiene los dos y FFCal solo notas. Ver 7.7.
@@ -151,9 +151,9 @@ De un solo día, presencial o por videollamada.
 
 | Campo        | Dónde se guarda              | Oblig.                     | Por defecto | Validación                                    | Llega |
 | ------------ | ---------------------------- | -------------------------- | ----------- | --------------------------------------------- | ----- |
-| Videollamada | `elements.video_app` (nueva) | No                         | No          | Vacía = presencial                            | 5c    |
-| App          | `elements.video_app`         | Cond. (si es videollamada) | —           | Meet, Teams, Zoom, Webex u otra               | 5c    |
-| Enlace       | `elements.video_url` (nueva) | No                         | —           | `https:` o `http:`. Solo en reuniones (CHECK) | 5c    |
+| Videollamada | `elements.video_app` (nueva) | No                         | No          | Vacía = presencial                            | Hecho |
+| App          | `elements.video_app`         | Cond. (si es videollamada) | —           | Meet, Teams, Zoom, Webex u otra               | Hecho |
+| Enlace       | `elements.video_url` (nueva) | No                         | —           | `https:` o `http:`. Solo en reuniones (CHECK) | Hecho |
 
 Dos columnas nullables en `elements` en vez de una tabla: son dos datos y solo de un tipo. «Crear la convocatoria en la app» de FFCal (abrir Meet o Teams) es un enlace del formulario, sin datos nuevos.
 
@@ -184,7 +184,7 @@ El alta y la baja de un puesto y, si ya se sabe, de quien lo ocupa. Sin horas, s
 | Alta         | `elements.starts_on`                      | Sí     | La celda    | Calculada: regla o fecha fija, como cualquier inicio                   | Hecho |
 | Baja         | `elements.ends_on`                        | No     | Vacía       | No anterior al alta. Vacía: sigue activa (decidido el 10 oct)          | Hecho |
 | Días         | Calculado                                 | Auto   | —           | Del alta a la baja, ambos incluidos                                    | 5c    |
-| Lugar        | `elements.location`                       | No     | —           | Hasta 200                                                              | 5c    |
+| Lugar        | `elements.location`                       | No     | —           | Hasta 200                                                              | Hecho |
 
 - **Una tabla aparte, `calendar.hirings`** (`element_id` como clave), para no llenar `elements` de columnas que solo usa un tipo.
 - **El catálogo de cargos** (`core.job_titles`: código, abreviatura, nombre y departamento) sale de `puestos.ts` del prototipo. Lo necesitarán también el equipo y el personal, así que va en `core`.
@@ -273,12 +273,12 @@ Las nueve de FFCal (§11), y dónde se comprueba cada una:
 
 | Regla de FFCal                                  | Dónde                                                              | Llega |
 | ----------------------------------------------- | ------------------------------------------------------------------ | ----- |
-| 1. Título vacío (salvo contratación)            | contracts; el CHECK de longitud, con el 5c                         | Hecho |
+| 1. Título vacío (salvo contratación)            | contracts y CHECK de longitud                                      | Hecho |
 | 2. Contratación sin puesto                      | contracts (unión por `kind`) y CHECK en `hirings`                  | 5c    |
 | 3. Sin padre, o ninguno incluye el inicio       | API: padre válido. Si el inicio sale del padre, **aviso**          | Hecho |
-| 4. Reunión o recordatorio de más de un día      | contracts; el CHECK, con el 5c                                     | Hecho |
+| 4. Reunión o recordatorio de más de un día      | contracts y API (sin CHECK: el fin lo escribe el motor)            | Hecho |
 | 5. Fechas inválidas o fin antes del inicio      | contracts y motor de fechas                                        | Hecho |
-| 6. Horas incoherentes                           | `checkWhen` en contracts y CHECK, como en la alerta                | 5c    |
+| 6. Horas incoherentes                           | `checkWhen` en contracts y CHECK, como en la alerta                | Hecho |
 | 7. Avisos con cantidades que no son enteros ≥ 0 | contracts y CHECK                                                  | 5c    |
 | 8. Enlaces con esquema no válido                | contracts y CHECK                                                  | 5c    |
 | 9. DNI repetido                                 | Índice único en `core.crew_members`; el 409 se muestra en su campo | 5c    |
@@ -292,7 +292,7 @@ Las nueve de FFCal (§11), y dónde se comprueba cada una:
 
 Lo que choca con lo decidido o no está en el modelo. Con mi recomendación, para la revisión de campos.
 
-1. **Largo del título**: 200 hoy, 120 en FFCal y en la alerta. → **120** en todo, para que quepa en el Gantt y en los avisos.
+1. **Largo del título**: 120, como en FFCal y en la alerta, para que quepa en el Gantt y en los avisos. Hecho.
 2. **Mover la acción si su inicio sale del padre**: FFCal la mueve sola. → **Avisar y dejar elegir**, como se decidió el 9 oct.
 3. **«Ya se realizó» en todos los tipos** (FFCal, 15 oct) o solo en tareas (decidido el 11 oct). → **Solo tareas**: en una reunión o un viaje pasado, la fecha ya lo dice. Preguntar al productor si lo echa en falta.
 4. **Asignar un cargo sin persona** («ayudante de producción», sin nombre aún). → No como texto suelto: es una **contratación sin trabajador**, y desde ella se asigna la persona cuando la haya.

@@ -225,7 +225,8 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
   - pulsar solo el inicio mueve el tramo entero, con lo que dura;
   - pulsar inicio y fin da la duración, en la unidad que tenía si sale exacta;
   - los puntos de cada día son las acciones de la misma fase, con su lista al pasar por encima, para no pisarse. Los conflictos de verdad (la misma persona o el mismo sitio a la misma hora) llegan con la hora, el lugar y los participantes.
-- **Una acción** muestra su tipo, cuándo y de qué cuelga (su fase, sus subfases o sus procesos), sin reglas. Se borra desde el pie, tras confirmarlo; las fases, subfases y procesos no se borran desde aquí.
+- **Una acción tiene su propio Sheet, el mismo para crearla y para editarla** (variante C de la maqueta `formulario-acciones.html`): arriba, el tipo y el título; siempre abiertos, «Cuándo» (fechas, todo el día u horas, el horario de varios días y «Hecha» en las tareas) y «Dónde» (de qué cuelga, prioridad y ubicación); plegados con su resumen, la videollamada de la reunión y las notas. Sin reglas: una acción está fijada en sus fechas. Se borra desde el pie, tras confirmarlo; las fases, subfases y procesos no se borran desde aquí.
+- **Crear una acción** es elegir su tipo en la celda (o en «Nueva acción» del día): se abre el Sheet en modo «Nueva», con el día o el periodo, de qué cuelga, los valores de su tipo y el cursor en el título, sin pedir antes el nombre. La acción se pinta ya en el Gantt mientras se rellena. «Crear» (o Ctrl + Enter) la guarda de una vez y el Sheet pasa a editarla; salir con algo escrito pregunta antes.
 - **El nombre de cualquier elemento** se cambia en la cabecera del panel.
 - **El panel del día** tiene «Nueva acción» en el pie.
 
@@ -233,24 +234,28 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 
 Decidido con el usuario el 16 de octubre de 2026, antes de los formularios de las acciones y de la alerta. Vale para todo el Calendario.
 
-- **Una sola fuente de reglas: los esquemas de `@repo/contracts`.** El formulario los usa tal cual con `zodResolver`; la web no los reescribe. Solo se extienden (`.extend()`) con campos que no se guardan, como la duración de las horas, que da la hora de fin. Las acciones son una `discriminatedUnion` por `kind`: lo común más lo propio de cada tipo.
-- **react-hook-form en todos los formularios, también el borrador del panel lateral entero**, fechas del plan incluidas. Sustituye al estado propio que tiene hoy `CalendarPage`:
+- **Una sola fuente de reglas: los esquemas de `@repo/contracts`.** El formulario usa `CreateActionInputSchema` tal cual con `zodResolver`; la web no lo reescribe. Solo se extiende (`.safeExtend()`, que conserva sus reglas) con lo que el formulario necesita y la creación no lleva: de qué cuelga y lo que cambia de las fechas. Las reglas que dependen del tipo o de los días que dura (`actionIssues`) son las mismas en contracts, la API y el formulario.
+- **react-hook-form en todos los formularios, también el borrador del panel lateral entero**, fechas del plan incluidas. Hecho en las acciones; las fases, subfases y procesos siguen con el borrador de `CalendarPage` hasta pasar también a RHF:
   - `dirtyFields` da la marca cian de cada campo y el contador de cambios del pie;
-  - «Descartar» es `reset()`;
+  - Cancelar y Guardar vuelven a empezar el formulario desde lo guardado;
   - Guardar manda solo lo cambiado, en una petición (`PATCH /elements/:id/edits`);
-  - la vista previa del Gantt sigue saliendo de `applyDraft`, alimentada con `useWatch`.
-- **Mensajes en español en un solo sitio**: la traducción de Zod (`z.config(z.locales.es())`) y, encima, un mapa propio por campo y tipo de error para las reglas que añaden los `superRefine`, como las del «Cuándo». contracts sigue sin mensajes: la API no los necesita.
+  - lo que cambia de las fechas va en un campo del formulario (`plan`), con la misma conversión en regla, duración o fecha fija de siempre, y la vista previa del Gantt sigue saliendo de `applyDraft`.
+- **Mensajes en español en un solo sitio** (`shared/lib/formErrors.ts`, global porque lo usarán también la alerta y los demás formularios): un mapa propio en lenguaje normal («Hace falta rellenarlo», «La hora de fin tiene que ser posterior a la de inicio»…) y, debajo, la traducción de Zod (`z.locales.es`), que suena a máquina. Un mensaje escrito en un esquema manda sobre el mapa. contracts sigue sin mensajes: la API no los necesita.
 - **Los errores del servidor van a su campo.** El 400 de la API devuelve los errores de validación con su ruta, `ApiError` los conserva y la web los coloca con `setError`. Cubre lo que el cliente no puede saber, como un DNI repetido o un destino de otro proyecto.
-- **Los valores por defecto de cada tipo** (la reunión, de 10:00 a 11:00 con aviso 30 minutos antes…) salen de una función pura de `@repo/domain`, `actionDefaults(kind)`, que pueden usar la web y la API.
+- **Los valores por defecto de cada tipo** (la reunión, de 10:00 a 11:00…) salen de una función pura de `@repo/domain`, `actionDefaults(kind)`, que pueden usar la web y la API. Los avisos de serie se sumarán con los avisos.
 - **shadcn `Field` con el `Controller` de RHF**, y siempre un `<form onSubmit>`: Enter guarda y el formulario se comporta como tal.
 - **Estructura**:
 
   ```
   features/calendar/forms/
-    actionForm.ts     esquema (de contracts), valores por defecto y mapa de mensajes
-    ActionSheet.tsx   el <form>, el borrador con RHF y el pie de Guardar y Descartar
-    sections/         las comunes (Título, Cuándo, Asignación…) y una por tipo (Viaje, Contratación…)
-    fields/           WhenField, CrewPicker, DepartmentPicker…, sobre Field y Controller
+    actionForm.ts          el esquema (de contracts), los valores de crear y editar, lo cambiado y la vista previa
+    ActionSheet.tsx        elige el modo: crear o editar
+    CreateActionSheet.tsx  el formulario de una acción nueva y su pie
+    EditActionSheet.tsx    el de una acción guardada: su borrador, las marcas y su pie
+    ActionFormLayout.tsx   lo común: el <form>, el tipo, el título y las secciones
+    FoldSection.tsx        una sección plegable con su resumen
+    sections/              Tipo, Cuándo, Dónde, y una por tipo (de momento, la videollamada) más las notas
+    fields/                HoursField; con el resto de atributos, CrewPicker, DepartmentPicker…
   ```
 
 - **Tests**: cada regla, una vez, en contracts. Los formularios, con Testing Library: campos que aparecen según otros, errores y lo que se envía.
