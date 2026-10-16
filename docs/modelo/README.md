@@ -50,16 +50,17 @@ Hoy la base (Neon) tiene las tablas en `public` e `identity` (ver `apps/api/src/
 
 ## Cuándo llega cada parte
 
-| Parte                                                                                               | PR        |
-| --------------------------------------------------------------------------------------------------- | --------- |
-| Tablas actuales a `core` y `calendar`; tipo de proyecto                                             | 5a        |
-| El árbol de elementos y la plantilla, por tipo de proyecto                                          | 5a        |
-| El calendario laboral y el motor de fechas: ancla, duraciones, dependencias y contadores de días    | 5b        |
-| Departamentos, un equipo mínimo y las alertas con sus conflictos con todo el proyecto, sin interfaz | alerta 1  |
-| La interfaz de las alertas, tras su maqueta                                                         | alerta 2  |
-| Atributos comunes: equipo completo, responsables, invitados, avisos, repetición, links              | 5c        |
-| Documentos adjuntos (`core.files`), cuando haya almacenamiento                                      | posterior |
-| Vistas del Calendario: las siete del prototipo, empezando por el Gantt                              | 6 y 8     |
+| Parte                                                                                                                                                                      | PR        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Tablas actuales a `core` y `calendar`; tipo de proyecto                                                                                                                    | 5a        |
+| El árbol de elementos y la plantilla, por tipo de proyecto                                                                                                                 | 5a        |
+| El calendario laboral y el motor de fechas: ancla, duraciones, dependencias y contadores de días                                                                           | 5b        |
+| Departamentos, un equipo mínimo y las alertas con sus conflictos con todo el proyecto, sin interfaz                                                                        | alerta 1  |
+| La interfaz de las alertas, tras su maqueta                                                                                                                                | alerta 2  |
+| Atributos comunes: equipo completo, cargos, responsables, participantes, avisos, etiquetas, links, y lo propio de la reunión, la contratación y el viaje (ver `campos.md`) | 5c        |
+| La repetición de las acciones de un día                                                                                                                                    | posterior |
+| Documentos adjuntos (`core.files`), cuando haya almacenamiento                                                                                                             | posterior |
+| Vistas del Calendario: las siete del prototipo, empezando por el Gantt                                                                                                     | 6 y 8     |
 
 El antiguo PR 7 (subtareas y WBS) queda absorbido por el árbol, y el PR 9 (equipo) por el 5c.
 
@@ -281,6 +282,6 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
   - qué entiende por «grupo de personas» en el alcance de una alerta: varias personas o grupos con nombre.
 - **Avisos** (`calendar.element_notifications`, que no hay que confundir con las alertas): a quién llegan (responsable, ejecutantes, todo el equipo) y por qué canal.
 - **Contratación:** los datos laborales que el prototipo usa para las nóminas (puesto, salario, grupo de cotización, tipo de contrato) irán en un módulo futuro (personal o presupuesto), no en el Calendario. Aquí la contratación es su periodo y la persona contratada.
-- **Viaje:** sus datos propios (ida y vuelta, alojamiento, viajeros) llegan con los atributos comunes.
+- **Viaje:** sus datos propios (los trayectos, el alojamiento y los viajeros) están modelados en `destino.dbml` y llegan con el 5c.
 - **Almacenamiento de ficheros:** dónde (por ejemplo, Cloudflare R2), antes de los documentos adjuntos.
 - **Papelera y deshacer:** una papelera donde recuperar lo borrado, con borrado lógico (hoy borrar una acción es definitivo), y un deshacer siempre disponible, rediseñado, en lugar del aviso de unos segundos tras guardar.

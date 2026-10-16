@@ -173,18 +173,18 @@ De un solo día. Sin fecha de fin.
 
 El alta y la baja de un puesto y, si ya se sabe, de quien lo ocupa. Sin horas, sin «ya se realizó» y sin repetición. Su título es automático: «Puesto — Trabajador».
 
-| Campo        | Dónde se guarda                           | Oblig. | Por defecto | Validación                                                    | Llega |
-| ------------ | ----------------------------------------- | ------ | ----------- | ------------------------------------------------------------- | ----- |
-| Puesto       | `hirings.job_title_id` o `job_title_name` | Sí     | —           | Un cargo del catálogo, u «Otro» escrito (1 a 120)             | 5c    |
-| Código e ID  | Del cargo (`core.job_titles`)             | Auto   | —           | Solo lectura                                                  | 5c    |
-| Departamento | Del cargo; escrito si es «Otro»           | Auto   | —           | Un departamento del proyecto                                  | 5c    |
-| Trabajador   | `hirings.crew_member_id`                  | No     | —           | Vacío = puesto sin cubrir. Persona del equipo del proyecto    | 5c    |
-| Nombre       | `core.crew_members.full_name`             | —      | —           | En la ficha de la persona, no en la contratación              | Hecho |
-| DNI          | `core.crew_members.document_id` (nueva)   | No     | —           | Hasta 30. Único en el proyecto                                | 5c    |
-| Alta         | `elements.starts_on`                      | Sí     | La celda    | Calculada: regla o fecha fija, como cualquier inicio          | Hecho |
-| Baja         | `elements.ends_on`                        | No     | Vacía       | No anterior al alta. Vacía: sigue activa (decidido el 10 oct) | Hecho |
-| Días         | Calculado                                 | Auto   | —           | Del alta a la baja, ambos incluidos                           | 5c    |
-| Lugar        | `elements.location`                       | No     | —           | Hasta 200                                                     | 5c    |
+| Campo        | Dónde se guarda                           | Oblig. | Por defecto | Validación                                                             | Llega |
+| ------------ | ----------------------------------------- | ------ | ----------- | ---------------------------------------------------------------------- | ----- |
+| Puesto       | `hirings.job_title_id` y `job_title_name` | Sí     | —           | Un cargo del catálogo (se copia su nombre), u «Otro» escrito (1 a 120) | 5c    |
+| Código e ID  | Del cargo (`core.job_titles`)             | Auto   | —           | Solo lectura                                                           | 5c    |
+| Departamento | Del cargo; escrito si es «Otro»           | Auto   | —           | Un departamento del proyecto                                           | 5c    |
+| Trabajador   | `hirings.crew_member_id`                  | No     | —           | Vacío = puesto sin cubrir. Persona del equipo del proyecto             | 5c    |
+| Nombre       | `core.crew_members.full_name`             | —      | —           | En la ficha de la persona, no en la contratación                       | Hecho |
+| DNI          | `core.crew_members.document_id` (nueva)   | No     | —           | Hasta 30. Único en el proyecto                                         | 5c    |
+| Alta         | `elements.starts_on`                      | Sí     | La celda    | Calculada: regla o fecha fija, como cualquier inicio                   | Hecho |
+| Baja         | `elements.ends_on`                        | No     | Vacía       | No anterior al alta. Vacía: sigue activa (decidido el 10 oct)          | Hecho |
+| Días         | Calculado                                 | Auto   | —           | Del alta a la baja, ambos incluidos                                    | 5c    |
+| Lugar        | `elements.location`                       | No     | —           | Hasta 200                                                              | 5c    |
 
 - **Una tabla aparte, `calendar.hirings`** (`element_id` como clave), para no llenar `elements` de columnas que solo usa un tipo.
 - **El catálogo de cargos** (`core.job_titles`: código, abreviatura, nombre y departamento) sale de `puestos.ts` del prototipo. Lo necesitarán también el equipo y el personal, así que va en `core`.
