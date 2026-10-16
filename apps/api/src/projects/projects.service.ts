@@ -8,9 +8,10 @@ import {
   type ProjectKind,
   type ProjectSummary,
 } from "@repo/contracts"
+import { DEFAULT_DEPARTMENTS } from "@repo/domain"
 import { and, desc, eq, sql } from "drizzle-orm"
 import { DB, type Database } from "../db/db.module.js"
-import { columns, projectMembers, projects, tasks } from "../db/schema/index.js"
+import { columns, departments, projectMembers, projects, tasks } from "../db/schema/index.js"
 import { ProjectAccess } from "./project-access.js"
 import { insertCalendarTemplate } from "../calendar/calendar-template.js"
 import { toIso } from "../db/timestamps.js"
@@ -51,7 +52,7 @@ export class ProjectsService {
     )
   }
 
-  // En una transacción: un proyecto no puede quedarse sin propietario, columnas ni calendario.
+  // En una transacción: un proyecto no puede quedarse sin propietario, columnas, departamentos ni calendario.
   create(userId: string, input: CreateProjectInput): Promise<Project> {
     return this.db.transaction(async (tx) => {
       const [row] = await tx
@@ -74,6 +75,11 @@ export class ProjectsService {
           position,
         }))
       )
+      await tx
+        .insert(departments)
+        .values(
+          DEFAULT_DEPARTMENTS.map((name, position) => ({ projectId: project.id, name, position }))
+        )
       await insertCalendarTemplate(tx, project.id, project.kind as ProjectKind)
       return toProject(project)
     })

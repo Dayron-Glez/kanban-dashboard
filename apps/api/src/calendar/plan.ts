@@ -7,9 +7,8 @@ import {
 } from "@repo/contracts"
 import { computeSchedule, fromIsoDate, toIsoDate, type ScheduledDates } from "@repo/domain"
 import { asc, eq } from "drizzle-orm"
-import type { Database } from "../db/db.module.js"
+import type { Database, Transaction } from "../db/db.module.js"
 import { elementDependencies, elements } from "../db/schema/index.js"
-import type { Transaction } from "./calendar-template.js"
 
 type ElementRow = typeof elements.$inferSelect
 type DependencyRow = typeof elementDependencies.$inferSelect

@@ -5,6 +5,7 @@ import { ENV, type Env } from "../config/env.js"
 import * as schema from "./schema/index.js"
 
 export type Database = PostgresJsDatabase<typeof schema>
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
 
 export const DB = Symbol("DB")
 const SQL = Symbol("SQL")

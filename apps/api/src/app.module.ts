@@ -1,5 +1,6 @@
 import { Module, StandardSchemaValidationPipe } from "@nestjs/common"
 import { APP_PIPE } from "@nestjs/core"
+import { AlertsModule } from "./alerts/alerts.module.js"
 import { AuthModule } from "./auth/auth.module.js"
 import { BoardModule } from "./board/board.module.js"
 import { CalendarModule } from "./calendar/calendar.module.js"
@@ -19,6 +20,7 @@ import { ProjectsModule } from "./projects/projects.module.js"
     ProjectsModule,
     BoardModule,
     CalendarModule,
+    AlertsModule,
   ],
   controllers: [HealthController, MeController],
   // Valida cada @Body({ schema }) con los esquemas Zod de @repo/contracts.
