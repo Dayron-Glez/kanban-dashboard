@@ -36,7 +36,8 @@ export interface EditActionSheetProps extends ActionSheetBaseProps {
   /** Lo elegido en «Cuándo», convertido en el cambio de plan que lo produce. */
   onResolveWhen: (change: WhenChange, plan: PlanEdit) => PlanEdit | null
   onSave: (input: EditElementInput) => void
-  onDiscard: () => void
+  /** Cancelar: descarta lo que haya sin guardar y cierra el panel, sin preguntar. */
+  onCancel: () => void
   onDelete?: () => void
   onPrevious?: () => void
   onNext?: () => void
@@ -59,7 +60,7 @@ export function EditActionSheet({
   onDraftChange,
   onResolveWhen,
   onSave,
-  onDiscard,
+  onCancel,
   onDelete,
   onPrevious,
   onNext,
@@ -141,13 +142,7 @@ export function EditActionSheet({
               {count === 1 && "1 cambio sin guardar"}
               {count > 1 && `${count} cambios sin guardar`}
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={count === 0}
-              onClick={onDiscard}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onCancel}>
               Cancelar
             </Button>
             <Button type="submit" size="sm" disabled={count === 0 || pending}>

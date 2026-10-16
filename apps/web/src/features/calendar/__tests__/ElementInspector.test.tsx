@@ -128,7 +128,7 @@ const renderSheet = (
       planSpan={planSpan}
       onResolve={onResolve}
       onDraftChange={vi.fn()}
-      onDiscard={vi.fn()}
+      onCancel={vi.fn()}
       {...handlers}
     />
   )

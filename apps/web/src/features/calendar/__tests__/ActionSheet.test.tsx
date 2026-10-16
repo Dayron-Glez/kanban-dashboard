@@ -47,6 +47,7 @@ const renderSheet = (request: Partial<NewActionRequest> = {}) => {
       onDirtyChange={() => {}}
       onClose={() => {}}
       onCreate={onCreate}
+      onCancel={() => {}}
     />
   )
   return { onCreate, form: () => screen.getByRole("form") }
@@ -138,7 +139,7 @@ const renderEdit = (action: CalendarElement, editable = true) => {
     onDraftChange: vi.fn(),
     onResolveWhen: vi.fn(),
     onSave: vi.fn(),
-    onDiscard: vi.fn(),
+    onCancel: vi.fn(),
     onDelete: vi.fn(),
     onClose: vi.fn(),
   }
@@ -198,11 +199,10 @@ describe("el Sheet de una acción guardada", { timeout: 15_000 }, () => {
     })
   })
 
-  it("Cancelar descarta y Borrar pide que se borre (la confirmación va fuera)", async () => {
-    const { onDiscard, onDelete } = renderEdit(task)
-    await userEvent.click(screen.getByRole("switch", { name: /Hecha/ }))
+  it("Cancelar se pulsa también sin cambios, y Borrar pide que se borre (la confirmación va fuera)", async () => {
+    const { onCancel, onDelete } = renderEdit(task)
     await userEvent.click(screen.getByRole("button", { name: "Cancelar" }))
-    expect(onDiscard).toHaveBeenCalled()
+    expect(onCancel).toHaveBeenCalled()
     await userEvent.click(screen.getByRole("button", { name: "Borrar" }))
     expect(onDelete).toHaveBeenCalled()
   })

@@ -1817,7 +1817,7 @@ describe("CalendarPage", () => {
     await userEvent.click(
       await screen.findByRole("button", { name: "Ver el detalle de Preparación" })
     )
-    const panel = screen.getByRole("dialog", { name: "Preparación" })
+    let panel = screen.getByRole("dialog", { name: "Preparación" })
     // En «Cuándo»: una semana más y Aplicar, que la suma al borrador.
     const oneMore = async () => {
       await userEvent.click(within(panel).getByRole("button", { name: /^Cuándo:/ }))
@@ -1831,8 +1831,12 @@ describe("CalendarPage", () => {
     expect(api.elements.editElement).not.toHaveBeenCalled()
     expect(api.elements.updatePlan).not.toHaveBeenCalled()
 
-    // Cancelar vuelve a lo guardado.
+    // Cancelar descarta y cierra el panel, sin preguntar; al volver, está como se guardó.
     await userEvent.click(within(panel).getByRole("button", { name: "Cancelar" }))
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Preparación" })).toBeNull())
+    expect(screen.queryByRole("alertdialog")).toBeNull()
+    await userEvent.click(screen.getByRole("button", { name: "Ver el detalle de Preparación" }))
+    panel = await screen.findByRole("dialog", { name: "Preparación" })
     expect(within(panel).getByText("Sin cambios")).toBeInTheDocument()
 
     // Salir con cambios pregunta; «Seguir editando» los conserva.

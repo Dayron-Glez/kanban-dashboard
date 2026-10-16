@@ -53,6 +53,8 @@ export function CalendarPanels({
   const { openId, openDay, newAction, draftInput, dirty } = panel
   const bounds = timeline?.range
   const close = () => panel.go(null)
+  // Cancelar es explícito: descarta y cierra sin preguntar.
+  const cancel = () => panel.navigate(null)
 
   if (newAction) {
     return (
@@ -69,6 +71,7 @@ export function CalendarPanels({
         onDirtyChange={panel.onNewDirty}
         onClose={close}
         onCreate={onCreate}
+        onCancel={cancel}
       />
     )
   }
@@ -90,7 +93,7 @@ export function CalendarPanels({
       onDraftChange: panel.onPanelDraft,
       onSave: (input: Parameters<PlanEditing["save"]>[1]) =>
         editing.save(openId, input, panel.restart),
-      onDiscard: panel.restart,
+      onCancel: cancel,
       onPrevious: panel.previous,
       onNext: panel.next,
     }

@@ -63,7 +63,8 @@ interface ElementInspectorProps {
   /** Lo cambiado, para pintarlo en el Gantt y preguntar al salir. */
   onDraftChange: (input: EditElementInput) => void
   onSave: (input: EditElementInput) => void
-  onDiscard: () => void
+  /** Cancelar: descarta lo que haya sin guardar y cierra el panel, sin preguntar. */
+  onCancel: () => void
 }
 
 const HEADING = "text-muted-foreground text-sm font-semibold tracking-wider uppercase"
@@ -96,7 +97,7 @@ export function ElementInspector({
   onResolve,
   onDraftChange,
   onSave,
-  onDiscard,
+  onCancel,
 }: Readonly<ElementInspectorProps>) {
   const form = useForm<InspectorValues, unknown, InspectorData>({
     resolver: zodResolver(InspectorSchema),
@@ -154,13 +155,7 @@ export function ElementInspector({
               {count === 1 && "1 cambio sin guardar"}
               {count > 1 && `${count} cambios sin guardar`}
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={count === 0}
-              onClick={onDiscard}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onCancel}>
               Cancelar
             </Button>
             <Button type="submit" size="sm" disabled={count === 0 || pending}>
