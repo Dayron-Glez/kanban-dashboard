@@ -229,6 +229,32 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **El nombre de cualquier elemento** se cambia en la cabecera del panel.
 - **El panel del día** tiene «Nueva acción» en el pie.
 
+## Formularios del Calendario
+
+Decidido con el usuario el 16 de octubre de 2026, antes de los formularios de las acciones y de la alerta. Vale para todo el Calendario.
+
+- **Una sola fuente de reglas: los esquemas de `@repo/contracts`.** El formulario los usa tal cual con `zodResolver`; la web no los reescribe. Solo se extienden (`.extend()`) con campos que no se guardan, como la duración de las horas, que da la hora de fin. Las acciones son una `discriminatedUnion` por `kind`: lo común más lo propio de cada tipo.
+- **react-hook-form en todos los formularios, también el borrador del panel lateral entero**, fechas del plan incluidas. Sustituye al estado propio que tiene hoy `CalendarPage`:
+  - `dirtyFields` da la marca cian de cada campo y el contador de cambios del pie;
+  - «Descartar» es `reset()`;
+  - Guardar manda solo lo cambiado, en una petición (`PATCH /elements/:id/edits`);
+  - la vista previa del Gantt sigue saliendo de `applyDraft`, alimentada con `useWatch`.
+- **Mensajes en español en un solo sitio**: la traducción de Zod (`z.config(z.locales.es())`) y, encima, un mapa propio por campo y tipo de error para las reglas que añaden los `superRefine`, como las del «Cuándo». contracts sigue sin mensajes: la API no los necesita.
+- **Los errores del servidor van a su campo.** El 400 de la API devuelve los errores de validación con su ruta, `ApiError` los conserva y la web los coloca con `setError`. Cubre lo que el cliente no puede saber, como un DNI repetido o un destino de otro proyecto.
+- **Los valores por defecto de cada tipo** (la reunión, de 10:00 a 11:00 con aviso 30 minutos antes…) salen de una función pura de `@repo/domain`, `actionDefaults(kind)`, que pueden usar la web y la API.
+- **shadcn `Field` con el `Controller` de RHF**, y siempre un `<form onSubmit>`: Enter guarda y el formulario se comporta como tal.
+- **Estructura**:
+
+  ```
+  features/calendar/forms/
+    actionForm.ts     esquema (de contracts), valores por defecto y mapa de mensajes
+    ActionSheet.tsx   el <form>, el borrador con RHF y el pie de Guardar y Descartar
+    sections/         las comunes (Título, Cuándo, Asignación…) y una por tipo (Viaje, Contratación…)
+    fields/           WhenField, CrewPicker, DepartmentPicker…, sobre Field y Controller
+  ```
+
+- **Tests**: cada regla, una vez, en contracts. Los formularios, con Testing Library: campos que aparecen según otros, errores y lo que se envía.
+
 ## Decidido con el productor
 
 **7 de octubre de 2026:**
@@ -284,4 +310,5 @@ La pantalla es «Calendario», con un selector entre las siete vistas del protot
 - **Contratación:** los datos laborales que el prototipo usa para las nóminas (puesto, salario, grupo de cotización, tipo de contrato) irán en un módulo futuro (personal o presupuesto), no en el Calendario. Aquí la contratación es su periodo y la persona contratada.
 - **Viaje:** sus datos propios (los trayectos, el alojamiento y los viajeros) están modelados en `destino.dbml` y llegan con el 5c.
 - **Almacenamiento de ficheros:** dónde (por ejemplo, Cloudflare R2), antes de los documentos adjuntos.
+- **Deuda de los formularios del tablero**, a saldar solo si se descongela: sus esquemas (`features/*/schemas/`) están escritos a mano y ya no coinciden con contracts (una tarea pide 5 caracteres en la web y 1 en contracts), y algunos Sheets validan desde el botón con `form.trigger()` sin un `<form onSubmit>`, así que Enter no guarda. Se alinearían con «Formularios del Calendario».
 - **Papelera y deshacer:** una papelera donde recuperar lo borrado, con borrado lógico (hoy borrar una acción es definitivo), y un deshacer siempre disponible, rediseñado, en lugar del aviso de unos segundos tras guardar.
