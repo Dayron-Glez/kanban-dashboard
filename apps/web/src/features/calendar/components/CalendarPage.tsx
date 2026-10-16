@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react"
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type {
@@ -45,14 +38,7 @@ import {
 } from "../lib/planPreview"
 import { describeAction, kindChange, NEW_ACTION_TITLE } from "../lib/actionStyle"
 import { ActionSheet } from "../forms/ActionSheet"
-import {
-  newActionValues,
-  PREVIEW_ID,
-  previewElement,
-  type ActionFormData,
-  type NewActionRequest,
-  type PlanEdit,
-} from "../forms/actionForm"
+import { PREVIEW_ID, previewElement, type ActionFormData, type PlanEdit } from "../forms/actionForm"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { loadMarks, saveMarks } from "../lib/ganttMarks"
@@ -76,7 +62,7 @@ import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { DaySheet } from "./DaySheet"
 import { DeleteActionDialog } from "./DeleteActionDialog"
 import { DiscardDialog } from "./DiscardDialog"
-import type { DayPanel } from "../hooks/useGanttCells"
+import { usePanelNavigation } from "../hooks/usePanelNavigation"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { GanttGuide } from "./GanttGuide"
@@ -94,11 +80,6 @@ const parentIds = (nodes: ElementNode[]): string[] =>
     ...parentIds(node.children),
   ])
 
-// Adónde se va desde el panel: otro elemento, un día, una acción nueva, o cerrar.
-type PanelTarget = { element: string } | { day: DayPanel } | { newAction: NewActionRequest } | null
-
-const NO_DRAFT: EditElementInput = {}
-
 export function CalendarPage() {
   const { id: projectId = "" } = useParams<{ id: string }>()
   const plan = usePlan(projectId)
@@ -108,40 +89,6 @@ export function CalendarPage() {
   // La acción que se va a borrar, a falta de confirmarlo (desde el panel o con Supr).
   const [toDelete, setToDelete] = useState<string | null>(null)
   const changes = usePlanChanges(projectId, plan.data)
-  const [openId, setOpenId] = useState<string | null>(null)
-  // A la derecha va un panel cada vez: el de un elemento o el de un día.
-  const [openDay, setOpenDay] = useState<DayPanel | null>(null)
-  // Lo editado en el panel del elemento, sin guardar todavía.
-  const [draft, setDraft] = useState<{ elementId: string; input: EditElementInput } | null>(null)
-  const draftInput = draft && draft.elementId === openId ? draft.input : NO_DRAFT
-  // La acción que se está creando, con lo escrito hasta ahora (su vista previa).
-  const [newAction, setNewAction] = useState<NewActionRequest | null>(null)
-  const [newValues, setNewValues] = useState<ActionFormData | null>(null)
-  const [newDirty, setNewDirty] = useState<boolean>(false)
-  // Sube al guardar o descartar en el Sheet de una acción: vuelve a empezar desde lo guardado.
-  const [sheetVersion, setSheetVersion] = useState<number>(0)
-  const dirty = countChanges(draftInput) > 0 || (newAction != null && newDirty)
-  // Salir del panel con cambios pregunta antes; esto es adónde se iba.
-  const [leaving, setLeaving] = useState<{ target: PanelTarget } | null>(null)
-  const navigate = (target: PanelTarget) => {
-    setDraft(null)
-    setOpenId(target && "element" in target ? target.element : null)
-    setOpenDay(target && "day" in target ? target.day : null)
-    const request = target && "newAction" in target ? target.newAction : null
-    setNewAction(request)
-    setNewValues(request && newActionValues(request))
-    setNewDirty(false)
-  }
-  const go = (target: PanelTarget) => {
-    const same = target && "element" in target && target.element === openId
-    if (same) return
-    if (dirty) setLeaving({ target })
-    else navigate(target)
-  }
-  const openElement = (id: string) => go({ element: id })
-  const openDayPanel = (day: EpochDay, rowId: string | null) => go({ day: { day, rowId } })
-  const openNewAction = (request: NewActionRequest) => go({ newAction: request })
-  const onNewPreview = useCallback((values: ActionFormData) => setNewValues(values), [])
   // Todo empieza plegado: el plan entero de golpe es demasiado.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
@@ -199,6 +146,10 @@ export function CalendarPage() {
   const steps = useMemo(() => setupSteps(elements ?? []), [elements])
   const summary = useMemo(() => summarizePlan(elements ?? []), [elements])
   const timeline = useMemo(() => buildTimeline(elements ?? [], undefined, zoom), [elements, zoom])
+  // El elemento de arriba o de abajo en el árbol, para ↑ ↓ y los botones del panel.
+  const order = useMemo(() => flattenTree(tree).map((node) => node.element.id), [tree])
+  const panel = usePanelNavigation(order)
+  const { openId, openDay, newAction, newValues, draftInput, dirty } = panel
 
   // El Gantt abre centrado en hoy, una vez por proyecto: después manda el usuario.
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -238,39 +189,6 @@ export function CalendarPage() {
 
   const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
     changes.request({ type: "update", elementId, input })
-
-  // El elemento de arriba o de abajo en el árbol, para ↑ ↓ y los botones del panel.
-  const order = flattenTree(tree).map((node) => node.element.id)
-  const neighbour = (delta: -1 | 1) => (openId ? order[order.indexOf(openId) + delta] : undefined)
-
-  // Con el inspector abierto: ↑ ↓ pasan al elemento de arriba o de abajo, Esc cierra.
-  useEffect(() => {
-    if (!openId || !elements) return
-    const order = flattenTree(tree).map((node) => node.element.id)
-    const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement
-      if (
-        target.closest(
-          "input, textarea, [role=dialog], [role=alertdialog], [role=listbox], [data-radix-popper-content-wrapper]"
-        )
-      )
-        return
-      const leave = (id: string | null) => {
-        if (dirty) setLeaving({ target: id ? { element: id } : null })
-        else setOpenId(id)
-      }
-      if (event.key === "Escape") leave(null)
-      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
-      const index = order.indexOf(openId)
-      const next = order[index + (event.key === "ArrowDown" ? 1 : -1)]
-      if (next) {
-        event.preventDefault()
-        leave(next)
-      }
-    }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [openId, elements, tree, dirty])
 
   // Resaltar un tipo de acción sin volver a pintar el Gantt: lo hace el CSS
   // (tailwind.css) a partir de estos atributos del contenedor.
@@ -343,7 +261,7 @@ export function CalendarPage() {
       {
         onSuccess: (next) => {
           const created = next.elements.find((element) => !before.has(element.id))
-          navigate(created ? { element: created.id } : null)
+          panel.navigate(created ? { element: created.id } : null)
           toast.success(`Se creó ${describeAction({ kind: input.kind, name: input.name })}`, {
             id: "plan-change",
           })
@@ -372,25 +290,6 @@ export function CalendarPage() {
       return false
     }
     return true
-  }
-  // Cada panel lleva su borrador en su formulario; aquí llega para pintarlo en el
-  // Gantt y para preguntar al salir con cambios.
-  const onPanelDraft = useCallback(
-    (input: EditElementInput) =>
-      setDraft((current) => {
-        if (!openId) return current
-        if (
-          current?.elementId === openId &&
-          JSON.stringify(current.input) === JSON.stringify(input)
-        )
-          return current
-        return countChanges(input) > 0 ? { elementId: openId, input } : null
-      }),
-    [openId]
-  )
-  const restartSheet = () => {
-    setDraft(null)
-    setSheetVersion((version) => version + 1)
   }
   const pathOf = (elementId: string) => {
     const names: string[] = []
@@ -455,7 +354,7 @@ export function CalendarPage() {
         { type: "edit", elementId: openId, input },
         undefined,
         undefined,
-        restartSheet
+        panel.restart
       )
   }
 
@@ -579,8 +478,8 @@ export function CalendarPage() {
                 editable={isOwner}
                 pending={changes.pending}
                 onUpdate={onUpdate}
-                onOpen={openElement}
-                onOpenDay={openDayPanel}
+                onOpen={panel.openElement}
+                onOpenDay={panel.openDayPanel}
                 dayPanel={openDay}
                 onMoveDate={onMoveDate}
                 onDragBar={onDragBar}
@@ -594,7 +493,7 @@ export function CalendarPage() {
                     `Cambiar ${action.name} a ${ELEMENT_KIND_LABELS[kind].toLowerCase()}`
                   )
                 }}
-                onNewAction={openNewAction}
+                onNewAction={panel.openNewAction}
                 expanded={expanded}
                 onToggle={toggle}
                 onReveal={(ids) => setExpanded((current) => new Set([...current, ...ids]))}
@@ -622,16 +521,16 @@ export function CalendarPage() {
           tree={previewTree}
           bounds={timeline?.range}
           pending={createAction.isPending}
-          onPreview={onNewPreview}
-          onDirtyChange={setNewDirty}
-          onClose={() => go(null)}
+          onPreview={panel.onNewPreview}
+          onDirtyChange={panel.onNewDirty}
+          onClose={() => panel.go(null)}
           onCreate={createNewAction}
         />
       )}
       {shownPlan && openId && savedOpen && shownOpen && isAction(savedOpen) && (
         <ActionSheet
           key={openId}
-          resetKey={sheetVersion}
+          resetKey={panel.resetKey}
           mode="edit"
           saved={savedOpen}
           shown={shownOpen}
@@ -642,38 +541,38 @@ export function CalendarPage() {
           editable={isOwner}
           pending={changes.pending || deleteElement.isPending}
           path={[...pathOf(openId), ELEMENT_KIND_LABELS[savedOpen.kind]].join(" › ")}
-          onClose={() => go(null)}
-          onDraftChange={onPanelDraft}
+          onClose={() => panel.go(null)}
+          onDraftChange={panel.onPanelDraft}
           onResolveWhen={(change, from) =>
             resolveChange({ type: "when", elementId: openId, change }, from) as PlanEdit | null
           }
           onSave={saveEdits}
-          onDiscard={restartSheet}
+          onDiscard={panel.restart}
           onDelete={() => setToDelete(openId)}
-          onPrevious={neighbour(-1) ? () => openElement(neighbour(-1)!) : undefined}
-          onNext={neighbour(1) ? () => openElement(neighbour(1)!) : undefined}
+          onPrevious={panel.previous}
+          onNext={panel.next}
         />
       )}
       {shownPlan && openId && !(savedOpen && isAction(savedOpen)) && (
         <ElementInspector
           key={openId}
-          resetKey={sheetVersion}
+          resetKey={panel.resetKey}
           elementId={openId}
           plan={shownPlan}
           savedName={savedOpen?.name ?? ""}
           editable={isOwner}
           pending={changes.pending || deleteElement.isPending}
-          onClose={() => go(null)}
-          onOpenDay={openDayPanel}
+          onClose={() => panel.go(null)}
+          onOpenDay={panel.openDayPanel}
           bounds={timeline?.range}
-          onOpen={openElement}
+          onOpen={panel.openElement}
           planSpan={summary.span}
-          onPrevious={neighbour(-1) ? () => openElement(neighbour(-1)!) : undefined}
-          onNext={neighbour(1) ? () => openElement(neighbour(1)!) : undefined}
+          onPrevious={panel.previous}
+          onNext={panel.next}
           onResolve={resolveChange}
-          onDraftChange={onPanelDraft}
+          onDraftChange={panel.onPanelDraft}
           onSave={saveEdits}
-          onDiscard={restartSheet}
+          onDiscard={panel.restart}
         />
       )}
       <DeleteActionDialog
@@ -693,7 +592,7 @@ export function CalendarPage() {
           deleteElement.mutate(deleting.id, {
             onSuccess: () => {
               // Si estaba abierta, el panel se cierra: lo que tuviera sin guardar ya no vale.
-              if (openId === deleting.id) navigate(null)
+              if (openId === deleting.id) panel.navigate(null)
               toast.success(
                 `Se borró ${describeAction({ kind: deleting.kind as ActionKind, name: deleting.name })}`,
                 {
@@ -705,7 +604,7 @@ export function CalendarPage() {
         }}
       />
       <DiscardDialog
-        open={leaving != null}
+        open={panel.leaving != null}
         name={
           newAction
             ? newValues?.name.trim() || NEW_ACTION_TITLE[newValues?.kind ?? newAction.kind]
@@ -713,11 +612,8 @@ export function CalendarPage() {
         }
         changes={countChanges(draftInput)}
         creating={newAction != null}
-        onStay={() => setLeaving(null)}
-        onDiscard={() => {
-          if (leaving) navigate(leaving.target)
-          setLeaving(null)
-        }}
+        onStay={panel.stay}
+        onDiscard={panel.discard}
       />
       {timeline && openDay != null && (
         <DaySheet
@@ -726,10 +622,10 @@ export function CalendarPage() {
           tree={tree}
           timeline={timeline}
           canCreate={isOwner}
-          onDay={(day) => setOpenDay({ ...openDay, day })}
-          onClose={() => go(null)}
-          onOpen={openElement}
-          onNewAction={openNewAction}
+          onDay={panel.moveDay}
+          onClose={() => panel.go(null)}
+          onOpen={panel.openElement}
+          onNewAction={panel.openNewAction}
         />
       )}
     </div>
