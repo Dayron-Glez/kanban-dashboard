@@ -16,12 +16,13 @@ import {
 } from "@repo/contracts"
 import type { EpochDay } from "@repo/domain"
 import { validPredecessors } from "@repo/domain"
-import { buildElementTree, ELEMENT_KIND_LABELS, flattenTree } from "../lib/elementTree"
+import { buildElementTree, flattenTree } from "../lib/elementTree"
 import { phaseTint } from "../lib/phaseColors"
 import { countDependents, describeIssue, describeRule } from "../lib/planFormat"
 import { occupancyFor } from "../lib/occupancy"
 import { countChanges, type PanelChange } from "../lib/planPreview"
 import { changedMark } from "../lib/changedMark"
+import { elementPath } from "../lib/elementPath"
 import { RuleSentence } from "./RuleSentence"
 import { StepButton } from "./StepButton"
 import { SidePanel } from "./SidePanel"
@@ -186,7 +187,7 @@ export function ElementInspector({
               className={cn("size-2 shrink-0 rounded-full", tint.className)}
               style={tint.style}
             />
-            <span className="truncate">{pathOf(plan, element).join(" › ")}</span>
+            <span className="truncate">{elementPath(plan.elements, element).join(" › ")}</span>
           </SheetDescription>
           <SheetTitle className={cn(editable ? "sr-only" : "text-base")}>{savedName}</SheetTitle>
           {editable && (
@@ -247,18 +248,6 @@ export function ElementInspector({
       <DependentsSection element={element} plan={plan} onOpen={onOpen} />
     </SidePanel>
   )
-}
-
-// «Rodaje › Bloque 1 › Proceso»: de dónde cuelga y qué es.
-function pathOf(plan: CalendarPlan, element: CalendarElement) {
-  const names: string[] = []
-  for (let parentId = element.parentId; parentId;) {
-    const parent = plan.elements.find((candidate) => candidate.id === parentId)
-    if (!parent) break
-    names.unshift(parent.name)
-    parentId = parent.parentId
-  }
-  return [...names, ELEMENT_KIND_LABELS[element.kind]]
 }
 
 const candidatesFor = (plan: CalendarPlan, element: CalendarElement) => {

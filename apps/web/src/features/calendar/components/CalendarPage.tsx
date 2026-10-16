@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { useParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
-import type {
-  ActionKind,
-  DatePoint,
-  EditElementInput,
-  UpdateElementPlanInput,
-} from "@repo/contracts"
-import { describePhaseViolation, fromIsoDate, toIsoDate, type EpochDay } from "@repo/domain"
+import type { ActionKind } from "@repo/contracts"
+import { fromIsoDate, type EpochDay } from "@repo/domain"
 import { toast } from "sonner"
 import { Button, cn, QueryErrorState, Skeleton, useIsMobile } from "@/shared/index"
 import { useProject } from "@/features/project"
@@ -18,25 +13,10 @@ import {
   usePlan,
 } from "../api/elements"
 import { usePlanChanges } from "../api/usePlanChanges"
-import {
-  buildElementTree,
-  ELEMENT_KIND_LABELS,
-  flattenTree,
-  isAction,
-  type ElementNode,
-} from "../lib/elementTree"
-import { formatPlanDate, setupSteps, summarizePlan } from "../lib/planFormat"
-import {
-  applyDraft,
-  clampMove,
-  countChanges,
-  describeShift,
-  mergeChange,
-  planMove,
-  previewChange,
-  type PanelChange,
-} from "../lib/planPreview"
-import { describeAction, kindChange, NEW_ACTION_TITLE } from "../lib/actionStyle"
+import { buildElementTree, flattenTree, isAction, type ElementNode } from "../lib/elementTree"
+import { setupSteps, summarizePlan } from "../lib/planFormat"
+import { applyDraft, countChanges } from "../lib/planPreview"
+import { describeAction, NEW_ACTION_TITLE } from "../lib/actionStyle"
 import { ActionSheet } from "../forms/ActionSheet"
 import { PREVIEW_ID, previewElement, type ActionFormData, type PlanEdit } from "../forms/actionForm"
 import { pickView, type CalendarView } from "../lib/calendarViews"
@@ -50,10 +30,8 @@ import {
 } from "../lib/actionFilter"
 import {
   buildTimeline,
-  dragTarget,
   PLAN_ZOOMS,
   scrollLeftFor,
-  type BarDrag,
   type PlanZoom,
   type TimelineMarks,
 } from "../lib/timeline"
@@ -63,6 +41,8 @@ import { DaySheet } from "./DaySheet"
 import { DeleteActionDialog } from "./DeleteActionDialog"
 import { DiscardDialog } from "./DiscardDialog"
 import { usePanelNavigation } from "../hooks/usePanelNavigation"
+import { usePlanEditing } from "../hooks/usePlanEditing"
+import { elementPath } from "../lib/elementPath"
 import { usePersistedState } from "../hooks/usePersistedState"
 import { useUrlChoice } from "../hooks/useUrlChoice"
 import { ElementInspector } from "./ElementInspector"
@@ -94,6 +74,7 @@ export function CalendarPage() {
   // La acción que se va a borrar, a falta de confirmarlo (desde el panel o con Supr).
   const [toDelete, setToDelete] = useState<string | null>(null)
   const changes = usePlanChanges(projectId, plan.data)
+  const editing = usePlanEditing(plan.data, changes)
   // Todo empieza plegado: el plan entero de golpe es demasiado.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
@@ -164,9 +145,6 @@ export function CalendarPage() {
       return next
     })
 
-  const onUpdate = (elementId: string, input: UpdateElementPlanInput) =>
-    changes.request({ type: "update", elementId, input })
-
   // Resaltar un tipo de acción sin volver a pintar el Gantt: lo hace el CSS
   // (tailwind.css) a partir de estos atributos del contenedor.
   const followActionKind = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -179,26 +157,6 @@ export function CalendarPage() {
     else delete surface.dataset.actionFocus
     if (mark?.dataset.actionKind) surface.dataset.actionHover = mark.dataset.actionKind
     else delete surface.dataset.actionHover
-  }
-
-  const nameOf = (id: string) =>
-    plan.data?.elements.find((element) => element.id === id)?.name ?? id
-
-  // Una fecha escrita a mano se convierte en el cambio de regla o duración que la
-  // produce. Si rompería el orden de las fases, se para en el tope y se avisa.
-  const moveTo = (
-    elementId: string,
-    point: DatePoint,
-    requested: EpochDay,
-    title: (date: EpochDay) => string
-  ) => {
-    if (!plan.data) return
-    const move = planMove(plan.data, elementId, point, requested, nameOf)
-    if ("error" in move) {
-      toast.error(move.error, { id: "plan-change", description: move.description })
-      return
-    }
-    changes.request(move.change, title(move.date), move.note)
   }
 
   // El plan tal como quedaría con el borrador: lo que enseña el panel.
@@ -247,129 +205,10 @@ export function CalendarPage() {
     )
   }
 
-  // En el panel, cada cambio se suma al borrador; se comprueba ya, para no dejar
-  // guardar algo que la API rechazaría.
-  const checkDraft = (elementId: string, input: EditElementInput) => {
-    if (!plan.data) return false
-    const preview = previewChange(plan.data, { type: "edit", elementId, input })
-    if ("cycle" in preview) {
-      toast.error("Esa regla cerraría un ciclo", {
-        description: preview.cycle.map(nameOf).join(" → "),
-      })
-      return false
-    }
-    const [broken] = preview.broken
-    if (broken) {
-      toast.error("No se puede hacer ese cambio", {
-        id: "plan-change",
-        description: describePhaseViolation(broken, nameOf),
-      })
-      return false
-    }
-    return true
-  }
-  const pathOf = (elementId: string) => {
-    const names: string[] = []
-    for (
-      let current = plan.data?.elements.find((element) => element.id === elementId);
-      current?.parentId;
-    ) {
-      const parent = plan.data?.elements.find((element) => element.id === current?.parentId)
-      if (!parent) break
-      names.unshift(parent.name)
-      current = parent
-    }
-    return names
-  }
-  const savedOpen = plan.data?.elements.find((element) => element.id === openId)
+  const savedOpen = editing.find(openId)
   const shownOpen = shownPlan?.elements.find((element) => element.id === openId)
 
-  // Cada cambio del panel, convertido en el borrador que deja sobre `from`, o nada
-  // (con su aviso) si cerraría un ciclo o rompería el orden de las fases. Lo elegido
-  // en «Cuándo» va en orden: el inicio, y después la duración o el fin, cada uno
-  // sobre el plan que deja el anterior.
-  const resolveChange = (change: PanelChange, from: EditElementInput): EditElementInput | null => {
-    const base = plan.data
-    if (!base) return null
-    const { elementId } = change
-    if (change.type !== "when") {
-      const input = mergeChange(base, from, change)
-      return checkDraft(elementId, input) ? input : null
-    }
-    const when = change.change
-    let input = from
-    const current = () =>
-      countChanges(input) > 0
-        ? (applyDraft(base, { type: "edit", elementId, input }) ?? base)
-        : base
-    const move = (point: DatePoint, date: string) => {
-      const result = planMove(current(), elementId, point, fromIsoDate(date), nameOf)
-      if ("error" in result) {
-        toast.error(result.error, { id: "plan-change", description: result.description })
-        return false
-      }
-      if (result.note) toast.info(result.note, { id: "plan-change" })
-      input = mergeChange(base, input, result.change)
-      return true
-    }
-    if (when.start && !move("start", when.start)) return null
-    if (when.duration) {
-      input = mergeChange(base, input, {
-        type: "update",
-        elementId,
-        input: { duration: when.duration },
-      })
-    } else if (when.end && !move("end", when.end)) return null
-    return checkDraft(elementId, input) ? input : null
-  }
-  const deleting =
-    (toDelete && plan.data?.elements.find((element) => element.id === toDelete)) || null
-
-  const saveEdits = (input: EditElementInput) => {
-    if (openId)
-      changes.request(
-        { type: "edit", elementId: openId, input },
-        undefined,
-        undefined,
-        panel.restart
-      )
-  }
-
-  const onMoveDate = (elementId: string, point: DatePoint, date: string) =>
-    moveTo(
-      elementId,
-      point,
-      fromIsoDate(date),
-      (final) =>
-        `Mover el ${point === "start" ? "inicio" : "fin"} de ${nameOf(elementId)} al ${formatPlanDate(toIsoDate(final))}`
-    )
-
-  // Arrastrar una barra es escribir la fecha que cambia: pasa por la misma vista previa.
-  const onDragBar = (elementId: string, drag: BarDrag, days: number) => {
-    const element = plan.data?.elements.find((candidate) => candidate.id === elementId)
-    if (!element || !plan.data) return
-    const target = dragTarget(element, plan.data.dependencies, drag, days)
-    if (!target) return
-    moveTo(elementId, target.point, target.date, (final) => {
-      const shift = days + final - target.date
-      return drag === "move"
-        ? `Mover ${element.name} ${describeShift(shift)} ${shift > 0 ? "más tarde" : "antes"}`
-        : `Mover el ${target.point === "start" ? "inicio" : "fin"} de ${element.name} al ${formatPlanDate(toIsoDate(final))}`
-    })
-  }
-
-  // Mientras se arrastra: hasta dónde se puede llegar sin romper el orden de las fases.
-  const limitDrag = (elementId: string, drag: BarDrag, days: number) => {
-    const element = plan.data?.elements.find((candidate) => candidate.id === elementId)
-    const target = element && plan.data && dragTarget(element, plan.data.dependencies, drag, days)
-    if (!target || !plan.data) return { days, reason: null }
-    const clamped = clampMove(plan.data, elementId, target.point, target.date)
-    if ("error" in clamped || !clamped.limit) return { days, reason: null }
-    return {
-      days: days + clamped.date - target.date,
-      reason: clamped.limit.kind === "order" ? "orden de las fases" : "25 % de solape",
-    }
-  }
+  const deleting = editing.find(toDelete) ?? null
 
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1">
@@ -440,7 +279,9 @@ export function CalendarPage() {
           </div>
         ) : (
           <>
-            {isOwner && <PlanSetup steps={steps} pending={changes.pending} onUpdate={onUpdate} />}
+            {isOwner && (
+              <PlanSetup steps={steps} pending={changes.pending} onUpdate={editing.onUpdate} />
+            )}
             {view !== "tabla" && timeline && (
               <ActionKindFilter
                 counts={actionCounts}
@@ -454,22 +295,15 @@ export function CalendarPage() {
                 dependencies={plan.data.dependencies}
                 editable={isOwner}
                 pending={changes.pending}
-                onUpdate={onUpdate}
+                onUpdate={editing.onUpdate}
                 onOpen={panel.openElement}
                 onOpenDay={panel.openDayPanel}
                 dayPanel={openDay}
-                onMoveDate={onMoveDate}
-                onDragBar={onDragBar}
-                limitDrag={limitDrag}
+                onMoveDate={editing.onMoveDate}
+                onDragBar={editing.onDragBar}
+                limitDrag={editing.limitDrag}
                 onDeleteAction={setToDelete}
-                onChangeActionKind={(elementId, kind) => {
-                  const action = plan.data?.elements.find((element) => element.id === elementId)
-                  if (!action) return
-                  changes.request(
-                    { type: "edit", elementId, input: kindChange(action, kind) },
-                    `Cambiar ${action.name} a ${ELEMENT_KIND_LABELS[kind].toLowerCase()}`
-                  )
-                }}
+                onChangeActionKind={editing.changeKind}
                 onNewAction={panel.openNewAction}
                 expanded={expanded}
                 onToggle={toggle}
@@ -517,13 +351,16 @@ export function CalendarPage() {
           bounds={timeline?.range}
           editable={isOwner}
           pending={changes.pending || deleteElement.isPending}
-          path={[...pathOf(openId), ELEMENT_KIND_LABELS[savedOpen.kind]].join(" › ")}
+          path={elementPath(plan.data?.elements ?? [], savedOpen).join(" › ")}
           onClose={() => panel.go(null)}
           onDraftChange={panel.onPanelDraft}
           onResolveWhen={(change, from) =>
-            resolveChange({ type: "when", elementId: openId, change }, from) as PlanEdit | null
+            editing.resolveChange(
+              { type: "when", elementId: openId, change },
+              from
+            ) as PlanEdit | null
           }
-          onSave={saveEdits}
+          onSave={(input) => editing.save(openId, input, panel.restart)}
           onDiscard={panel.restart}
           onDelete={() => setToDelete(openId)}
           onPrevious={panel.previous}
@@ -546,9 +383,9 @@ export function CalendarPage() {
           planSpan={summary.span}
           onPrevious={panel.previous}
           onNext={panel.next}
-          onResolve={resolveChange}
+          onResolve={editing.resolveChange}
           onDraftChange={panel.onPanelDraft}
-          onSave={saveEdits}
+          onSave={(input) => editing.save(openId, input, panel.restart)}
           onDiscard={panel.restart}
         />
       )}
@@ -559,7 +396,7 @@ export function CalendarPage() {
             name: deleting.name,
             startsOn: deleting.startsOn,
             endsOn: deleting.endsOn,
-            parent: deleting.parentId ? nameOf(deleting.parentId) : null,
+            parent: deleting.parentId ? editing.nameOf(deleting.parentId) : null,
           }
         }
         onCancel={() => setToDelete(null)}
@@ -585,7 +422,7 @@ export function CalendarPage() {
         name={
           newAction
             ? newValues?.name.trim() || NEW_ACTION_TITLE[newValues?.kind ?? newAction.kind]
-            : (plan.data?.elements.find((element) => element.id === openId)?.name ?? "")
+            : (savedOpen?.name ?? "")
         }
         changes={countChanges(draftInput)}
         creating={newAction != null}
