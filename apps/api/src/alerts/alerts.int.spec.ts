@@ -12,11 +12,19 @@ let other: Project
 let departments: Department[]
 let lola: CrewMember
 let targeted: Alert
+const created: string[] = []
 
 const as = (user: TestUser) => ctx.as(user)
 const alertsUrl = () => `/projects/${project.id}/alerts`
 const departmentNamed = (name: string) =>
   departments.find((department) => department.name === name)!
+
+// Apunta el id de cada alerta creada, para comprobar el listado sin contar a mano.
+const createAlert = async (body: object) => {
+  const response = await as(ana).post(alertsUrl(), body)
+  if (response.status === 201) created.push((response.body as Alert).id)
+  return response
+}
 
 const strike = {
   title: "Huelga de transporte",
@@ -49,7 +57,7 @@ afterAll(async () => {
 
 describe("crear alertas", () => {
   it("de todo el proyecto, segura por defecto y con quien la crea", async () => {
-    const response = await as(ana).post(alertsUrl(), strike)
+    const response = await createAlert(strike)
 
     expect(response.status).toBe(201)
     expect(response.body).toMatchObject({
@@ -109,7 +117,7 @@ describe("crear alertas", () => {
       },
     ]
     for (const when of shapes) {
-      const response = await as(ana).post(alertsUrl(), { ...strike, when })
+      const response = await createAlert({ ...strike, when })
       expect(response.status).toBe(201)
       expect((response.body as Alert).when).toMatchObject(when)
     }
@@ -140,7 +148,7 @@ describe("crear alertas", () => {
   })
 
   it("de personas y departamentos", async () => {
-    const response = await as(ana).post(alertsUrl(), {
+    const response = await createAlert({
       ...strike,
       title: "Lola, en el teatro",
       cause: "unavailability",
@@ -182,7 +190,7 @@ describe("leer, editar y borrar alertas", () => {
 
     expect(response.status).toBe(200)
     const alerts = response.body as Alert[]
-    expect(alerts).toHaveLength(8)
+    expect(alerts.map((alert) => alert.id).sort()).toEqual([...created].sort())
     expect(alerts.map((alert) => alert.when.startsOn)).toEqual(
       alerts.map((alert) => alert.when.startsOn).sort()
     )

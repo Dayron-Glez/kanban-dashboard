@@ -96,6 +96,23 @@ describe("findAlertConflicts", () => {
     ])
   })
 
+  it("seguido hasta las 0:00 del día siguiente: solo el primer día, parcial", () => {
+    const when = { endsOn: "2026-10-17", ...hours("22:00", "00:00", "continuous") }
+    expect(
+      conflictsOf(
+        [element("todo", "2026-10-15", "2026-10-20"), element("siguiente", "2026-10-17")],
+        when
+      )
+    ).toEqual([{ elementId: "todo", from: "2026-10-16", to: "2026-10-16", extent: "partial" }])
+  })
+
+  it("seguido sin fin desde las 0:00: entero desde el primer día", () => {
+    const when = { endsOn: null, ...hours("00:00", null, "continuous") }
+    expect(conflictsOf([element("todo", "2026-10-15", "2026-10-17")], when)).toEqual([
+      { elementId: "todo", from: "2026-10-16", to: "2026-10-17", extent: "full" },
+    ])
+  })
+
   it("sin fin: choca con todo lo que venga después, hasta su fin", () => {
     const elements = [
       element("antes", "2026-10-01", "2026-10-15"),
@@ -122,8 +139,17 @@ describe("findAlertConflicts", () => {
     ])
   })
 
-  it("otra acción sin fin solo ocupa su día de inicio", () => {
+  it("otra acción o un proceso sin fin solo ocupan su día de inicio", () => {
     expect(conflictsOf([element("tarea", "2026-10-15", null, "task")], {})).toEqual([])
+    expect(
+      conflictsOf(
+        [
+          element("antes", "2026-10-15", null, "process"),
+          element("ese-dia", "2026-10-16", null, "process"),
+        ],
+        { endsOn: "2026-10-20" }
+      )
+    ).toEqual([{ elementId: "ese-dia", from: "2026-10-16", to: "2026-10-16", extent: "full" }])
   })
 
   it("solo acciones y procesos con fechas, y solo alertas de todo el proyecto", () => {
