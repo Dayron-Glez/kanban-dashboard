@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
-import { useParams, useSearchParams } from "react-router"
+import { useParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type {
   ActionKind,
@@ -63,6 +63,8 @@ import { DaySheet } from "./DaySheet"
 import { DeleteActionDialog } from "./DeleteActionDialog"
 import { DiscardDialog } from "./DiscardDialog"
 import { usePanelNavigation } from "../hooks/usePanelNavigation"
+import { usePersistedState } from "../hooks/usePersistedState"
+import { useUrlChoice } from "../hooks/useUrlChoice"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
 import { GanttGuide } from "./GanttGuide"
@@ -72,6 +74,9 @@ import { PlanSetup } from "./PlanSetup"
 import { ViewOptionsMenu } from "./ViewOptionsMenu"
 import { ViewSelector } from "./ViewSelector"
 import { ZoomControl } from "./ZoomControl"
+
+const pickZoom = (raw: string | null): PlanZoom =>
+  PLAN_ZOOMS.find((value) => value === raw) ?? "dia"
 
 // Lo que se despliega: lo que tiene hijos o acciones (su fila «Acciones»).
 const parentIds = (nodes: ElementNode[]): string[] =>
@@ -93,46 +98,18 @@ export function CalendarPage() {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
   const isMobile = useIsMobile()
-  const [searchParams, setSearchParams] = useSearchParams()
-  // La vista va en la URL, para que un enlace abra lo mismo que se ve.
-  const calendarView = pickView(searchParams.get("vista"))
-  const setCalendarView = (next: CalendarView) =>
-    setSearchParams(
-      (params) => {
-        params.set("vista", next)
-        return params
-      },
-      { replace: true }
-    )
-  // El zoom también va en la URL.
-  const zoom = PLAN_ZOOMS.find((value) => value === searchParams.get("zoom")) ?? "dia"
-  const setZoom = (next: PlanZoom) =>
-    setSearchParams(
-      (params) => {
-        params.set("zoom", next)
-        return params
-      },
-      { replace: true }
-    )
+  // La vista y el zoom van en la URL; los campos, las marcas y los tipos ocultos
+  // se recuerdan en este navegador.
+  const [calendarView, setCalendarView] = useUrlChoice<CalendarView>("vista", pickView)
+  const [zoom, setZoom] = useUrlChoice<PlanZoom>("zoom", pickZoom)
   // En el móvil, el árbol con sus fechas: la rejilla no cabe.
   const view = isMobile ? "tabla" : "gantt"
-  // Los campos visibles se recuerdan en este navegador.
-  const [fields, setFields] = useState<GanttFields>(loadGanttFields)
-  const changeFields = (next: GanttFields) => {
-    setFields(next)
-    saveGanttFields(next)
-  }
-  const [marks, setMarks] = useState<TimelineMarks>(loadMarks)
-  const changeMarks = (next: TimelineMarks) => {
-    setMarks(next)
-    saveMarks(next)
-  }
-  // Los tipos de acción ocultos en el Gantt, también recordados.
-  const [hiddenKinds, setHiddenKinds] = useState<ActionKind[]>(loadHiddenKinds)
-  const changeHiddenKinds = (next: ActionKind[]) => {
-    setHiddenKinds(next)
-    saveHiddenKinds(next)
-  }
+  const [fields, changeFields] = usePersistedState<GanttFields>(loadGanttFields, saveGanttFields)
+  const [marks, changeMarks] = usePersistedState<TimelineMarks>(loadMarks, saveMarks)
+  const [hiddenKinds, changeHiddenKinds] = usePersistedState<ActionKind[]>(
+    loadHiddenKinds,
+    saveHiddenKinds
+  )
   const elements = plan.data?.elements
   const tree = useMemo(() => buildElementTree(elements ?? []), [elements])
   const actionCounts = useMemo(() => countActionKinds(tree), [tree])
