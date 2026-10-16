@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react"
 import { IconChevronLeft, IconChevronRight, IconPlus } from "@tabler/icons-react"
-import {
-  ACTION_KINDS,
-  ACTION_PARENT_KINDS,
-  type ActionKind,
-  type CreateActionInput,
-} from "@repo/contracts"
+import { ACTION_KINDS, ACTION_PARENT_KINDS, type ActionKind } from "@repo/contracts"
 import { fromIsoDate, mondayOf, toIsoDate, weekNumber, type EpochDay } from "@repo/domain"
 import { Button, cn, SheetDescription, SheetTitle } from "@/shared/index"
 import {
@@ -18,6 +13,7 @@ import {
 import { phaseTint } from "../lib/phaseColors"
 import { formatFullDate, formatLongDate, formatShortDay } from "../lib/planFormat"
 import type { Timeline } from "../lib/timeline"
+import type { NewActionRequest } from "../forms/actionForm"
 import { ActionGlyph } from "./ActionGlyph"
 import { CellMenu } from "./CellMenu"
 import { SidePanel } from "./SidePanel"
@@ -32,11 +28,11 @@ interface DaySheetProps {
   tree: ElementNode[]
   timeline: Timeline
   canCreate: boolean
-  creating: boolean
   onDay: (day: EpochDay) => void
   onClose: () => void
   onOpen: (elementId: string) => void
-  onCreateAction: (parentId: string, input: CreateActionInput, done: () => void) => void
+  /** El tipo elegido y de qué cuelga: abre el Sheet de la acción nueva. */
+  onNewAction: (request: NewActionRequest) => void
 }
 
 const signed = (n: number) => (n < 0 ? `−${-n}` : String(n))
@@ -54,11 +50,10 @@ export function DaySheet({
   tree,
   timeline,
   canCreate,
-  creating,
   onDay,
   onClose,
   onOpen,
-  onCreateAction,
+  onNewAction,
 }: Readonly<DaySheetProps>) {
   // Lo que se está creando vale para un día: al pasar a otro, se olvida.
   const [addingOn, setAddingOn] = useState<EpochDay | null>(null)
@@ -202,10 +197,11 @@ export function DaySheet({
               parentName={parent.element.name}
               actions={[]}
               canCreate
-              pending={creating}
               onOpen={onOpen}
-              onCancel={() => setAdding(false)}
-              onCreate={(input) => onCreateAction(parent.element.id, input, () => setAdding(false))}
+              onNewAction={(request) => {
+                setAdding(false)
+                onNewAction({ ...request, parentId: parent.element.id })
+              }}
             />
           )}
         </div>

@@ -1,14 +1,8 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react"
-import {
-  ACTION_KINDS,
-  SINGLE_DAY_ACTION_KINDS,
-  type ActionKind,
-  type CreateActionInput,
-} from "@repo/contracts"
+import { useState, type KeyboardEvent } from "react"
+import { ACTION_KINDS, SINGLE_DAY_ACTION_KINDS, type ActionKind } from "@repo/contracts"
 import { toIsoDate } from "@repo/domain"
 import { IconPlus } from "@tabler/icons-react"
-import { Button, Input } from "@/shared/index"
-import { NEW_ACTION_TITLE } from "../lib/actionStyle"
+import type { NewActionRequest } from "../forms/actionForm"
 import { ELEMENT_KIND_LABELS } from "../lib/elementTree"
 import { formatLongDate, formatShortDay } from "../lib/planFormat"
 import { ActionGlyph } from "./ActionGlyph"
@@ -31,19 +25,18 @@ interface CellMenuProps {
   /** Lo que ya hay en esas celdas; `owner`, de qué cuelga si no es de la fila. */
   actions: ListedAction[]
   canCreate: boolean
-  pending: boolean
   onOpen: (elementId: string) => void
   /** Borrar una de la lista sin abrirla (pide confirmación fuera). */
   onDelete?: (elementId: string) => void
   /** Ver el día completo: el primero de los elegidos. */
   onOpenDay?: () => void
-  onCreate: (input: CreateActionInput) => void
-  onCancel: () => void
+  /** El tipo elegido, con el día o el periodo: lo demás se rellena en el Sheet. */
+  onNewAction: (request: Omit<NewActionRequest, "parentId">) => void
 }
 
 /**
- * Las celdas elegidas: si hay acciones, su lista; para crear, primero el tipo y,
- * en el mismo menú, el nombre. El día, el periodo y de qué cuelga ya vienen puestos.
+ * Las celdas elegidas: si hay acciones, su lista; para crear, el tipo, que abre
+ * el Sheet de la acción nueva con el día, el periodo y de qué cuelga ya puestos.
  */
 export function CellMenu({
   start,
@@ -51,16 +44,12 @@ export function CellMenu({
   parentName,
   actions,
   canCreate,
-  pending,
   onOpen,
   onDelete,
   onOpenDay,
-  onCreate,
-  onCancel,
+  onNewAction,
 }: Readonly<CellMenuProps>) {
-  const [kind, setKind] = useState<ActionKind | null>(null)
   const [choosing, setChoosing] = useState<boolean>(actions.length === 0)
-  const [name, setName] = useState<string>("")
   const days = end - start + 1
   const when =
     days === 1
@@ -76,45 +65,8 @@ export function CellMenu({
     onOpenDay()
   }
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    if (!kind || name.trim() === "") return
-    onCreate({
-      kind,
-      name: name.trim(),
-      startsOn: toIsoDate(start),
-      endsOn: days === 1 ? null : toIsoDate(end),
-    })
-  }
-
-  if (kind) {
-    return (
-      <form onSubmit={submit} className="flex flex-col gap-3">
-        <div>
-          <p className="text-base font-semibold">{NEW_ACTION_TITLE[kind]}</p>
-          <p className="text-muted-foreground text-sm first-letter:uppercase">
-            {when} · en {parentName}
-          </p>
-        </div>
-        <Input
-          autoFocus
-          aria-label="Nombre"
-          placeholder="Nombre"
-          maxLength={200}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit" size="sm" disabled={pending || name.trim() === ""}>
-            Crear
-          </Button>
-        </div>
-      </form>
-    )
-  }
+  const choose = (kind: ActionKind) =>
+    onNewAction({ kind, startsOn: toIsoDate(start), endsOn: days === 1 ? null : toIsoDate(end) })
 
   if (!choosing) {
     return (
@@ -174,7 +126,7 @@ export function CellMenu({
               type="button"
               role="menuitem"
               disabled={singleDay}
-              onClick={() => setKind(option)}
+              onClick={() => choose(option)}
               className="hover:bg-muted focus-visible:bg-muted flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm outline-none disabled:pointer-events-none disabled:opacity-45"
             >
               <span className="text-muted-foreground flex w-[18px] shrink-0 justify-center">

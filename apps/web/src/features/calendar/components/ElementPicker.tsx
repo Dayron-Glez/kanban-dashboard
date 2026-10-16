@@ -113,7 +113,12 @@ export function ElementPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" aria-label={label} className="w-full justify-between font-normal">
+        <Button
+          type="button"
+          variant="outline"
+          aria-label={label}
+          className="w-full justify-between font-normal"
+        >
           {selected ? (
             <span className="flex min-w-0 items-center gap-2">
               <Mark option={selected} />

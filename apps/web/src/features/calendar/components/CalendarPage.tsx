@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react"
 import { useParams, useSearchParams } from "react-router"
 import { IconTemplate } from "@tabler/icons-react"
 import type {
@@ -36,7 +43,15 @@ import {
   previewChange,
   type PlanChange,
 } from "../lib/planPreview"
-import { describeAction, kindChange } from "../lib/actionStyle"
+import { describeAction, kindChange, NEW_ACTION_TITLE } from "../lib/actionStyle"
+import { ActionSheet } from "../forms/ActionSheet"
+import {
+  newActionValues,
+  PREVIEW_ID,
+  previewElement,
+  type ActionFormData,
+  type NewActionRequest,
+} from "../forms/actionForm"
 import { pickView, type CalendarView } from "../lib/calendarViews"
 import { loadGanttFields, saveGanttFields, type GanttFields } from "../lib/ganttFields"
 import { loadMarks, saveMarks } from "../lib/ganttMarks"
@@ -79,8 +94,8 @@ const parentIds = (nodes: ElementNode[]): string[] =>
     ...parentIds(node.children),
   ])
 
-// Adónde se va desde el panel: otro elemento, un día, o cerrar.
-type PanelTarget = { element: string } | { day: DayPanel } | null
+// Adónde se va desde el panel: otro elemento, un día, una acción nueva, o cerrar.
+type PanelTarget = { element: string } | { day: DayPanel } | { newAction: NewActionRequest } | null
 
 const NO_DRAFT: EditElementInput = {}
 
@@ -99,13 +114,21 @@ export function CalendarPage() {
   // Lo editado en el panel del elemento, sin guardar todavía.
   const [draft, setDraft] = useState<{ elementId: string; input: EditElementInput } | null>(null)
   const draftInput = draft && draft.elementId === openId ? draft.input : NO_DRAFT
-  const dirty = countChanges(draftInput) > 0
+  // La acción que se está creando, con lo escrito hasta ahora (su vista previa).
+  const [newAction, setNewAction] = useState<NewActionRequest | null>(null)
+  const [newValues, setNewValues] = useState<ActionFormData | null>(null)
+  const [newDirty, setNewDirty] = useState<boolean>(false)
+  const dirty = countChanges(draftInput) > 0 || (newAction != null && newDirty)
   // Salir del panel con cambios pregunta antes; esto es adónde se iba.
   const [leaving, setLeaving] = useState<{ target: PanelTarget } | null>(null)
   const navigate = (target: PanelTarget) => {
     setDraft(null)
     setOpenId(target && "element" in target ? target.element : null)
     setOpenDay(target && "day" in target ? target.day : null)
+    const request = target && "newAction" in target ? target.newAction : null
+    setNewAction(request)
+    setNewValues(request && newActionValues(request))
+    setNewDirty(false)
   }
   const go = (target: PanelTarget) => {
     const same = target && "element" in target && target.element === openId
@@ -115,6 +138,8 @@ export function CalendarPage() {
   }
   const openElement = (id: string) => go({ element: id })
   const openDayPanel = (day: EpochDay, rowId: string | null) => go({ day: { day, rowId } })
+  const openNewAction = (request: NewActionRequest) => go({ newAction: request })
+  const onNewPreview = useCallback((values: ActionFormData) => setNewValues(values), [])
   // Todo empieza plegado: el plan entero de golpe es demasiado.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const isOwner = useProject(projectId).data?.role === "owner"
@@ -284,6 +309,46 @@ export function CalendarPage() {
     plan.data && openId && dirty
       ? (applyDraft(plan.data, { type: "edit", elementId: openId, input: draftInput }) ?? plan.data)
       : plan.data
+  // Con una acción a medio crear, el plan la lleva ya pintada.
+  const previewPlan = useMemo(
+    () =>
+      plan.data && newAction && newValues
+        ? {
+            ...plan.data,
+            elements: [...plan.data.elements, previewElement(newValues, projectId)],
+          }
+        : plan.data,
+    [plan.data, newAction, newValues, projectId]
+  )
+  const previewTree = useMemo(
+    () => (previewPlan === plan.data ? tree : buildElementTree(previewPlan?.elements ?? [])),
+    [previewPlan, plan.data, tree]
+  )
+  const ganttTree = useMemo(
+    () =>
+      previewTree === tree
+        ? shownTree
+        : view === "tabla"
+          ? previewTree
+          : hideActionKinds(previewTree, hiddenKinds),
+    [previewTree, tree, shownTree, view, hiddenKinds]
+  )
+
+  const createNewAction = ({ parentId, ...input }: ActionFormData) => {
+    const before = new Set(plan.data?.elements.map((element) => element.id))
+    createAction.mutate(
+      { parentId, input },
+      {
+        onSuccess: (next) => {
+          const created = next.elements.find((element) => !before.has(element.id))
+          navigate(created ? { element: created.id } : null)
+          toast.success(`Se creó ${describeAction({ kind: input.kind, name: input.name })}`, {
+            id: "plan-change",
+          })
+        },
+      }
+    )
+  }
 
   // En el panel, cada cambio se suma al borrador; se comprueba ya, para no dejar
   // guardar algo que la API rechazaría.
@@ -396,7 +461,7 @@ export function CalendarPage() {
         data-calendar-surface
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
-          (openId || openDay != null) && "xl:pr-[544px]"
+          (openId || openDay != null || newAction) && "xl:pr-[544px]"
         )}
       >
         <PlanHeader
@@ -465,7 +530,7 @@ export function CalendarPage() {
             )}
             <div className="-mx-6 min-h-0 flex-1 px-6">
               <ElementTree
-                nodes={shownTree}
+                nodes={ganttTree}
                 dependencies={plan.data.dependencies}
                 editable={isOwner}
                 pending={changes.pending}
@@ -485,10 +550,7 @@ export function CalendarPage() {
                     `Cambiar ${action.name} a ${ELEMENT_KIND_LABELS[kind].toLowerCase()}`
                   )
                 }}
-                onCreateAction={(parentId, input, done) =>
-                  createAction.mutate({ parentId, input }, { onSuccess: done })
-                }
-                creating={createAction.isPending}
+                onNewAction={openNewAction}
                 expanded={expanded}
                 onToggle={toggle}
                 onReveal={(ids) => setExpanded((current) => new Set([...current, ...ids]))}
@@ -497,7 +559,7 @@ export function CalendarPage() {
                 fields={fields}
                 headerRows={fields}
                 marks={marks}
-                selectedId={openId}
+                selectedId={newAction ? PREVIEW_ID : openId}
                 view={view}
                 timeline={timeline}
               />
@@ -506,6 +568,21 @@ export function CalendarPage() {
           </>
         )}
       </div>
+      {previewPlan && newAction && (
+        <ActionSheet
+          key={JSON.stringify(newAction)}
+          request={newAction}
+          projectId={projectId}
+          plan={previewPlan}
+          tree={previewTree}
+          bounds={timeline?.range}
+          pending={createAction.isPending}
+          onPreview={onNewPreview}
+          onDirtyChange={setNewDirty}
+          onClose={() => go(null)}
+          onCreate={createNewAction}
+        />
+      )}
       {shownPlan && openId && (
         <ElementInspector
           elementId={openId}
@@ -566,8 +643,13 @@ export function CalendarPage() {
       />
       <DiscardDialog
         open={leaving != null}
-        name={plan.data?.elements.find((element) => element.id === openId)?.name ?? ""}
+        name={
+          newAction
+            ? newValues?.name.trim() || NEW_ACTION_TITLE[newValues?.kind ?? newAction.kind]
+            : (plan.data?.elements.find((element) => element.id === openId)?.name ?? "")
+        }
         changes={countChanges(draftInput)}
+        creating={newAction != null}
         onStay={() => setLeaving(null)}
         onDiscard={() => {
           if (leaving) navigate(leaving.target)
@@ -581,13 +663,10 @@ export function CalendarPage() {
           tree={tree}
           timeline={timeline}
           canCreate={isOwner}
-          creating={createAction.isPending}
           onDay={(day) => setOpenDay({ ...openDay, day })}
           onClose={() => go(null)}
           onOpen={openElement}
-          onCreateAction={(parentId, input, done) =>
-            createAction.mutate({ parentId, input }, { onSuccess: done })
-          }
+          onNewAction={openNewAction}
         />
       )}
     </div>

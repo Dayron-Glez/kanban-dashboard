@@ -14,6 +14,8 @@ interface DiscardDialogProps {
   open: boolean
   name: string
   changes: number
+  /** La acción aún no existe: lo que se pierde es la acción entera. */
+  creating?: boolean
   onStay: () => void
   onDiscard: () => void
 }
@@ -23,6 +25,7 @@ export function DiscardDialog({
   open,
   name,
   changes,
+  creating = false,
   onStay,
   onDiscard,
 }: Readonly<DiscardDialogProps>) {
@@ -31,11 +34,17 @@ export function DiscardDialog({
       <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-base font-semibold">
-            ¿Descartar los cambios?
+            {creating ? "¿Descartar la acción nueva?" : "¿Descartar los cambios?"}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm">
-            Tienes {changes} {changes === 1 ? "cambio sin guardar" : "cambios sin guardar"} en “
-            {name}”. Si sales, se pierden.
+            {creating ? (
+              <>“{name}” todavía no se ha creado. Si sales, se pierde.</>
+            ) : (
+              <>
+                Tienes {changes} {changes === 1 ? "cambio sin guardar" : "cambios sin guardar"} en “
+                {name}”. Si sales, se pierden.
+              </>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
