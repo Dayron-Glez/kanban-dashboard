@@ -29,6 +29,7 @@ import {
 } from "@repo/domain"
 import { buildElementTree, type ElementNode } from "./elementTree"
 import { formatPlanDate } from "./planFormat"
+import type { WhenChange } from "../components/WhenPicker"
 
 /** Un cambio del plan, tal como se manda a la API. */
 export type PlanChange =
@@ -37,6 +38,9 @@ export type PlanChange =
   | { type: "remove-rule"; elementId: string; point: DatePoint }
   /** Lo editado en el panel, de una vez. */
   | { type: "edit"; elementId: string; input: EditElementInput }
+
+/** Lo que se cambia en el panel: lo del plan, o lo elegido en «Cuándo». */
+export type PanelChange = PlanChange | { type: "when"; elementId: string; change: WhenChange }
 
 export type PlanPreview =
   | {

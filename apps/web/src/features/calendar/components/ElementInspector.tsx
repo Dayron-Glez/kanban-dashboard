@@ -1,14 +1,18 @@
-import { useState } from "react"
+import { useEffect, useEffectEvent, useState } from "react"
+import { Controller, useForm, useWatch } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { IconAnchor, IconChevronDown, IconChevronUp, IconPin } from "@tabler/icons-react"
-import { Button, cn, Input, SheetDescription, SheetTitle } from "@/shared/index"
+import { Button, cn, FieldError, Input, SheetDescription, SheetTitle } from "@/shared/index"
 import {
+  EditElementInputSchema,
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
+  type CalendarElement,
   type CalendarPlan,
   type DatePoint,
   type EditElementInput,
   type SetElementRuleInput,
-  type UpdateElementPlanInput,
 } from "@repo/contracts"
 import type { EpochDay } from "@repo/domain"
 import { validPredecessors } from "@repo/domain"
@@ -16,29 +20,36 @@ import { buildElementTree, ELEMENT_KIND_LABELS, flattenTree } from "../lib/eleme
 import { phaseTint } from "../lib/phaseColors"
 import { countDependents, describeIssue, describeRule } from "../lib/planFormat"
 import { occupancyFor } from "../lib/occupancy"
-import { countChanges } from "../lib/planPreview"
+import { countChanges, type PanelChange } from "../lib/planPreview"
 import { changedMark } from "../lib/changedMark"
 import { RuleSentence } from "./RuleSentence"
 import { StepButton } from "./StepButton"
 import { SidePanel } from "./SidePanel"
 import { WhenField } from "./WhenField"
-import type { WhenChange } from "./WhenPicker"
+
+/** El panel de una fase, subfase o proceso: su nombre y lo que cambia de su plan. */
+const InspectorSchema = z.object({
+  name: EditElementInputSchema.shape.name.unwrap(),
+  plan: z.custom<EditElementInput>().default({}),
+})
+type InspectorValues = z.input<typeof InspectorSchema>
+type InspectorData = z.output<typeof InspectorSchema>
 
 interface ElementInspectorProps {
-  elementId: string | null
+  elementId: string
+  /** El plan con lo editado sin guardar: lo que se ve. */
   plan: CalendarPlan
+  /** El nombre guardado: de él parte el formulario. */
+  savedName: string
+  /** Sube al guardar o descartar: el formulario vuelve a lo guardado. */
+  resetKey: number
   editable: boolean
   pending: boolean
   onClose: () => void
-  onUpdate: (elementId: string, input: UpdateElementPlanInput) => void
-  /** Lo elegido en «Cuándo»: inicio, fin o duración. */
-  onApplyWhen: (elementId: string, change: WhenChange) => void
   /** Los días que dibuja el Gantt: fuera no se pueden elegir. */
   bounds?: { start: EpochDay; end: EpochDay }
   /** Abrir el panel de un día, desde el calendario de «Cuándo». */
   onOpenDay?: (day: EpochDay, rowId: string | null) => void
-  onSetRule: (elementId: string, point: DatePoint, input: SetElementRuleInput) => void
-  onRemoveRule: (elementId: string, point: DatePoint) => void
   /** Saltar a otro elemento, desde «Si cambia, mueve». */
   onOpen: (elementId: string) => void
   /** Si el plan entero tiene fechas: el contexto de las fases. */
@@ -46,294 +57,112 @@ interface ElementInspectorProps {
   /** Pasar al elemento de arriba o de abajo en el árbol; sin él, el botón se apaga. */
   onPrevious?: () => void
   onNext?: () => void
-  /** Lo editado sin guardar: el pie lo cuenta y deja guardarlo o descartarlo. */
-  draft?: { input: EditElementInput; onSave: () => void; onDiscard: () => void }
-  /** El nombre: va al borrador. */
-  onEdit: (elementId: string, input: EditElementInput) => void
+  /** Cada cambio, convertido en el borrador que deja (o nada, si no se puede). */
+  onResolve: (change: PanelChange, from: EditElementInput) => EditElementInput | null
+  /** Lo cambiado, para pintarlo en el Gantt y preguntar al salir. */
+  onDraftChange: (input: EditElementInput) => void
+  onSave: (input: EditElementInput) => void
+  onDiscard: () => void
 }
 
-// El nombre, editable en la cabecera: se aplica al salir del campo o con Enter.
-function NameInput({
-  name,
-  changed,
-  onCommit,
-}: Readonly<{ name: string; changed: boolean; onCommit: (name: string) => void }>) {
-  const [value, setValue] = useState<string>(name)
-  const commit = () => {
-    const next = value.trim()
-    if (next === "" || next === name) return setValue(name)
-    onCommit(next)
-  }
-  return (
-    <Input
-      aria-label="Nombre"
-      value={value}
-      maxLength={200}
-      onChange={(event) => setValue(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()}
-      className={cn(
-        "hover:border-border focus-visible:border-ring -mx-1.5 h-8 border-transparent bg-transparent px-1.5 text-base font-semibold shadow-none dark:bg-transparent",
-        changed && "text-primary"
-      )}
-    />
-  )
-}
+const HEADING = "text-muted-foreground text-sm font-semibold tracking-wider uppercase"
+
+// Lo cambiado: el plan tal como se editó y el nombre si se tocó.
+const changesOf = (values: InspectorValues, nameDirty: boolean): EditElementInput => ({
+  ...values.plan,
+  ...(nameDirty && { name: values.name.trim() }),
+})
 
 /**
- * El inspector de un elemento, en un Sheet a la derecha. No es modal: el plan
- * se sigue viendo y tocando, y ↑ ↓ pasan de un elemento a otro. Arriba, cuándo;
- * debajo, cómo se calcula.
+ * El inspector de una fase, subfase o proceso, en un Sheet a la derecha. No es
+ * modal: el plan se sigue viendo y tocando, y ↑ ↓ pasan de un elemento a otro.
+ * Arriba, cuándo; debajo, cómo se calcula. Nada se guarda al tocar.
  */
 export function ElementInspector({
   elementId,
   plan,
+  savedName,
+  resetKey,
   editable,
   pending,
   onClose,
-  onUpdate,
-  onApplyWhen,
   bounds,
   onOpenDay,
-  onSetRule,
-  onRemoveRule,
   onOpen,
   planSpan,
   onPrevious,
   onNext,
-  draft,
-  onEdit,
+  onResolve,
+  onDraftChange,
+  onSave,
+  onDiscard,
 }: Readonly<ElementInspectorProps>) {
-  const [addingEnd, setAddingEnd] = useState<boolean>(false)
+  const form = useForm<InspectorValues, unknown, InspectorData>({
+    resolver: zodResolver(InspectorSchema),
+    defaultValues: { name: savedName, plan: {} },
+  })
+  const { control, getValues, setValue, formState } = form
+  const values = useWatch({ control }) as InspectorValues
+  const edits = changesOf(values, Boolean(formState.dirtyFields.name))
+  const count = countChanges(edits)
+  const editsKey = JSON.stringify(edits)
+  useEffect(() => onDraftChange(JSON.parse(editsKey)), [editsKey, onDraftChange])
+  const restart = useEffectEvent(() => form.reset({ name: savedName, plan: {} }))
+  useEffect(() => restart(), [resetKey])
+
   const element = plan.elements.find((candidate) => candidate.id === elementId)
-  const nameOf = (id: string) =>
-    plan.elements.find((candidate) => candidate.id === id)?.name ?? "otro elemento"
-
-  const close = () => {
-    setAddingEnd(false)
-    onClose()
-  }
-
   if (!element) return null
 
-  const ruleOn = (point: DatePoint) =>
-    plan.dependencies.find(
-      (dependency) => dependency.successorId === element.id && dependency.successorPoint === point
-    )
-  const startRule = ruleOn("start")
-  const endRule = ruleOn("end")
-  const allowed = new Set(
-    validPredecessors(
-      plan.elements.map((candidate) => candidate.id),
-      plan.dependencies,
-      element.id
-    )
-  )
+  const apply = (change: PanelChange) => {
+    const next = onResolve(change, getValues("plan") ?? {})
+    if (next) setValue("plan", next, { shouldDirty: true })
+  }
+  const nameOf = (id: string) =>
+    plan.elements.find((candidate) => candidate.id === id)?.name ?? "otro elemento"
   const ordered = flattenTree(buildElementTree(plan.elements))
-  const tintOf = (id: string) => {
-    const found = ordered.find((candidate) => candidate.element.id === id)
-    return phaseTint(found?.phaseColor, found?.depth === 0)
-  }
-  const candidates = ordered
-    .filter((node) => allowed.has(node.element.id))
-    .map((node) => ({ element: node.element, depth: node.depth, tint: tintOf(node.element.id) }))
-  const movesCount = countDependents(plan.dependencies, element.id)
-  const dependents = ordered
-    .filter((node) =>
-      plan.dependencies.some(
-        (dependency) =>
-          dependency.predecessorId === element.id && dependency.successorId === node.element.id
-      )
-    )
-    .map((node) => ({
-      element: node.element,
-      tint: tintOf(node.element.id),
-      rule: describeRule(node.element, plan.dependencies, nameOf),
-    }))
-  const parents: string[] = []
-  for (let parentId = element.parentId; parentId;) {
-    const parent = plan.elements.find((candidate) => candidate.id === parentId)
-    if (!parent) break
-    parents.unshift(parent.name)
-    parentId = parent.parentId
-  }
-  const node = flattenTree(buildElementTree(plan.elements)).find(
-    (candidate) => candidate.element.id === element.id
-  )
+  const node = ordered.find((candidate) => candidate.element.id === element.id)
   const tint = phaseTint(node?.phaseColor, node?.depth === 0)
   const parent = plan.elements.find((candidate) => candidate.id === element.parentId)
   const context =
     parent?.startsOn && parent.endsOn
       ? { name: parent.name, start: parent.startsOn, end: parent.endsOn }
-      : planSpan
-        ? { name: "Plan", ...planSpan }
-        : null
-  const reason = element.issue ? describeIssue(element.issue, nameOf) : undefined
+      : planSpan && { name: "Plan", ...planSpan }
+  const startRule = plan.dependencies.find(
+    (dependency) => dependency.successorId === element.id && dependency.successorPoint === "start"
+  )
   const occupancy = occupancyFor(plan, element.id)
-  const edits = draft?.input ?? {}
-  const count = countChanges(edits)
   const whenChanged =
     edits.duration !== undefined || edits.fixedStart !== undefined || edits.isPinned !== undefined
 
-  const when = (
-    <div className={cn(changedMark(whenChanged))}>
-      <WhenField
-        element={element}
-        context={context}
-        tint={tint}
-        editable={editable}
-        pending={pending}
-        reason={reason}
-        single={SINGLE_DAY_ACTION_KINDS.includes(element.kind as ActionKind)}
-        bounds={bounds}
-        occupancy={occupancy}
-        onOpenAction={onOpen}
-        onOpenDay={onOpenDay && ((day) => onOpenDay(day, occupancy.scopeId ?? null))}
-        ruleFrom={
-          startRule && !element.isAnchor && !element.isPinned
-            ? nameOf(startRule.predecessorId)
-            : undefined
-        }
-        onUpdate={(input) => onUpdate(element.id, input)}
-        onApply={(change) => onApplyWhen(element.id, change)}
-      />
-    </div>
-  )
-  const rules = (
-    <section
-      aria-labelledby="inspector-rules"
-      className={cn("flex flex-col gap-2", changedMark(edits.rules !== undefined))}
-    >
-      <h3
-        id="inspector-rules"
-        className="text-muted-foreground text-sm font-semibold tracking-wider uppercase"
-      >
-        De qué depende
-      </h3>
-      {element.isAnchor || element.isPinned ? (
-        <div
-          className={cn(
-            "flex gap-3 rounded-xl border p-3",
-            element.isAnchor ? "border-primary/25 bg-primary/5" : "border-border bg-card"
-          )}
-        >
-          {element.isAnchor ? (
-            <IconAnchor size={16} className="text-primary mt-0.5 shrink-0" aria-hidden />
-          ) : (
-            <IconPin size={16} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden />
-          )}
-          <div className="flex flex-col gap-0.5">
-            <p className="text-base font-semibold">
-              {element.isAnchor ? "La fecha clave del plan" : "Una fecha fija"}
-            </p>
-            <p className="text-muted-foreground text-sm">
-              {element.isAnchor
-                ? "Todo se calcula desde aquí: si la mueves, el plan entero se mueve con ella."
-                : "Se escribe a mano y no se mueve con el plan."}
-              {movesCount > 0 &&
-                ` Mueve ${movesCount === 1 ? "1 elemento" : `${movesCount} elementos`}.`}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <RuleSentence
-          key={`start-${element.id}-${startRule?.id ?? "none"}`}
-          point="start"
-          current={startRule}
-          candidates={candidates}
-          editable={editable}
-          pending={pending}
-          onChange={(input) => onSetRule(element.id, "start", input)}
-          onRemove={() => onRemoveRule(element.id, "start")}
-        />
-      )}
-      {endRule || addingEnd ? (
-        <RuleSentence
-          key={`end-${element.id}-${endRule?.id ?? "none"}`}
-          point="end"
-          current={endRule}
-          candidates={candidates}
-          editable={editable}
-          pending={pending}
-          onChange={(input) => onSetRule(element.id, "end", input)}
-          onRemove={() => {
-            setAddingEnd(false)
-            if (endRule) onRemoveRule(element.id, "end")
-          }}
-        />
-      ) : (
-        <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-base">
-          <span>
-            Acaba <span className="text-muted-foreground">cuando se cumple su duración</span>
-          </span>
-          {editable && (
-            <button
-              type="button"
-              onClick={() => setAddingEnd(true)}
-              className="text-primary text-sm hover:underline"
-            >
-              Fijar el fin a otro elemento
-            </button>
-          )}
-        </div>
-      )}
-    </section>
-  )
-  const dependentsList = dependents.length > 0 && (
-    <section aria-labelledby="inspector-dependents" className="flex flex-col gap-1.5">
-      <h3
-        id="inspector-dependents"
-        className="text-muted-foreground text-sm font-semibold tracking-wider uppercase"
-      >
-        Si cambia, mueve
-      </h3>
-      <ul className="flex flex-col">
-        {dependents.map((dependent) => (
-          <li key={dependent.element.id}>
-            <button
-              type="button"
-              onClick={() => onOpen(dependent.element.id)}
-              className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-base"
-            >
-              <span
-                aria-hidden
-                className={cn("size-1.5 shrink-0 rounded-full", dependent.tint.className)}
-                style={dependent.tint.style}
-              />
-              <span className="truncate">{dependent.element.name}</span>
-              {dependent.rule && (
-                <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-sm">
-                  {dependent.rule}
-                </span>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-
   return (
     <SidePanel
-      onClose={close}
+      onClose={onClose}
+      form={{
+        "aria-label": savedName,
+        noValidate: true,
+        onSubmit: form.handleSubmit((data) =>
+          onSave(changesOf(data, Boolean(formState.dirtyFields.name)))
+        ),
+      }}
       footer={
-        editable &&
-        draft && (
+        editable && (
           <>
             <span className="text-muted-foreground mr-auto flex items-center gap-1.5 text-sm">
-              {count > 0 ? (
-                <>
-                  <span aria-hidden className="bg-primary size-1.5 rounded-full" />
-                  {count} {count === 1 ? "cambio sin guardar" : "cambios sin guardar"}
-                </>
-              ) : (
-                "Sin cambios"
-              )}
+              {count > 0 && <span aria-hidden className="bg-primary size-1.5 rounded-full" />}
+              {count === 0 && "Sin cambios"}
+              {count === 1 && "1 cambio sin guardar"}
+              {count > 1 && `${count} cambios sin guardar`}
             </span>
-            <Button variant="outline" size="sm" disabled={count === 0} onClick={draft.onDiscard}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={count === 0}
+              onClick={onDiscard}
+            >
               Cancelar
             </Button>
-            <Button size="sm" disabled={count === 0 || pending} onClick={draft.onSave}>
+            <Button type="submit" size="sm" disabled={count === 0 || pending}>
               Guardar
             </Button>
           </>
@@ -357,29 +186,266 @@ export function ElementInspector({
               className={cn("size-2 shrink-0 rounded-full", tint.className)}
               style={tint.style}
             />
-            <span className="truncate">
-              {[...parents, ELEMENT_KIND_LABELS[element.kind]].join(" › ")}
-            </span>
+            <span className="truncate">{pathOf(plan, element).join(" › ")}</span>
           </SheetDescription>
-          {editable ? (
-            <>
-              <SheetTitle className="sr-only">{element.name}</SheetTitle>
-              <NameInput
-                key={`${element.id}-${element.name}`}
-                name={element.name}
-                changed={edits.name !== undefined}
-                onCommit={(name) => onEdit(element.id, { name })}
-              />
-            </>
-          ) : (
-            <SheetTitle className="text-base">{element.name}</SheetTitle>
+          <SheetTitle className={cn(editable ? "sr-only" : "text-base")}>{savedName}</SheetTitle>
+          {editable && (
+            <Controller
+              name="name"
+              control={control}
+              render={({ field, fieldState }) => (
+                <>
+                  <Input
+                    {...field}
+                    aria-label="Nombre"
+                    maxLength={120}
+                    autoComplete="off"
+                    aria-invalid={fieldState.invalid}
+                    className={cn(
+                      "hover:border-border focus-visible:border-ring -mx-1.5 h-8 border-transparent bg-transparent px-1.5 text-base font-semibold shadow-none dark:bg-transparent",
+                      fieldState.isDirty && "text-primary"
+                    )}
+                  />
+                  <FieldError errors={[fieldState.error]} />
+                </>
+              )}
+            />
           )}
         </>
       }
     >
-      {when}
-      {rules}
-      {dependentsList}
+      <div className={cn(changedMark(whenChanged))}>
+        <WhenField
+          element={element}
+          context={context}
+          tint={tint}
+          editable={editable}
+          pending={pending}
+          reason={element.issue ? describeIssue(element.issue, nameOf) : undefined}
+          single={SINGLE_DAY_ACTION_KINDS.includes(element.kind as ActionKind)}
+          bounds={bounds}
+          occupancy={occupancy}
+          onOpenAction={onOpen}
+          onOpenDay={onOpenDay && ((day) => onOpenDay(day, occupancy.scopeId ?? null))}
+          ruleFrom={
+            startRule && !element.isAnchor && !element.isPinned
+              ? nameOf(startRule.predecessorId)
+              : undefined
+          }
+          onUpdate={(input) => apply({ type: "update", elementId: element.id, input })}
+          onApply={(change) => apply({ type: "when", elementId: element.id, change })}
+        />
+      </div>
+      <RulesSection
+        element={element}
+        plan={plan}
+        editable={editable}
+        pending={pending}
+        changed={edits.rules !== undefined}
+        onChange={apply}
+      />
+      <DependentsSection element={element} plan={plan} onOpen={onOpen} />
     </SidePanel>
+  )
+}
+
+// «Rodaje › Bloque 1 › Proceso»: de dónde cuelga y qué es.
+function pathOf(plan: CalendarPlan, element: CalendarElement) {
+  const names: string[] = []
+  for (let parentId = element.parentId; parentId;) {
+    const parent = plan.elements.find((candidate) => candidate.id === parentId)
+    if (!parent) break
+    names.unshift(parent.name)
+    parentId = parent.parentId
+  }
+  return [...names, ELEMENT_KIND_LABELS[element.kind]]
+}
+
+const candidatesFor = (plan: CalendarPlan, element: CalendarElement) => {
+  const allowed = new Set(
+    validPredecessors(
+      plan.elements.map((candidate) => candidate.id),
+      plan.dependencies,
+      element.id
+    )
+  )
+  return flattenTree(buildElementTree(plan.elements))
+    .filter((node) => allowed.has(node.element.id))
+    .map((node) => ({
+      element: node.element,
+      depth: node.depth,
+      tint: phaseTint(node.phaseColor, node.depth === 0),
+    }))
+}
+
+interface RulesSectionProps {
+  element: CalendarElement
+  plan: CalendarPlan
+  editable: boolean
+  pending: boolean
+  changed: boolean
+  onChange: (change: PanelChange) => void
+}
+
+/** «De qué depende»: la regla del inicio (o la fecha a mano) y, si la tiene, la del fin. */
+function RulesSection({
+  element,
+  plan,
+  editable,
+  pending,
+  changed,
+  onChange,
+}: Readonly<RulesSectionProps>) {
+  const [addingEnd, setAddingEnd] = useState<boolean>(false)
+  const ruleOn = (point: DatePoint) =>
+    plan.dependencies.find(
+      (dependency) => dependency.successorId === element.id && dependency.successorPoint === point
+    )
+  const startRule = ruleOn("start")
+  const endRule = ruleOn("end")
+  const candidates = candidatesFor(plan, element)
+  const movesCount = countDependents(plan.dependencies, element.id)
+  const setRule = (point: DatePoint) => (input: SetElementRuleInput) =>
+    onChange({ type: "set-rule", elementId: element.id, point, input })
+  const removeRule = (point: DatePoint) =>
+    onChange({ type: "remove-rule", elementId: element.id, point })
+
+  return (
+    <section
+      aria-labelledby="inspector-rules"
+      className={cn("flex flex-col gap-2", changedMark(changed))}
+    >
+      <h3 id="inspector-rules" className={HEADING}>
+        De qué depende
+      </h3>
+      {element.isAnchor || element.isPinned ? (
+        <FixedDate element={element} movesCount={movesCount} />
+      ) : (
+        <RuleSentence
+          key={`start-${element.id}-${startRule?.id ?? "none"}`}
+          point="start"
+          current={startRule}
+          candidates={candidates}
+          editable={editable}
+          pending={pending}
+          onChange={setRule("start")}
+          onRemove={() => removeRule("start")}
+        />
+      )}
+      {endRule || addingEnd ? (
+        <RuleSentence
+          key={`end-${element.id}-${endRule?.id ?? "none"}`}
+          point="end"
+          current={endRule}
+          candidates={candidates}
+          editable={editable}
+          pending={pending}
+          onChange={setRule("end")}
+          onRemove={() => {
+            setAddingEnd(false)
+            if (endRule) removeRule("end")
+          }}
+        />
+      ) : (
+        <div className="border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-3 text-base">
+          <span>
+            Acaba <span className="text-muted-foreground">cuando se cumple su duración</span>
+          </span>
+          {editable && (
+            <button
+              type="button"
+              onClick={() => setAddingEnd(true)}
+              className="text-primary text-sm hover:underline"
+            >
+              Fijar el fin a otro elemento
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/** El ancla o un elemento fijado: su fecha se escribe a mano. */
+function FixedDate({
+  element,
+  movesCount,
+}: Readonly<{ element: CalendarElement; movesCount: number }>) {
+  return (
+    <div
+      className={cn(
+        "flex gap-3 rounded-xl border p-3",
+        element.isAnchor ? "border-primary/25 bg-primary/5" : "border-border bg-card"
+      )}
+    >
+      {element.isAnchor ? (
+        <IconAnchor size={16} className="text-primary mt-0.5 shrink-0" aria-hidden />
+      ) : (
+        <IconPin size={16} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden />
+      )}
+      <div className="flex flex-col gap-0.5">
+        <p className="text-base font-semibold">
+          {element.isAnchor ? "La fecha clave del plan" : "Una fecha fija"}
+        </p>
+        <p className="text-muted-foreground text-sm">
+          {element.isAnchor
+            ? "Todo se calcula desde aquí: si la mueves, el plan entero se mueve con ella."
+            : "Se escribe a mano y no se mueve con el plan."}
+          {movesCount > 0 &&
+            ` Mueve ${movesCount === 1 ? "1 elemento" : `${movesCount} elementos`}.`}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/** «Si cambia, mueve»: lo que depende de este elemento, para saltar a ello. */
+function DependentsSection({
+  element,
+  plan,
+  onOpen,
+}: Readonly<{ element: CalendarElement; plan: CalendarPlan; onOpen: (id: string) => void }>) {
+  const nameOf = (id: string) =>
+    plan.elements.find((candidate) => candidate.id === id)?.name ?? "otro elemento"
+  const dependents = flattenTree(buildElementTree(plan.elements)).filter((node) =>
+    plan.dependencies.some(
+      (dependency) =>
+        dependency.predecessorId === element.id && dependency.successorId === node.element.id
+    )
+  )
+  if (dependents.length === 0) return null
+  return (
+    <section aria-labelledby="inspector-dependents" className="flex flex-col gap-1.5">
+      <h3 id="inspector-dependents" className={HEADING}>
+        Si cambia, mueve
+      </h3>
+      <ul className="flex flex-col">
+        {dependents.map((dependent) => {
+          const tint = phaseTint(dependent.phaseColor, dependent.depth === 0)
+          const rule = describeRule(dependent.element, plan.dependencies, nameOf)
+          return (
+            <li key={dependent.element.id}>
+              <button
+                type="button"
+                onClick={() => onOpen(dependent.element.id)}
+                className="hover:bg-muted/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-base"
+              >
+                <span
+                  aria-hidden
+                  className={cn("size-1.5 shrink-0 rounded-full", tint.className)}
+                  style={tint.style}
+                />
+                <span className="truncate">{dependent.element.name}</span>
+                {rule && (
+                  <span className="bg-muted text-muted-foreground ml-auto shrink-0 rounded-full px-2 text-sm">
+                    {rule}
+                  </span>
+                )}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }

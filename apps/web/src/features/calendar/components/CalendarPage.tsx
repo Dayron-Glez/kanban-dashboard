@@ -12,7 +12,6 @@ import type {
   ActionKind,
   DatePoint,
   EditElementInput,
-  SetElementRuleInput,
   UpdateElementPlanInput,
 } from "@repo/contracts"
 import { describePhaseViolation, fromIsoDate, toIsoDate, type EpochDay } from "@repo/domain"
@@ -42,7 +41,7 @@ import {
   mergeChange,
   planMove,
   previewChange,
-  type PlanChange,
+  type PanelChange,
 } from "../lib/planPreview"
 import { describeAction, kindChange, NEW_ACTION_TITLE } from "../lib/actionStyle"
 import { ActionSheet } from "../forms/ActionSheet"
@@ -77,7 +76,6 @@ import { ChangePreviewDialog } from "./ChangePreviewDialog"
 import { DaySheet } from "./DaySheet"
 import { DeleteActionDialog } from "./DeleteActionDialog"
 import { DiscardDialog } from "./DiscardDialog"
-import type { WhenChange } from "./WhenPicker"
 import type { DayPanel } from "../hooks/useGanttCells"
 import { ElementInspector } from "./ElementInspector"
 import { ElementTree } from "./ElementTree"
@@ -95,9 +93,6 @@ const parentIds = (nodes: ElementNode[]): string[] =>
     ...(node.children.length > 0 || node.actions.length > 0 ? [node.element.id] : []),
     ...parentIds(node.children),
   ])
-
-// Lo que se cambia en el panel: lo del plan, o lo elegido en «Cuándo».
-type PanelChange = PlanChange | { type: "when"; elementId: string; change: WhenChange }
 
 // Adónde se va desde el panel: otro elemento, un día, una acción nueva, o cerrar.
 type PanelTarget = { element: string } | { day: DayPanel } | { newAction: NewActionRequest } | null
@@ -378,8 +373,9 @@ export function CalendarPage() {
     }
     return true
   }
-  // El Sheet de una acción lleva su borrador; aquí llega para pintarlo y contarlo.
-  const onActionDraft = useCallback(
+  // Cada panel lleva su borrador en su formulario; aquí llega para pintarlo en el
+  // Gantt y para preguntar al salir con cambios.
+  const onPanelDraft = useCallback(
     (input: EditElementInput) =>
       setDraft((current) => {
         if (!openId) return current
@@ -450,19 +446,17 @@ export function CalendarPage() {
     } else if (when.end && !move("end", when.end)) return null
     return checkDraft(elementId, input) ? input : null
   }
-  const addToDraft = (change: PanelChange) => {
-    const input = resolveChange(change, draftInput)
-    if (input) setDraft({ elementId: change.elementId, input })
-  }
   const deleting =
     (toDelete && plan.data?.elements.find((element) => element.id === toDelete)) || null
 
-  const saveDraft = () => {
-    if (!openId || !dirty) return
-    const elementId = openId
-    changes.request({ type: "edit", elementId, input: draftInput }, undefined, undefined, () =>
-      setDraft((current) => (current?.elementId === elementId ? null : current))
-    )
+  const saveEdits = (input: EditElementInput) => {
+    if (openId)
+      changes.request(
+        { type: "edit", elementId: openId, input },
+        undefined,
+        undefined,
+        restartSheet
+      )
   }
 
   const onMoveDate = (elementId: string, point: DatePoint, date: string) =>
@@ -511,7 +505,7 @@ export function CalendarPage() {
         data-calendar-surface
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-6 pb-0",
-          (openId || openDay != null || newAction) && "xl:pr-[544px]"
+          (openId || openDay != null || newAction) && "xl:pr-136"
         )}
       >
         <PlanHeader
@@ -636,7 +630,8 @@ export function CalendarPage() {
       )}
       {shownPlan && openId && savedOpen && shownOpen && isAction(savedOpen) && (
         <ActionSheet
-          key={`${openId}:${sheetVersion}`}
+          key={openId}
+          resetKey={sheetVersion}
           mode="edit"
           saved={savedOpen}
           shown={shownOpen}
@@ -648,15 +643,11 @@ export function CalendarPage() {
           pending={changes.pending || deleteElement.isPending}
           path={[...pathOf(openId), ELEMENT_KIND_LABELS[savedOpen.kind]].join(" › ")}
           onClose={() => go(null)}
-          onDraftChange={onActionDraft}
+          onDraftChange={onPanelDraft}
           onResolveWhen={(change, from) =>
             resolveChange({ type: "when", elementId: openId, change }, from) as PlanEdit | null
           }
-          onSave={(input) =>
-            changes.request({ type: "edit", elementId: openId, input }, undefined, undefined, () =>
-              restartSheet()
-            )
-          }
+          onSave={saveEdits}
           onDiscard={restartSheet}
           onDelete={() => setToDelete(openId)}
           onPrevious={neighbour(-1) ? () => openElement(neighbour(-1)!) : undefined}
@@ -665,31 +656,24 @@ export function CalendarPage() {
       )}
       {shownPlan && openId && !(savedOpen && isAction(savedOpen)) && (
         <ElementInspector
+          key={openId}
+          resetKey={sheetVersion}
           elementId={openId}
           plan={shownPlan}
+          savedName={savedOpen?.name ?? ""}
           editable={isOwner}
           pending={changes.pending || deleteElement.isPending}
           onClose={() => go(null)}
-          onUpdate={(elementId, input: UpdateElementPlanInput) =>
-            addToDraft({ type: "update", elementId, input })
-          }
-          onApplyWhen={(elementId, change) => addToDraft({ type: "when", elementId, change })}
-          onEdit={(elementId, input) => addToDraft({ type: "edit", elementId, input })}
           onOpenDay={openDayPanel}
           bounds={timeline?.range}
-          onSetRule={(elementId, point, input: SetElementRuleInput) =>
-            addToDraft({ type: "set-rule", elementId, point, input })
-          }
-          onRemoveRule={(elementId, point) => addToDraft({ type: "remove-rule", elementId, point })}
           onOpen={openElement}
           planSpan={summary.span}
           onPrevious={neighbour(-1) ? () => openElement(neighbour(-1)!) : undefined}
           onNext={neighbour(1) ? () => openElement(neighbour(1)!) : undefined}
-          draft={{
-            input: draftInput,
-            onSave: saveDraft,
-            onDiscard: () => setDraft(null),
-          }}
+          onResolve={resolveChange}
+          onDraftChange={onPanelDraft}
+          onSave={saveEdits}
+          onDiscard={restartSheet}
         />
       )}
       <DeleteActionDialog

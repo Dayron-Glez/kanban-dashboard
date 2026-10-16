@@ -1844,9 +1844,12 @@ describe("CalendarPage", () => {
     expect(within(panel).getByText("1 cambio sin guardar")).toBeInTheDocument()
 
     await userEvent.click(within(panel).getByRole("button", { name: "Guardar" }))
-    expect(api.elements.editElement).toHaveBeenCalledWith("preparacion", {
-      duration: { amount: 10, unit: "weeks" },
-    })
+    // Guardar envía el formulario, que se valida antes: la llamada llega después del clic.
+    await waitFor(() =>
+      expect(api.elements.editElement).toHaveBeenCalledWith("preparacion", {
+        duration: { amount: 10, unit: "weeks" },
+      })
+    )
     expect(await within(panel).findByText("Sin cambios")).toBeInTheDocument()
 
     // Descartar cierra el panel sin guardar nada más.

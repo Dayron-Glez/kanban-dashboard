@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useEffectEvent } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { ActionKind, CalendarElement, EditElementInput } from "@repo/contracts"
@@ -29,6 +29,8 @@ export interface EditActionSheetProps extends ActionSheetBaseProps {
   editable: boolean
   /** «Rodaje › Shooting › Reunión», en la cabecera. */
   path: string
+  /** Sube al guardar o descartar: el formulario vuelve a lo guardado. */
+  resetKey: number
   /** Lo cambiado, para pintarlo en el Gantt y contarlo. */
   onDraftChange: (input: EditElementInput) => void
   /** Lo elegido en «Cuándo», convertido en el cambio de plan que lo produce. */
@@ -53,6 +55,7 @@ export function EditActionSheet({
   editable,
   pending,
   path,
+  resetKey,
   onDraftChange,
   onResolveWhen,
   onSave,
@@ -75,6 +78,8 @@ export function EditActionSheet({
 
   const changesKey = JSON.stringify(changes)
   useEffect(() => onDraftChange(JSON.parse(changesKey)), [changesKey, onDraftChange])
+  const restart = useEffectEvent(() => form.reset(editValues(saved)))
+  useEffect(() => restart(), [resetKey])
 
   // Las fechas que se ven son las del plan con lo editado: el formulario las sigue
   // (sin contarlas como cambio) para comprobar las horas con los días que dura.

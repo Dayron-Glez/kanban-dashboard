@@ -153,6 +153,7 @@ const renderEdit = (action: CalendarElement, editable = true) => {
       editable={editable}
       pending={false}
       path="Rodaje › Reunión"
+      resetKey={0}
       {...handlers}
     />
   )

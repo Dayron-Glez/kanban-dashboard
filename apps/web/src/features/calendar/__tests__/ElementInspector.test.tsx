@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import {
   DEFAULT_ELEMENT_DETAILS,
@@ -9,6 +9,7 @@ import {
 import { fromIsoDate } from "@repo/domain"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import { ElementInspector } from "../components/ElementInspector"
+import type { PanelChange } from "../lib/planPreview"
 
 const element = (
   id: string,
@@ -101,21 +102,33 @@ const renderSheet = (
   const handlers = {
     onUpdate: vi.fn(),
     onApplyWhen: vi.fn(),
-    onEdit: vi.fn(),
     onSetRule: vi.fn(),
     onRemoveRule: vi.fn(),
+    onSave: vi.fn(),
     onClose: vi.fn(),
     onOpen: vi.fn(),
     onOpenDay: vi.fn(),
   }
+  // Cada cambio que pide el panel, a su espía; sin borrador que devolver.
+  const onResolve = vi.fn((change: PanelChange) => {
+    if (change.type === "update") handlers.onUpdate(change.elementId, change.input)
+    if (change.type === "when") handlers.onApplyWhen(change.elementId, change.change)
+    if (change.type === "set-rule") handlers.onSetRule(change.elementId, change.point, change.input)
+    if (change.type === "remove-rule") handlers.onRemoveRule(change.elementId, change.point)
+    return null
+  })
   render(
     <ElementInspector
       elementId={elementId}
       plan={plan}
+      savedName={plan.elements.find((element) => element.id === elementId)!.name}
+      resetKey={0}
       editable={editable}
       pending={false}
       planSpan={planSpan}
-      draft={{ input: {}, onSave: vi.fn(), onDiscard: vi.fn() }}
+      onResolve={onResolve}
+      onDraftChange={vi.fn()}
+      onDiscard={vi.fn()}
       {...handlers}
     />
   )
@@ -336,18 +349,19 @@ describe("ElementInspector", () => {
     ).toHaveTextContent("otra…")
   })
 
-  it("el nombre se cambia en la cabecera: al pulsar Enter, al borrador", async () => {
-    const { onEdit } = renderSheet("lectura")
+  it("el nombre es un campo más: cuenta como cambio y se guarda con el resto", async () => {
+    const { onSave } = renderSheet("vfx")
 
     const name = screen.getByRole("textbox", { name: "Nombre" })
     await userEvent.clear(name)
-    await userEvent.type(name, "Lectura de guion{Enter}")
-    expect(onEdit).toHaveBeenCalledWith("lectura", { name: "Lectura de guion" })
+    expect(await screen.findByText("1 cambio sin guardar")).toBeInTheDocument()
+    // Vacío no vale: no se guarda.
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }))
+    expect(await screen.findByText("Hace falta rellenarlo")).toBeInTheDocument()
+    expect(onSave).not.toHaveBeenCalled()
 
-    // Vacío no vale: vuelve al que tenía.
-    await userEvent.clear(name)
-    await userEvent.tab()
-    expect(onEdit).toHaveBeenCalledTimes(1)
+    await userEvent.type(name, "VFX y efectos{Enter}")
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ name: "VFX y efectos" }))
   })
 
   it("una fase no se borra ni cambia de tipo", () => {
