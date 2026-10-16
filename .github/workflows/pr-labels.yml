@@ -1,0 +1,67 @@
+name: PR labels
+
+# Las etiquetas del PR siguen a las casillas de «Tipo de cambio» de su cuerpo:
+# añade las marcadas y quita las desmarcadas. Solo toca estas cinco.
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+jobs:
+  labels:
+    name: Sync type labels
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Sync labels with the change type
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const kinds = [
+              { text: 'New feature', label: 'feature' },
+              { text: 'Bug fix', label: 'bug' },
+              { text: 'Style / UI', label: 'style' },
+              { text: 'Documentation', label: 'documentation' },
+              { text: 'Chore / Refactor', label: 'refactor' },
+            ];
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pr = context.payload.pull_request;
+            const issue_number = pr.number;
+
+            // Solo la sección del encabezado «Tipo de cambio» (el texto puede nombrarla
+            // antes), hasta la siguiente separación o el siguiente encabezado.
+            const lines = (pr.body ?? '').split(/\r?\n/);
+            const start = lines.findIndex((line) => /^#{1,6}\s.*Tipo de cambio/.test(line));
+            if (start === -1) {
+              core.info('El cuerpo no tiene la sección «Tipo de cambio»: no se toca nada.');
+              return;
+            }
+            const rest = lines.slice(start + 1);
+            const end = rest.findIndex((line) => /^(---|#{1,6}\s)/.test(line));
+            const section = end === -1 ? rest : rest.slice(0, end);
+            const checked = (text) =>
+              section.some((line) => /^\s*[-*]\s*\[[xX]\]/.test(line) && line.includes(text));
+
+            const current = new Set(pr.labels.map((label) => label.name));
+            const add = kinds.filter((kind) => checked(kind.text) && !current.has(kind.label));
+            const remove = kinds.filter((kind) => !checked(kind.text) && current.has(kind.label));
+
+            if (add.length > 0) {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number, labels: add.map((kind) => kind.label),
+              });
+            }
+            for (const kind of remove) {
+              try {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name: kind.label });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+            core.info(
+              `Añadidas: ${add.map((k) => k.label).join(', ') || 'ninguna'}. ` +
+                `Quitadas: ${remove.map((k) => k.label).join(', ') || 'ninguna'}.`
+            );
