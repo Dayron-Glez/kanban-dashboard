@@ -3,6 +3,7 @@ import {
   CreateActionInputSchema,
   DEFAULT_ELEMENT_DETAILS,
   NO_PEOPLE,
+  peopleCount,
   SINGLE_DAY_ACTION_KINDS,
   type ActionKind,
   type CalendarElement,
@@ -36,6 +37,9 @@ export interface NewActionRequest {
 }
 
 export const isSingleDay = (kind: ActionKind) => SINGLE_DAY_ACTION_KINDS.includes(kind)
+
+/** El viaje y la contratación no llevan responsable, ejecutantes ni participantes. */
+export const hasPeople = (kind: ActionKind) => kind !== "travel" && kind !== "hiring"
 
 export const newActionValues = ({
   parentId,
@@ -83,6 +87,7 @@ const EDITABLE = [
   "completed",
   "videoApp",
   "videoUrl",
+  "people",
 ] as const
 
 type Dirty = Partial<Record<keyof ActionFormData, unknown>>
@@ -117,6 +122,7 @@ export const switchKind = (values: ActionFormData, next: ActionKind): Partial<Ac
     ...(next !== "task" && values.completed && { completed: false }),
     ...(next !== "meeting" &&
       (values.videoApp !== null || values.videoUrl !== null) && { videoApp: null, videoUrl: null }),
+    ...(!hasPeople(next) && peopleCount(values.people) > 0 && { people: NO_PEOPLE }),
   }
 }
 

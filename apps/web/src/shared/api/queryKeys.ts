@@ -10,6 +10,8 @@ export const queryKeys = {
     tasks: (id: string) => [...queryKeys.projects.detail(id), "tasks"] as const,
     history: (id: string) => [...queryKeys.projects.detail(id), "history"] as const,
     plan: (id: string) => [...queryKeys.projects.detail(id), "plan"] as const,
+    crew: (id: string) => [...queryKeys.projects.detail(id), "crew"] as const,
+    departments: (id: string) => [...queryKeys.projects.detail(id), "departments"] as const,
     /** Clave común de las mutaciones del tablero, no de una consulta. */
     board: (id: string) => [...queryKeys.projects.detail(id), "board"] as const,
   },

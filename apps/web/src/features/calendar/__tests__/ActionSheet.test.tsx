@@ -1,7 +1,8 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { DEFAULT_ELEMENT_DETAILS, type CalendarElement } from "@repo/contracts"
+import { DEFAULT_ELEMENT_DETAILS, NO_PEOPLE, type CalendarElement } from "@repo/contracts"
 import { describe, expect, it, vi } from "vitest"
+import { createFakeApi, createWrapper } from "@/shared/api/testing"
 import { ActionSheet } from "../forms/ActionSheet"
 import type { NewActionRequest } from "../forms/actionForm"
 import { buildElementTree } from "../lib/elementTree"
@@ -27,8 +28,30 @@ const element = (id: string, overrides: Partial<CalendarElement> = {}): Calendar
 
 const plan = { elements: [element("rodaje")], dependencies: [] }
 
+const MARTA = "6b0f1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+const PEDRO = "7c1a2b3c-4d5e-4f6a-9b7c-8d9e0f1a2b3c"
+const crewMember = (id: string, fullName: string) => ({
+  id,
+  projectId: "p",
+  fullName,
+  email: null,
+  departmentId: null,
+})
+
+// El equipo del proyecto, desde un api falso.
+const withApi = () => {
+  const api = createFakeApi()
+  api.crew.listByProject.mockResolvedValue([
+    crewMember(MARTA, "Marta Ruiz"),
+    crewMember(PEDRO, "Pedro Gil"),
+  ])
+  api.departments.listByProject.mockResolvedValue([])
+  return { api, wrapper: createWrapper(api) }
+}
+
 const renderSheet = (request: Partial<NewActionRequest> = {}) => {
   const onCreate = vi.fn()
+  const { api, wrapper } = withApi()
   render(
     <ActionSheet
       mode="create"
@@ -48,9 +71,10 @@ const renderSheet = (request: Partial<NewActionRequest> = {}) => {
       onClose={() => {}}
       onCreate={onCreate}
       onCancel={() => {}}
-    />
+    />,
+    { wrapper }
   )
-  return { onCreate, form: () => screen.getByRole("form") }
+  return { api, onCreate, form: () => screen.getByRole("form") }
 }
 
 // Escriben bastante con userEvent: con toda la suite a la vez, pasan de 5 s.
@@ -109,6 +133,72 @@ describe("el Sheet de una acción nueva", { timeout: 15_000 }, () => {
     expect(within(form()).getByRole("switch", { name: /Hecha/ })).not.toBeChecked()
     expect(screen.getByRole("heading", { name: "Nueva tarea" })).toBeInTheDocument()
   })
+
+  const pick = async (field: string, option: string | RegExp) => {
+    await userEvent.click(screen.getByRole("button", { name: field }))
+    await userEvent.click(await screen.findByRole("option", { name: option }))
+  }
+
+  it("personas: responsable y ejecutante del equipo y un participante de fuera", async () => {
+    const { onCreate, form } = renderSheet()
+    await userEvent.type(within(form()).getByRole("textbox", { name: /Título/ }), "Producción")
+    await userEvent.click(within(form()).getByRole("button", { name: /Personas/ }))
+    await pick("Responsable", /Marta Ruiz/)
+    await pick("Ejecutantes", /Pedro Gil/)
+    await pick("Participantes", "Invitar a alguien de fuera…")
+    await userEvent.type(screen.getByRole("textbox", { name: /Nombre/ }), "José Ruiz")
+    await userEvent.type(screen.getByRole("textbox", { name: /Email/ }), "jose@agencia.es")
+    await userEvent.click(screen.getByRole("button", { name: "Invitar" }))
+    expect(within(form()).getByRole("button", { name: "Quitar a José Ruiz" })).toBeInTheDocument()
+
+    await userEvent.click(within(form()).getByRole("button", { name: "Crear reunión" }))
+    await waitFor(() =>
+      expect(onCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          people: {
+            responsibleId: MARTA,
+            executorIds: [PEDRO],
+            departmentIds: [],
+            guests: [{ crewMemberId: null, fullName: "José Ruiz", email: "jose@agencia.es" }],
+          },
+        }),
+        expect.anything()
+      )
+    )
+  })
+
+  it("desde el buscador se añade a alguien al equipo y queda asignado", async () => {
+    const { api, form } = renderSheet()
+    api.crew.create.mockResolvedValue(
+      crewMember("8d2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d", "Lola Flores")
+    )
+    await userEvent.click(within(form()).getByRole("button", { name: /Personas/ }))
+    await userEvent.click(screen.getByRole("button", { name: "Ejecutantes" }))
+    await userEvent.type(await screen.findByPlaceholderText("Buscar…"), "Lola Flores")
+    await userEvent.click(screen.getByRole("option", { name: "Añadir «Lola Flores» al equipo…" }))
+    expect(screen.getByRole("textbox", { name: /Nombre/ })).toHaveValue("Lola Flores")
+    await userEvent.click(screen.getByRole("button", { name: "Añadir y asignar" }))
+
+    expect(api.crew.create).toHaveBeenCalledWith("p", {
+      fullName: "Lola Flores",
+      email: null,
+      departmentId: null,
+    })
+    expect(
+      await within(form()).findByRole("button", { name: "Quitar a Lola Flores" })
+    ).toBeInTheDocument()
+  })
+
+  it("el viaje no lleva personas: la sección se va y lo elegido se quita", async () => {
+    const { form } = renderSheet()
+    await userEvent.click(within(form()).getByRole("button", { name: /Personas/ }))
+    await pick("Responsable", /Marta Ruiz/)
+    await userEvent.click(within(form()).getByRole("radio", { name: "Viaje" }))
+    expect(within(form()).queryByRole("button", { name: /Personas/ })).toBeNull()
+
+    await userEvent.click(within(form()).getByRole("radio", { name: "Reunión" }))
+    expect(within(form()).getByRole("button", { name: /Personas/ })).toHaveTextContent("Sin nadie")
+  })
 })
 
 const meeting = element("lectura", {
@@ -156,7 +246,8 @@ const renderEdit = (action: CalendarElement, editable = true) => {
       path="Rodaje › Reunión"
       resetKey={0}
       {...handlers}
-    />
+    />,
+    { wrapper: withApi().wrapper }
   )
   return handlers
 }
@@ -188,6 +279,20 @@ describe("el Sheet de una acción guardada", { timeout: 15_000 }, () => {
     renderEdit(meeting)
     expect(screen.getByText("Rodaje · 5 abr 2027")).toBeInTheDocument()
     expect(screen.getByText("16 may 2027")).toBeInTheDocument()
+  })
+
+  it("las personas se guardan enteras, y en el resumen se ve quién está", async () => {
+    const { onDraftChange } = renderEdit({
+      ...meeting,
+      people: { ...NO_PEOPLE, responsibleId: MARTA, executorIds: [PEDRO] },
+    })
+    const fold = await screen.findByRole("button", { name: /Personas/ })
+    await waitFor(() => expect(fold).toHaveTextContent("Marta Ruiz · 1 ejecutante"))
+    await userEvent.click(fold)
+    await userEvent.click(screen.getByRole("button", { name: "Quitar a Marta Ruiz" }))
+    expect(onDraftChange).toHaveBeenLastCalledWith({
+      people: { ...NO_PEOPLE, executorIds: [PEDRO] },
+    })
   })
 
   it("una tarea de varios días que pasa a recordatorio se queda en un día", async () => {

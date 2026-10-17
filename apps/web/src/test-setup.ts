@@ -26,3 +26,6 @@ if (!window.ResizeObserver) {
     disconnect() {}
   }
 }
+
+// Ni scrollIntoView, con el que cmdk lleva a la vista la opción activa.
+Element.prototype.scrollIntoView ??= () => {}
