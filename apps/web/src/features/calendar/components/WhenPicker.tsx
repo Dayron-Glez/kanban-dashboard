@@ -27,6 +27,8 @@ interface WhenPickerProps {
   element: CalendarElement
   /** Reuniones y recordatorios: un solo día, un mes y sin duración. */
   single: boolean
+  /** La duración con su unidad, encima del calendario. Las acciones no la piden: duran poco. */
+  withDuration?: boolean
   editable: boolean
   pending: boolean
   /** Los días que dibuja el Gantt: fuera no se puede elegir. */
@@ -66,6 +68,7 @@ const valueOf = (element: CalendarElement): WhenValue => ({
 export function WhenPicker({
   element,
   single,
+  withDuration = true,
   editable,
   pending,
   bounds,
@@ -199,7 +202,7 @@ export function WhenPicker({
         collisionPadding={12}
         className="flex max-h-(--radix-popover-content-available-height) w-[496px] flex-col p-0"
       >
-        {!single && (
+        {!single && withDuration && (
           <div className="border-border flex shrink-0 items-center gap-3 border-b px-3.5 py-3">
             <span className="text-muted-foreground text-sm">Duración</span>
             <div className="border-border bg-background flex h-7 items-center rounded-lg border">

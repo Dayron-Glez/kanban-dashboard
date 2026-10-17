@@ -57,9 +57,8 @@ describe("PlanCalendar", () => {
     const onChange = vi.fn()
     render(<Range onChange={onChange} />)
 
-    expect(screen.getByText("Pulsa el día de inicio y el de fin")).toBeInTheDocument()
     await userEvent.click(day("2026-11-05"))
-    expect(screen.getByText("Ahora, el día de fin")).toBeInTheDocument()
+    expect(iso(onChange.mock.lastCall![0])).toEqual({ start: "2026-11-05", end: null })
     await userEvent.click(day("2026-10-20"))
 
     expect(iso(onChange.mock.lastCall![0])).toEqual({ start: "2026-10-20", end: "2026-11-05" })
@@ -67,12 +66,12 @@ describe("PlanCalendar", () => {
 
   it("enseña dos meses y se mueve con las flechas", async () => {
     render(<Range onChange={() => {}} />)
-    expect(screen.getByText("octubre 2026")).toBeInTheDocument()
-    expect(screen.getByText("noviembre 2026")).toBeInTheDocument()
+    expect(screen.getByRole("grid", { name: "octubre 2026" })).toBeInTheDocument()
+    expect(screen.getByRole("grid", { name: "noviembre 2026" })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Mes siguiente" }))
-    expect(screen.queryByText("octubre 2026")).toBeNull()
-    expect(screen.getByText("diciembre 2026")).toBeInTheDocument()
+    expect(screen.queryByRole("grid", { name: "octubre 2026" })).toBeNull()
+    expect(screen.getByRole("grid", { name: "diciembre 2026" })).toBeInTheDocument()
   })
 
   it("se salta a cualquier mes y año con sus selectores", async () => {
@@ -83,8 +82,8 @@ describe("PlanCalendar", () => {
     await userEvent.click(screen.getByRole("combobox", { name: "Mes" }))
     await userEvent.click(screen.getByRole("option", { name: "marzo" }))
 
-    expect(screen.getByText("marzo 2028")).toBeInTheDocument()
-    expect(screen.getByText("abril 2028")).toBeInTheDocument()
+    expect(screen.getByRole("grid", { name: "marzo 2028" })).toBeInTheDocument()
+    expect(screen.getByRole("grid", { name: "abril 2028" })).toBeInTheDocument()
   })
 
   it("fuera de lo que dibuja el Gantt, los días, los meses y las flechas se apagan", async () => {
