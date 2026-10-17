@@ -134,6 +134,27 @@ describe("el Sheet de una acción nueva", { timeout: 15_000 }, () => {
     expect(screen.getByRole("heading", { name: "Nueva tarea" })).toBeInTheDocument()
   })
 
+  it("en «Cuándo», elegir el tramo ya lo aplica, sin Aplicar", async () => {
+    const { onCreate, form } = renderSheet({ kind: "event", endsOn: "2027-04-14" })
+    await userEvent.type(within(form()).getByRole("textbox", { name: /Título/ }), "Casting")
+    await userEvent.click(within(form()).getByRole("button", { name: /^Cuándo:/ }))
+    expect(screen.queryByRole("button", { name: "Aplicar" })).toBeNull()
+    const day = (iso: string) => document.querySelector(`[data-day="${iso}"] button`) as HTMLElement
+    await userEvent.click(day("2027-04-20"))
+    await userEvent.click(day("2027-04-22"))
+    expect(
+      within(form()).getByRole("button", { name: /20 abr → jue 22 abr 2027/ })
+    ).toBeInTheDocument()
+
+    await userEvent.click(within(form()).getByRole("button", { name: "Crear evento" }))
+    await waitFor(() =>
+      expect(onCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ startsOn: "2027-04-20", endsOn: "2027-04-22" }),
+        expect.anything()
+      )
+    )
+  })
+
   const pick = async (field: string, option: string | RegExp) => {
     await userEvent.click(screen.getByRole("button", { name: field }))
     await userEvent.click(await screen.findByRole("option", { name: option }))

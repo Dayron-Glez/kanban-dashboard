@@ -77,7 +77,7 @@ export function WhenSection({ preview, plan, bounds, onApply }: Readonly<WhenSec
         key={`${preview.startsOn}-${preview.endsOn}`}
         element={preview}
         single={isSingleDay(kind)}
-        withDuration={false}
+        instant
         editable
         pending={false}
         bounds={bounds}
