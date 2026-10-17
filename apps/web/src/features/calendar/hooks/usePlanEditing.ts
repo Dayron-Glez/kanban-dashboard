@@ -96,6 +96,9 @@ export function usePlanEditing(plan: CalendarPlan | undefined, changes: PlanChan
         countChanges(input) > 0
           ? (applyDraft(base, { type: "edit", elementId, input }) ?? base)
           : base
+      // Ya ahí, por el paso anterior: un solo día, al mover el inicio, mueve el fin.
+      const now = current.elements.find((element) => element.id === elementId)
+      if ((point === "start" ? now?.startsOn : now?.endsOn) === date) return true
       const result = planMove(current, elementId, point, fromIsoDate(date), nameOf)
       if ("error" in result) {
         toast.error(result.error, { id: "plan-change", description: result.description })
