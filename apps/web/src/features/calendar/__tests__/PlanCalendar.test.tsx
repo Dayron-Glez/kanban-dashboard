@@ -3,7 +3,7 @@ import { DEFAULT_ELEMENT_DETAILS, type CalendarElement } from "@repo/contracts"
 import { fromIsoDate, toIsoDate } from "@repo/domain"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { PlanCalendar, type CalendarValue } from "../components/PlanCalendar"
 
 const day = (iso: string) => document.querySelector(`[data-day="${iso}"] button`) as HTMLElement
@@ -46,13 +46,37 @@ function Range({ onChange }: Readonly<{ onChange: (value: CalendarValue) => void
 }
 
 // El Select de Radix usa la captura del puntero y scrollIntoView, que jsdom no tiene.
+// Hoy es el 15 de enero de 2026: antes no se puede elegir nada.
 beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 0, 15) })
   Element.prototype.hasPointerCapture ??= () => false
   Element.prototype.releasePointerCapture ??= () => {}
   Element.prototype.scrollIntoView ??= () => {}
 })
 
+afterAll(() => {
+  vi.useRealTimers()
+})
+
 describe("PlanCalendar", () => {
+  it("no se planifica hacia atrás: antes de hoy, los días, los meses y los años se apagan", async () => {
+    render(
+      <PlanCalendar
+        mode="single"
+        defaultMonth={fromIsoDate("2025-11-01")}
+        value={{ start: null, end: null }}
+        onChange={() => {}}
+      />
+    )
+    // Abre en el mes de hoy, aunque se pidiera uno anterior.
+    expect(screen.getByRole("button", { name: "Mes anterior" })).toBeDisabled()
+    expect(day("2026-01-14")).toBeDisabled()
+    expect(day("2026-01-15")).toBeEnabled()
+
+    await userEvent.click(screen.getByRole("combobox", { name: "Año" }))
+    expect(screen.queryByRole("option", { name: "2025" })).toBeNull()
+  })
+
   it("un periodo: el primer clic es el inicio y el segundo, el fin, en cualquier orden", async () => {
     const onChange = vi.fn()
     render(<Range onChange={onChange} />)

@@ -5,6 +5,7 @@ import { IconPlus } from "@tabler/icons-react"
 import type { NewActionRequest } from "../forms/actionForm"
 import { ELEMENT_KIND_LABELS } from "../lib/elementTree"
 import { formatLongDate, formatShortDay } from "../lib/planFormat"
+import { today } from "../lib/today"
 import { ActionGlyph } from "./ActionGlyph"
 import { ActionList, DayLink, type ListedAction } from "./ActionList"
 
@@ -49,8 +50,13 @@ export function CellMenu({
   onOpenDay,
   onNewAction,
 }: Readonly<CellMenuProps>) {
-  const [choosing, setChoosing] = useState<boolean>(actions.length === 0)
+  // No se planifica hacia atrás: lo nuevo empieza como pronto hoy, y en días ya
+  // pasados no se crea nada.
+  const from = Math.max(start, today())
+  const creatable = canCreate && end >= from
+  const [choosing, setChoosing] = useState<boolean>(creatable && actions.length === 0)
   const days = end - start + 1
+  const newDays = end - from + 1
   const when =
     days === 1
       ? formatLongDate(toIsoDate(start))
@@ -66,7 +72,7 @@ export function CellMenu({
   }
 
   const choose = (kind: ActionKind) =>
-    onNewAction({ kind, startsOn: toIsoDate(start), endsOn: days === 1 ? null : toIsoDate(end) })
+    onNewAction({ kind, startsOn: toIsoDate(from), endsOn: newDays === 1 ? null : toIsoDate(end) })
 
   if (!choosing) {
     return (
@@ -83,7 +89,12 @@ export function CellMenu({
           onOpen={onOpen}
           onDelete={onDelete}
         />
-        {canCreate && (
+        {canCreate && !creatable && (
+          <p className="text-muted-foreground border-border mt-1 border-t px-2 pt-2 pb-1 text-sm">
+            Antes de hoy no se crean acciones.
+          </p>
+        )}
+        {creatable && (
           <div className="border-border mt-1 border-t pt-1">
             <button
               type="button"
@@ -91,7 +102,7 @@ export function CellMenu({
               className="text-primary hover:bg-muted focus-visible:bg-muted flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm font-medium outline-none"
             >
               <IconPlus className="size-3.5" aria-hidden />
-              {days === 1 ? "Nueva acción en este día" : "Nueva acción en estos días"}
+              {newDays === 1 ? "Nueva acción en este día" : "Nueva acción en estos días"}
             </button>
           </div>
         )}
@@ -104,13 +115,13 @@ export function CellMenu({
     <div data-cell-menu tabIndex={-1} className="flex flex-col outline-none" onKeyDown={onKeyDown}>
       <div className="px-2 pt-1 pb-2">
         <p className="text-base font-semibold first-letter:uppercase">
-          {days === 1
-            ? `Crear el ${when}`
-            : `Crear del ${formatShortDay(start)} al ${formatShortDay(end)}`}
+          {newDays === 1
+            ? `Crear el ${formatLongDate(toIsoDate(from))}`
+            : `Crear del ${formatShortDay(from)} al ${formatShortDay(end)}`}
         </p>
         <p className="text-muted-foreground text-sm">
           en {parentName}
-          {days > 1 && ` · ${days} días`}
+          {newDays > 1 && ` · ${newDays} días`}
         </p>
       </div>
       <div
@@ -119,7 +130,7 @@ export function CellMenu({
         className="border-border flex flex-col border-t pt-1"
       >
         {ACTION_KINDS.map((option) => {
-          const singleDay = days > 1 && SINGLE_DAY_ACTION_KINDS.includes(option)
+          const singleDay = newDays > 1 && SINGLE_DAY_ACTION_KINDS.includes(option)
           return (
             <button
               key={option}

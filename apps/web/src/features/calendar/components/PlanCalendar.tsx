@@ -20,6 +20,7 @@ import {
 } from "@/shared/index"
 import { ACTION_BG } from "../lib/actionStyle"
 import { formatLongDate } from "../lib/planFormat"
+import { today } from "../lib/today"
 import { ActionList, type ListedAction } from "./ActionList"
 
 /** Lo que ya hay cada día (por fecha ISO), y de dónde: «en SoftPre». */
@@ -48,7 +49,7 @@ interface PlanCalendarProps {
   /** Desde la lista de un día: abrir una de sus acciones, o el día entero. */
   onOpenAction?: (elementId: string) => void
   onOpenDay?: (day: EpochDay) => void
-  /** Los días que se pueden elegir: los del Gantt. Fuera, desactivados. */
+  /** Los días que se pueden elegir: los del Gantt, y nunca antes de hoy. Fuera, desactivados. */
   bounds?: { start: EpochDay; end: EpochDay }
 }
 
@@ -90,7 +91,10 @@ export function PlanCalendar({
 }: Readonly<PlanCalendarProps>) {
   // El primer mes que se puede ver y el último en que puede empezar la vista: con
   // dos meses, el anterior al del fin.
-  const first = bounds ? monthIndex(toDate(bounds.start)) : -Infinity
+  // No se planifica hacia atrás: el primer día que se puede elegir es hoy.
+  const now = today()
+  const firstDay = Math.max(now, bounds?.start ?? now)
+  const first = monthIndex(toDate(firstDay))
   const last = bounds
     ? Math.max(first, monthIndex(toDate(bounds.end)) - numberOfMonths + 1)
     : Infinity
@@ -125,14 +129,14 @@ export function PlanCalendar({
     onChange({ start: Math.min(picking, day), end: Math.max(picking, day) })
   }
 
-  // Los años del selector: los del plan o, sin él, diez atrás y quince adelante.
-  const firstYear = bounds ? toDate(bounds.start).getFullYear() : THIS_YEAR - 10
+  // Los años del selector: de hoy al fin del plan o, sin él, quince adelante.
+  const firstYear = toDate(firstDay).getFullYear()
   const lastYear = bounds ? toDate(bounds.end).getFullYear() : THIS_YEAR + 15
   const years = Array.from({ length: lastYear - firstYear + 1 }, (_, index) => firstYear + index)
 
   // Un mes del selector sin ningún día del plan.
   const outside = (index: number) =>
-    bounds != null && (index < first || index > monthIndex(toDate(bounds.end)))
+    index < first || (bounds != null && index > monthIndex(toDate(bounds.end)))
 
   const step = (delta: number) => setMonth(fromIndex(current + delta))
 
@@ -232,7 +236,10 @@ export function PlanCalendar({
           month={month}
           onMonthChange={setMonth}
           numberOfMonths={numberOfMonths}
-          disabled={bounds && [{ before: toDate(bounds.start) }, { after: toDate(bounds.end) }]}
+          disabled={[
+            { before: toDate(firstDay) },
+            ...(bounds ? [{ after: toDate(bounds.end) }] : []),
+          ]}
           onDayClick={pick}
           onDayMouseEnter={(date) => picking != null && setHovered(toDay(date))}
           modifiers={modifiers}
@@ -288,7 +295,7 @@ function PlanDay({ day, modifiers, className, ...props }: React.ComponentProps<t
         edge
           ? "text-primary-foreground before:bg-primary font-bold before:absolute before:inset-0.5 before:rounded-lg"
           : !modifiers.disabled && "hover:ring-primary hover:ring-1 hover:ring-inset",
-        // Fuera del plan: el Gantt no llega ahí.
+        // Antes de hoy, o fuera del plan, donde el Gantt no llega.
         modifiers.disabled && "cursor-not-allowed opacity-30",
         className
       )}

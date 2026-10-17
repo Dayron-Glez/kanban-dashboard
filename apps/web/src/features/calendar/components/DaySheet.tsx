@@ -119,12 +119,14 @@ export function DaySheet({
   })
 
   const weekend = day - mondayOf(day) >= 5
+  // En un día ya pasado no se crea nada: no se planifica hacia atrás.
+  const creatable = canCreate && day >= timeline.today
 
   return (
     <SidePanel
       onClose={onClose}
       footer={
-        canCreate &&
+        creatable &&
         !adding && (
           <Button className="flex-1" onClick={() => setAdding(true)}>
             <IconPlus aria-hidden />
@@ -172,7 +174,7 @@ export function DaySheet({
         </>
       }
     >
-      {canCreate && adding && (
+      {creatable && adding && (
         <div className="border-border flex flex-col gap-2 rounded-lg border p-2">
           <div className="flex flex-col gap-1 px-1">
             <span className="text-muted-foreground text-xs">Cuelga de</span>
