@@ -1,4 +1,10 @@
-import { ACTION_KINDS, type Alert, type ElementKind } from "@repo/contracts"
+import {
+  ACTION_KINDS,
+  type Alert,
+  type CrewMember,
+  type ElementKind,
+  type ElementPeople,
+} from "@repo/contracts"
 import { fromIsoDate, toIsoDate, type EpochDay } from "./planDates.js"
 
 /** Una acción o un proceso que se cruza con una alerta, en los días de `from` a `to`. */
@@ -17,9 +23,13 @@ type ConflictElement = {
   kind: ElementKind
   startsOn: string | null
   endsOn: string | null
+  people?: ElementPeople
 }
 
-type ConflictAlert = Pick<Alert, "id" | "scope" | "when">
+type ConflictAlert = Pick<Alert, "id" | "scope" | "when"> &
+  Partial<Pick<Alert, "departmentIds" | "crewMemberIds">>
+
+type ConflictCrew = Pick<CrewMember, "id" | "departmentId">
 
 /** Los conflictos se marcan en acciones y procesos, nunca en fases ni subfases. */
 export const CONFLICT_KINDS: readonly ElementKind[] = [...ACTION_KINDS, "process"]
@@ -32,6 +42,39 @@ const earliest = (a: EpochDay | null, b: EpochDay | null) =>
 const elementEnd = (element: ConflictElement, start: EpochDay): EpochDay | null => {
   if (element.endsOn) return fromIsoDate(element.endsOn)
   return element.kind === "hiring" ? null : start
+}
+
+// Las personas del equipo que intervienen en un elemento, sin los invitados de fuera.
+const crewOf = ({ people }: ConflictElement) =>
+  people
+    ? [
+        ...(people.responsibleId ? [people.responsibleId] : []),
+        ...people.executorIds,
+        ...people.guests.flatMap((guest) => guest.crewMemberId ?? []),
+      ]
+    : []
+
+/**
+ * Una alerta de personas afecta a un elemento si alguna de ellas interviene en
+ * él, o si interviene su departamento o alguien de él: sin una persona, su
+ * departamento tampoco puede trabajar.
+ */
+const affects = (
+  alert: ConflictAlert,
+  element: ConflictElement,
+  departmentOf: ReadonlyMap<string, string | null>
+) => {
+  if (alert.scope === "project") return true
+  const crewIds = new Set(alert.crewMemberIds)
+  const departmentIds = new Set([
+    ...(alert.departmentIds ?? []),
+    ...(alert.crewMemberIds ?? []).flatMap((id) => departmentOf.get(id) ?? []),
+  ])
+  return (
+    crewOf(element).some(
+      (id) => crewIds.has(id) || departmentIds.has(departmentOf.get(id) ?? "")
+    ) || (element.people?.departmentIds ?? []).some((id) => departmentIds.has(id))
+  )
 }
 
 /** Los días que ocupa una alerta y cuáles de ellos enteros. */
@@ -49,39 +92,41 @@ const alertDays = ({ when }: ConflictAlert) => {
 }
 
 /**
- * Los conflictos de las alertas de todo el proyecto con las acciones y los
- * procesos. Sin horas, un elemento cuenta como de día entero. Las alertas de
- * personas y departamentos esperan a la asignación de los elementos.
+ * Los conflictos de las alertas con las acciones y los
+ * procesos. Sin horas, un elemento cuenta como de día entero. Las de personas
+ * y departamentos, solo con los elementos en que intervienen; `crew` dice el
+ * departamento de cada persona.
  */
 export function findAlertConflicts(
   elements: readonly ConflictElement[],
-  alerts: readonly ConflictAlert[]
+  alerts: readonly ConflictAlert[],
+  crew: readonly ConflictCrew[] = []
 ): AlertConflict[] {
   const candidates = elements.filter(
     (element) => element.startsOn !== null && CONFLICT_KINDS.includes(element.kind)
   )
-  return alerts
-    .filter((alert) => alert.scope === "project")
-    .flatMap((alert) => {
-      const days = alertDays(alert)
-      return candidates.flatMap((element): AlertConflict[] => {
-        const start = fromIsoDate(element.startsOn!)
-        const from = Math.max(start, days.start)
-        const to = earliest(elementEnd(element, start), days.end)
-        if (to !== null && to < from) return []
-        const full =
-          days.firstFull !== null &&
-          from >= days.firstFull &&
-          (days.lastFull === null || (to !== null && to <= days.lastFull))
-        return [
-          {
-            alertId: alert.id,
-            elementId: element.id,
-            from: toIsoDate(from),
-            to: to === null ? null : toIsoDate(to),
-            extent: full ? "full" : "partial",
-          },
-        ]
-      })
+  const departmentOf = new Map(crew.map((member) => [member.id, member.departmentId]))
+  return alerts.flatMap((alert) => {
+    const days = alertDays(alert)
+    return candidates.flatMap((element): AlertConflict[] => {
+      if (!affects(alert, element, departmentOf)) return []
+      const start = fromIsoDate(element.startsOn!)
+      const from = Math.max(start, days.start)
+      const to = earliest(elementEnd(element, start), days.end)
+      if (to !== null && to < from) return []
+      const full =
+        days.firstFull !== null &&
+        from >= days.firstFull &&
+        (days.lastFull === null || (to !== null && to <= days.lastFull))
+      return [
+        {
+          alertId: alert.id,
+          elementId: element.id,
+          from: toIsoDate(from),
+          to: to === null ? null : toIsoDate(to),
+          extent: full ? "full" : "partial",
+        },
+      ]
     })
+  })
 }
