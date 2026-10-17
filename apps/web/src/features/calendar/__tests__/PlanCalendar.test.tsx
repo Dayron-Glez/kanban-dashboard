@@ -3,7 +3,7 @@ import { DEFAULT_ELEMENT_DETAILS, type CalendarElement } from "@repo/contracts"
 import { fromIsoDate, toIsoDate } from "@repo/domain"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { PlanCalendar, type CalendarValue } from "../components/PlanCalendar"
 
 const day = (iso: string) => document.querySelector(`[data-day="${iso}"] button`) as HTMLElement
@@ -46,20 +46,43 @@ function Range({ onChange }: Readonly<{ onChange: (value: CalendarValue) => void
 }
 
 // El Select de Radix usa la captura del puntero y scrollIntoView, que jsdom no tiene.
+// Hoy es el 15 de enero de 2026: antes no se puede elegir nada.
 beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 0, 15) })
   Element.prototype.hasPointerCapture ??= () => false
   Element.prototype.releasePointerCapture ??= () => {}
   Element.prototype.scrollIntoView ??= () => {}
 })
 
+afterAll(() => {
+  vi.useRealTimers()
+})
+
 describe("PlanCalendar", () => {
+  it("no se planifica hacia atrás: antes de hoy, los días, los meses y los años se apagan", async () => {
+    render(
+      <PlanCalendar
+        mode="single"
+        defaultMonth={fromIsoDate("2025-11-01")}
+        value={{ start: null, end: null }}
+        onChange={() => {}}
+      />
+    )
+    // Abre en el mes de hoy, aunque se pidiera uno anterior.
+    expect(screen.getByRole("button", { name: "Mes anterior" })).toBeDisabled()
+    expect(day("2026-01-14")).toBeDisabled()
+    expect(day("2026-01-15")).toBeEnabled()
+
+    await userEvent.click(screen.getByRole("combobox", { name: "Año" }))
+    expect(screen.queryByRole("option", { name: "2025" })).toBeNull()
+  })
+
   it("un periodo: el primer clic es el inicio y el segundo, el fin, en cualquier orden", async () => {
     const onChange = vi.fn()
     render(<Range onChange={onChange} />)
 
-    expect(screen.getByText("Pulsa el día de inicio y el de fin")).toBeInTheDocument()
     await userEvent.click(day("2026-11-05"))
-    expect(screen.getByText("Ahora, el día de fin")).toBeInTheDocument()
+    expect(iso(onChange.mock.lastCall![0])).toEqual({ start: "2026-11-05", end: null })
     await userEvent.click(day("2026-10-20"))
 
     expect(iso(onChange.mock.lastCall![0])).toEqual({ start: "2026-10-20", end: "2026-11-05" })
@@ -67,12 +90,12 @@ describe("PlanCalendar", () => {
 
   it("enseña dos meses y se mueve con las flechas", async () => {
     render(<Range onChange={() => {}} />)
-    expect(screen.getByText("octubre 2026")).toBeInTheDocument()
-    expect(screen.getByText("noviembre 2026")).toBeInTheDocument()
+    expect(screen.getByRole("grid", { name: "octubre 2026" })).toBeInTheDocument()
+    expect(screen.getByRole("grid", { name: "noviembre 2026" })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Mes siguiente" }))
-    expect(screen.queryByText("octubre 2026")).toBeNull()
-    expect(screen.getByText("diciembre 2026")).toBeInTheDocument()
+    expect(screen.queryByRole("grid", { name: "octubre 2026" })).toBeNull()
+    expect(screen.getByRole("grid", { name: "diciembre 2026" })).toBeInTheDocument()
   })
 
   it("se salta a cualquier mes y año con sus selectores", async () => {
@@ -83,8 +106,8 @@ describe("PlanCalendar", () => {
     await userEvent.click(screen.getByRole("combobox", { name: "Mes" }))
     await userEvent.click(screen.getByRole("option", { name: "marzo" }))
 
-    expect(screen.getByText("marzo 2028")).toBeInTheDocument()
-    expect(screen.getByText("abril 2028")).toBeInTheDocument()
+    expect(screen.getByRole("grid", { name: "marzo 2028" })).toBeInTheDocument()
+    expect(screen.getByRole("grid", { name: "abril 2028" })).toBeInTheDocument()
   })
 
   it("fuera de lo que dibuja el Gantt, los días, los meses y las flechas se apagan", async () => {

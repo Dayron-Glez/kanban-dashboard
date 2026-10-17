@@ -49,6 +49,7 @@ export interface EditActionSheetProps extends ActionSheetBaseProps {
  */
 export function EditActionSheet({
   saved,
+  projectId,
   shown,
   plan,
   tree,
@@ -116,6 +117,7 @@ export function EditActionSheet({
   return (
     <ActionFormLayout
       form={form}
+      projectId={projectId}
       label={saved.name}
       heading={
         <>

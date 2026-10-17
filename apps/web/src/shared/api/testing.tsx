@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type {
   ApiClient,
   ColumnsRepository,
+  CrewRepository,
+  DepartmentsRepository,
   ElementsRepository,
   HistoryRepository,
   InvitationsRepository,
@@ -63,6 +65,15 @@ export const createFakeApi = () =>
       createAction: vi.fn<ElementsRepository["createAction"]>(),
       editElement: vi.fn<ElementsRepository["editElement"]>(),
       deleteElement: vi.fn<ElementsRepository["deleteElement"]>(),
+    },
+    crew: {
+      listByProject: vi.fn<CrewRepository["listByProject"]>(),
+      create: vi.fn<CrewRepository["create"]>(),
+      update: vi.fn<CrewRepository["update"]>(),
+      remove: vi.fn<CrewRepository["remove"]>(),
+    },
+    departments: {
+      listByProject: vi.fn<DepartmentsRepository["listByProject"]>(),
     },
   }) satisfies ApiClient
 

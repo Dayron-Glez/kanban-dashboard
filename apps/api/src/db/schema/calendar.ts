@@ -18,7 +18,7 @@ import {
 } from "drizzle-orm/pg-core"
 import { alerts } from "./alerts.js"
 import { users } from "./identity.js"
-import { projects } from "./projects.js"
+import { crewMembers, departments, projects } from "./projects.js"
 
 export const calendar = pgSchema("calendar")
 
@@ -197,5 +197,101 @@ export const alertConflictReviews = calendar.table(
       name: "alert_conflict_reviews_reviewed_by_fkey",
     }).onDelete("set null"),
     index("alert_conflict_reviews_element_id_idx").on(table.elementId),
+  ]
+)
+
+// Quién interviene en un elemento. Las personas y los departamentos son de core;
+// calendar apunta a core, nunca al revés.
+
+export const elementAssignees = calendar.table(
+  "element_assignees",
+  {
+    elementId: uuid("element_id").notNull(),
+    crewMemberId: uuid("crew_member_id").notNull(),
+    role: text().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.elementId, table.crewMemberId], name: "element_assignees_pkey" }),
+    foreignKey({
+      columns: [table.elementId],
+      foreignColumns: [elements.id],
+      name: "element_assignees_element_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.crewMemberId],
+      foreignColumns: [crewMembers.id],
+      name: "element_assignees_crew_member_id_fkey",
+    }).onDelete("cascade"),
+    uniqueIndex("element_assignees_one_responsible")
+      .on(table.elementId)
+      .where(sql`${table.role} = 'responsible'`),
+    index("element_assignees_crew_member_id_idx").on(table.crewMemberId),
+    check("element_assignees_role_check", sql`${table.role} in ('responsible', 'executor')`),
+  ]
+)
+
+export const elementDepartments = calendar.table(
+  "element_departments",
+  {
+    elementId: uuid("element_id").notNull(),
+    departmentId: uuid("department_id").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.elementId, table.departmentId],
+      name: "element_departments_pkey",
+    }),
+    foreignKey({
+      columns: [table.elementId],
+      foreignColumns: [elements.id],
+      name: "element_departments_element_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.departmentId],
+      foreignColumns: [departments.id],
+      name: "element_departments_department_id_fkey",
+    }).onDelete("cascade"),
+    index("element_departments_department_id_idx").on(table.departmentId),
+  ]
+)
+
+export const elementGuests = calendar.table(
+  "element_guests",
+  {
+    id: uuid()
+      .default(sql`uuidv7()`)
+      .primaryKey(),
+    elementId: uuid("element_id").notNull(),
+    crewMemberId: uuid("crew_member_id"),
+    fullName: text("full_name"),
+    email: text(),
+    position: integer().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.elementId],
+      foreignColumns: [elements.id],
+      name: "element_guests_element_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.crewMemberId],
+      foreignColumns: [crewMembers.id],
+      name: "element_guests_crew_member_id_fkey",
+    }).onDelete("cascade"),
+    unique("element_guests_element_id_crew_member_id_key").on(table.elementId, table.crewMemberId),
+    unique("element_guests_element_id_email_key").on(table.elementId, table.email),
+    index("element_guests_crew_member_id_idx").on(table.crewMemberId),
+    check(
+      "element_guests_one_check",
+      sql`(${table.crewMemberId} is not null and ${table.fullName} is null and ${table.email} is null) or (${table.crewMemberId} is null and ${table.fullName} is not null and ${table.email} is not null)`
+    ),
+    check(
+      "element_guests_full_name_check",
+      sql`${table.fullName} is null or char_length(${table.fullName}) between 1 and 200`
+    ),
+    check(
+      "element_guests_email_check",
+      sql`${table.email} is null or char_length(${table.email}) between 3 and 200`
+    ),
   ]
 )

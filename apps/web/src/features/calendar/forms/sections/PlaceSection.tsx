@@ -1,6 +1,7 @@
 import { Controller, useFormContext, useWatch } from "react-hook-form"
 import { ACTION_PARENT_KINDS, type ActionPriority } from "@repo/contracts"
 import {
+  cn,
   Field,
   FieldError,
   FieldLabel,
@@ -15,6 +16,7 @@ import { ElementPicker } from "../../components/ElementPicker"
 import { flattenTree, type ElementNode } from "../../lib/elementTree"
 import { phaseTint } from "../../lib/phaseColors"
 import type { ActionFormValues } from "../actionForm"
+import { FIELD, FIELD_GAP } from "../fieldStyle"
 
 const PRIORITIES: readonly { value: ActionPriority; label: string }[] = [
   { value: "high", label: "Alta" },
@@ -38,16 +40,16 @@ export function PlaceSection({ phase }: Readonly<PlaceSectionProps>) {
     : []
 
   return (
-    <section aria-labelledby="action-place" className="flex flex-col gap-3">
+    <section aria-labelledby="action-place" className="flex flex-col gap-4">
       <h3 id="action-place" className={heading}>
         Dónde
       </h3>
-      <div className="grid grid-cols-[1fr_9rem] gap-3">
+      <div className="grid grid-cols-[1fr_9rem] gap-4">
         <Controller
           name="parentId"
           control={control}
           render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
+            <Field data-invalid={fieldState.invalid} className={FIELD_GAP}>
               <FieldLabel>{kind === "hiring" ? "Fase de incorporación" : "Cuelga de"}</FieldLabel>
               <ElementPicker
                 label="Cuelga de"
@@ -59,6 +61,7 @@ export function PlaceSection({ phase }: Readonly<PlaceSectionProps>) {
                 value={field.value}
                 onChange={field.onChange}
                 placeholder="Elige una fase, subfase o proceso"
+                className={FIELD}
               />
               <FieldError errors={[fieldState.error]} />
             </Field>
@@ -68,10 +71,10 @@ export function PlaceSection({ phase }: Readonly<PlaceSectionProps>) {
           name="priority"
           control={control}
           render={({ field }) => (
-            <Field>
+            <Field className={FIELD_GAP}>
               <FieldLabel>Prioridad</FieldLabel>
               <Select value={field.value ?? "normal"} onValueChange={field.onChange}>
-                <SelectTrigger aria-label="Prioridad" className="w-full">
+                <SelectTrigger aria-label="Prioridad" className={cn("w-full", FIELD)}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -90,7 +93,7 @@ export function PlaceSection({ phase }: Readonly<PlaceSectionProps>) {
         name="location"
         control={control}
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
+          <Field data-invalid={fieldState.invalid} className={FIELD_GAP}>
             <FieldLabel htmlFor="action-location">
               {kind === "hiring" ? "Lugar" : "Ubicación"}
             </FieldLabel>
@@ -100,6 +103,7 @@ export function PlaceSection({ phase }: Readonly<PlaceSectionProps>) {
               maxLength={200}
               placeholder={kind === "hiring" ? "Plató, localización…" : "Añadir ubicación"}
               aria-invalid={fieldState.invalid}
+              className={FIELD}
               onChange={(event) => field.onChange(event.target.value || null)}
               onBlur={field.onBlur}
             />

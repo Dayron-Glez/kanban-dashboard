@@ -2,6 +2,7 @@ import { Controller, useFormContext, useWatch } from "react-hook-form"
 import type { VideoApp } from "@repo/contracts"
 import { IconVideo } from "@tabler/icons-react"
 import {
+  cn,
   Field,
   FieldError,
   FieldLabel,
@@ -15,6 +16,7 @@ import {
 } from "@/shared/index"
 import { FoldSection } from "../FoldSection"
 import type { ActionFormValues } from "../actionForm"
+import { FIELD, FIELD_GAP } from "../fieldStyle"
 
 const VIDEO_APP_LABELS: Record<VideoApp, string> = {
   meet: "Google Meet",
@@ -52,15 +54,18 @@ export function MeetingSection({ changed = false }: Readonly<{ changed?: boolean
         Es una videollamada
       </label>
       {online && (
-        <div className="grid grid-cols-[10rem_1fr] gap-3">
+        <div className="grid grid-cols-[10rem_1fr] gap-4">
           <Controller
             name="videoApp"
             control={control}
             render={({ field }) => (
-              <Field>
+              <Field className={FIELD_GAP}>
                 <FieldLabel>App</FieldLabel>
                 <Select value={field.value ?? "meet"} onValueChange={field.onChange}>
-                  <SelectTrigger aria-label="App de la videollamada" className="w-full">
+                  <SelectTrigger
+                    aria-label="App de la videollamada"
+                    className={cn("w-full", FIELD)}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -78,7 +83,7 @@ export function MeetingSection({ changed = false }: Readonly<{ changed?: boolean
             name="videoUrl"
             control={control}
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+              <Field data-invalid={fieldState.invalid} className={FIELD_GAP}>
                 <FieldLabel htmlFor="action-video-url">Enlace</FieldLabel>
                 <Input
                   id="action-video-url"
@@ -87,6 +92,7 @@ export function MeetingSection({ changed = false }: Readonly<{ changed?: boolean
                   value={field.value ?? ""}
                   placeholder="https://"
                   aria-invalid={fieldState.invalid}
+                  className={FIELD}
                   onChange={(event) => field.onChange(event.target.value.trim() || null)}
                   onBlur={field.onBlur}
                 />

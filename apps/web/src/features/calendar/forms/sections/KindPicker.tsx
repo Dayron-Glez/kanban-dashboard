@@ -27,7 +27,7 @@ export function KindPicker({ value, disabled = [], onChange }: Readonly<KindPick
           value={option}
           disabled={disabled.includes(option)}
           aria-label={ELEMENT_KIND_LABELS[option]}
-          className="h-14 flex-1 flex-col gap-1 px-1 text-xs"
+          className="bg-card dark:bg-card h-14 flex-1 flex-col gap-1 px-1 text-xs"
         >
           <ActionGlyph kind={option} />
           {ELEMENT_KIND_LABELS[option]}

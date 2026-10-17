@@ -27,6 +27,11 @@ interface WhenPickerProps {
   element: CalendarElement
   /** Reuniones y recordatorios: un solo día, un mes y sin duración. */
   single: boolean
+  /**
+   * Las acciones: duran poco, así que sin la duración con su unidad, y lo elegido
+   * se aplica al momento, sin Aplicar ni Cancelar.
+   */
+  instant?: boolean
   editable: boolean
   pending: boolean
   /** Los días que dibuja el Gantt: fuera no se puede elegir. */
@@ -66,6 +71,7 @@ const valueOf = (element: CalendarElement): WhenValue => ({
 export function WhenPicker({
   element,
   single,
+  instant = false,
   editable,
   pending,
   bounds,
@@ -82,11 +88,26 @@ export function WhenPicker({
   const [touched, setTouched] = useState<"none" | "duration" | "end">("none")
 
   const saved = valueOf(element)
+  const apply = (chosen = value, how = touched) => {
+    const change: WhenChange = {}
+    if (chosen.start != null && chosen.start !== saved.start) change.start = toIsoDate(chosen.start)
+    if (!single) {
+      if (how === "duration" && chosen.duration) change.duration = chosen.duration
+      if (how === "end" && chosen.end != null && chosen.end !== saved.end) {
+        change.end = toIsoDate(chosen.end)
+      }
+    }
+    setOpen(false)
+    if (Object.keys(change).length > 0) onApply(change)
+  }
+
   const openPicker = (next: boolean) => {
     if (next) {
       setValue(saved)
       setTouched("none")
     }
+    // Al momento, cerrar aplica lo elegido: un inicio solo mueve el tramo entero.
+    if (!next && instant) return apply()
     setOpen(next)
   }
 
@@ -115,7 +136,10 @@ export function WhenPicker({
 
   const pick = ({ start, end }: { start: EpochDay | null; end: EpochDay | null }) => {
     if (start == null) return
-    if (single) return setValue({ ...value, start, end: start })
+    if (single) {
+      const chosen = { ...value, start, end: start }
+      return instant ? apply(chosen) : setValue(chosen)
+    }
     // Solo el inicio: el tramo se mueve entero, con lo que dura.
     if (end == null) {
       const { duration } = value
@@ -125,21 +149,14 @@ export function WhenPicker({
         end: duration ? endFromStart(start, duration.amount, duration.unit) : null,
       })
     }
-    setTouched("end")
-    setValue({ start, end, duration: durationBetween(start, end, value.duration?.unit ?? null) })
-  }
-
-  const apply = () => {
-    const change: WhenChange = {}
-    if (value.start != null && value.start !== saved.start) change.start = toIsoDate(value.start)
-    if (!single) {
-      if (touched === "duration" && value.duration) change.duration = value.duration
-      if (touched === "end" && value.end != null && value.end !== saved.end) {
-        change.end = toIsoDate(value.end)
-      }
+    const chosen = {
+      start,
+      end,
+      duration: durationBetween(start, end, value.duration?.unit ?? null),
     }
-    setOpen(false)
-    if (Object.keys(change).length > 0) onApply(change)
+    if (instant) return apply(chosen, "end")
+    setTouched("end")
+    setValue(chosen)
   }
 
   const summary = (shown: WhenValue) => {
@@ -199,7 +216,7 @@ export function WhenPicker({
         collisionPadding={12}
         className="flex max-h-(--radix-popover-content-available-height) w-[496px] flex-col p-0"
       >
-        {!single && (
+        {!single && !instant && (
           <div className="border-border flex shrink-0 items-center gap-3 border-b px-3.5 py-3">
             <span className="text-muted-foreground text-sm">Duración</span>
             <div className="border-border bg-background flex h-7 items-center rounded-lg border">
@@ -269,20 +286,22 @@ export function WhenPicker({
             />
           </div>
         </ScrollArea>
-        <div className="border-border flex shrink-0 items-center gap-2 border-t px-3 py-3">
-          <span className={cn("min-w-0 flex-1 truncate text-sm")}>
-            <b className="first-letter:uppercase">{draftSummary.main}</b>
-            {!single && value.duration && value.end != null && (
-              <span className="text-muted-foreground"> · {formatDuration(value.duration)}</span>
-            )}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
-            Cancelar
-          </Button>
-          <Button size="sm" onClick={apply}>
-            Aplicar
-          </Button>
-        </div>
+        {!instant && (
+          <div className="border-border flex shrink-0 items-center gap-2 border-t px-3 py-3">
+            <span className={cn("min-w-0 flex-1 truncate text-sm")}>
+              <b className="first-letter:uppercase">{draftSummary.main}</b>
+              {!single && value.duration && value.end != null && (
+                <span className="text-muted-foreground"> · {formatDuration(value.duration)}</span>
+              )}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={() => apply()}>
+              Aplicar
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   )

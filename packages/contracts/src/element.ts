@@ -10,6 +10,7 @@ import {
   type ActionKind,
   type ElementKind,
 } from "./enums.js"
+import { ElementPeopleSchema, NO_PEOPLE, PeopleInputSchema } from "./people.js"
 import { ALL_DAY, hoursIssues, HoursSchema, whenIssues, type Hours } from "./when.js"
 
 /** Por qué a un elemento le falta alguna fecha. */
@@ -50,6 +51,7 @@ export const CalendarElementSchema = z.object({
   completedAt: z.iso.datetime({ offset: true }).nullable(),
   videoApp: VideoAppSchema.nullable(),
   videoUrl: z.string().nullable(),
+  people: ElementPeopleSchema,
 })
 export type CalendarElement = z.infer<typeof CalendarElementSchema>
 
@@ -62,6 +64,7 @@ export const DEFAULT_ELEMENT_DETAILS = {
   completedAt: null,
   videoApp: null,
   videoUrl: null,
+  people: NO_PEOPLE,
 } satisfies Partial<CalendarElement>
 
 /** Fija el inicio o el fin de un elemento a partir de otro, con un desfase literal. */
@@ -100,6 +103,18 @@ const VideoUrlSchema = z
   .max(2000)
   .nullable()
 
+/** Cuántas personas y departamentos lleva un elemento. */
+export const peopleCount = (people: {
+  responsibleId: string | null
+  executorIds: readonly string[]
+  departmentIds: readonly string[]
+  guests: readonly unknown[]
+}) =>
+  (people.responsibleId ? 1 : 0) +
+  people.executorIds.length +
+  people.departmentIds.length +
+  people.guests.length
+
 type ActionRuleFields = {
   kind: ElementKind
   startsOn: string | null
@@ -108,6 +123,8 @@ type ActionRuleFields = {
   completed?: boolean
   videoApp: string | null
   videoUrl: string | null
+  /** Si lleva responsable, ejecutantes, departamentos o participantes. */
+  hasPeople?: boolean
 }
 
 /**
@@ -138,6 +155,8 @@ export const actionIssues = (action: ActionRuleFields): string[][] => {
   if (action.completed && kind !== "task") issues.push(["completed"])
   if (kind !== "meeting" && action.videoApp !== null) issues.push(["videoApp"])
   if (action.videoUrl !== null && action.videoApp === null) issues.push(["videoUrl"])
+  // El viaje lleva viajeros y la contratación, su trabajador: no estas personas.
+  if (action.hasPeople && (kind === "travel" || kind === "hiring")) issues.push(["people"])
   return issues
 }
 
@@ -158,10 +177,14 @@ export const CreateActionInputSchema = z
     completed: z.boolean().default(false),
     videoApp: VideoAppSchema.nullable().default(null),
     videoUrl: VideoUrlSchema.default(null),
+    people: PeopleInputSchema.default(NO_PEOPLE),
   })
   .superRefine((input, ctx) => {
     const endsOn = input.endsOn ?? (input.kind === "hiring" ? null : input.startsOn)
-    for (const path of actionIssues({ ...input, endsOn })) ctx.addIssue({ code: "custom", path })
+    const hasPeople = peopleCount(input.people) > 0
+    for (const path of actionIssues({ ...input, endsOn, hasPeople })) {
+      ctx.addIssue({ code: "custom", path })
+    }
   })
 /** Lo que se envía: lo que tiene valor por defecto puede faltar. */
 export type CreateActionInput = z.input<typeof CreateActionInputSchema>
@@ -198,5 +221,6 @@ export const EditElementInputSchema = UpdateElementPlanInputSchema.extend({
   completed: z.boolean().optional(),
   videoApp: VideoAppSchema.nullable().optional(),
   videoUrl: VideoUrlSchema.optional(),
+  people: PeopleInputSchema.optional(),
 })
 export type EditElementInput = z.infer<typeof EditElementInputSchema>

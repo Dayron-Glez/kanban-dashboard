@@ -182,10 +182,11 @@ Lo que cruza la medianoche es «seguido», nunca «cada día». La base lo compr
 
 - **Se calculan, no se guardan**, con una función pura de `@repo/domain`. La web los calcula con el plan y las alertas que ya tiene, y los recalcula con cada cambio de fechas, también mientras se edita un borrador.
 - **Una acción o un proceso choca con una alerta** si se cruzan sus fechas y horas y además la alerta es de todo el proyecto, o en él interviene una persona afectada (responsable, ejecutantes, participantes, viajeros, el contratado), o hay un departamento afectado, directamente o por el de sus personas. Las fases y subfases no: ya se marca lo que tienen dentro.
+- **A quién afecta lo decide quien crea la alerta** (17 oct). Una persona afectada no arrastra a su departamento: si por su falta el departamento no puede trabajar, se marca también. La app no lo deduce.
 - **Total o parcial**: sin horas, un elemento cuenta como de día entero. Contra una alerta con horas, el conflicto es parcial en los días que solo ocupa en parte; en una alerta «seguido», los días de en medio son enteros. Una contratación sin baja sigue activa, y choca con todo lo que venga después de su alta.
 - **Nunca mueve fechas**: avisa y la persona decide, como el resto del Calendario.
 - **«Lo asumo»**: un conflicto se marca como revisado, por par (alerta, elemento), y deja de avisar. Solo en acciones y procesos, que son los únicos con conflictos.
-- **Por partes**: de momento solo calculan conflictos las alertas de todo el proyecto. Las de personas y departamentos se guardan y se verán en el Gantt, pero sus conflictos llegan con la asignación de los elementos (5c).
+- **Por partes**: las alertas de todo el proyecto y las de personas y departamentos ya calculan sus conflictos con el responsable, los ejecutantes, los participantes del equipo y los departamentos de cada acción. Los viajeros y el contratado se sumarán con el viaje y la contratación.
 
 ## Vistas del Calendario
 
@@ -256,8 +257,8 @@ Decidido con el usuario el 16 de octubre de 2026, antes de los formularios de la
     EditActionSheet.tsx    el de una acción guardada: su borrador, las marcas y su pie
     ActionFormLayout.tsx   lo común: el <form>, el tipo, el título y las secciones
     FoldSection.tsx        una sección plegable con su resumen
-    sections/              Tipo, Cuándo, Dónde, y una por tipo (de momento, la videollamada) más las notas
-    fields/                HoursField; con el resto de atributos, CrewPicker, DepartmentPicker…
+    sections/              Tipo, Cuándo, Dónde, Personas, y una por tipo (de momento, la videollamada) más las notas
+    fields/                HoursField, PeoplePicker (fichas y buscador) y NewPersonForm (añadir al equipo o invitar a alguien de fuera)
   ```
 
 - **`CalendarPage` solo conecta y pinta** (auditoría del 16 de octubre, tras los avisos de SonarQube: complejidad cognitiva de 45 sobre 15). Lo demás va en hooks y componentes de `features/calendar/`:
@@ -275,6 +276,7 @@ Decidido con el usuario el 16 de octubre de 2026, antes de los formularios de la
   components/CalendarPanels  el panel que toque, uno cada vez
   ```
 
+- **El selector de fechas** (`WhenPicker` sobre `PlanCalendar`) es el mismo en todos los paneles. En las acciones va en modo `instant`: sin la duración con su unidad, y lo elegido se aplica al momento, como el calendario de periodos de shadcn. Ninguno deja elegir días anteriores a hoy (`lib/today.ts`).
 - **Tests**: cada regla, una vez, en contracts. Los formularios, con Testing Library: campos que aparecen según otros, errores y lo que se envía.
 
 ## Decidido con el productor

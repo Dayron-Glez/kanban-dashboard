@@ -1,5 +1,7 @@
 import type { ApiClient } from "../ApiClient"
 import { createColumnsRepository } from "./columnsRepository"
+import { createCrewRepository } from "./crewRepository"
+import { createDepartmentsRepository } from "./departmentsRepository"
 import { createElementsRepository } from "./elementsRepository"
 import { createHistoryRepository } from "./historyRepository"
 import type { HttpClient } from "./httpClient"
@@ -16,4 +18,6 @@ export const createHttpApi = (http: HttpClient): ApiClient => ({
   tasks: createTasksRepository(http),
   history: createHistoryRepository(http),
   elements: createElementsRepository(http),
+  crew: createCrewRepository(http),
+  departments: createDepartmentsRepository(http),
 })

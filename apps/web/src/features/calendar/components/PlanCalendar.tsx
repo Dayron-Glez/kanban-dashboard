@@ -20,6 +20,7 @@ import {
 } from "@/shared/index"
 import { ACTION_BG } from "../lib/actionStyle"
 import { formatLongDate } from "../lib/planFormat"
+import { today } from "../lib/today"
 import { ActionList, type ListedAction } from "./ActionList"
 
 /** Lo que ya hay cada día (por fecha ISO), y de dónde: «en SoftPre». */
@@ -48,7 +49,7 @@ interface PlanCalendarProps {
   /** Desde la lista de un día: abrir una de sus acciones, o el día entero. */
   onOpenAction?: (elementId: string) => void
   onOpenDay?: (day: EpochDay) => void
-  /** Los días que se pueden elegir: los del Gantt. Fuera, desactivados. */
+  /** Los días que se pueden elegir: los del Gantt, y nunca antes de hoy. Fuera, desactivados. */
   bounds?: { start: EpochDay; end: EpochDay }
 }
 
@@ -90,7 +91,10 @@ export function PlanCalendar({
 }: Readonly<PlanCalendarProps>) {
   // El primer mes que se puede ver y el último en que puede empezar la vista: con
   // dos meses, el anterior al del fin.
-  const first = bounds ? monthIndex(toDate(bounds.start)) : -Infinity
+  // No se planifica hacia atrás: el primer día que se puede elegir es hoy.
+  const now = today()
+  const firstDay = Math.max(now, bounds?.start ?? now)
+  const first = monthIndex(toDate(firstDay))
   const last = bounds
     ? Math.max(first, monthIndex(toDate(bounds.end)) - numberOfMonths + 1)
     : Infinity
@@ -125,14 +129,14 @@ export function PlanCalendar({
     onChange({ start: Math.min(picking, day), end: Math.max(picking, day) })
   }
 
-  // Los años del selector: los del plan o, sin él, diez atrás y quince adelante.
-  const firstYear = bounds ? toDate(bounds.start).getFullYear() : THIS_YEAR - 10
+  // Los años del selector: de hoy al fin del plan o, sin él, quince adelante.
+  const firstYear = toDate(firstDay).getFullYear()
   const lastYear = bounds ? toDate(bounds.end).getFullYear() : THIS_YEAR + 15
   const years = Array.from({ length: lastYear - firstYear + 1 }, (_, index) => firstYear + index)
 
   // Un mes del selector sin ningún día del plan.
   const outside = (index: number) =>
-    bounds != null && (index < first || index > monthIndex(toDate(bounds.end)))
+    index < first || (bounds != null && index > monthIndex(toDate(bounds.end)))
 
   const step = (delta: number) => setMonth(fromIndex(current + delta))
 
@@ -147,65 +151,82 @@ export function PlanCalendar({
           middle: days((day) => to != null && day > from && day < to),
         }
 
+  const nextMonth = (
+    <Button
+      variant="outline"
+      size="icon-sm"
+      aria-label="Mes siguiente"
+      disabled={current >= last}
+      onClick={() => step(1)}
+    >
+      <IconChevronRight aria-hidden />
+    </Button>
+  )
+
   return (
     <OccupancyContext value={{ occupancy, onOpenAction, onOpenDay }}>
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Mes anterior"
-            disabled={current <= first}
-            onClick={() => step(-1)}
-          >
-            <IconChevronLeft aria-hidden />
-          </Button>
-          <div className="flex items-center gap-1.5">
-            <Select
-              value={String(month.getMonth())}
-              onValueChange={(next) => setMonth(new Date(month.getFullYear(), Number(next), 1))}
+        {/* La navegación va en la línea de los títulos: con dos meses, los selectores
+            sobre el primero y el nombre del segundo sobre el suyo. */}
+        <div className={cn("grid items-center gap-6", numberOfMonths === 2 && "grid-cols-2")}>
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Mes anterior"
+              disabled={current <= first}
+              onClick={() => step(-1)}
             >
-              <SelectTrigger size="sm" aria-label="Mes" className="capitalize">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTHS.map((name, index) => (
-                  <SelectItem
-                    key={name}
-                    value={String(index)}
-                    disabled={outside(month.getFullYear() * 12 + index)}
-                    className="capitalize"
-                  >
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={String(month.getFullYear())}
-              onValueChange={(next) => setMonth(new Date(Number(next), month.getMonth(), 1))}
-            >
-              <SelectTrigger size="sm" aria-label="Año">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {years.map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <IconChevronLeft aria-hidden />
+            </Button>
+            <div className="flex items-center gap-1.5">
+              <Select
+                value={String(month.getMonth())}
+                onValueChange={(next) => setMonth(new Date(month.getFullYear(), Number(next), 1))}
+              >
+                <SelectTrigger size="sm" aria-label="Mes" className="capitalize">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((name, index) => (
+                    <SelectItem
+                      key={name}
+                      value={String(index)}
+                      disabled={outside(month.getFullYear() * 12 + index)}
+                      className="capitalize"
+                    >
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={String(month.getFullYear())}
+                onValueChange={(next) => setMonth(new Date(Number(next), month.getMonth(), 1))}
+              >
+                <SelectTrigger size="sm" aria-label="Año">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {years.map((year) => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {numberOfMonths === 1 ? nextMonth : <span className="size-8" aria-hidden />}
           </div>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Mes siguiente"
-            disabled={current >= last}
-            onClick={() => step(1)}
-          >
-            <IconChevronRight aria-hidden />
-          </Button>
+          {numberOfMonths === 2 && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="size-8" aria-hidden />
+              <span aria-hidden className="text-sm font-semibold capitalize">
+                {format(fromIndex(current + 1), "LLLL yyyy", { locale: es })}
+              </span>
+              {nextMonth}
+            </div>
+          )}
         </div>
         <Calendar
           locale={es}
@@ -215,7 +236,10 @@ export function PlanCalendar({
           month={month}
           onMonthChange={setMonth}
           numberOfMonths={numberOfMonths}
-          disabled={bounds && [{ before: toDate(bounds.start) }, { after: toDate(bounds.end) }]}
+          disabled={[
+            { before: toDate(firstDay) },
+            ...(bounds ? [{ after: toDate(bounds.end) }] : []),
+          ]}
           onDayClick={pick}
           onDayMouseEnter={(date) => picking != null && setHovered(toDay(date))}
           modifiers={modifiers}
@@ -225,11 +249,8 @@ export function PlanCalendar({
             months: "flex gap-6",
             month: "flex flex-1 flex-col",
             month_grid: "w-full border-collapse",
-            // Con un mes, ya lo dicen los selectores; con dos, cada uno lleva el suyo.
-            month_caption: cn(
-              "flex h-7 items-center justify-center",
-              numberOfMonths === 1 && "sr-only"
-            ),
+            // Lo dice la línea de arriba; aquí queda para quien lee la pantalla.
+            month_caption: "sr-only",
             caption_label: "text-sm font-semibold capitalize",
             weekday:
               "min-w-(--cell-size) flex-1 text-xs font-normal text-muted-foreground select-none",
@@ -244,11 +265,6 @@ export function PlanCalendar({
           }}
           components={{ Root: PlanRoot, DayButton: PlanDay }}
         />
-        {mode === "range" && (
-          <p className="text-muted-foreground text-center text-sm">
-            {picking != null ? "Ahora, el día de fin" : "Pulsa el día de inicio y el de fin"}
-          </p>
-        )}
       </div>
     </OccupancyContext>
   )
@@ -279,7 +295,7 @@ function PlanDay({ day, modifiers, className, ...props }: React.ComponentProps<t
         edge
           ? "text-primary-foreground before:bg-primary font-bold before:absolute before:inset-0.5 before:rounded-lg"
           : !modifiers.disabled && "hover:ring-primary hover:ring-1 hover:ring-inset",
-        // Fuera del plan: el Gantt no llega ahí.
+        // Antes de hoy, o fuera del plan, donde el Gantt no llega.
         modifiers.disabled && "cursor-not-allowed opacity-30",
         className
       )}

@@ -3,6 +3,9 @@ import type {
   CalendarElement,
   CalendarPlan,
   CreateActionInput,
+  CreateCrewMemberInput,
+  CrewMember,
+  Department,
   Column,
   ColumnCategory,
   CreateColumnInput,
@@ -21,6 +24,7 @@ import type {
   Task,
   TaskHistoryEntry,
   TaskInput,
+  UpdateCrewMemberInput,
   UpdateElementPlanInput,
 } from "@repo/contracts"
 
@@ -94,6 +98,19 @@ export interface ElementsRepository {
   deleteElement(elementId: string): Promise<CalendarPlan>
 }
 
+/** El equipo del proyecto: las personas, con o sin cuenta. */
+export interface CrewRepository {
+  listByProject(projectId: string): Promise<CrewMember[]>
+  create(projectId: string, input: CreateCrewMemberInput): Promise<CrewMember>
+  update(crewMemberId: string, input: UpdateCrewMemberInput): Promise<CrewMember>
+  remove(crewMemberId: string): Promise<void>
+}
+
+export interface DepartmentsRepository {
+  /** Los del proyecto, en su orden. */
+  listByProject(projectId: string): Promise<Department[]>
+}
+
 export interface ApiClient {
   projects: ProjectsRepository
   members: MembersRepository
@@ -102,4 +119,6 @@ export interface ApiClient {
   tasks: TasksRepository
   history: HistoryRepository
   elements: ElementsRepository
+  crew: CrewRepository
+  departments: DepartmentsRepository
 }

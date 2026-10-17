@@ -97,6 +97,8 @@ interface ElementPickerProps {
   onChange: (elementId: string) => void
   /** Lo que dice mientras no hay nada elegido. */
   placeholder: string
+  /** El aspecto del botón, si el formulario lo pide. */
+  className?: string
 }
 
 /** Un campo para elegir un elemento: un botón con el elegido que abre el buscador. */
@@ -106,6 +108,7 @@ export function ElementPicker({
   value,
   onChange,
   placeholder,
+  className,
 }: Readonly<ElementPickerProps>) {
   const [open, setOpen] = useState<boolean>(false)
   const selected = options.find((option) => option.element.id === value)
@@ -117,7 +120,7 @@ export function ElementPicker({
           type="button"
           variant="outline"
           aria-label={label}
-          className="w-full justify-between font-normal"
+          className={cn("w-full justify-between font-normal", className)}
         >
           {selected ? (
             <span className="flex min-w-0 items-center gap-2">

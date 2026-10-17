@@ -10,7 +10,7 @@ import {
 import { fromIsoDate } from "@repo/domain"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { toast } from "sonner"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest"
 import { createFakeApi, createWrapper } from "@/shared/api/testing"
 import { CalendarPage } from "../components/CalendarPage"
 import { DEFAULT_GANTT_FIELDS, saveGanttFields } from "../lib/ganttFields"
@@ -101,8 +101,11 @@ beforeEach(() => {
   device.mobile = false
   localStorage.clear()
   vi.mocked(toast.success).mockClear()
+  vi.mocked(toast.error).mockClear()
   api = createFakeApi()
   api.projects.listMine.mockResolvedValue([summary("owner")])
+  api.crew.listByProject.mockResolvedValue([])
+  api.departments.listByProject.mockResolvedValue([])
 })
 
 describe("CalendarPage", () => {
@@ -1672,6 +1675,43 @@ describe("CalendarPage", () => {
       expect(
         document.querySelector('[data-track="rodaje#acciones"] [data-cell-selection]')
       ).not.toBeNull()
+    })
+
+    it("en «Cuándo», una acción de un día pasa a otro día sin chocar con su propio fin", async () => {
+      // Con hoy fijo: la rejilla empieza el 12 de octubre y el 23 se puede elegir.
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 9, 13) })
+      onTestFinished(() => {
+        vi.useRealTimers()
+      })
+      api.elements.getPlan.mockResolvedValue(
+        planOf([
+          rodaje({ startsOn: "2027-04-05", endsOn: "2027-05-16" }),
+          element("ensayos", "rodaje", "Ensayos", {
+            kind: "task",
+            startsOn: "2026-10-20",
+            endsOn: "2026-10-20",
+            duration: { amount: 1, unit: "days" },
+            isPinned: true,
+          }),
+        ])
+      )
+      renderPage()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Desplegar Rodaje" }))
+      const lane = document.querySelector<HTMLElement>('[data-track="rodaje#acciones"]')!
+      fireEvent.pointerDown(lane, { button: 0, clientX: 8 * 48 + 10, pointerType: "mouse" })
+      fireEvent.pointerUp(lane)
+      const panel = await screen.findByRole("dialog", { name: "Ensayos" })
+      await userEvent.click(within(panel).getByRole("button", { name: /^Cuándo:/ }))
+      const day = document.querySelector<HTMLElement>('[data-day="2026-10-23"] button')!
+      await userEvent.click(day)
+      await userEvent.click(day)
+
+      expect(toast.error).not.toHaveBeenCalled()
+      expect(
+        within(panel).getByRole("button", { name: /^Cuándo: vie 23 oct → vie 23 oct 2026/ })
+      ).toBeInTheDocument()
+      expect(within(panel).getByText(/sin guardar/)).toBeInTheDocument()
     })
 
     it("quien no es propietaria elige celdas, pero no ve el menú de crear", async () => {

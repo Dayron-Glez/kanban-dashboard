@@ -73,6 +73,7 @@ export function CreateActionSheet({
   return (
     <ActionFormLayout
       form={form}
+      projectId={projectId}
       label={NEW_ACTION_TITLE[kind]}
       heading={
         <>

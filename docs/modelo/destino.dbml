@@ -493,7 +493,7 @@ Table calendar.element_dependencies {
 Table calendar.element_assignees {
   element_id uuid [not null, ref: > calendar.elements.id]
   crew_member_id uuid [not null, ref: > core.crew_members.id]
-  role calendar.assignee_role [not null, default: 'executor']
+  role calendar.assignee_role [not null]
 
   indexes {
     (element_id, crew_member_id) [pk]
@@ -522,6 +522,7 @@ Table calendar.element_guests {
   crew_member_id uuid [ref: > core.crew_members.id]
   email text [note: 'Invitado de fuera del equipo']
   full_name text [note: 'Obligatorio si es de fuera, como el email: los dos hacen falta para la convocatoria']
+  position int [not null, note: 'El orden en que se añadieron: se sustituyen todos a la vez']
 
   indexes {
     (element_id, crew_member_id) [unique]

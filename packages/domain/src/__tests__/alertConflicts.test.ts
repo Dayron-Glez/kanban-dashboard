@@ -1,4 +1,4 @@
-import type { Alert, ElementKind, OpenWhen } from "@repo/contracts"
+import { NO_PEOPLE, type Alert, type ElementKind, type OpenWhen } from "@repo/contracts"
 import { describe, expect, it } from "vitest"
 import { findAlertConflicts } from "../alertConflicts"
 
@@ -152,7 +152,7 @@ describe("findAlertConflicts", () => {
     ).toEqual([{ elementId: "ese-dia", from: "2026-10-16", to: "2026-10-16", extent: "full" }])
   })
 
-  it("solo acciones y procesos con fechas, y solo alertas de todo el proyecto", () => {
+  it("solo acciones y procesos con fechas", () => {
     const elements = [
       element("rodaje", "2026-10-01", "2026-10-30", "phase"),
       element("bloque", "2026-10-01", "2026-10-30", "subphase"),
@@ -164,7 +164,67 @@ describe("findAlertConflicts", () => {
       "shooting",
       "viaje",
     ])
-    expect(findAlertConflicts(elements, [alert({}, "targeted")])).toEqual([])
+  })
+
+  describe("alertas de personas y departamentos", () => {
+    const people = (value: Partial<typeof NO_PEOPLE>) => ({ ...NO_PEOPLE, ...value })
+    const elements = [
+      { ...element("responsable", "2026-10-16"), people: people({ responsibleId: "marta" }) },
+      {
+        ...element("ejecutante", "2026-10-16"),
+        people: people({ executorIds: ["pedro", "marta"] }),
+      },
+      {
+        ...element("invitada", "2026-10-16"),
+        people: people({ guests: [{ crewMemberId: "marta", fullName: null, email: null }] }),
+      },
+      { ...element("de-sonido", "2026-10-16"), people: people({ departmentIds: ["sonido"] }) },
+      { ...element("de-pedro", "2026-10-16"), people: people({ executorIds: ["pedro"] }) },
+      {
+        ...element("de-fuera", "2026-10-16"),
+        people: people({ guests: [{ crewMemberId: null, fullName: "Marta", email: "m@x.es" }] }),
+      },
+      element("nadie", "2026-10-16"),
+    ]
+    const crew = [
+      { id: "marta", departmentId: null },
+      { id: "pedro", departmentId: "sonido" },
+    ]
+    const affected = (targets: Partial<Pick<Alert, "crewMemberIds" | "departmentIds">>) =>
+      findAlertConflicts(elements, [{ ...alert({}, "targeted"), ...targets }], crew).map(
+        (conflict) => conflict.elementId
+      )
+
+    it("una persona: donde es responsable, ejecutante o participante del equipo", () => {
+      expect(affected({ crewMemberIds: ["marta"] })).toEqual([
+        "responsable",
+        "ejecutante",
+        "invitada",
+      ])
+    })
+
+    it("una persona con departamento: también donde interviene su departamento", () => {
+      expect(affected({ crewMemberIds: ["pedro"] })).toEqual([
+        "ejecutante",
+        "de-sonido",
+        "de-pedro",
+      ])
+    })
+
+    it("un departamento: donde interviene él o alguien de él", () => {
+      expect(affected({ departmentIds: ["sonido"] })).toEqual([
+        "ejecutante",
+        "de-sonido",
+        "de-pedro",
+      ])
+    })
+
+    it("sin saber el equipo, solo el departamento asignado", () => {
+      const conflicts = findAlertConflicts(elements, [
+        { ...alert({}, "targeted"), departmentIds: ["sonido"] },
+      ])
+      expect(conflicts.map((conflict) => conflict.elementId)).toEqual(["de-sonido"])
+    })
   })
 
   it("dice de qué alerta es cada conflicto", () => {

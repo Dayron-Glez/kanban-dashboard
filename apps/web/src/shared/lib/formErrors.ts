@@ -10,6 +10,10 @@ const CUSTOM: Record<string, string> = {
   completed: "Solo las tareas se marcan como hechas",
   videoApp: "Solo las reuniones tienen videollamada",
   videoUrl: "Elige antes la app de la videollamada",
+  people: "El viaje y la contratación no llevan personas",
+  "people.executorIds": "El responsable no puede ser además ejecutante",
+  "people.departmentIds": "Ese departamento ya está",
+  "people.guests": "Esa persona ya está entre los participantes",
 }
 
 const FORMATS: Record<string, string> = {
