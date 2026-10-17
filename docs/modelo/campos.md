@@ -70,6 +70,8 @@ Las tablas son de `calendar` salvo que se indique otra cosa: `elements.name` es 
 | Ya se realizó  | `elements.completed_at`, `completed_by` | No                   | Sin marcar            | Solo en tareas (CHECK). Tacha la acción y quita sus avisos       | Hecho |
 
 - **Las fechas no son campos libres**: inicio y fin salen del motor (duración más reglas). La «fórmula» de FFCal («−1 semana inicio de Rodaje») es una regla de dependencia, ya hecha (`SetElementRuleInput`). Escribir una fecha a mano fija la acción.
+- **El selector de «Cuándo» de las acciones** no pide la duración con su unidad (una acción no dura semanas ni meses, 17 oct) y elegir es aplicar, sin «Aplicar»: un día, al pulsarlo; un periodo, al pulsar el fin. El de las fases sí la pide, con su botón.
+- **No se planifica hacia atrás** (17 oct): ningún calendario deja elegir días anteriores a hoy, y en el menú de una celda pasada no se crean acciones. Lo guardado antes de hoy se puede seguir editando. De momento es solo de la interfaz: la API no lo comprueba.
 - **FFCal escribe la duración de las horas** (hora de inicio + duración = hora de fin). Aquí se guarda la hora de fin y la duración se muestra en el formulario, calculada: es un campo solo de interfaz.
 - **Reunión y recordatorio** son de un día: sin campo de fin. Lo comprueban contracts y la API; no hay CHECK, porque la fecha de fin la escribe el motor después de insertar la fila y la incumpliría.
 - **El «Cuándo» de las acciones no tiene fin abierto**, salvo la contratación sin baja. El de la alerta sí (`OpenWhenSchema`).
@@ -106,14 +108,18 @@ Las tablas son de `calendar` salvo que se indique otra cosa: `elements.name` es 
 | Campo         | Dónde se guarda                           | Oblig. | Por defecto   | Validación                                                                      | Llega |
 | ------------- | ----------------------------------------- | ------ | ------------- | ------------------------------------------------------------------------------- | ----- |
 | Creada por    | `elements.created_by`                     | Auto   | Quien la crea | Solo lectura. No existe todavía en la base                                      | 5c    |
-| Responsable   | `element_assignees`, `role = responsible` | No     | —             | Como mucho uno (índice único parcial)                                           | 5c    |
-| Ejecutantes   | `element_assignees`, `role = executor`    | No     | —             | Personas del equipo del proyecto, sin repetir                                   | 5c    |
-| Departamentos | `element_departments`                     | No     | —             | Departamentos del proyecto, sin repetir                                         | 5c    |
-| Participantes | `element_guests`                          | No     | —             | Del equipo, o nombre y email de fuera (los dos obligatorios). Email sin repetir | 5c    |
+| Responsable   | `element_assignees`, `role = responsible` | No     | —             | Como mucho uno (índice único parcial)                                           | Hecho |
+| Ejecutantes   | `element_assignees`, `role = executor`    | No     | —             | Personas del equipo del proyecto, sin repetir                                   | Hecho |
+| Departamentos | `element_departments`                     | No     | —             | Departamentos del proyecto, sin repetir                                         | Hecho |
+| Participantes | `element_guests`                          | No     | —             | Del equipo, o nombre y email de fuera (los dos obligatorios). Email sin repetir | Hecho |
 
 - **En FFCal cada persona es un texto suelto** (cargo, nombre, email y departamento) que se rellena al elegir a alguien conocido. Aquí el responsable y los ejecutantes son siempre personas del equipo (`core.crew_members`), y solo los participantes pueden ser de fuera.
 - **«Basta el cargo si el puesto aún no tiene persona»** no cabe en este modelo. Es lo que hace la contratación sin trabajador. Ver 7.4.
-- **Los conflictos con las alertas de personas y departamentos** salen de esta sección: personas asignadas, participantes, viajeros, el contratado y sus departamentos.
+- **Cada persona, un solo papel**: el responsable no es además ejecutante. Los participantes sí pueden repetir a alguien asignado. Los emails se guardan en minúsculas, y se comparan así para no repetirlos.
+- **Se guardan enteras**: al editar, las cuatro listas se sustituyen de una vez (`people` en `PATCH /elements/:id/edits`). Si se borra a alguien del equipo o un departamento, desaparece de las acciones.
+- **El viaje y la contratación no las llevan** (`actionIssues`). Al cambiar a uno de esos tipos, el formulario las quita.
+- **En el formulario**, la sección «Personas» tiene un buscador por campo. Desde cualquiera se puede **añadir a alguien al equipo** (nombre, email opcional y departamento) y queda asignado de una vez; en Participantes, además, **invitar a alguien de fuera**.
+- **Los conflictos con las alertas de personas y departamentos** salen de esta sección (`findAlertConflicts`). Una persona afectada choca donde es responsable, ejecutante o participante del equipo. Un departamento afectado choca donde está asignado o donde interviene alguien de él. Una persona no arrastra a su departamento: si por su falta un departamento no puede trabajar, quien crea la alerta lo marca también (17 oct). Los viajeros y el contratado se sumarán con el viaje y la contratación.
 
 ### 3.6. Etiquetas, notas, enlaces, archivos y ubicación
 
