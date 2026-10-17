@@ -93,6 +93,41 @@ describe("createHttpApi", () => {
     ])
   })
 
+  it("equipo: listar, añadir, cambiar y quitar, con la persona validada", async () => {
+    const lola = {
+      id: "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+      projectId: PROJECT_ID,
+      fullName: "Lola Flores",
+      email: null,
+      departmentId: null,
+    }
+    const { api, sent } = setup((url) =>
+      url.endsWith("/crew") || url.includes("/crew/") ? json(lola) : json([lola])
+    )
+
+    await api.crew.create(PROJECT_ID, { fullName: "Lola Flores" })
+    await api.crew.update(lola.id, { email: "lola@cauce.test" })
+    await api.crew.remove(lola.id)
+
+    expect(sent()).toEqual([
+      { method: "POST", path: `/projects/${PROJECT_ID}/crew`, body: { fullName: "Lola Flores" } },
+      { method: "PATCH", path: `/crew/${lola.id}`, body: { email: "lola@cauce.test" } },
+      { method: "DELETE", path: `/crew/${lola.id}`, body: undefined },
+    ])
+  })
+
+  it("equipo y departamentos: se listan por proyecto", async () => {
+    const { api, sent } = setup(() => json([]))
+
+    await expect(api.crew.listByProject(PROJECT_ID)).resolves.toEqual([])
+    await expect(api.departments.listByProject(PROJECT_ID)).resolves.toEqual([])
+
+    expect(sent()).toEqual([
+      { method: "GET", path: `/projects/${PROJECT_ID}/crew`, body: undefined },
+      { method: "GET", path: `/projects/${PROJECT_ID}/departments`, body: undefined },
+    ])
+  })
+
   it("invitaciones: el proyecto va en la ruta y el correo en el cuerpo", async () => {
     const { api, sent } = setup(() => json(invitation, 201))
 

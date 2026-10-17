@@ -1,6 +1,8 @@
 export type {
   ApiClient,
   ColumnsRepository,
+  CrewRepository,
+  DepartmentsRepository,
   ElementsRepository,
   HistoryRepository,
   InvitationsRepository,
